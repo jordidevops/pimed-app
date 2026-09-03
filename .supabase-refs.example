@@ -1,0 +1,15 @@
+# Project-refs de los proyectos Supabase cloud
+# Copia este archivo a .supabase-refs y rellena los valores reales.
+# NUNCA subir a git — está en .gitignore.
+#
+# Dónde encontrar el project-ref:
+#   https://supabase.com/dashboard/project/<project-ref>/settings/general
+
+STAGING_REF=
+PROD_REF=
+
+
+----------------------------
+El projectes (obres) s'harien de poder assignar a zones (locations) de manera que al fitxar quedes guardat en quina zona s'ha treballat.
+
+

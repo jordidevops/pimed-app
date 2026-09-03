@@ -1,0 +1,34 @@
+name: Attendance period confirm tests
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/tests/attendance_period*.sql'
+      - 'supabase/tests/run_attendance_period_confirm_tests.*'
+      - '.github/workflows/attendance-period-confirm-tests.yml'
+  push:
+    branches: [main, staging]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/tests/attendance_period*.sql'
+
+jobs:
+  sql-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase local
+        run: supabase start -x edge-runtime,imgproxy,logflare,vector
+
+      - name: Reset database (migrations + seed)
+        run: supabase db reset --local
+
+      - name: Run period confirm SQL tests
+        run: bash supabase/tests/run_attendance_period_confirm_tests.sh

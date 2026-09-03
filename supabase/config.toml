@@ -1,0 +1,277 @@
+# Se usa para distinguir proyectos locales en el mismo host.
+project_id = "env(PROJECT_ID)"
+
+[api]
+enabled = true
+port = 54321
+# SEGURETAT: Exposar "data" aquí converteix TOTES les taules data.* en endpoints
+# REST directes accessibles per anon/authenticated, bypassant la capa api.*.
+# Mai afegir "data" a aquesta llista. Usa RPCs SECURITY DEFINER a api.* per
+# a operacions que necessiten accedir a data.* des de workers/Edge Functions.
+schemas = ["api", "graphql_public"]
+extra_search_path = ["api", "data", "public", "extensions"]
+max_rows = 1000
+
+[api.tls]
+enabled = false
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql", "./seeds/attendance_demo.sql"]
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[storage.image_transformation]
+enabled = true
+
+# =============================================================================
+# AUTH — configuración local (dev)
+# Para staging/prod: configurar en Supabase Dashboard > Authentication > Settings
+# =============================================================================
+[auth]
+enabled = true
+
+# URL base del frontend principal (tenant-portal en dev)
+site_url = "http://127.0.0.1:5173"
+
+# URLs autorizadas para redirect OAuth — incluye ambos frontends locales
+additional_redirect_urls = [
+  "http://127.0.0.1:5173",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173/auth/callback",
+  "http://localhost:5173/auth/callback",
+  "http://127.0.0.1:3000",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000/auth/callback",
+  "http://localhost:3000/auth/callback"
+]
+
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+# En dev, desactivar confirmación de email para facilitar pruebas
+enable_confirmations = false
+max_frequency = "1s"
+otp_length = 6
+otp_expiry = 3600
+
+[auth.sms]
+enable_signup = false
+enable_confirmations = false
+
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+enroll_enabled = false
+verify_enabled = false
+
+# =============================================================================
+# Google OAuth — las credenciales se leen de supabase/.env (NO commitear)
+# Instrucciones: ver docs/01-supabase-local-setup.md sección 7
+# =============================================================================
+[auth.external.google]
+enabled = true
+client_id = "env(GOOGLE_CLIENT_ID)"
+secret = "env(GOOGLE_CLIENT_SECRET)"
+skip_nonce_check = false
+
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/data/custom_access_token_hook"
+
+
+# =============================================================================
+# Functions
+# Valors utilitzats al desplegar lkes funcions amb 'supabase functions deploy <f_name>'
+# =============================================================================
+[functions.resend-webhook]
+verify_jwt = false
+
+[functions.receive-recruitment-email]
+verify_jwt = false
+
+[functions.process-email-queue]
+verify_jwt = false
+
+[functions.health]
+verify_jwt = false
+
+[functions.employee-portal-api]
+verify_jwt = false
+
+[functions.station-api]
+verify_jwt = false
+
+[functions.send-employee-portal-access-email]
+verify_jwt = true
+
+[functions.inspect-api]
+verify_jwt = false
+
+[functions.send-attendance-inspection-access-email]
+verify_jwt = true
+
+[functions.process-employee-portal-push-queue]
+verify_jwt = false
+
+[functions.scan-employee-portal-punch-reminders]
+verify_jwt = false
+
+[functions.process-deletion-queue]
+verify_jwt = false
+
+[functions.process-reminders-queue]
+verify_jwt = false
+
+[functions.process-project-events]
+verify_jwt = false
+
+[functions.request-document-upload]
+verify_jwt = true
+
+[functions.get-document-url]
+verify_jwt = true
+
+[functions.create-document-share-link]
+verify_jwt = true
+
+[functions.geocoding-proxy]
+verify_jwt = true
+
+[functions.save-map-api-key]
+verify_jwt = true
+
+[functions.test-map-api-key]
+verify_jwt = true
+
+[functions.routes-proxy]
+verify_jwt = true
+
+[functions.resolve-document-share]
+verify_jwt = false
+
+[functions.resolve-customer-report-share]
+verify_jwt = false
+
+[functions.resolve-customer-portal-grant]
+verify_jwt = false
+
+[functions.set-customer-portal-locale]
+verify_jwt = false
+
+[functions.fulfill-customer-report-share-emails]
+verify_jwt = false
+
+[functions.copy-customer-report-media]
+verify_jwt = true
+
+[functions.stream-customer-report-media]
+verify_jwt = false
+
+[functions.process-domain-verification]
+verify_jwt = false
+
+[functions.process-leads-queue]
+verify_jwt = false
+
+[functions.process-attendance-queue]
+verify_jwt = false
+
+[functions.process-attendance-protocol-publish-queue]
+verify_jwt = false
+
+[functions.process-notification-queue]
+verify_jwt = false
+
+[functions.process-webhook-queue]
+verify_jwt = false
+
+[functions.process-risk-detector-queue]
+verify_jwt = false
+
+[functions.process-playbook-queue]
+verify_jwt = false
+
+[functions.export-entity-timeline]
+verify_jwt = true
+
+[functions.twilio-status-callback]
+verify_jwt = false
+
+[functions.sign-document-router]
+verify_jwt = true
+
+[functions.signing-session-manager]
+verify_jwt = true
+
+[functions.stamp-pdf-signatures]
+verify_jwt = true
+
+[functions.docuseal-webhook]
+verify_jwt = false
+
+[functions.save-tenant-api-key]
+verify_jwt = true
+
+[functions.generate-ai-content]
+verify_jwt = true
+
+[functions.structure-recruitment-cv]
+verify_jwt = true
+
+[functions.ai-template-generator]
+verify_jwt = true
+
+[functions.refresh-ai-models]
+verify_jwt = true
+
+[functions.test-ai-connection]
+verify_jwt = true
+
+[functions.ai-chat-turn]
+verify_jwt = true
+
+[functions.ai-chat-apply-proposal]
+verify_jwt = true
+
+[functions.ai-cron-analytics]
+verify_jwt = false
+
+[functions.save-platform-api-key]
+verify_jwt = true
+
+[functions.refresh-platform-ai-models]
+verify_jwt = true

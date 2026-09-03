@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#4f46e5" />
+    <link rel="apple-touch-icon" href="/pwa-192.svg" />
+    <title>Portal de Clientes</title>
+    <!-- No-flash theme init: apply dark class + CSS vars before first paint -->
+    <script>
+      try {
+        var t = localStorage.getItem('theme') || 'system';
+        var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.classList.add('dark');
+
+        var presets = {
+          slate:  { p: '222.2 47.4% 11.2%', pf: '210 40% 98%' },
+          violet: { p: '263.4 70% 50.4%',   pf: '210 40% 98%' },
+          rose:   { p: '346.8 77.5% 49.8%', pf: '355.7 100% 97.3%' },
+          orange: { p: '24.6 95% 53.1%',    pf: '60 9.1% 97.8%' },
+        };
+        var cp = presets[localStorage.getItem('color-preset')] || presets.slate;
+        document.documentElement.style.setProperty('--primary', cp.p);
+        document.documentElement.style.setProperty('--primary-foreground', cp.pf);
+        document.documentElement.style.setProperty('--ring', cp.p);
+
+        var radii = { none: '0rem', sm: '0.3rem', md: '0.5rem', lg: '1rem', full: '1.5rem' };
+        var rv = radii[localStorage.getItem('radius-preset')] || '0.5rem';
+        document.documentElement.style.setProperty('--radius', rv);
+      } catch (_) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

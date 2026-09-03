@@ -1,0 +1,52 @@
+{
+  "name": "public-portal",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3002",
+    "dev:webpack": "next dev --port 3002 --webpack",
+    "build": "next build",
+    "start": "next start --port 3002",
+    "lint": "next lint",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "@supabase/supabase-js": "^2.101.0",
+    "@upstash/ratelimit": "^2.0.7",
+    "@upstash/redis": "^1.35.6",
+    "@zxing/browser": "^0.2.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "dexie": "^4.4.4",
+    "i18next": "^26.0.6",
+    "lucide-react": "^1.8.0",
+    "next": "^16.2.3",
+    "qrcode": "^1.5.4",
+    "radix-ui": "^1.4.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-hook-form": "^7.72.1",
+    "react-i18next": "^17.0.4",
+    "sanitize-html": "^2.15.0",
+    "shadcn": "^4.2.0",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.5.0",
+    "tw-animate-css": "^1.4.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.2",
+    "@types/node": "^22.0.0",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/sanitize-html": "^2.15.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.2.3",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.10"
+  }
+}

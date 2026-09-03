@@ -1,0 +1,42 @@
+---
+description: Gestió d'errors i observabilitat a Edge Functions i workers
+globs:
+  - supabase/functions/**/*.ts
+alwaysApply: false
+---
+
+# Gestió d'errors i observabilitat
+
+Segueix les directrius completes a `docs/plans/Sentry/developer-guidelines.md`.
+
+## Destinacions
+
+| Destí | Quan |
+|-------|------|
+| HTTP 4xx | Validació, permisos, límits de negoci esperables |
+| `tenant_operation_logs` | Fallades async/integració visibles per manager tenant |
+| Sentry (`captureException`) | Bugs, infra, excepcions no previstes |
+| `audit_logs` | Accions humanes d'èxit — **mai errors** |
+
+## Imports (Edge Functions)
+
+```typescript
+import { initObservability, captureException } from "../_shared/observability/system-error-tracker.ts";
+import { log, timedCall, defaultSlowHandler } from "../_shared/observability/structured-logger.ts";
+import { createOperationLogService } from "../_shared/observability/operation-log-service.ts";
+```
+
+Crida `initObservability()` al inici de `Deno.serve`.
+
+## Prohibicions
+
+- Cap `Sentry.capture*` directe
+- Cap `console.log/error` directe — usar `log()`
+- Cap error operatiu a `audit_logs`
+- Cap secret ni PII completa als logs
+
+## Convencions
+
+- `feature` = nom de la Edge Function
+- `correlation_id` = id estable (email_log_id, job_id, conversation_id)
+- Crides externes: `timedCall()` + `durationMs` a operation logs

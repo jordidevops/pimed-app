@@ -1,0 +1,1 @@
+-- Placeholder (CLI artefact). Implementació real: 20260822000001_payroll_export_profiles_d3.sql

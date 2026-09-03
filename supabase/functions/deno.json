@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "lib": ["deno.window", "deno.ns", "esnext"],
+    "strict": true
+  },
+  "imports": {
+    "npm:@supabase/supabase-js@2": "npm:@supabase/supabase-js@2",
+    "npm:@aws-sdk/client-s3": "npm:@aws-sdk/client-s3",
+    "npm:@aws-sdk/s3-request-presigner": "npm:@aws-sdk/s3-request-presigner",
+    "npm:liquidjs": "npm:liquidjs@10",
+    "npm:pizzip": "npm:pizzip@3",
+    "npm:docxtemplater": "npm:docxtemplater@3",
+    "zod": "npm:zod@3",
+    "zod-to-json-schema": "npm:zod-to-json-schema@3",
+    "unpdf": "npm:unpdf@0.11",
+    "web-push": "npm:web-push@3",
+    "npm:qrcode": "npm:qrcode@1.5.4"
+  }
+}

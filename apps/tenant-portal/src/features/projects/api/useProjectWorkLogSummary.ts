@@ -1,0 +1,167 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { useWorkLog } from './useWorkLog'
+
+export type WorkLogInterval = {
+  check_in: string | null
+  check_out: string | null
+  duration_minutes: number | null
+  status: string | null
+  seconds: number
+  isOpen: boolean
+}
+
+type WorkLogRow = {
+  project_id?: string | null
+  check_in: string | null
+  check_out: string | null
+  duration_minutes: number | null
+  status: string | null
+}
+
+function rowSeconds(row: WorkLogRow, nowMs = Date.now()): number {
+  if (row.duration_minutes != null && row.check_out) {
+    return Math.max(0, row.duration_minutes * 60)
+  }
+  if (row.check_in && row.check_out) {
+    return Math.max(0, Math.floor((new Date(row.check_out).getTime() - new Date(row.check_in).getTime()) / 1000))
+  }
+  if (row.check_in && !row.check_out) {
+    return Math.max(0, Math.floor((nowMs - new Date(row.check_in).getTime()) / 1000))
+  }
+  return 0
+}
+
+export function useProjectWorkLogSummary(projectId: string | null) {
+  const { openLog, isLoading: openLoading } = useWorkLog(projectId)
+  const [liveSeconds, setLiveSeconds] = useState(0)
+
+  const logsQuery = useQuery({
+    queryKey: ['work_logs', 'project-summary', projectId],
+    enabled: !!projectId,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    queryFn: async (): Promise<WorkLogRow[]> => {
+      const { data, error } = await supabase
+        .from('work_logs')
+        .select('check_in, check_out, duration_minutes, status')
+        .eq('project_id', projectId!)
+        .order('check_in', { ascending: false })
+
+      if (error) throw error
+      return (data ?? []) as WorkLogRow[]
+    },
+  })
+
+  const openCheckIn = openLog?.check_in ?? null
+  const isOpen = !!openLog?.id
+
+  useEffect(() => {
+    if (!openCheckIn || !isOpen) {
+      setLiveSeconds(0)
+      return
+    }
+    const startMs = new Date(openCheckIn).getTime()
+    const tick = () => setLiveSeconds(Math.max(0, Math.floor((Date.now() - startMs) / 1000)))
+    tick()
+    const id = window.setInterval(tick, 1000)
+    return () => window.clearInterval(id)
+  }, [openCheckIn, isOpen])
+
+  const intervals = useMemo((): WorkLogInterval[] => {
+    const rows = logsQuery.data ?? []
+    return rows.map((row) => {
+      const open = !row.check_out
+      const seconds = open
+        ? (isOpen ? liveSeconds : 0)
+        : rowSeconds(row)
+      return {
+        check_in: row.check_in,
+        check_out: row.check_out,
+        duration_minutes: row.duration_minutes,
+        status: row.status,
+        seconds,
+        isOpen: open,
+      }
+    })
+  }, [logsQuery.data, isOpen, liveSeconds])
+
+  const closedSeconds = useMemo(() => {
+    return intervals.reduce((acc, row) => (row.isOpen ? acc : acc + row.seconds), 0)
+  }, [intervals])
+
+  const totalSeconds = closedSeconds + (isOpen ? liveSeconds : 0)
+  const sessionSeconds = isOpen ? liveSeconds : 0
+
+  return {
+    isLoading: openLoading || logsQuery.isLoading,
+    isOpen,
+    openCheckIn,
+    closedSeconds,
+    sessionSeconds,
+    totalSeconds,
+    intervals,
+    refetch: logsQuery.refetch,
+  }
+}
+
+/** Batch totals for a page of projects (seconds, including open session live value for active id). */
+export function useProjectsWorkLogTotals(
+  projectIds: string[],
+  activeOpen?: { projectId: string | null; checkIn: string | null } | null,
+) {
+  const sortedIds = useMemo(() => [...new Set(projectIds.filter(Boolean))].sort(), [projectIds])
+  const [liveSeconds, setLiveSeconds] = useState(0)
+
+  const query = useQuery({
+    queryKey: ['work_logs', 'project-totals', sortedIds],
+    enabled: sortedIds.length > 0,
+    staleTime: 15_000,
+    queryFn: async (): Promise<WorkLogRow[]> => {
+      const { data, error } = await supabase
+        .from('work_logs')
+        .select('project_id, check_in, check_out, duration_minutes, status')
+        .in('project_id', sortedIds)
+
+      if (error) throw error
+      return (data ?? []) as WorkLogRow[]
+    },
+  })
+
+  useEffect(() => {
+    if (!activeOpen?.projectId || !activeOpen.checkIn) {
+      setLiveSeconds(0)
+      return
+    }
+    const startMs = new Date(activeOpen.checkIn).getTime()
+    const tick = () => setLiveSeconds(Math.max(0, Math.floor((Date.now() - startMs) / 1000)))
+    tick()
+    const id = window.setInterval(tick, 1000)
+    return () => window.clearInterval(id)
+  }, [activeOpen?.projectId, activeOpen?.checkIn])
+
+  const totals = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const row of query.data ?? []) {
+      const pid = row.project_id
+      if (!pid) continue
+      const open = !row.check_out
+      if (open) continue
+      map.set(pid, (map.get(pid) ?? 0) + rowSeconds(row))
+    }
+    if (activeOpen?.projectId) {
+      map.set(
+        activeOpen.projectId,
+        (map.get(activeOpen.projectId) ?? 0) + liveSeconds,
+      )
+    }
+    return map
+  }, [query.data, activeOpen?.projectId, liveSeconds])
+
+  return {
+    totals,
+    isLoading: query.isLoading,
+    refetch: query.refetch,
+  }
+}

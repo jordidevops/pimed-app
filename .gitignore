@@ -1,0 +1,97 @@
+# =============================================================================
+# Vercel — generat dinàmicament pel workflow de CI/CD (no commitear)
+# =============================================================================
+apps/admin-portal/.vercel/
+apps/tenant-portal/.vercel/
+apps/public-portal/.vercel/
+
+# =============================================================================
+# Supabase
+# =============================================================================
+# CLI working directory (project-ref vinculado, caché interna)
+.supabase/
+
+# Secrets generats en local per `supabase start` (JWT, DB password, service role key...)
+supabase/.temp/
+
+# Secrets locals del stack Supabase (coberts pels patrons globals .env.local, .env.staging, .env.production)
+# supabase/.env.local       ← variables locals (PROJECT_ID, GOOGLE_CLIENT_ID...)
+# supabase/functions/.env.local ← secrets locals de les Edge Functions
+supabase/.env
+supabase/functions/.env.local
+
+# Project-refs de staging/prod (valores reales no van a git)
+.supabase-refs
+
+# =============================================================================
+
+# Variables de entorno — archivos con secrets reals (staging/prod)
+# .env.development SÍ es pot commitejar NOMÉS si conté únicament URLs/valors de localhost.
+# En quant afegeixis DATABASE_URL o altres secrets reals, mou-los a .env.staging / .env.production.
+# =============================================================================
+.env
+.env.local
+.env.staging
+.env.production
+.env.*.local
+
+
+apps/admin-portal/.env.development
+apps/public-portal/.env.development
+apps/public-portal/.env
+supabase/functions/.env
+
+# =============================================================================
+# Node.js
+# =============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =============================================================================
+# Vite (tenant-portal)
+# =============================================================================
+apps/tenant-portal/dist/
+apps/tenant-portal/.vite/
+apps/tenant-portal/playwright/.auth/
+apps/tenant-portal/playwright-report/
+apps/tenant-portal/test-results/
+
+# =============================================================================
+# Next.js (admin-portal)
+# =============================================================================
+apps/admin-portal/.next/
+apps/admin-portal/out/
+
+# =============================================================================
+# Next.js (public-portal)
+# =============================================================================
+apps/public-portal/.next/
+apps/public-portal/out/
+
+# =============================================================================
+# OS / Editor
+# =============================================================================
+.DS_Store
+Thumbs.db
+.vscode/settings.json
+*.swp
+*.swo
+
+# =============================================================================
+# Scratch / debug locals (no commitejar)
+# =============================================================================
+.tmp*
+/tmp_*
+*.tmp
+*.tmp.*
+debug*.log
+debug*.txt
+debug*.sql
+.cursor/debug*
+
+# =============================================================================
+# Comandes per copiar a la terminal que poden tenir secrets
+# =============================================================================
+DEV_RUNBOOK.md

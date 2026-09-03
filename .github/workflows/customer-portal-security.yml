@@ -1,0 +1,24 @@
+name: Customer portal security boundary
+
+on:
+  pull_request:
+    paths:
+      - 'apps/customer-portal/**'
+      - '.github/workflows/customer-portal-security.yml'
+  push:
+    branches: [development, staging, main]
+    paths:
+      - 'apps/customer-portal/**'
+      - '.github/workflows/customer-portal-security.yml'
+
+jobs:
+  no-service-role-in-bff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Enforce customer-portal credential boundary
+        run: npm run check:no-service-role
+        working-directory: apps/customer-portal

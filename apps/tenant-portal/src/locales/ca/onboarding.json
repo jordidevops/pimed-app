@@ -1,0 +1,32 @@
+{
+  "onboarding": {
+    "step_sector_title": "Quin és el teu sector?",
+    "step_sector_subtitle": "Triarem una configuració inicial adaptada al teu negoci.",
+    "step_company_title": "Confirma el nom de la teva empresa",
+    "step_company_subtitle": "Podràs canviar-lo en qualsevol moment des de Configuració.",
+    "step_done_title": "Tot a punt!",
+    "step_done_subtitle": "El teu espai de treball ja està configurat. Pots personalitzar-lo en qualsevol moment.",
+    "company_name_label": "Nom de l'empresa",
+    "company_name_placeholder": "Ex: Instal·lacions Garcia, SL",
+    "company_name_required": "El nom de l'empresa és obligatori.",
+    "btn_next": "Continuar",
+    "btn_back": "Enrere",
+    "btn_finish": "Entrar al tauler",
+    "btn_applying": "Configurant...",
+    "btn_retry": "Reintentar",
+    "step_label": "Pas {{current}} de {{total}}",
+    "catalog_seed_count_badge": "+{{count}} ítems catàleg",
+    "catalog_seed_hint": "S'afegiran {{count}} ítems al teu catàleg per començar.",
+    "catalog_seed_hint_empty": "Podràs afegir ítems al catàleg quan vulguis.",
+    "summary_sector_label": "Sector",
+    "summary_company_label": "Empresa",
+    "error_apply": "No s'ha pogut configurar el sector. Torna-ho a intentar.",
+    "error_load_profiles": "No s'han pogut carregar els sectors. Comprova la connexió.",
+    "skip_for_now": "Configurar-ho més tard",
+    "archetype_field_service_name": "Serveis al Camp",
+    "archetype_practice_name": "Despatx Professional",
+    "archetype_hospitality_name": "Hostaleria i Restauració",
+    "archetype_workshop_maker_name": "Taller i Fabricació",
+    "archetype_generic_name": "Ús General"
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "tenant_content": {
+    "list": {
+      "employee_title": "Contingut portal empleat",
+      "employee_page_title": "Contingut portal empleat",
+      "public_title": "Pàgines web",
+      "subtitle": "{{count}} elements",
+      "new": "Nou",
+      "empty": "Encara no hi ha contingut."
+    },
+    "badges": {
+      "employee": "Intern",
+      "public": "Públic",
+      "dual": "Dual"
+    },
+    "types": {
+      "page": "Pàgina",
+      "announcement": "Anunci"
+    },
+    "channels": {
+      "employee_title": "Portal empleat",
+      "employee_hint": "Contingut intern — només empleats autenticats.",
+      "employee_enabled": "Canal actiu",
+      "public_title": "Web pública",
+      "public_hint": "Visible per visitants externs sense autenticació.",
+      "public_enabled": "Canal actiu"
+    },
+    "audience": {
+      "label": "Audiència",
+      "tenant": "Tota l'organització",
+      "site": "Un local",
+      "departments": "Departaments",
+      "select_site": "Selecciona local"
+    },
+    "fields": {
+      "type": "Tipus",
+      "slug": "Slug",
+      "title": "Títol",
+      "excerpt": "Resum",
+      "content": "Contingut",
+      "content_placeholder": "Escriu el contingut...",
+      "sticky": "Sticky (destacat)",
+      "public_site": "Lloc web públic",
+      "seo_title": "SEO title",
+      "seo_description": "SEO description",
+      "show_in_nav": "Mostrar al menú",
+      "lead_form": "Formulari de contacte"
+    },
+    "usage": {
+      "title": "Pla i capacitats CMS",
+      "tier": "Tier",
+      "pages_per_site": "Pàgines / site",
+      "items_total": "{{count}} items actius",
+      "sticky_dept": "Sticky / dept / programació (empleat)",
+      "web_translations": "Traduccions web / lead form"
+    },
+    "actions": {
+      "cancel": "Cancel·lar",
+      "confirm": "Confirmar",
+      "save_draft": "Desar esborrany",
+      "publish": "Publicar",
+      "archive": "Arxivar"
+    },
+    "editor": {
+      "new_employee": "Nou contingut (portal empleat)",
+      "new_public": "Nova pàgina web",
+      "edit": "Editar contingut"
+    },
+    "nav": {
+      "back_list": "Tornar a la llista",
+      "back_hub": "Accés al portal"
+    },
+    "hub": {
+      "content_intro": "Anuncis i pàgines internes visibles al portal de l'empleat (secció Notícies). Cal publicar perquè siguin visibles."
+    },
+    "tier_hint": {
+      "title": "Pla {{tier}} — funcions limitades",
+      "requires_advanced": "requereix advanced",
+      "employee_body": "Amb el pla basic pots publicar per a tota l'organització. La segmentació per local o departament, els destacats i la programació requereixen pla advanced.",
+      "public_body": "Amb el pla basic pots crear pàgines web. Les traduccions i el formulari de contacte requereixen pla advanced."
+    },
+    "not_enabled": {
+      "employee_title": "Portal d'empleats no activat",
+      "public_title": "Web pública no activada",
+      "description": "Contacta amb l'administrador de la plataforma per activar aquest mòdul."
+    },
+    "announcement_public": {
+      "title": "Fer públic un anunci intern",
+      "body": "Estàs a punt de fer públic un anunci intern. Revisa que no contingui dades confidencials d'empleats.",
+      "checkbox": "He revisat el contingut"
+    },
+    "publish_confirm": {
+      "title": "Confirmar publicació",
+      "reach": "Arribarà a {{count}} empleats.",
+      "body": "El contingut serà visible segons els canals actius."
+    },
+    "success": {
+      "saved": "Desat correctament.",
+      "published": "Publicat.",
+      "archived": "Arxivat."
+    },
+    "errors": {
+      "generic": "No s'ha pogut desar el contingut.",
+      "invalid_slug": "Títol i slug obligatoris (slug en minúscules).",
+      "cms_tier_insufficient": "El teu pla no permet aquesta funció.",
+      "last_channel_required": "Cal mantenir almenys un canal actiu.",
+      "public_site_required": "Selecciona un lloc web públic.",
+      "quota_pages_exceeded": "Has assolit el màxim de pàgines per site.",
+      "module_not_included": "El pla no inclou aquest mòdul.",
+      "module_not_enabled": "El mòdul no està activat."
+    }
+  }
+}

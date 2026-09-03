@@ -1,0 +1,4 @@
+ pg_get_functiondef 
+--------------------
+(0 rows)
+

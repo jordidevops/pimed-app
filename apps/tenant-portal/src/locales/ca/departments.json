@@ -1,0 +1,54 @@
+{
+  "departments": {
+    "title": "Departaments",
+    "new_department": "Nou departament",
+    "breadcrumb_root": "Tots els departaments",
+    "children_count": "{{count}} subdepartaments",
+    "badge": {
+      "inactive": "Inactiu"
+    },
+    "actions": {
+      "edit": "Editar",
+      "add_child": "Afegir subdepartament",
+      "deactivate": "Desactivar",
+      "reactivate": "Reactivar",
+      "view_children": "Veure subdepartaments"
+    },
+    "empty": {
+      "title": "Sense departaments",
+      "description": "Crea el primer departament prement el botó de dalt",
+      "description_sub": "Aquest departament no té subdepartaments"
+    },
+    "form": {
+      "title_create": "Nou departament",
+      "title_edit": "Editar departament",
+      "name_label": "Nom",
+      "name_placeholder": "p.ex. Operacions",
+      "code_label": "Codi",
+      "code_placeholder": "p.ex. OPS",
+      "parent_label": "Departament pare",
+      "no_parent": "(Arrel, sense pare)",
+      "cancel": "Cancel·lar",
+      "save": "Desar",
+      "saving": "Desant…",
+      "attendance_geo_inherit": "Heretar (grup de calendari / tenant)",
+      "attendance_geo_hint": "Override per a tots els empleats d'aquest departament que no tinguin valor propi.",
+      "errors": {
+        "name_required": "El nom és obligatori"
+      }
+    },
+    "toast": {
+      "created": "Departament creat",
+      "updated": "Departament actualitzat",
+      "activated": "Departament activat",
+      "deactivated": "Departament desactivat"
+    },
+    "errors": {
+      "load_failed": "Error en carregar els departaments",
+      "no_tenant": "Selecciona una organització per veure els departaments",
+      "save_failed": "Error en desar el departament",
+      "toggle_failed": "Error en canviar l'estat",
+      "unauthorized": "No tens permís per fer aquesta acció"
+    }
+  }
+}

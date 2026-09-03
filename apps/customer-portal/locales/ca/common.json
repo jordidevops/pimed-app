@@ -1,0 +1,88 @@
+{
+  "portal_title": "Portal del client",
+  "login": {
+    "title": "Accedir",
+    "subtitle": "Introdueix el correu amb què et van convidar. T'enviarem un enllaç d'accés temporal.",
+    "email_label": "Correu electrònic",
+    "email_placeholder": "nom@exemple.com",
+    "submit": "Enviar enllaç",
+    "sent": "Si tenim el teu correu registrat, t'enviarem un enllaç d'accés en uns moments. Revisa la safata d'entrada i el correu no desitjat.",
+    "invalid_link": "Aquest enllaç no és vàlid, ha caducat o s'ha revocat. Demana'n un de nou."
+  },
+  "home": {
+    "open_link": "Obre l'enllaç que t'han enviat per entrar al portal.",
+    "invalid_link": "Aquest enllaç no és vàlid, ha caducat o s'ha revocat.",
+    "account_access": "Accés amb compte?",
+    "enter_here": "Entra aquí"
+  },
+  "nav": {
+    "logout": "Tancar sessió",
+    "back_to_list": "Tornar al llistat",
+    "back_to_list_arrow": "← Tornar al llistat",
+    "back_to_dashboard": "← Dashboard",
+    "login_with_email": "Accedir amb el correu",
+    "login": "Accedir"
+  },
+  "dashboard": {
+    "eyebrow": "Portal del client",
+    "title": "Els teus butlletins",
+    "need_session": "Cal una sessió de client per veure els butlletins.",
+    "session_expired": "La sessió ha caducat o no és vàlida. Torna a accedir.",
+    "empty": "Encara no hi ha butlletins publicats per a tu.",
+    "default_title": "Butlletí d'intervenció",
+    "attachments_one": "{{count}} adjunt",
+    "attachments_other": "{{count}} adjunts"
+  },
+  "staff_list": {
+    "eyebrow": "Vista de suport",
+    "title": "Butlletins del compte",
+    "empty": "Encara no hi ha butlletins publicats per a tu."
+  },
+  "report": {
+    "title": "Butlletí",
+    "need_session": "Cal una sessió de client per veure aquest butlletí.",
+    "unavailable": "Aquest butlletí no és disponible.",
+    "unavailable_or_expired": "Aquest butlletí no és disponible o la sessió ha caducat."
+  },
+  "locale": {
+    "label": "Idioma",
+    "ca": "Català",
+    "es": "Castellà",
+    "en": "English",
+    "saving": "Desant…",
+    "error": "No s'ha pogut canviar l'idioma."
+  },
+  "access": {
+    "title": "Accessos / activitat",
+    "hint": "Qui pot entrar al portal d’aquest compte i sessions de suport recents.",
+    "principals": "Persones amb accés",
+    "support": "Suport",
+    "support_of": "Suport de {{tenant}}",
+    "tenant_fallback": "l'empresa",
+    "unknown_principal": "Accés",
+    "kind_person": "Persona",
+    "kind_shared": "Bústia compartida",
+    "last_seen": "Darrer accés {{date}}",
+    "support_active": "Sessió activa",
+    "support_ended": "Sessió finalitzada",
+    "empty": "Encara no hi ha accessos ni sessions de suport."
+  },
+  "footer": {
+    "provider": "Portal del client",
+    "website": "Web",
+    "privacy": "Privacitat",
+    "terms": "Condicions",
+    "cookies": "Cookies"
+  },
+  "cookies": {
+    "title": "Avís de cookies",
+    "body": "Utilitzem cookies tècniques essencials per a la sessió i la seguretat. No fem servir cookies de màrqueting.",
+    "more": "Més informació",
+    "accept": "Entès"
+  },
+  "errors": {
+    "generic": "S'ha produït un error.",
+    "unauthorized": "No autoritzat.",
+    "not_found": "No trobat."
+  }
+}

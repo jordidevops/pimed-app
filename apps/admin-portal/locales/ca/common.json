@@ -1,0 +1,46 @@
+{
+  "common": {
+    "app_name": "Admin Portal",
+    "nav": {
+      "dashboard": "Dashboard",
+      "monetitzacio": "Monetització",
+      "tenants": "Tenants",
+      "storage": "Storage",
+      "emailLogs": "Historial Emails",
+      "email": "Email",
+      "signing": "Signing",
+      "feature_flags": "Feature Flags",
+      "ai": "IA",
+      "checklist_points": "Punts de revisió",
+      "checklist_response_sets": "Conjunts de respostes",
+      "checklist_templates": "Plantilles checklist",
+      "maintenance_plans": "Plans manteniment",
+      "activity": "Activitat / Logs",
+      "customer_portal": "Portal client",
+      "customer_identities": "Identitats client",
+      "settings": "Configuració"
+    },
+    "user_menu": {
+      "aria_label": "Menú d'usuari",
+      "profile": "Perfil",
+      "sign_out": "Tancar sessió"
+    },
+    "back": "← Enrere",
+    "see_all": "Veure tots →",
+    "no_data": "Sense dades",
+    "new_tenant": "+ Nou tenant",
+    "profile": {
+      "page_title": "Perfil d'usuari",
+      "uid": "ID d'usuari",
+      "auth_provider": "Proveïdor d'autenticació",
+      "account_created": "Compte creat",
+      "last_access": "Últim accés",
+      "email_verified": "Correu verificat",
+      "email_verified_yes": "✓ Verificat",
+      "email_verified_no": "Pendent",
+      "mfa": "MFA",
+      "mfa_active": "Actiu",
+      "mfa_inactive": "Inactiu"
+    }
+  }
+}

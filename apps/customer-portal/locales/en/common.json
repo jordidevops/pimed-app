@@ -1,0 +1,88 @@
+{
+  "portal_title": "Customer portal",
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Enter the email you were invited with. We will send you a temporary access link.",
+    "email_label": "Email",
+    "email_placeholder": "name@example.com",
+    "submit": "Send link",
+    "sent": "If we have your email on file, we will send an access link shortly. Check your inbox and spam folder.",
+    "invalid_link": "This link is invalid, expired, or revoked. Request a new one."
+  },
+  "home": {
+    "open_link": "Open the link you were sent to enter the portal.",
+    "invalid_link": "This link is invalid, expired, or revoked.",
+    "account_access": "Account access?",
+    "enter_here": "Sign in here"
+  },
+  "nav": {
+    "logout": "Sign out",
+    "back_to_list": "Back to list",
+    "back_to_list_arrow": "← Back to list",
+    "back_to_dashboard": "← Dashboard",
+    "login_with_email": "Sign in with email",
+    "login": "Sign in"
+  },
+  "dashboard": {
+    "eyebrow": "Customer portal",
+    "title": "Your bulletins",
+    "need_session": "A customer session is required to view bulletins.",
+    "session_expired": "Your session has expired or is invalid. Please sign in again.",
+    "empty": "No bulletins have been published for you yet.",
+    "default_title": "Intervention bulletin",
+    "attachments_one": "{{count}} attachment",
+    "attachments_other": "{{count}} attachments"
+  },
+  "staff_list": {
+    "eyebrow": "Support view",
+    "title": "Account bulletins",
+    "empty": "No bulletins have been published for you yet."
+  },
+  "report": {
+    "title": "Bulletin",
+    "need_session": "A customer session is required to view this bulletin.",
+    "unavailable": "This bulletin is not available.",
+    "unavailable_or_expired": "This bulletin is not available or the session has expired."
+  },
+  "locale": {
+    "label": "Language",
+    "ca": "Catalan",
+    "es": "Spanish",
+    "en": "English",
+    "saving": "Saving…",
+    "error": "Could not change language."
+  },
+  "access": {
+    "title": "Access / activity",
+    "hint": "Who can enter this account’s portal and recent support sessions.",
+    "principals": "People with access",
+    "support": "Support",
+    "support_of": "Support from {{tenant}}",
+    "tenant_fallback": "the company",
+    "unknown_principal": "Access",
+    "kind_person": "Person",
+    "kind_shared": "Shared mailbox",
+    "last_seen": "Last seen {{date}}",
+    "support_active": "Active session",
+    "support_ended": "Ended session",
+    "empty": "No access or support sessions yet."
+  },
+  "footer": {
+    "provider": "Customer portal",
+    "website": "Website",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "cookies": "Cookies"
+  },
+  "cookies": {
+    "title": "Cookie notice",
+    "body": "We use essential technical cookies for session and security. We do not use marketing cookies.",
+    "more": "More information",
+    "accept": "Got it"
+  },
+  "errors": {
+    "generic": "Something went wrong.",
+    "unauthorized": "Unauthorized.",
+    "not_found": "Not found."
+  }
+}

@@ -1,0 +1,629 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["partialIndexes", "views"]
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["auth", "data"]
+}
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model audit_log_entries {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model custom_oauth_providers {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model flow_state {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model identities {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model instances {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model mfa_amr_claims {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model mfa_challenges {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model mfa_factors {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model oauth_authorizations {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// model oauth_client_states {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model oauth_clients {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model oauth_consents {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model one_time_tokens {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model refresh_tokens {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model saml_providers {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model saml_relay_states {
+// @@schema("auth")
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model schema_migrations {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+// model sessions {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+// model sso_domains {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+// model sso_providers {
+// @@schema("auth")
+// }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model users {
+  instance_id                 String?   @db.Uuid
+  id                          String    @id @db.Uuid
+  aud                         String?   @db.VarChar(255)
+  role                        String?   @db.VarChar(255)
+  email                       String?   @unique(map: "users_email_partial_key", where: raw("(is_sso_user = false)")) @db.VarChar(255)
+  encrypted_password          String?   @db.VarChar(255)
+  email_confirmed_at          DateTime? @db.Timestamptz(6)
+  invited_at                  DateTime? @db.Timestamptz(6)
+  confirmation_token          String?   @unique(map: "confirmation_token_idx", where: raw("((confirmation_token)::text !~ '^[0-9 ]*$'::text)")) @db.VarChar(255)
+  confirmation_sent_at        DateTime? @db.Timestamptz(6)
+  recovery_token              String?   @unique(map: "recovery_token_idx", where: raw("((recovery_token)::text !~ '^[0-9 ]*$'::text)")) @db.VarChar(255)
+  recovery_sent_at            DateTime? @db.Timestamptz(6)
+  email_change_token_new      String?   @unique(map: "email_change_token_new_idx", where: raw("((email_change_token_new)::text !~ '^[0-9 ]*$'::text)")) @db.VarChar(255)
+  email_change                String?   @db.VarChar(255)
+  email_change_sent_at        DateTime? @db.Timestamptz(6)
+  last_sign_in_at             DateTime? @db.Timestamptz(6)
+  raw_app_meta_data           Json?
+  raw_user_meta_data          Json?
+  is_super_admin              Boolean?
+  created_at                  DateTime? @db.Timestamptz(6)
+  updated_at                  DateTime? @db.Timestamptz(6)
+  phone                       String?   @unique
+  phone_confirmed_at          DateTime? @db.Timestamptz(6)
+  phone_change                String?   @default("")
+  phone_change_token          String?   @default("") @db.VarChar(255)
+  phone_change_sent_at        DateTime? @db.Timestamptz(6)
+  confirmed_at                DateTime? @default(dbgenerated("LEAST(email_confirmed_at, phone_confirmed_at)")) @db.Timestamptz(6)
+  email_change_token_current  String?   @unique(map: "email_change_token_current_idx", where: raw("((email_change_token_current)::text !~ '^[0-9 ]*$'::text)")) @default("") @db.VarChar(255)
+  email_change_confirm_status Int?      @default(0) @db.SmallInt
+  banned_until                DateTime? @db.Timestamptz(6)
+  reauthentication_token      String?   @unique(map: "reauthentication_token_idx", where: raw("((reauthentication_token)::text !~ '^[0-9 ]*$'::text)")) @default("") @db.VarChar(255)
+  reauthentication_sent_at    DateTime? @db.Timestamptz(6)
+  is_sso_user                 Boolean   @default(false)
+  deleted_at                  DateTime? @db.Timestamptz(6)
+  is_anonymous                Boolean   @default(false)
+  profiles                    profiles?
+
+  @@index([instance_id])
+  @@index([is_anonymous])
+  @@schema("auth")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model audit_logs {
+  id          String    @id @default(dbgenerated("extensions.uuid_generate_v4()")) @db.Uuid
+  tenant_id   String?   @db.Uuid
+  user_id     String?   @db.Uuid
+  action      String
+  entity_type String?
+  entity_id   String?   @db.Uuid
+  payload     Json?
+  ip_address  String?   @db.Inet
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  tenants     tenants?  @relation(fields: [tenant_id], references: [id], onUpdate: NoAction)
+  profiles    profiles? @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_audit_logs_created_at")
+  @@index([tenant_id], map: "idx_audit_logs_tenant")
+  @@index([tenant_id, created_at(sort: Desc)], map: "idx_audit_logs_tenant_created_at_desc")
+  @@index([user_id], map: "idx_audit_logs_user")
+  @@schema("data")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model files {
+  id           String   @id @default(dbgenerated("extensions.uuid_generate_v4()")) @db.Uuid
+  tenant_id    String   @db.Uuid
+  uploaded_by  String   @db.Uuid
+  bucket_id    String
+  storage_path String
+  file_name    String
+  mime_type    String?
+  size_bytes   BigInt   @default(0)
+  metadata     Json?
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  tenants      tenants  @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles     profiles @relation(fields: [uploaded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([bucket_id, storage_path])
+  @@index([tenant_id], map: "idx_files_tenant")
+  @@schema("data")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model notes {
+  id         String   @id @default(dbgenerated("extensions.uuid_generate_v4()")) @db.Uuid
+  tenant_id  String   @db.Uuid
+  created_by String   @db.Uuid
+  title      String
+  content    String?
+  is_pinned  Boolean  @default(false)
+  metadata   Json?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  profiles   profiles @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tenants    tenants  @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([created_by], map: "idx_notes_created_by")
+  @@index([tenant_id], map: "idx_notes_tenant")
+  @@schema("data")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model plans {
+  id             String          @id @default(dbgenerated("extensions.uuid_generate_v4()")) @db.Uuid
+  name           String          @unique
+  display_name   String
+  max_members    Int             @default(5)
+  max_storage_mb Int             @default(100)
+  max_sites      Int             @default(1)
+  price_monthly  Decimal         @default(0) @db.Decimal(10, 2)
+  is_active      Boolean         @default(true)
+  features_jsonb Json            @default("{}")
+  metadata       Json?
+  max_portal_pages          Int             @default(5)
+  portal_field_limits       Json            @default("{}")
+  portal_entitlements       Json            @default("{}")
+  created_at     DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime        @default(now()) @db.Timestamptz(6)
+  subscriptions  subscriptions[]
+  tenants        tenants[]
+
+  @@schema("data")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model profiles {
+  id                                                 String           @id @db.Uuid
+  email                                              String
+  full_name                                          String?
+  avatar_url                                         String?
+  metadata                                           Json?
+  first_login_at                                     DateTime?        @db.Timestamptz(6)
+  last_login_at                                      DateTime?        @db.Timestamptz(6)
+  created_at                                         DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at                                         DateTime         @default(now()) @db.Timestamptz(6)
+  audit_logs                                         audit_logs[]
+  files                                              files[]
+  notes                                              notes[]
+  users                                              users            @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tenant_members_tenant_members_invited_byToprofiles tenant_members[] @relation("tenant_members_invited_byToprofiles")
+  tenant_members_tenant_members_user_idToprofiles    tenant_members[] @relation("tenant_members_user_idToprofiles")
+
+  @@schema("data")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model storage_usage {
+  tenant_id                  String   @id @db.Uuid
+  file_count                 Int      @default(0)
+  committed_bytes            BigInt   @default(0)
+  reserved_bytes             BigInt   @default(0)
+  documents_committed_bytes  BigInt   @default(0)
+  documents_reserved_bytes   BigInt   @default(0)
+  documents_file_count       Int      @default(0)
+  updated_at                 DateTime @default(now()) @db.Timestamptz(6)
+  tenants                    tenants  @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("data")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model subscriptions {
+  id           String    @id @default(dbgenerated("extensions.uuid_generate_v4()")) @db.Uuid
+  tenant_id    String    @db.Uuid
+  plan_id      String    @db.Uuid
+  status       String    @default("active")
+  started_at   DateTime  @default(now()) @db.Timestamptz(6)
+  ends_at      DateTime? @db.Timestamptz(6)
+  cancelled_at DateTime? @db.Timestamptz(6)
+  metadata     Json?
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  plans        plans     @relation(fields: [plan_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tenants      tenants   @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("data")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model tenant_members {
+  id                                           String    @id @default(dbgenerated("extensions.uuid_generate_v4()")) @db.Uuid
+  tenant_id                                    String    @db.Uuid
+  user_id                                      String    @db.Uuid
+  role                                         String    @default("member")
+  is_active                                    Boolean   @default(true)
+  invited_by                                   String?   @db.Uuid
+  joined_at                                    DateTime  @default(now()) @db.Timestamptz(6)
+  profiles_tenant_members_invited_byToprofiles profiles? @relation("tenant_members_invited_byToprofiles", fields: [invited_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tenants                                      tenants   @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profiles_tenant_members_user_idToprofiles    profiles  @relation("tenant_members_user_idToprofiles", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tenant_id, user_id])
+  @@index([tenant_id], map: "idx_tenant_members_tenant")
+  @@index([user_id], map: "idx_tenant_members_user")
+  @@schema("data")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model tenants {
+  id                       String                    @id @default(dbgenerated("extensions.uuid_generate_v4()")) @db.Uuid
+  name                     String
+  slug                     String                    @unique
+  plan_id                  String?                   @db.Uuid
+  metadata                 Json?
+  is_active                Boolean                   @default(true)
+  storage_blocked          Boolean                   @default(false)
+  storage_blocked_reason   String?
+  storage_blocked_at       DateTime?                 @db.Timestamptz(6)
+  public_portal_enabled    Boolean                   @default(false)
+  employee_portal_enabled  Boolean                   @default(false)
+  tenant_portal_overrides  Json                      @default("{}")
+  tenant_portal_entitlements Json                    @default("{}") @map("tenant_portal_entitlements")
+  created_at               DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                  @default(now()) @db.Timestamptz(6)
+  audit_logs               audit_logs[]
+  files                    files[]
+  notes                    notes[]
+  storage_usage            storage_usage?
+  subscriptions            subscriptions[]
+  tenant_members           tenant_members[]
+  storage_providers        storage_providers[]
+  storage_egress_logs      storage_egress_logs[]
+  tenant_feature_overrides tenant_feature_overrides[]
+  tenant_storage_limits    tenant_storage_limits?
+  public_sites             public_sites[]
+  plans                    plans?                    @relation(fields: [plan_id], references: [id], onUpdate: NoAction)
+
+  @@schema("data")
+}
+
+/// BYOS storage provider configuration per tenant
+model storage_providers {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id            String    @db.Uuid
+  provider_type        String    @default("supabase")
+  nickname             String?
+  endpoint_url         String?
+  bucket_name          String?
+  region               String?
+  is_verified          Boolean   @default(false)
+  is_active            Boolean   @default(true)
+  is_locked            Boolean   @default(false)
+  allowed_mime_types   String[]  @default([])
+  max_file_size_bytes  BigInt?
+  quota_limit_bytes    BigInt?
+  created_at           DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime  @default(now()) @db.Timestamptz(6)
+  tenants              tenants   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  storage_egress_logs  storage_egress_logs[]
+
+  @@map("storage_providers")
+  @@schema("data")
+}
+
+/// Platform egress events (downloads via signed URL or share-link resolves)
+model storage_egress_logs {
+  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id           String             @db.Uuid
+  node_id             String?            @db.Uuid
+  storage_provider_id String?            @db.Uuid
+  size_bytes          BigInt             @default(0)
+  created_at          DateTime           @default(now()) @db.Timestamptz(6)
+  tenants             tenants            @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  storage_providers   storage_providers? @relation(fields: [storage_provider_id], references: [id], onDelete: SetNull)
+
+  @@index([tenant_id, created_at(sort: Desc)])
+  @@index([created_at(sort: Desc)])
+  @@map("storage_egress_logs")
+  @@schema("data")
+}
+
+/// Global feature flags with hash-based percentage rollout
+model feature_flags {
+  key                String                   @id
+  description        String?
+  is_enabled         Boolean                  @default(true)
+  rollout_percentage Int                      @default(100) @db.SmallInt
+  created_at         DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime                 @default(now()) @db.Timestamptz(6)
+  overrides          tenant_feature_overrides[]
+
+  @@map("feature_flags")
+  @@schema("data")
+}
+
+/// Per-tenant overrides for feature flags (takes precedence over global setting)
+model tenant_feature_overrides {
+  tenant_id       String        @db.Uuid
+  feature_key     String
+  override_status Boolean
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime      @default(now()) @db.Timestamptz(6)
+  tenants         tenants       @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  feature_flags   feature_flags @relation(fields: [feature_key], references: [key], onDelete: Cascade)
+
+  @@id([tenant_id, feature_key])
+  @@map("tenant_feature_overrides")
+  @@schema("data")
+}
+
+/// Admin-controlled limits for the internal (Supabase) storage bucket per tenant
+model tenant_storage_limits {
+  tenant_id              String    @id @db.Uuid
+  internal_quota_gb      Decimal?  @db.Decimal(10, 2)
+  internal_max_file_mb   Int?
+  internal_allowed_mimes String[]  @default([])
+  created_at             DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime  @default(now()) @db.Timestamptz(6)
+  tenants                tenants   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@map("tenant_storage_limits")
+  @@schema("data")
+}
+
+/// Vista d'agregació per tenant per al mòdul de Monetització del Admin Portal.
+/// Read-only. Accessible via prisma_admin (BYPASSRLS).
+view billing_summary {
+  tenant_id                   String   @unique @db.Uuid
+  tenant_name                 String
+  slug                        String
+  is_active                   Boolean
+  tenant_created_at           DateTime @db.Timestamptz(6)
+  plan_id                     String?  @db.Uuid
+  plan_name                   String?
+  plan_display_name           String?
+  price_monthly               Decimal? @db.Decimal(10, 2)
+  max_members                 Int?
+  max_storage_mb              Int?
+  storage_committed_bytes     BigInt
+  storage_reserved_bytes      BigInt
+  storage_used_bytes          BigInt
+  file_count                  Int
+  active_members              Int
+  has_active_owner            Boolean
+  egress_bytes_current_month  BigInt
+
+  @@schema("data")
+}
+
+model public_sites {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_id        String         @db.Uuid
+  site_id          String?        @db.Uuid
+  slug             String
+  name             String
+  status           String         @default("draft")
+  seo_title        String?
+  seo_description  String?
+  created_at       DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime       @default(now()) @db.Timestamptz(6)
+  tenants          tenants        @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  public_pages     public_pages[]
+  public_domains   public_domains[]
+  public_leads     public_leads[]
+
+  @@map("public_sites")
+  @@schema("data")
+}
+
+model public_pages {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  public_site_id String       @db.Uuid
+  tenant_id      String       @db.Uuid
+  slug           String
+  title          String
+  status         String       @default("draft")
+  sort_order     Int          @default(0)
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime     @default(now()) @db.Timestamptz(6)
+  public_sites   public_sites @relation(fields: [public_site_id], references: [id], onDelete: Cascade)
+
+  @@map("public_pages")
+  @@schema("data")
+}
+
+model public_domains {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  public_site_id String       @db.Uuid
+  tenant_id      String       @db.Uuid
+  domain         String
+  status         String       @default("pending")
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime     @default(now()) @db.Timestamptz(6)
+  public_sites   public_sites @relation(fields: [public_site_id], references: [id], onDelete: Cascade)
+
+  @@map("public_domains")
+  @@schema("data")
+}
+
+model public_leads {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  public_site_id String       @db.Uuid
+  tenant_id      String       @db.Uuid
+  status         String       @default("new")
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  public_sites   public_sites @relation(fields: [public_site_id], references: [id], onDelete: Cascade)
+
+  @@map("public_leads")
+  @@schema("data")
+}
+
+enum aal_level {
+  aal1
+  aal2
+  aal3
+
+  @@schema("auth")
+}
+
+enum code_challenge_method {
+  s256
+  plain
+
+  @@schema("auth")
+}
+
+enum factor_status {
+  unverified
+  verified
+
+  @@schema("auth")
+}
+
+enum factor_type {
+  totp
+  webauthn
+  phone
+
+  @@schema("auth")
+}
+
+enum oauth_authorization_status {
+  pending
+  approved
+  denied
+  expired
+
+  @@schema("auth")
+}
+
+enum oauth_client_type {
+  public
+  confidential
+
+  @@schema("auth")
+}
+
+enum oauth_registration_type {
+  dynamic
+  manual
+
+  @@schema("auth")
+}
+
+enum oauth_response_type {
+  code
+
+  @@schema("auth")
+}
+
+enum one_time_token_type {
+  confirmation_token
+  reauthentication_token
+  recovery_token
+  email_change_token_new
+  email_change_token_current
+  phone_change_token
+
+  @@schema("auth")
+}

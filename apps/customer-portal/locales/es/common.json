@@ -1,0 +1,88 @@
+{
+  "portal_title": "Portal del cliente",
+  "login": {
+    "title": "Acceder",
+    "subtitle": "Introduce el correo con el que te invitaron. Te enviaremos un enlace de acceso temporal.",
+    "email_label": "Correo electrónico",
+    "email_placeholder": "nombre@ejemplo.com",
+    "submit": "Enviar enlace",
+    "sent": "Si tenemos tu correo registrado, te enviaremos un enlace de acceso en unos momentos. Revisa la bandeja de entrada y el correo no deseado.",
+    "invalid_link": "Este enlace no es válido, ha caducado o se ha revocado. Solicita uno nuevo."
+  },
+  "home": {
+    "open_link": "Abre el enlace que te han enviado para entrar al portal.",
+    "invalid_link": "Este enlace no es válido, ha caducado o se ha revocado.",
+    "account_access": "¿Acceso con cuenta?",
+    "enter_here": "Entra aquí"
+  },
+  "nav": {
+    "logout": "Cerrar sesión",
+    "back_to_list": "Volver al listado",
+    "back_to_list_arrow": "← Volver al listado",
+    "back_to_dashboard": "← Dashboard",
+    "login_with_email": "Acceder con el correo",
+    "login": "Acceder"
+  },
+  "dashboard": {
+    "eyebrow": "Portal del cliente",
+    "title": "Tus boletines",
+    "need_session": "Se necesita una sesión de cliente para ver los boletines.",
+    "session_expired": "La sesión ha caducado o no es válida. Vuelve a acceder.",
+    "empty": "Todavía no hay boletines publicados para ti.",
+    "default_title": "Boletín de intervención",
+    "attachments_one": "{{count}} adjunto",
+    "attachments_other": "{{count}} adjuntos"
+  },
+  "staff_list": {
+    "eyebrow": "Vista de soporte",
+    "title": "Boletines de la cuenta",
+    "empty": "Todavía no hay boletines publicados para ti."
+  },
+  "report": {
+    "title": "Boletín",
+    "need_session": "Se necesita una sesión de cliente para ver este boletín.",
+    "unavailable": "Este boletín no está disponible.",
+    "unavailable_or_expired": "Este boletín no está disponible o la sesión ha caducado."
+  },
+  "locale": {
+    "label": "Idioma",
+    "ca": "Catalán",
+    "es": "Castellano",
+    "en": "English",
+    "saving": "Guardando…",
+    "error": "No se ha podido cambiar el idioma."
+  },
+  "access": {
+    "title": "Accesos / actividad",
+    "hint": "Quién puede entrar al portal de esta cuenta y sesiones de soporte recientes.",
+    "principals": "Personas con acceso",
+    "support": "Soporte",
+    "support_of": "Soporte de {{tenant}}",
+    "tenant_fallback": "la empresa",
+    "unknown_principal": "Acceso",
+    "kind_person": "Persona",
+    "kind_shared": "Buzón compartido",
+    "last_seen": "Último acceso {{date}}",
+    "support_active": "Sesión activa",
+    "support_ended": "Sesión finalizada",
+    "empty": "Todavía no hay accesos ni sesiones de soporte."
+  },
+  "footer": {
+    "provider": "Portal del cliente",
+    "website": "Web",
+    "privacy": "Privacidad",
+    "terms": "Condiciones",
+    "cookies": "Cookies"
+  },
+  "cookies": {
+    "title": "Aviso de cookies",
+    "body": "Utilizamos cookies técnicas esenciales para la sesión y la seguridad. No usamos cookies de marketing.",
+    "more": "Más información",
+    "accept": "Entendido"
+  },
+  "errors": {
+    "generic": "Se ha producido un error.",
+    "unauthorized": "No autorizado.",
+    "not_found": "No encontrado."
+  }
+}

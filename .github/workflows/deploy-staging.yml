@@ -1,0 +1,151 @@
+# =============================================================================
+# Deploy — Staging
+# =============================================================================
+# Trigger:  push a la branca `staging`
+# Resultat: deploy de preview a Vercel → dominis admin-staging / app-staging
+#
+# Prerequisits (un sol cop, fora del workflow):
+#   1. Crear dos projectes a Vercel (admin-portal i tenant-portal)
+#      → Project Settings → Build and Deployment → Ignored Build Step
+#        → Behavior: "Custom" → Command: exit 0
+#        (exit 0 = Vercel sempre omet el build; el workflow en té el control)
+#   2. Configurar Branch Domains a cada projecte Vercel:
+#      → Project Settings → Domains → afegir domini → assignar a branca `staging`
+#        · admin-portal:  admin-staging.yourdomain.com → branca staging
+#        · tenant-portal: app-staging.yourdomain.com   → branca staging
+#     Per staging potser no cal domini, en tot cas per a que sàpiga la branca cal posar un àlies i: run: vercel deploy --prebuilt --meta githubCommitRef=staging --token=${{ secrets.VERCEL_TOKEN }}
+#   3. Afegir GitHub Secrets (Settings → Secrets → Actions):
+#      · VERCEL_TOKEN          → Vercel → Account Settings → Tokens
+#      · VERCEL_ORG_ID         → Vercel → Account Settings → General → Your ID
+#      · VERCEL_ADMIN_PROJECT_ID  → Vercel → admin-portal project → Settings → General
+#      · VERCEL_TENANT_PROJECT_ID → Vercel → tenant-portal project → Settings → General
+#   4. Configurar env vars a Vercel per cada projecte (Preview = staging):
+#      → Project Settings → Environment Variables → scope "Preview"
+#        · admin-portal:  NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY,
+#                         DATABASE_URL, DIRECT_URL
+#        · tenant-portal: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY
+#   5. DNS Cloudflare — afegir registres CNAME (proxy DESACTIVAT / núvol gris):
+#      · admin-staging  →  cname.vercel-dns.com
+#      · app-staging    →  cname.vercel-dns.com
+# =============================================================================
+
+name: Deploy — Staging
+
+on:
+  push:
+    branches: [staging]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Detecta quines apps han canviat per evitar redeploys innecessaris
+  # ---------------------------------------------------------------------------
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      admin: ${{ steps.filter.outputs.admin }}
+      tenant: ${{ steps.filter.outputs.tenant }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            admin:
+              - 'apps/admin-portal/**'
+              - 'supabase/migrations/**'
+              - '.github/workflows/deploy-staging.yml'
+            tenant:
+              - 'apps/tenant-portal/**'
+              - '.github/workflows/deploy-staging.yml'
+
+  # ---------------------------------------------------------------------------
+  # Deploy admin-portal → admin-staging.yourdomain.com
+  # ---------------------------------------------------------------------------
+  deploy-admin-portal:
+    needs: changes
+    if: needs.changes.outputs.admin == 'true'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/admin-portal/package-lock.json
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Configure Vercel project
+        run: |
+          mkdir -p .vercel
+          echo '{"orgId":"${{ secrets.VERCEL_ORG_ID }}","projectId":"${{ secrets.VERCEL_ADMIN_PROJECT_ID }}"}' > .vercel/project.json
+        working-directory: apps/admin-portal
+
+      - name: Pull environment variables (preview = staging)
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/admin-portal
+
+      - name: Inject public env vars (NEXT_PUBLIC_* must be present at build time)
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL_STAGING }}" >> .env.production
+          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY_STAGING }}" >> .env.production
+        working-directory: apps/admin-portal
+
+      - name: Build
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/admin-portal
+
+      - name: Deploy to Vercel
+        id: deploy-admin
+        run: echo "url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+        working-directory: apps/admin-portal
+
+      - name: Assign staging domain
+        run: vercel alias set ${{ steps.deploy-admin.outputs.url }} ${{ secrets.ADMIN_STAGING_DOMAIN }} --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/admin-portal
+
+  # ---------------------------------------------------------------------------
+  # Deploy tenant-portal → app-staging.yourdomain.com
+  # ---------------------------------------------------------------------------
+  deploy-tenant-portal:
+    needs: changes
+    if: needs.changes.outputs.tenant == 'true'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/tenant-portal/package-lock.json
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Configure Vercel project
+        run: |
+          mkdir -p .vercel
+          echo '{"orgId":"${{ secrets.VERCEL_ORG_ID }}","projectId":"${{ secrets.VERCEL_TENANT_PROJECT_ID }}"}' > .vercel/project.json
+        working-directory: apps/tenant-portal
+
+      - name: Pull environment variables (preview = staging)
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/tenant-portal
+
+      - name: Build
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/tenant-portal
+
+      - name: Deploy to Vercel
+        id: deploy-tenant
+        run: echo "url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+        working-directory: apps/tenant-portal
+
+      - name: Assign staging domain
+        run: vercel alias set ${{ steps.deploy-tenant.outputs.url }} ${{ secrets.TENANT_STAGING_DOMAIN }} --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/tenant-portal

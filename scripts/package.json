@@ -1,0 +1,13 @@
+{
+  "name": "app-seed-scripts",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Scripts de seed i utilitats per a app-supabase",
+  "scripts": {
+    "generate-docx": "node generate-docx-seed.mjs"
+  },
+  "dependencies": {
+    "docx": "^9.3.0"
+  }
+}

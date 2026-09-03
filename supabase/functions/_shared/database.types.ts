@@ -1,0 +1,28738 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  api: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      active_documents: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          entity_id: string | null
+          entity_type: string | null
+          expires_at: string | null
+          file_path_or_url: string | null
+          folder_id: string | null
+          id: string | null
+          is_archived: boolean | null
+          mime_type: string | null
+          renewal_anchor_day: number | null
+          renewal_anchor_mode: string | null
+          renewal_anchor_month: number | null
+          renewal_interval_months: number | null
+          required_permissions: string[] | null
+          site_id: string | null
+          size_bytes: number | null
+          storage_type: string | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+          valid_from: string | null
+          version_created_at: string | null
+          version_created_by: string | null
+          version_id: string | null
+          version_number: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_created_by_fkey"
+            columns: ["version_created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_versions_created_by_fkey"
+            columns: ["version_created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_entity_type_fkey"
+            columns: ["entity_type"]
+            isOneToOne: false
+            referencedRelation: "entity_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "document_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      addon_billing_proration: {
+        Row: {
+          addon_id: string | null
+          addon_name: string | null
+          billing_period_start: string | null
+          canceled_at: string | null
+          days_in_month: number | null
+          days_used: number | null
+          id: string | null
+          price_monthly: number | null
+          prorated_amount_due: number | null
+          started_at: string | null
+          status: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      addons: {
+        Row: {
+          id: string | null
+          name: string | null
+          price_monthly: number | null
+          spoke_config: Json | null
+          trial_cooldown_months: number | null
+          trial_days: number | null
+        }
+        Insert: {
+          id?: string | null
+          name?: string | null
+          price_monthly?: number | null
+          spoke_config?: Json | null
+          trial_cooldown_months?: number | null
+          trial_days?: number | null
+        }
+        Update: {
+          id?: string | null
+          name?: string | null
+          price_monthly?: number | null
+          spoke_config?: Json | null
+          trial_cooldown_months?: number | null
+          trial_days?: number | null
+        }
+        Relationships: []
+      }
+      ai_action_proposals: {
+        Row: {
+          applied_at: string | null
+          applied_by: string | null
+          conversation_id: string | null
+          created_at: string | null
+          id: string | null
+          payload: Json | null
+          proposal_token: string | null
+          site_id: string | null
+          status: string | null
+          tenant_id: string | null
+          tool_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_by?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          payload?: Json | null
+          proposal_token?: string | null
+          site_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          tool_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          applied_at?: string | null
+          applied_by?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          payload?: Json | null
+          proposal_token?: string | null
+          site_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          tool_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_action_proposals_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_action_proposals_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_action_proposals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_action_proposals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_action_proposals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_action_proposals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_action_proposals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_chat_presets: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          is_tenant_shared: boolean | null
+          model: string | null
+          name: string | null
+          provider: "openai" | "anthropic" | "gemini" | "openrouter" | null
+          system_prompt_override: string | null
+          temperature_override: number | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          is_tenant_shared?: boolean | null
+          model?: string | null
+          name?: string | null
+          provider?: "openai" | "anthropic" | "gemini" | "openrouter" | null
+          system_prompt_override?: string | null
+          temperature_override?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          is_tenant_shared?: boolean | null
+          model?: string | null
+          name?: string | null
+          provider?: "openai" | "anthropic" | "gemini" | "openrouter" | null
+          system_prompt_override?: string | null
+          temperature_override?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_chat_presets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_chat_presets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_chat_presets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_chat_presets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_chat_presets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_conversation_messages: {
+        Row: {
+          content: string | null
+          conversation_id: string | null
+          created_at: string | null
+          id: string | null
+          payload: Json | null
+          role: string | null
+          sequence: number | null
+          tenant_id: string | null
+          tool_call_id: string | null
+          tool_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversation_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_conversation_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_conversation_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_conversation_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_conversation_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_conversation_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_conversations: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          metadata: Json | null
+          model: string | null
+          provider: "openai" | "anthropic" | "gemini" | "openrouter" | null
+          site_id: string | null
+          status: string | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          metadata?: Json | null
+          model?: string | null
+          provider?: "openai" | "anthropic" | "gemini" | "openrouter" | null
+          site_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          metadata?: Json | null
+          model?: string | null
+          provider?: "openai" | "anthropic" | "gemini" | "openrouter" | null
+          site_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversations_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_message_file_refs: {
+        Row: {
+          conversation_id: string | null
+          created_at: string | null
+          file_id: string | null
+          id: string | null
+          message_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string | null
+          file_id?: string | null
+          id?: string | null
+          message_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string | null
+          file_id?: string | null
+          id?: string | null
+          message_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_message_file_refs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_message_file_refs_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "file_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_message_file_refs_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "my_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_message_file_refs_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "recent_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_message_file_refs_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "starred_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_message_file_refs_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "trash"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_message_file_refs_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversation_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_message_file_refs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_message_file_refs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_message_file_refs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_message_file_refs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_message_file_refs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applicant_data_requests: {
+        Row: {
+          applicant_id: string | null
+          created_at: string | null
+          due_at: string | null
+          export_storage_path: string | null
+          fulfilled_via: string | null
+          id: string | null
+          message: string | null
+          rejection_reason: string | null
+          request_type: string | null
+          requester_email: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          sla_reminded_at: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          applicant_id?: string | null
+          created_at?: string | null
+          due_at?: string | null
+          export_storage_path?: string | null
+          fulfilled_via?: string | null
+          id?: string | null
+          message?: string | null
+          rejection_reason?: string | null
+          request_type?: string | null
+          requester_email?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sla_reminded_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          applicant_id?: string | null
+          created_at?: string | null
+          due_at?: string | null
+          export_storage_path?: string | null
+          fulfilled_via?: string | null
+          id?: string | null
+          message?: string | null
+          rejection_reason?: string | null
+          request_type?: string | null
+          requester_email?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sla_reminded_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_data_requests_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_data_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "applicant_data_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "applicant_data_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_data_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "applicant_data_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applicants: {
+        Row: {
+          art14_notice_sent_at: string | null
+          art14_suppressed: boolean | null
+          created_at: string | null
+          email: string | null
+          email_verified_at: string | null
+          full_name: string | null
+          id: string | null
+          phone: string | null
+          preferred_locale: string | null
+          talent_pool_until: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          art14_notice_sent_at?: string | null
+          art14_suppressed?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          email_verified_at?: string | null
+          full_name?: string | null
+          id?: string | null
+          phone?: string | null
+          preferred_locale?: string | null
+          talent_pool_until?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          art14_notice_sent_at?: string | null
+          art14_suppressed?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          email_verified_at?: string | null
+          full_name?: string | null
+          id?: string | null
+          phone?: string | null
+          preferred_locale?: string | null
+          talent_pool_until?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "applicants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "applicants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "applicants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applications: {
+        Row: {
+          applicant_id: string | null
+          candidate_visible_status: string | null
+          cover_message: string | null
+          created_at: string | null
+          cv_storage_path: string | null
+          cv_structured: Json | null
+          cv_structured_at: string | null
+          cv_structured_by: string | null
+          hired_at: string | null
+          hired_employee_id: string | null
+          id: string | null
+          import_source_label: string | null
+          job_posting_id: string | null
+          legal_notice_version: string | null
+          outcome_communicated_at: string | null
+          outcome_kind: string | null
+          post_rejection_choice: string | null
+          post_rejection_responded_at: string | null
+          post_rejection_token_expires_at: string | null
+          post_rejection_token_hash: string | null
+          process_closed_at: string | null
+          purge_at: string | null
+          retention_months: number | null
+          retention_preference: string | null
+          source: string | null
+          stage_id: string | null
+          submit_idempotency_key: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          applicant_id?: string | null
+          candidate_visible_status?: string | null
+          cover_message?: string | null
+          created_at?: string | null
+          cv_storage_path?: string | null
+          cv_structured?: Json | null
+          cv_structured_at?: string | null
+          cv_structured_by?: string | null
+          hired_at?: string | null
+          hired_employee_id?: string | null
+          id?: string | null
+          import_source_label?: string | null
+          job_posting_id?: string | null
+          legal_notice_version?: string | null
+          outcome_communicated_at?: string | null
+          outcome_kind?: string | null
+          post_rejection_choice?: string | null
+          post_rejection_responded_at?: string | null
+          post_rejection_token_expires_at?: string | null
+          post_rejection_token_hash?: string | null
+          process_closed_at?: string | null
+          purge_at?: string | null
+          retention_months?: number | null
+          retention_preference?: string | null
+          source?: string | null
+          stage_id?: string | null
+          submit_idempotency_key?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          applicant_id?: string | null
+          candidate_visible_status?: string | null
+          cover_message?: string | null
+          created_at?: string | null
+          cv_storage_path?: string | null
+          cv_structured?: Json | null
+          cv_structured_at?: string | null
+          cv_structured_by?: string | null
+          hired_at?: string | null
+          hired_employee_id?: string | null
+          id?: string | null
+          import_source_label?: string | null
+          job_posting_id?: string | null
+          legal_notice_version?: string | null
+          outcome_communicated_at?: string | null
+          outcome_kind?: string | null
+          post_rejection_choice?: string | null
+          post_rejection_responded_at?: string | null
+          post_rejection_token_expires_at?: string | null
+          post_rejection_token_hash?: string | null
+          process_closed_at?: string | null
+          purge_at?: string | null
+          retention_months?: number | null
+          retention_preference?: string | null
+          source?: string | null
+          stage_id?: string | null
+          submit_idempotency_key?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "applicants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_hired_employee_id_fkey"
+            columns: ["hired_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_hired_employee_id_fkey"
+            columns: ["hired_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_hired_employee_id_fkey"
+            columns: ["hired_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_hired_employee_id_fkey"
+            columns: ["hired_employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "applications_job_posting_id_fkey"
+            columns: ["job_posting_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "applications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "applications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "applications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      archived_documents: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          entity_id: string | null
+          entity_type: string | null
+          expires_at: string | null
+          file_path_or_url: string | null
+          folder_id: string | null
+          id: string | null
+          is_archived: boolean | null
+          mime_type: string | null
+          renewal_anchor_day: number | null
+          renewal_anchor_mode: string | null
+          renewal_anchor_month: number | null
+          renewal_interval_months: number | null
+          required_permissions: string[] | null
+          site_id: string | null
+          size_bytes: number | null
+          storage_type: string | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+          valid_from: string | null
+          version_created_at: string | null
+          version_created_by: string | null
+          version_id: string | null
+          version_number: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_created_by_fkey"
+            columns: ["version_created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_versions_created_by_fkey"
+            columns: ["version_created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_entity_type_fkey"
+            columns: ["entity_type"]
+            isOneToOne: false
+            referencedRelation: "entity_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "document_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_calibration_notice_log: {
+        Row: {
+          asset_id: string | null
+          id: string | null
+          notice_days: number | null
+          sent_at: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          asset_id?: string | null
+          id?: string | null
+          notice_days?: number | null
+          sent_at?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          asset_id?: string | null
+          id?: string | null
+          notice_days?: number | null
+          sent_at?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_calibration_notice_log_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_calibration_notice_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "asset_calibration_notice_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "asset_calibration_notice_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_calibration_notice_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "asset_calibration_notice_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_requirement_rules: {
+        Row: {
+          asset_type_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          is_active: boolean | null
+          is_blocking: boolean | null
+          scope_id: string | null
+          scope_type: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          asset_type_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_blocking?: boolean | null
+          scope_id?: string | null
+          scope_type?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          asset_type_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_blocking?: boolean | null
+          scope_id?: string | null
+          scope_type?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_requirement_rules_asset_type_id_fkey"
+            columns: ["asset_type_id"]
+            isOneToOne: false
+            referencedRelation: "asset_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_requirement_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_requirement_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_requirement_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "asset_requirement_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "asset_requirement_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_requirement_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "asset_requirement_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_types: {
+        Row: {
+          blocks_dispatch_if_missing: boolean | null
+          calibration_interval_days: number | null
+          category: string | null
+          code: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          requires_calibration: boolean | null
+          requires_return: boolean | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          blocks_dispatch_if_missing?: boolean | null
+          calibration_interval_days?: number | null
+          category?: string | null
+          code?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          requires_calibration?: boolean | null
+          requires_return?: boolean | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          blocks_dispatch_if_missing?: boolean | null
+          calibration_interval_days?: number | null
+          category?: string | null
+          code?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          requires_calibration?: boolean | null
+          requires_return?: boolean | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "asset_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "asset_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "asset_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assets: {
+        Row: {
+          asset_tag: string | null
+          asset_type_id: string | null
+          blocks_dispatch_if_missing: boolean | null
+          calibration_due_on: string | null
+          created_at: string | null
+          id: string | null
+          location_id: string | null
+          location_name: string | null
+          metadata: Json | null
+          name: string | null
+          requires_calibration: boolean | null
+          serial_number: string | null
+          site_id: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          asset_tag?: string | null
+          asset_type_id?: string | null
+          blocks_dispatch_if_missing?: boolean | null
+          calibration_due_on?: string | null
+          created_at?: string | null
+          id?: string | null
+          location_id?: string | null
+          location_name?: string | null
+          metadata?: Json | null
+          name?: string | null
+          requires_calibration?: boolean | null
+          serial_number?: string | null
+          site_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          asset_tag?: string | null
+          asset_type_id?: string | null
+          blocks_dispatch_if_missing?: boolean | null
+          calibration_due_on?: string | null
+          created_at?: string | null
+          id?: string | null
+          location_id?: string | null
+          location_name?: string | null
+          metadata?: Json | null
+          name?: string | null
+          requires_calibration?: boolean | null
+          serial_number?: string | null
+          site_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_asset_type_id_fkey"
+            columns: ["asset_type_id"]
+            isOneToOne: false
+            referencedRelation: "asset_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "assets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "assets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "assets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      async_tasks: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          error_text: string | null
+          finished_at: string | null
+          id: string | null
+          kind: string | null
+          progress_pct: number | null
+          result: Json | null
+          site_id: string | null
+          started_at: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          error_text?: string | null
+          finished_at?: string | null
+          id?: string | null
+          kind?: string | null
+          progress_pct?: number | null
+          result?: Json | null
+          site_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          error_text?: string | null
+          finished_at?: string | null
+          id?: string | null
+          kind?: string | null
+          progress_pct?: number | null
+          result?: Json | null
+          site_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "async_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "async_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "async_tasks_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "async_tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "async_tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "async_tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "async_tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "async_tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_devices: {
+        Row: {
+          allow_unassigned_punch: boolean | null
+          allowed_methods: string[] | null
+          block_wrong_scheduled_location: boolean | null
+          config_version: number | null
+          connectivity_status: string | null
+          created_at: string | null
+          device_public_id: string | null
+          display_logo_url: string | null
+          display_title: string | null
+          document_match: string | null
+          document_suffix_length: number | null
+          effective_display_title: string | null
+          employee_list_layout: string | null
+          entry_mode: string | null
+          geo_antifraud_enabled: boolean | null
+          geo_antifraud_radius_m: number | null
+          id: string | null
+          identity_confirm: string | null
+          last_seen_at: string | null
+          location_id: string | null
+          location_path: string | null
+          mask_names_on_waiting: boolean | null
+          metadata: Json | null
+          name: string | null
+          ops_lockdown: boolean | null
+          outbox_pending_count: number | null
+          outbox_quarantined_count: number | null
+          outbox_reported_at: string | null
+          qr_identity_confirm: string | null
+          session_allow_history: boolean | null
+          session_history_max_days: number | null
+          session_idle_seconds: number | null
+          session_return_countdown_seconds: number | null
+          site_id: string | null
+          status: string | null
+          tenant_id: string | null
+          type: string | null
+          updated_at: string | null
+          ux_preset: string | null
+          waiting_idle_seconds: number | null
+          warn_unassigned_punch: boolean | null
+          warn_wrong_scheduled_location: boolean | null
+        }
+        Insert: {
+          allow_unassigned_punch?: boolean | null
+          allowed_methods?: string[] | null
+          block_wrong_scheduled_location?: boolean | null
+          config_version?: number | null
+          connectivity_status?: never
+          created_at?: string | null
+          device_public_id?: string | null
+          display_logo_url?: string | null
+          display_title?: string | null
+          document_match?: string | null
+          document_suffix_length?: number | null
+          effective_display_title?: never
+          employee_list_layout?: string | null
+          entry_mode?: string | null
+          geo_antifraud_enabled?: boolean | null
+          geo_antifraud_radius_m?: number | null
+          id?: string | null
+          identity_confirm?: string | null
+          last_seen_at?: string | null
+          location_id?: string | null
+          location_path?: never
+          mask_names_on_waiting?: boolean | null
+          metadata?: Json | null
+          name?: string | null
+          ops_lockdown?: boolean | null
+          outbox_pending_count?: number | null
+          outbox_quarantined_count?: number | null
+          outbox_reported_at?: string | null
+          qr_identity_confirm?: string | null
+          session_allow_history?: boolean | null
+          session_history_max_days?: number | null
+          session_idle_seconds?: number | null
+          session_return_countdown_seconds?: number | null
+          site_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          type?: string | null
+          updated_at?: string | null
+          ux_preset?: string | null
+          waiting_idle_seconds?: number | null
+          warn_unassigned_punch?: boolean | null
+          warn_wrong_scheduled_location?: boolean | null
+        }
+        Update: {
+          allow_unassigned_punch?: boolean | null
+          allowed_methods?: string[] | null
+          block_wrong_scheduled_location?: boolean | null
+          config_version?: number | null
+          connectivity_status?: never
+          created_at?: string | null
+          device_public_id?: string | null
+          display_logo_url?: string | null
+          display_title?: string | null
+          document_match?: string | null
+          document_suffix_length?: number | null
+          effective_display_title?: never
+          employee_list_layout?: string | null
+          entry_mode?: string | null
+          geo_antifraud_enabled?: boolean | null
+          geo_antifraud_radius_m?: number | null
+          id?: string | null
+          identity_confirm?: string | null
+          last_seen_at?: string | null
+          location_id?: string | null
+          location_path?: never
+          mask_names_on_waiting?: boolean | null
+          metadata?: Json | null
+          name?: string | null
+          ops_lockdown?: boolean | null
+          outbox_pending_count?: number | null
+          outbox_quarantined_count?: number | null
+          outbox_reported_at?: string | null
+          qr_identity_confirm?: string | null
+          session_allow_history?: boolean | null
+          session_history_max_days?: number | null
+          session_idle_seconds?: number | null
+          session_return_countdown_seconds?: number | null
+          site_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          type?: string | null
+          updated_at?: string | null
+          ux_preset?: string | null
+          waiting_idle_seconds?: number | null
+          warn_unassigned_punch?: boolean | null
+          warn_wrong_scheduled_location?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_devices_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_devices_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_devices_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_devices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "attendance_devices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "attendance_devices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_devices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "attendance_devices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_locations: {
+        Row: {
+          created_at: string | null
+          geo_coordinates: Json | null
+          id: string | null
+          metadata: Json | null
+          name: string | null
+          parent_id: string | null
+          site_id: string | null
+          status: string | null
+          tenant_id: string | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          geo_coordinates?: Json | null
+          id?: string | null
+          metadata?: Json | null
+          name?: string | null
+          parent_id?: string | null
+          site_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          geo_coordinates?: Json | null
+          id?: string | null
+          metadata?: Json | null
+          name?: string | null
+          parent_id?: string | null
+          site_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_monthly_report_amendments: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          employee_id: string | null
+          id: string | null
+          month: number | null
+          reason: string | null
+          report_id: string | null
+          tenant_id: string | null
+          work_date: string | null
+          year: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          employee_id?: string | null
+          id?: string | null
+          month?: number | null
+          reason?: string | null
+          report_id?: string | null
+          tenant_id?: string | null
+          work_date?: string | null
+          year?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          employee_id?: string | null
+          id?: string | null
+          month?: number | null
+          reason?: string | null
+          report_id?: string | null
+          tenant_id?: string | null
+          work_date?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_monthly_report_amendments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_report_amendments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_report_amendments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_report_amendments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_report_amendments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_report_amendments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_report_amendments_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_monthly_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_report_amendments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_report_amendments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_report_amendments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_report_amendments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_report_amendments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_monthly_reports: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          content_hash: string | null
+          created_at: string | null
+          document_id: string | null
+          employee_id: string | null
+          id: string | null
+          month: number | null
+          signing_submission_id: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          year: number | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          content_hash?: string | null
+          created_at?: string | null
+          document_id?: string | null
+          employee_id?: string | null
+          id?: string | null
+          month?: number | null
+          signing_submission_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          year?: number | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          content_hash?: string | null
+          created_at?: string | null
+          document_id?: string | null
+          employee_id?: string | null
+          id?: string | null
+          month?: number | null
+          signing_submission_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_monthly_reports_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_signing_submission_id_fkey"
+            columns: ["signing_submission_id"]
+            isOneToOne: false
+            referencedRelation: "signing_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "attendance_monthly_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_period_confirmations: {
+        Row: {
+          calendar_month: number | null
+          calendar_year: number | null
+          confirmed_at: string | null
+          confirmed_via: string | null
+          created_at: string | null
+          cycle_type: string | null
+          employee_id: string | null
+          id: string | null
+          period_from: string | null
+          period_to: string | null
+          source_session_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          calendar_month?: number | null
+          calendar_year?: number | null
+          confirmed_at?: string | null
+          confirmed_via?: string | null
+          created_at?: string | null
+          cycle_type?: string | null
+          employee_id?: string | null
+          id?: string | null
+          period_from?: string | null
+          period_to?: string | null
+          source_session_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          calendar_month?: number | null
+          calendar_year?: number | null
+          confirmed_at?: string | null
+          confirmed_via?: string | null
+          created_at?: string | null
+          cycle_type?: string | null
+          employee_id?: string | null
+          id?: string | null
+          period_from?: string | null
+          period_to?: string | null
+          source_session_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_period_confirmations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_period_confirmations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_period_confirmations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_period_confirmations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "attendance_period_confirmations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "attendance_period_confirmations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "attendance_period_confirmations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_period_confirmations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "attendance_period_confirmations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_punch_discrepancies: {
+        Row: {
+          context: Json | null
+          created_at: string | null
+          employee_id: string | null
+          id: string | null
+          note: string | null
+          punch_id: string | null
+          resolution: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string | null
+          note?: string | null
+          punch_id?: string | null
+          resolution?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string | null
+          note?: string | null
+          punch_id?: string | null
+          resolution?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_punch_discrepancies_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_punch_discrepancies_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_punch_discrepancies_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_punch_discrepancies_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "attendance_punch_discrepancies_punch_id_fkey"
+            columns: ["punch_id"]
+            isOneToOne: true
+            referencedRelation: "time_punches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_punch_discrepancies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "attendance_punch_discrepancies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "attendance_punch_discrepancies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_punch_discrepancies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "attendance_punch_discrepancies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string | null
+          tenant_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_pending_approvals: {
+        Row: {
+          assigned_to_role: string | null
+          assigned_to_user_id: string | null
+          context_preview: Json | null
+          created_at: string | null
+          description: string | null
+          due_at: string | null
+          id: string | null
+          resolution_comment: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status:
+            | "PENDING"
+            | "APPROVED"
+            | "REJECTED"
+            | "EXPIRED"
+            | "REASSIGNED"
+            | null
+          step_run_id: string | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+          workflow_run_id: string | null
+        }
+        Insert: {
+          assigned_to_role?: string | null
+          assigned_to_user_id?: string | null
+          context_preview?: Json | null
+          created_at?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string | null
+          resolution_comment?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?:
+            | "PENDING"
+            | "APPROVED"
+            | "REJECTED"
+            | "EXPIRED"
+            | "REASSIGNED"
+            | null
+          step_run_id?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+          workflow_run_id?: string | null
+        }
+        Update: {
+          assigned_to_role?: string | null
+          assigned_to_user_id?: string | null
+          context_preview?: Json | null
+          created_at?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string | null
+          resolution_comment?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?:
+            | "PENDING"
+            | "APPROVED"
+            | "REJECTED"
+            | "EXPIRED"
+            | "REASSIGNED"
+            | null
+          step_run_id?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+          workflow_run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_pending_approvals_assigned_to_user_id_fkey"
+            columns: ["assigned_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_pending_approvals_assigned_to_user_id_fkey"
+            columns: ["assigned_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_pending_approvals_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_pending_approvals_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_pending_approvals_step_run_id_fkey"
+            columns: ["step_run_id"]
+            isOneToOne: true
+            referencedRelation: "automation_step_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_pending_approvals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "automation_pending_approvals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "automation_pending_approvals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_pending_approvals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "automation_pending_approvals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_pending_approvals_workflow_run_id_fkey"
+            columns: ["workflow_run_id"]
+            isOneToOne: false
+            referencedRelation: "automation_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_runs: {
+        Row: {
+          completed_at: string | null
+          context: Json | null
+          created_at: string | null
+          current_step_id: string | null
+          error: string | null
+          id: string | null
+          site_id: string | null
+          started_at: string | null
+          status:
+            | "PENDING"
+            | "RUNNING"
+            | "WAITING_HUMAN"
+            | "WAITING_TIMER"
+            | "COMPLETED"
+            | "FAILED"
+            | "CANCELLED"
+            | null
+          tenant_id: string | null
+          trigger_entity_id: string | null
+          trigger_entity_type: string | null
+          trigger_event: string | null
+          updated_at: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          context?: Json | null
+          created_at?: string | null
+          current_step_id?: string | null
+          error?: string | null
+          id?: string | null
+          site_id?: string | null
+          started_at?: string | null
+          status?:
+            | "PENDING"
+            | "RUNNING"
+            | "WAITING_HUMAN"
+            | "WAITING_TIMER"
+            | "COMPLETED"
+            | "FAILED"
+            | "CANCELLED"
+            | null
+          tenant_id?: string | null
+          trigger_entity_id?: string | null
+          trigger_entity_type?: string | null
+          trigger_event?: string | null
+          updated_at?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          context?: Json | null
+          created_at?: string | null
+          current_step_id?: string | null
+          error?: string | null
+          id?: string | null
+          site_id?: string | null
+          started_at?: string | null
+          status?:
+            | "PENDING"
+            | "RUNNING"
+            | "WAITING_HUMAN"
+            | "WAITING_TIMER"
+            | "COMPLETED"
+            | "FAILED"
+            | "CANCELLED"
+            | null
+          tenant_id?: string | null
+          trigger_entity_id?: string | null
+          trigger_entity_type?: string | null
+          trigger_event?: string | null
+          updated_at?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_runs_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "automation_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "automation_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "automation_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_runs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_step_runs: {
+        Row: {
+          approval_comment: string | null
+          approved_at: string | null
+          approved_by: string | null
+          attempt_number: number | null
+          completed_at: string | null
+          created_at: string | null
+          error: string | null
+          id: string | null
+          input: Json | null
+          output: Json | null
+          started_at: string | null
+          status:
+            | "PENDING"
+            | "RUNNING"
+            | "COMPLETED"
+            | "FAILED"
+            | "SKIPPED"
+            | "WAITING_HUMAN"
+            | "WAITING_TIMER"
+            | "CANCELLED"
+            | null
+          step_id: string | null
+          step_name: string | null
+          step_type: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          workflow_run_id: string | null
+        }
+        Insert: {
+          approval_comment?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          attempt_number?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string | null
+          input?: Json | null
+          output?: Json | null
+          started_at?: string | null
+          status?:
+            | "PENDING"
+            | "RUNNING"
+            | "COMPLETED"
+            | "FAILED"
+            | "SKIPPED"
+            | "WAITING_HUMAN"
+            | "WAITING_TIMER"
+            | "CANCELLED"
+            | null
+          step_id?: string | null
+          step_name?: string | null
+          step_type?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          workflow_run_id?: string | null
+        }
+        Update: {
+          approval_comment?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          attempt_number?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string | null
+          input?: Json | null
+          output?: Json | null
+          started_at?: string | null
+          status?:
+            | "PENDING"
+            | "RUNNING"
+            | "COMPLETED"
+            | "FAILED"
+            | "SKIPPED"
+            | "WAITING_HUMAN"
+            | "WAITING_TIMER"
+            | "CANCELLED"
+            | null
+          step_id?: string | null
+          step_name?: string | null
+          step_type?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          workflow_run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_step_runs_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_step_runs_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_step_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "automation_step_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "automation_step_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_step_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "automation_step_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_step_runs_workflow_run_id_fkey"
+            columns: ["workflow_run_id"]
+            isOneToOne: false
+            referencedRelation: "automation_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_workflows: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          is_blueprint: boolean | null
+          name: string | null
+          site_id: string | null
+          source_blueprint_id: string | null
+          steps: Json | null
+          tenant_id: string | null
+          trigger_event: string | null
+          trigger_filters: Json | null
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_blueprint?: boolean | null
+          name?: string | null
+          site_id?: string | null
+          source_blueprint_id?: string | null
+          steps?: Json | null
+          tenant_id?: string | null
+          trigger_event?: string | null
+          trigger_filters?: Json | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_blueprint?: boolean | null
+          name?: string | null
+          site_id?: string | null
+          source_blueprint_id?: string | null
+          steps?: Json | null
+          tenant_id?: string | null
+          trigger_event?: string | null
+          trigger_filters?: Json | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_workflows_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_workflows_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_workflows_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_workflows_source_blueprint_id_fkey"
+            columns: ["source_blueprint_id"]
+            isOneToOne: false
+            referencedRelation: "automation_workflows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_workflows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "automation_workflows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "automation_workflows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_workflows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "automation_workflows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_events: {
+        Row: {
+          addon_status: string | null
+          all_day: boolean | null
+          color: string | null
+          created_at: string | null
+          description: string | null
+          end_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string | null
+          metadata: Json | null
+          module_id: string | null
+          owner_id: string | null
+          required_permissions: string[] | null
+          site_id: string | null
+          start_at: string | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "calendar_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "calendar_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "calendar_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_group_weekly_intervals: {
+        Row: {
+          created_at: string | null
+          day_of_week: number | null
+          day_type: string | null
+          group_id: string | null
+          id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_to: string | null
+          work_end: string | null
+          work_intervals: Json | null
+          work_start: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week?: number | null
+          day_type?: string | null
+          group_id?: string | null
+          id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+          work_end?: string | null
+          work_intervals?: Json | null
+          work_start?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: number | null
+          day_type?: string | null
+          group_id?: string | null
+          id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+          work_end?: string | null
+          work_intervals?: Json | null
+          work_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_group_weekly_intervals_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_group_weekly_intervals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "calendar_group_weekly_intervals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "calendar_group_weekly_intervals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_group_weekly_intervals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "calendar_group_weekly_intervals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_groups: {
+        Row: {
+          attendance_geo_enabled: boolean | null
+          color: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          punch_only_at_stations: boolean | null
+          site_id: string | null
+          sort_order: number | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attendance_geo_enabled?: boolean | null
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          punch_only_at_stations?: boolean | null
+          site_id?: string | null
+          sort_order?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attendance_geo_enabled?: boolean | null
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          punch_only_at_stations?: boolean | null
+          site_id?: string | null
+          sort_order?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_groups_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "calendar_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "calendar_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "calendar_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_items: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          kind: "product" | "service" | null
+          name: string | null
+          sku: string | null
+          tax_rate: number | null
+          tenant_id: string | null
+          unit: string | null
+          unit_price: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          kind?: "product" | "service" | null
+          name?: string | null
+          sku?: string | null
+          tax_rate?: number | null
+          tenant_id?: string | null
+          unit?: string | null
+          unit_price?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          kind?: "product" | "service" | null
+          name?: string | null
+          sku?: string | null
+          tax_rate?: number | null
+          tenant_id?: string | null
+          unit?: string | null
+          unit_price?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_response_options: {
+        Row: {
+          blocks_closeout: boolean | null
+          color_token: string | null
+          created_at: string | null
+          id: string | null
+          label: string | null
+          position: number | null
+          requires_note: boolean | null
+          response_set_id: string | null
+          semantics: string | null
+        }
+        Insert: {
+          blocks_closeout?: boolean | null
+          color_token?: string | null
+          created_at?: string | null
+          id?: string | null
+          label?: string | null
+          position?: number | null
+          requires_note?: boolean | null
+          response_set_id?: string | null
+          semantics?: string | null
+        }
+        Update: {
+          blocks_closeout?: boolean | null
+          color_token?: string | null
+          created_at?: string | null
+          id?: string | null
+          label?: string | null
+          position?: number | null
+          requires_note?: boolean | null
+          response_set_id?: string | null
+          semantics?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_response_options_response_set_id_fkey"
+            columns: ["response_set_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_response_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_response_sets: {
+        Row: {
+          catalog_version: number | null
+          category: string | null
+          code: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          locale: string | null
+          metadata: Json | null
+          name: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          vertical: string | null
+        }
+        Insert: {
+          catalog_version?: number | null
+          category?: string | null
+          code?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          locale?: string | null
+          metadata?: Json | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          vertical?: string | null
+        }
+        Update: {
+          catalog_version?: number | null
+          category?: string | null
+          code?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          locale?: string | null
+          metadata?: Json | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          vertical?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_response_sets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_response_sets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_response_sets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_response_sets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_response_sets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_review_point_forks: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          source_point_id: string | null
+          source_version_at_fork: number | null
+          tenant_id: string | null
+          tenant_point_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          source_point_id?: string | null
+          source_version_at_fork?: number | null
+          tenant_id?: string | null
+          tenant_point_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          source_point_id?: string | null
+          source_version_at_fork?: number | null
+          tenant_id?: string | null
+          tenant_point_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_review_point_forks_source_point_id_fkey"
+            columns: ["source_point_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_review_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_review_point_forks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_review_point_forks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_review_point_forks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_review_point_forks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_review_point_forks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_review_point_forks_tenant_point_id_fkey"
+            columns: ["tenant_point_id"]
+            isOneToOne: true
+            referencedRelation: "checklist_review_points"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_review_points: {
+        Row: {
+          archetype: string | null
+          catalog_version: number | null
+          category: string | null
+          client_text: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          is_archived: boolean | null
+          locale: string | null
+          metadata: Json | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+          vertical: string | null
+        }
+        Insert: {
+          archetype?: string | null
+          catalog_version?: number | null
+          category?: string | null
+          client_text?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_archived?: boolean | null
+          locale?: string | null
+          metadata?: Json | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+          vertical?: string | null
+        }
+        Update: {
+          archetype?: string | null
+          catalog_version?: number | null
+          category?: string | null
+          client_text?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_archived?: boolean | null
+          locale?: string | null
+          metadata?: Json | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+          vertical?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_review_points_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_review_points_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_review_points_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_review_points_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_review_points_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_run_items: {
+        Row: {
+          answer_blocks_closeout: boolean | null
+          answer_color_token: string | null
+          answer_label: string | null
+          answer_semantic: string | null
+          answered_at: string | null
+          answered_by: string | null
+          category: string | null
+          client_mutation_id: string | null
+          created_at: string | null
+          description_internal: string | null
+          description_public: string | null
+          evidence_required: boolean | null
+          id: string | null
+          include_in_report: boolean | null
+          is_required: boolean | null
+          locale: string | null
+          note: string | null
+          position: number | null
+          resolution_note: string | null
+          resolution_reason: string | null
+          resolution_status: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          response_set_id: string | null
+          response_type: string | null
+          review_point_id: string | null
+          run_id: string | null
+          template_item_id: string | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+          value_bool: boolean | null
+          value_number: number | null
+          value_option_id: string | null
+          value_text: string | null
+        }
+        Insert: {
+          answer_blocks_closeout?: boolean | null
+          answer_color_token?: string | null
+          answer_label?: string | null
+          answer_semantic?: string | null
+          answered_at?: string | null
+          answered_by?: string | null
+          category?: string | null
+          client_mutation_id?: string | null
+          created_at?: string | null
+          description_internal?: string | null
+          description_public?: string | null
+          evidence_required?: boolean | null
+          id?: string | null
+          include_in_report?: boolean | null
+          is_required?: boolean | null
+          locale?: string | null
+          note?: string | null
+          position?: number | null
+          resolution_note?: string | null
+          resolution_reason?: string | null
+          resolution_status?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          response_set_id?: string | null
+          response_type?: string | null
+          review_point_id?: string | null
+          run_id?: string | null
+          template_item_id?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+          value_bool?: boolean | null
+          value_number?: number | null
+          value_option_id?: string | null
+          value_text?: string | null
+        }
+        Update: {
+          answer_blocks_closeout?: boolean | null
+          answer_color_token?: string | null
+          answer_label?: string | null
+          answer_semantic?: string | null
+          answered_at?: string | null
+          answered_by?: string | null
+          category?: string | null
+          client_mutation_id?: string | null
+          created_at?: string | null
+          description_internal?: string | null
+          description_public?: string | null
+          evidence_required?: boolean | null
+          id?: string | null
+          include_in_report?: boolean | null
+          is_required?: boolean | null
+          locale?: string | null
+          note?: string | null
+          position?: number | null
+          resolution_note?: string | null
+          resolution_reason?: string | null
+          resolution_status?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          response_set_id?: string | null
+          response_type?: string | null
+          review_point_id?: string | null
+          run_id?: string | null
+          template_item_id?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+          value_bool?: boolean | null
+          value_number?: number | null
+          value_option_id?: string | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_run_items_response_set_id_fkey"
+            columns: ["response_set_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_response_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_run_items_review_point_id_fkey"
+            columns: ["review_point_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_review_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_run_items_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_run_items_template_item_id_fkey"
+            columns: ["template_item_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_template_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_run_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_run_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_run_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_run_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_run_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_run_items_value_option_id_fkey"
+            columns: ["value_option_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_response_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_runs: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          id: string | null
+          name_snapshot: string | null
+          project_id: string | null
+          public_report_payload: Json | null
+          sort_order: number | null
+          started_at: string | null
+          started_by: string | null
+          status: string | null
+          supersedes_run_id: string | null
+          template_id: string | null
+          template_version_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          version_number: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          id?: string | null
+          name_snapshot?: string | null
+          project_id?: string | null
+          public_report_payload?: Json | null
+          sort_order?: number | null
+          started_at?: string | null
+          started_by?: string | null
+          status?: string | null
+          supersedes_run_id?: string | null
+          template_id?: string | null
+          template_version_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          version_number?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          id?: string | null
+          name_snapshot?: string | null
+          project_id?: string | null
+          public_report_payload?: Json | null
+          sort_order?: number | null
+          started_at?: string | null
+          started_by?: string | null
+          status?: string | null
+          supersedes_run_id?: string | null
+          template_id?: string | null
+          template_version_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          version_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "checklist_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_runs_supersedes_run_id_fkey"
+            columns: ["supersedes_run_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_runs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_runs_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_template_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_template_forks: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          source_published_version_number: number | null
+          source_template_id: string | null
+          source_version_id: string | null
+          tenant_id: string | null
+          tenant_template_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          source_published_version_number?: number | null
+          source_template_id?: string | null
+          source_version_id?: string | null
+          tenant_id?: string | null
+          tenant_template_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          source_published_version_number?: number | null
+          source_template_id?: string | null
+          source_version_id?: string | null
+          tenant_id?: string | null
+          tenant_template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_template_forks_source_template_id_fkey"
+            columns: ["source_template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_template_forks_source_version_id_fkey"
+            columns: ["source_version_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_template_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_template_forks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_template_forks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_template_forks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_template_forks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_template_forks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_template_forks_tenant_template_id_fkey"
+            columns: ["tenant_template_id"]
+            isOneToOne: true
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_template_items: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description_internal: string | null
+          description_public: string | null
+          evidence_required: boolean | null
+          id: string | null
+          include_in_report: boolean | null
+          is_required: boolean | null
+          locale: string | null
+          position: number | null
+          response_set_id: string | null
+          response_type: string | null
+          review_point_id: string | null
+          title: string | null
+          version_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description_internal?: string | null
+          description_public?: string | null
+          evidence_required?: boolean | null
+          id?: string | null
+          include_in_report?: boolean | null
+          is_required?: boolean | null
+          locale?: string | null
+          position?: number | null
+          response_set_id?: string | null
+          response_type?: string | null
+          review_point_id?: string | null
+          title?: string | null
+          version_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description_internal?: string | null
+          description_public?: string | null
+          evidence_required?: boolean | null
+          id?: string | null
+          include_in_report?: boolean | null
+          is_required?: boolean | null
+          locale?: string | null
+          position?: number | null
+          response_set_id?: string | null
+          response_type?: string | null
+          review_point_id?: string | null
+          title?: string | null
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_template_items_response_set_id_fkey"
+            columns: ["response_set_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_response_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_template_items_review_point_id_fkey"
+            columns: ["review_point_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_review_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_template_items_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_template_versions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          default_response_set_id: string | null
+          id: string | null
+          published_at: string | null
+          published_by: string | null
+          status: string | null
+          template_id: string | null
+          updated_at: string | null
+          version_number: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          default_response_set_id?: string | null
+          id?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          status?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+          version_number?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          default_response_set_id?: string | null
+          id?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          status?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+          version_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_template_versions_default_response_set_id_fkey"
+            columns: ["default_response_set_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_response_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_templates: {
+        Row: {
+          archetype: string | null
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string | null
+          intent: string | null
+          is_active: boolean | null
+          is_archived: boolean | null
+          is_default: boolean | null
+          kind: string | null
+          locale: string | null
+          metadata: Json | null
+          name: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          vertical: string | null
+        }
+        Insert: {
+          archetype?: string | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string | null
+          intent?: string | null
+          is_active?: boolean | null
+          is_archived?: boolean | null
+          is_default?: boolean | null
+          kind?: string | null
+          locale?: string | null
+          metadata?: Json | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          vertical?: string | null
+        }
+        Update: {
+          archetype?: string | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string | null
+          intent?: string | null
+          is_active?: boolean | null
+          is_archived?: boolean | null
+          is_default?: boolean | null
+          kind?: string | null
+          locale?: string | null
+          metadata?: Json | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          vertical?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checklist_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collective_agreements: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          document_id: string | null
+          id: string | null
+          is_active: boolean | null
+          metadata: Json | null
+          name: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string | null
+          document_id?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string | null
+          document_id?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collective_agreements_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collective_agreements_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collective_agreements_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collective_agreements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "collective_agreements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "collective_agreements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collective_agreements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "collective_agreements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_notice_log: {
+        Row: {
+          certification_id: string | null
+          id: string | null
+          notice_days: number | null
+          sent_at: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          certification_id?: string | null
+          id?: string | null
+          notice_days?: number | null
+          sent_at?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          certification_id?: string | null
+          id?: string | null
+          notice_days?: number | null
+          sent_at?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_notice_log_certification_id_fkey"
+            columns: ["certification_id"]
+            isOneToOne: false
+            referencedRelation: "employee_certifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_notice_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "compliance_notice_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "compliance_notice_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_notice_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "compliance_notice_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_requirement_rules: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          grace_period_days: number | null
+          id: string | null
+          is_active: boolean | null
+          is_blocking: boolean | null
+          requirement_type_id: string | null
+          scope_id: string | null
+          scope_type: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          grace_period_days?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          is_blocking?: boolean | null
+          requirement_type_id?: string | null
+          scope_id?: string | null
+          scope_type?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          grace_period_days?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          is_blocking?: boolean | null
+          requirement_type_id?: string | null
+          scope_id?: string | null
+          scope_type?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_requirement_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_requirement_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_requirement_rules_requirement_type_id_fkey"
+            columns: ["requirement_type_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_requirement_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_requirement_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "compliance_requirement_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "compliance_requirement_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_requirement_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "compliance_requirement_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_requirement_types: {
+        Row: {
+          category: string | null
+          code: string | null
+          created_at: string | null
+          default_validity_months: number | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          renewal_notice_days: number[] | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          code?: string | null
+          created_at?: string | null
+          default_validity_months?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          renewal_notice_days?: number[] | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          code?: string | null
+          created_at?: string | null
+          default_validity_months?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          renewal_notice_days?: number[] | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_requirement_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "compliance_requirement_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "compliance_requirement_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_requirement_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "compliance_requirement_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_delivery_channels: {
+        Row: {
+          channel_type: string | null
+          contact_display_name: string | null
+          contact_id: string | null
+          contact_kind: string | null
+          created_at: string | null
+          created_by: string | null
+          disable_reason: string | null
+          disabled_at: string | null
+          disabled_by: string | null
+          id: string | null
+          is_active: boolean | null
+          is_verified: boolean | null
+          tenant_id: string | null
+          updated_at: string | null
+          value_normalized: string | null
+          value_raw: string | null
+          verification_method: string | null
+          verified_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_delivery_channels_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_channels_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_channels_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_channels_disabled_by_fkey"
+            columns: ["disabled_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_channels_disabled_by_fkey"
+            columns: ["disabled_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_channels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_channels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_channels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_channels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_channels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_delivery_rules: {
+        Row: {
+          channel_type: string | null
+          client_account_contact_id: string | null
+          client_account_display_name: string | null
+          contact_point_contact_id: string | null
+          contact_point_id: string | null
+          contact_point_value: string | null
+          created_at: string | null
+          created_by: string | null
+          disable_reason: string | null
+          disabled_at: string | null
+          disabled_by: string | null
+          id: string | null
+          is_active: boolean | null
+          policy: string | null
+          purpose: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_delivery_channels_contact_id_fkey"
+            columns: ["contact_point_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_rules_client_account_contact_id_fkey"
+            columns: ["client_account_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_rules_contact_point_id_fkey"
+            columns: ["contact_point_id"]
+            isOneToOne: false
+            referencedRelation: "contact_delivery_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_rules_disabled_by_fkey"
+            columns: ["disabled_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_rules_disabled_by_fkey"
+            columns: ["disabled_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "contact_delivery_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_relationships: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          ends_at: string | null
+          id: string | null
+          is_active: boolean | null
+          organization_contact_id: string | null
+          organization_display_name: string | null
+          person_contact_id: string | null
+          person_display_name: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          role: string | null
+          source: string | null
+          starts_at: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_relationships_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_relationships_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_relationships_organization_contact_id_fkey"
+            columns: ["organization_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_relationships_person_contact_id_fkey"
+            columns: ["person_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_relationships_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_relationships_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_relationships_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "contact_relationships_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "contact_relationships_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_relationships_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "contact_relationships_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_sites: {
+        Row: {
+          address: string | null
+          city: string | null
+          contact_id: string | null
+          country_code: string | null
+          created_at: string | null
+          geo_coordinates: Json | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          notes: string | null
+          postal_code: string | null
+          preferred_locale: string | null
+          province: string | null
+          street: string | null
+          street_number: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          contact_id?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          geo_coordinates?: Json | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          notes?: string | null
+          postal_code?: string | null
+          preferred_locale?: string | null
+          province?: string | null
+          street?: string | null
+          street_number?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          contact_id?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          geo_coordinates?: Json | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          notes?: string | null
+          postal_code?: string | null
+          preferred_locale?: string | null
+          province?: string | null
+          street?: string | null
+          street_number?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_sites_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "contact_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "contact_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "contact_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          billing_contact_id: string | null
+          consent_marketing: boolean | null
+          consent_marketing_at: string | null
+          consent_reminders: boolean | null
+          consent_reminders_at: string | null
+          created_at: string | null
+          created_by: string | null
+          display_name: string | null
+          email: string | null
+          family_name: string | null
+          given_name: string | null
+          id: string | null
+          is_archived: boolean | null
+          kind: "person" | "company" | null
+          legal_name: string | null
+          metadata: Json | null
+          owner_display_name: string | null
+          owner_user_id: string | null
+          phone: string | null
+          phone_alt: string | null
+          preferred_channel: string | null
+          preferred_locale: string | null
+          primary_contact_display_name: string | null
+          primary_contact_id: string | null
+          site_id: string | null
+          source: string | null
+          tags: string[] | null
+          tax_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_billing_contact_id_fkey"
+            columns: ["billing_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "contacts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "contacts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "contacts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coverage_demands: {
+        Row: {
+          created_at: string | null
+          day_of_week: number | null
+          demand_date: string | null
+          effective_from: string | null
+          effective_to: string | null
+          end_time: string | null
+          id: string | null
+          is_active: boolean | null
+          kind: string | null
+          location_id: string | null
+          name: string | null
+          notes: string | null
+          priority: number | null
+          required_max: number | null
+          required_min: number | null
+          required_target: number | null
+          role_id: string | null
+          site_id: string | null
+          source: string | null
+          start_time: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week?: number | null
+          demand_date?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          end_time?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          kind?: string | null
+          location_id?: string | null
+          name?: string | null
+          notes?: string | null
+          priority?: number | null
+          required_max?: number | null
+          required_min?: number | null
+          required_target?: number | null
+          role_id?: string | null
+          site_id?: string | null
+          source?: string | null
+          start_time?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: number | null
+          demand_date?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          end_time?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          kind?: string | null
+          location_id?: string | null
+          name?: string | null
+          notes?: string | null
+          priority?: number | null
+          required_max?: number | null
+          required_min?: number | null
+          required_target?: number | null
+          role_id?: string | null
+          site_id?: string | null
+          source?: string | null
+          start_time?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coverage_demands_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coverage_demands_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coverage_demands_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "work_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coverage_demands_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coverage_demands_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "coverage_demands_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "coverage_demands_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coverage_demands_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "coverage_demands_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_access_grants: {
+        Row: {
+          auth_user_id: string | null
+          client_account_contact_id: string | null
+          contact_relationship_id: string | null
+          created_at: string | null
+          email_normalized: string | null
+          id: string | null
+          invitation_id: string | null
+          is_active: boolean | null
+          last_seen_at: string | null
+          principal_contact_id: string | null
+          principal_kind: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          session_version: number | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auth_user_id?: string | null
+          client_account_contact_id?: string | null
+          contact_relationship_id?: string | null
+          created_at?: string | null
+          email_normalized?: string | null
+          id?: string | null
+          invitation_id?: string | null
+          is_active?: never
+          last_seen_at?: string | null
+          principal_contact_id?: string | null
+          principal_kind?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          session_version?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auth_user_id?: string | null
+          client_account_contact_id?: string | null
+          contact_relationship_id?: string | null
+          created_at?: string | null
+          email_normalized?: string | null
+          id?: string | null
+          invitation_id?: string | null
+          is_active?: never
+          last_seen_at?: string | null
+          principal_contact_id?: string | null
+          principal_kind?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          session_version?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_access_grants_auth_user_id_fkey"
+            columns: ["auth_user_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_grants_auth_user_id_fkey"
+            columns: ["auth_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_grants_client_account_contact_id_fkey"
+            columns: ["client_account_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_grants_contact_relationship_id_fkey"
+            columns: ["contact_relationship_id"]
+            isOneToOne: false
+            referencedRelation: "contact_relationships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_grants_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "customer_access_invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_grants_principal_contact_id_fkey"
+            columns: ["principal_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_grants_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_grants_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_access_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_access_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_access_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_access_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_auth_user_id: string | null
+          client_account_contact_id: string | null
+          contact_relationship_id: string | null
+          created_at: string | null
+          delivery_channel_id: string | null
+          email_normalized: string | null
+          expires_at: string | null
+          id: string | null
+          invited_by: string | null
+          is_pending: boolean | null
+          principal_contact_id: string | null
+          principal_kind: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_auth_user_id?: string | null
+          client_account_contact_id?: string | null
+          contact_relationship_id?: string | null
+          created_at?: string | null
+          delivery_channel_id?: string | null
+          email_normalized?: string | null
+          expires_at?: string | null
+          id?: string | null
+          invited_by?: string | null
+          is_pending?: never
+          principal_contact_id?: string | null
+          principal_kind?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_auth_user_id?: string | null
+          client_account_contact_id?: string | null
+          contact_relationship_id?: string | null
+          created_at?: string | null
+          delivery_channel_id?: string | null
+          email_normalized?: string | null
+          expires_at?: string | null
+          id?: string | null
+          invited_by?: string | null
+          is_pending?: never
+          principal_contact_id?: string | null
+          principal_kind?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_access_invitations_accepted_auth_user_id_fkey"
+            columns: ["accepted_auth_user_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_invitations_accepted_auth_user_id_fkey"
+            columns: ["accepted_auth_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_invitations_client_account_contact_id_fkey"
+            columns: ["client_account_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_invitations_contact_relationship_id_fkey"
+            columns: ["contact_relationship_id"]
+            isOneToOne: false
+            referencedRelation: "contact_relationships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_invitations_delivery_channel_id_fkey"
+            columns: ["delivery_channel_id"]
+            isOneToOne: false
+            referencedRelation: "contact_delivery_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_invitations_principal_contact_id_fkey"
+            columns: ["principal_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_invitations_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_invitations_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_invitations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_access_invitations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_access_invitations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_access_invitations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_access_invitations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_intervention_report_drafts: {
+        Row: {
+          based_on_version_id: string | null
+          client_summary_html: string | null
+          contact_site_id: string | null
+          created_at: string | null
+          created_by: string | null
+          customer_account_contact_id: string | null
+          failure_reason: string | null
+          id: string | null
+          locale: string | null
+          media_manifest: Json | null
+          project_id: string | null
+          projection: Json | null
+          report_id: string | null
+          schema_version: string | null
+          selected_media: Json | null
+          status: string | null
+          template_version: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          based_on_version_id?: string | null
+          client_summary_html?: string | null
+          contact_site_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_account_contact_id?: string | null
+          failure_reason?: string | null
+          id?: string | null
+          locale?: string | null
+          media_manifest?: Json | null
+          project_id?: string | null
+          projection?: Json | null
+          report_id?: string | null
+          schema_version?: string | null
+          selected_media?: Json | null
+          status?: string | null
+          template_version?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          based_on_version_id?: string | null
+          client_summary_html?: string | null
+          contact_site_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_account_contact_id?: string | null
+          failure_reason?: string | null
+          id?: string | null
+          locale?: string | null
+          media_manifest?: Json | null
+          project_id?: string | null
+          projection?: Json | null
+          report_id?: string | null
+          schema_version?: string | null
+          selected_media?: Json | null
+          status?: string | null
+          template_version?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_intervention_report_d_customer_account_contact_id_fkey"
+            columns: ["customer_account_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_drafts_based_on_version_id_fkey"
+            columns: ["based_on_version_id"]
+            isOneToOne: false
+            referencedRelation: "customer_intervention_report_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_drafts_contact_site_id_fkey"
+            columns: ["contact_site_id"]
+            isOneToOne: false
+            referencedRelation: "contact_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_drafts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_drafts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_drafts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_drafts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_drafts_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "customer_intervention_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_drafts_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_drafts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_drafts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_drafts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_drafts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_drafts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_drafts_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_drafts_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_intervention_report_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string | null
+          draft_id: string | null
+          event_type: string | null
+          id: string | null
+          payload: Json | null
+          project_id: string | null
+          report_id: string | null
+          tenant_id: string | null
+          version_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string | null
+          draft_id?: string | null
+          event_type?: string | null
+          id?: string | null
+          payload?: Json | null
+          project_id?: string | null
+          report_id?: string | null
+          tenant_id?: string | null
+          version_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string | null
+          draft_id?: string | null
+          event_type?: string | null
+          id?: string | null
+          payload?: Json | null
+          project_id?: string | null
+          report_id?: string | null
+          tenant_id?: string | null
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_intervention_report_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_events_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "customer_intervention_report_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_events_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "customer_intervention_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_events_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_events_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "customer_intervention_report_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_intervention_report_versions: {
+        Row: {
+          contact_site_id: string | null
+          content_digest: string | null
+          created_at: string | null
+          customer_account_contact_id: string | null
+          draft_id: string | null
+          id: string | null
+          locale: string | null
+          media_manifest: Json | null
+          project_id: string | null
+          projection: Json | null
+          published_at: string | null
+          published_by: string | null
+          report_id: string | null
+          schema_version: string | null
+          snapshots: Json | null
+          template_version: string | null
+          tenant_id: string | null
+          version_number: number | null
+        }
+        Insert: {
+          contact_site_id?: string | null
+          content_digest?: string | null
+          created_at?: string | null
+          customer_account_contact_id?: string | null
+          draft_id?: string | null
+          id?: string | null
+          locale?: string | null
+          media_manifest?: Json | null
+          project_id?: string | null
+          projection?: Json | null
+          published_at?: string | null
+          published_by?: string | null
+          report_id?: string | null
+          schema_version?: string | null
+          snapshots?: Json | null
+          template_version?: string | null
+          tenant_id?: string | null
+          version_number?: number | null
+        }
+        Update: {
+          contact_site_id?: string | null
+          content_digest?: string | null
+          created_at?: string | null
+          customer_account_contact_id?: string | null
+          draft_id?: string | null
+          id?: string | null
+          locale?: string | null
+          media_manifest?: Json | null
+          project_id?: string | null
+          projection?: Json | null
+          published_at?: string | null
+          published_by?: string | null
+          report_id?: string | null
+          schema_version?: string | null
+          snapshots?: Json | null
+          template_version?: string | null
+          tenant_id?: string | null
+          version_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_intervention_report_versions_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "customer_intervention_report_drafts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_versions_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_versions_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_versions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "customer_intervention_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_versions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_report_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_intervention_reports: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          current_published_version_id: string | null
+          id: string | null
+          legacy_unresolved: boolean | null
+          project_id: string | null
+          report_type: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          current_published_version_id?: string | null
+          id?: string | null
+          legacy_unresolved?: boolean | null
+          project_id?: string | null
+          report_type?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          current_published_version_id?: string | null
+          id?: string | null
+          legacy_unresolved?: boolean | null
+          project_id?: string | null
+          report_type?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_intervention_reports_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_reports_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_reports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_reports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_intervention_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_cir_current_version"
+            columns: ["current_published_version_id"]
+            isOneToOne: false
+            referencedRelation: "customer_intervention_report_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_portal_staff_sessions: {
+        Row: {
+          client_account_contact_id: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string | null
+          is_active: boolean | null
+          last_seen_at: string | null
+          project_id: string | null
+          report_version_id: string | null
+          revoked_at: string | null
+          scope_mode: string | null
+          session_version: number | null
+          staff_user_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          client_account_contact_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string | null
+          is_active?: never
+          last_seen_at?: string | null
+          project_id?: string | null
+          report_version_id?: string | null
+          revoked_at?: string | null
+          scope_mode?: never
+          session_version?: number | null
+          staff_user_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          client_account_contact_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string | null
+          is_active?: never
+          last_seen_at?: string | null
+          project_id?: string | null
+          report_version_id?: string | null
+          revoked_at?: string | null
+          scope_mode?: never
+          session_version?: number | null
+          staff_user_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_portal_staff_sessions_client_account_contact_id_fkey"
+            columns: ["client_account_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portal_staff_sessions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_staff_sessions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portal_staff_sessions_report_version_id_fkey"
+            columns: ["report_version_id"]
+            isOneToOne: false
+            referencedRelation: "customer_intervention_report_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portal_staff_sessions_staff_user_id_fkey"
+            columns: ["staff_user_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portal_staff_sessions_staff_user_id_fkey"
+            columns: ["staff_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portal_staff_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_staff_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_staff_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portal_staff_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_staff_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_portal_tenant_state: {
+        Row: {
+          bulletin_bcc_emails: string[] | null
+          enabled: boolean | null
+          existing_access_policy: string | null
+          new_access_policy: string | null
+          new_share_policy: string | null
+          restricted_at: string | null
+          restricted_by: string | null
+          restriction_note: string | null
+          restriction_reason: string | null
+          review_at: string | null
+          security_version: number | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bulletin_bcc_emails?: string[] | null
+          enabled?: boolean | null
+          existing_access_policy?: string | null
+          new_access_policy?: string | null
+          new_share_policy?: string | null
+          restricted_at?: string | null
+          restricted_by?: string | null
+          restriction_note?: string | null
+          restriction_reason?: string | null
+          review_at?: string | null
+          security_version?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bulletin_bcc_emails?: string[] | null
+          enabled?: boolean | null
+          existing_access_policy?: string | null
+          new_access_policy?: string | null
+          new_share_policy?: string | null
+          restricted_at?: string | null
+          restricted_by?: string | null
+          restriction_note?: string | null
+          restriction_reason?: string | null
+          review_at?: string | null
+          security_version?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_portal_tenant_state_restricted_by_fkey"
+            columns: ["restricted_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portal_tenant_state_restricted_by_fkey"
+            columns: ["restricted_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portal_tenant_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_tenant_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_tenant_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portal_tenant_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_tenant_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_report_share_delivery_intents: {
+        Row: {
+          channel: string | null
+          contact_relationship_id: string | null
+          created_at: string | null
+          created_by: string | null
+          customer_account_contact_id: string | null
+          delivery_channel_id: string | null
+          expires_at: string | null
+          failure_reason: string | null
+          id: string | null
+          idempotency_key: string | null
+          project_id: string | null
+          recipient_contact_id: string | null
+          report_id: string | null
+          report_version_id: string | null
+          share_id: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          channel?: string | null
+          contact_relationship_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_account_contact_id?: string | null
+          delivery_channel_id?: string | null
+          expires_at?: string | null
+          failure_reason?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          project_id?: string | null
+          recipient_contact_id?: string | null
+          report_id?: string | null
+          report_version_id?: string | null
+          share_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          channel?: string | null
+          contact_relationship_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_account_contact_id?: string | null
+          delivery_channel_id?: string | null
+          expires_at?: string | null
+          failure_reason?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          project_id?: string | null
+          recipient_contact_id?: string | null
+          report_id?: string | null
+          report_version_id?: string | null
+          share_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_report_share_delivery_customer_account_contact_id_fkey"
+            columns: ["customer_account_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_int_contact_relationship_id_fkey"
+            columns: ["contact_relationship_id"]
+            isOneToOne: false
+            referencedRelation: "contact_relationships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_intent_recipient_contact_id_fkey"
+            columns: ["recipient_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_intents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_intents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_intents_delivery_channel_id_fkey"
+            columns: ["delivery_channel_id"]
+            isOneToOne: false
+            referencedRelation: "contact_delivery_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_intents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_intents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_intents_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "customer_intervention_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_intents_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_intents_report_version_id_fkey"
+            columns: ["report_version_id"]
+            isOneToOne: false
+            referencedRelation: "customer_intervention_report_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_intents_share_id_fkey"
+            columns: ["share_id"]
+            isOneToOne: false
+            referencedRelation: "customer_report_shares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_report_share_delivery_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_report_shares: {
+        Row: {
+          channel: string | null
+          contact_relationship_id: string | null
+          created_at: string | null
+          created_by: string | null
+          creation_snapshot: Json | null
+          customer_account_contact_id: string | null
+          delivery_channel_id: string | null
+          expires_at: string | null
+          id: string | null
+          is_active: boolean | null
+          max_sessions: number | null
+          max_views: number | null
+          project_id: string | null
+          recipient_contact_id: string | null
+          report_id: string | null
+          report_version_id: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          second_channel_confirmed_at: string | null
+          session_count: number | null
+          session_version: number | null
+          tenant_id: string | null
+          view_count: number | null
+        }
+        Insert: {
+          channel?: string | null
+          contact_relationship_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          creation_snapshot?: Json | null
+          customer_account_contact_id?: string | null
+          delivery_channel_id?: string | null
+          expires_at?: string | null
+          id?: string | null
+          is_active?: never
+          max_sessions?: number | null
+          max_views?: number | null
+          project_id?: string | null
+          recipient_contact_id?: string | null
+          report_id?: string | null
+          report_version_id?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          second_channel_confirmed_at?: string | null
+          session_count?: number | null
+          session_version?: number | null
+          tenant_id?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          channel?: string | null
+          contact_relationship_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          creation_snapshot?: Json | null
+          customer_account_contact_id?: string | null
+          delivery_channel_id?: string | null
+          expires_at?: string | null
+          id?: string | null
+          is_active?: never
+          max_sessions?: number | null
+          max_views?: number | null
+          project_id?: string | null
+          recipient_contact_id?: string | null
+          report_id?: string | null
+          report_version_id?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          second_channel_confirmed_at?: string | null
+          session_count?: number | null
+          session_version?: number | null
+          tenant_id?: string | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_report_shares_contact_relationship_id_fkey"
+            columns: ["contact_relationship_id"]
+            isOneToOne: false
+            referencedRelation: "contact_relationships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_customer_account_contact_id_fkey"
+            columns: ["customer_account_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_delivery_channel_id_fkey"
+            columns: ["delivery_channel_id"]
+            isOneToOne: false
+            referencedRelation: "contact_delivery_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_recipient_contact_id_fkey"
+            columns: ["recipient_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "customer_intervention_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_report_version_id_fkey"
+            columns: ["report_version_id"]
+            isOneToOne: false
+            referencedRelation: "customer_intervention_report_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "customer_report_shares_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      departments: {
+        Row: {
+          attendance_geo_enabled: boolean | null
+          code: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          manager_employee_id: string | null
+          manager_id: string | null
+          name: string | null
+          parent_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attendance_geo_enabled?: boolean | null
+          code?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          manager_employee_id?: string | null
+          manager_id?: string | null
+          name?: string | null
+          parent_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attendance_geo_enabled?: boolean | null
+          code?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          manager_employee_id?: string | null
+          manager_id?: string | null
+          name?: string | null
+          parent_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "departments_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "departments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "departments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "departments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_content_blocks: {
+        Row: {
+          block_type: string | null
+          cloned_from_id: string | null
+          content: string | null
+          created_at: string | null
+          format: string | null
+          id: string | null
+          is_active: boolean | null
+          is_platform_default: boolean | null
+          name: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          block_type?: never
+          cloned_from_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          format?: never
+          id?: string | null
+          is_active?: boolean | null
+          is_platform_default?: boolean | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          block_type?: never
+          cloned_from_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          format?: never
+          id?: string | null
+          is_active?: boolean | null
+          is_platform_default?: boolean | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_content_blocks_cloned_from_id_fkey"
+            columns: ["cloned_from_id"]
+            isOneToOne: false
+            referencedRelation: "document_content_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_content_blocks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_content_blocks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_content_blocks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_content_blocks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_content_blocks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_folders: {
+        Row: {
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string | null
+          name: string | null
+          parent_id: string | null
+          required_permissions: string[] | null
+          site_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string | null
+          name?: string | null
+          parent_id?: string | null
+          required_permissions?: string[] | null
+          site_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string | null
+          name?: string | null
+          parent_id?: string | null
+          required_permissions?: string[] | null
+          site_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_folders_entity_type_fkey"
+            columns: ["entity_type"]
+            isOneToOne: false
+            referencedRelation: "entity_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "document_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "document_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_folders_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_folders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_folders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_folders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_folders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_folders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_pdf_events: {
+        Row: {
+          created_at: string | null
+          event_type: string | null
+          id: string | null
+          job_id: string | null
+          payload: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_type?: string | null
+          id?: string | null
+          job_id?: string | null
+          payload?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string | null
+          id?: string | null
+          job_id?: string | null
+          payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_pdf_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "document_pdf_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_pdf_jobs: {
+        Row: {
+          attempt_count: number | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          document_title: string | null
+          duration_ms: number | null
+          folder_id: string | null
+          id: string | null
+          idempotency_key: string | null
+          intermediate_path: string | null
+          intermediate_size_bytes: number | null
+          is_dead_letter: boolean | null
+          last_error_code: string | null
+          last_error_message: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_retries: number | null
+          metadata: Json | null
+          next_retry_at: string | null
+          output_profile: string | null
+          priority: number | null
+          result_document_id: string | null
+          result_version_id: string | null
+          size_input_bytes: number | null
+          size_output_bytes: number | null
+          source_ref_id: string | null
+          source_type: string | null
+          status:
+            | "queued"
+            | "processing"
+            | "completed"
+            | "failed"
+            | "skipped"
+            | "dead_letter"
+            | null
+          template_type: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attempt_count?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          document_title?: string | null
+          duration_ms?: number | null
+          folder_id?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          intermediate_path?: string | null
+          intermediate_size_bytes?: number | null
+          is_dead_letter?: boolean | null
+          last_error_code?: string | null
+          last_error_message?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_retries?: number | null
+          metadata?: Json | null
+          next_retry_at?: string | null
+          output_profile?: string | null
+          priority?: number | null
+          result_document_id?: string | null
+          result_version_id?: string | null
+          size_input_bytes?: number | null
+          size_output_bytes?: number | null
+          source_ref_id?: string | null
+          source_type?: string | null
+          status?:
+            | "queued"
+            | "processing"
+            | "completed"
+            | "failed"
+            | "skipped"
+            | "dead_letter"
+            | null
+          template_type?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attempt_count?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          document_title?: string | null
+          duration_ms?: number | null
+          folder_id?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          intermediate_path?: string | null
+          intermediate_size_bytes?: number | null
+          is_dead_letter?: boolean | null
+          last_error_code?: string | null
+          last_error_message?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_retries?: number | null
+          metadata?: Json | null
+          next_retry_at?: string | null
+          output_profile?: string | null
+          priority?: number | null
+          result_document_id?: string | null
+          result_version_id?: string | null
+          size_input_bytes?: number | null
+          size_output_bytes?: number | null
+          source_ref_id?: string | null
+          source_type?: string | null
+          status?:
+            | "queued"
+            | "processing"
+            | "completed"
+            | "failed"
+            | "skipped"
+            | "dead_letter"
+            | null
+          template_type?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_pdf_jobs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_pdf_jobs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_pdf_jobs_result_document_id_fkey"
+            columns: ["result_document_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_pdf_jobs_result_document_id_fkey"
+            columns: ["result_document_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_pdf_jobs_result_document_id_fkey"
+            columns: ["result_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_pdf_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_pdf_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_pdf_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_pdf_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_pdf_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_share_links: {
+        Row: {
+          access_count: number | null
+          created_at: string | null
+          created_by: string | null
+          document_id: string | null
+          document_version_id: string | null
+          expires_at: string | null
+          id: string | null
+          is_active: boolean | null
+          last_accessed_at: string | null
+          revoked_at: string | null
+          tenant_id: string | null
+          token: string | null
+        }
+        Insert: {
+          access_count?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          document_id?: string | null
+          document_version_id?: string | null
+          expires_at?: string | null
+          id?: string | null
+          is_active?: never
+          last_accessed_at?: string | null
+          revoked_at?: string | null
+          tenant_id?: string | null
+          token?: string | null
+        }
+        Update: {
+          access_count?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          document_id?: string | null
+          document_version_id?: string | null
+          expires_at?: string | null
+          id?: string | null
+          is_active?: never
+          last_accessed_at?: string | null
+          revoked_at?: string | null
+          tenant_id?: string | null
+          token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_share_links_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_share_links_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_share_links_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_share_links_document_version_id_fkey"
+            columns: ["document_version_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["version_id"]
+          },
+          {
+            foreignKeyName: "document_share_links_document_version_id_fkey"
+            columns: ["document_version_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["version_id"]
+          },
+          {
+            foreignKeyName: "document_share_links_document_version_id_fkey"
+            columns: ["document_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_share_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_share_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_share_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_share_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_share_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_signatures_audit: {
+        Row: {
+          audit_pdf_path: string | null
+          created_at: string | null
+          document_hash_after: string | null
+          document_hash_before: string | null
+          document_id: string | null
+          geolocation: Json | null
+          id: string | null
+          session_id: string | null
+          signer_email: string | null
+          signer_name: string | null
+          signer_role: string | null
+          tenant_id: string | null
+          timestamp_signed: string | null
+        }
+        Insert: {
+          audit_pdf_path?: string | null
+          created_at?: string | null
+          document_hash_after?: string | null
+          document_hash_before?: string | null
+          document_id?: string | null
+          geolocation?: Json | null
+          id?: string | null
+          session_id?: string | null
+          signer_email?: string | null
+          signer_name?: string | null
+          signer_role?: string | null
+          tenant_id?: string | null
+          timestamp_signed?: string | null
+        }
+        Update: {
+          audit_pdf_path?: string | null
+          created_at?: string | null
+          document_hash_after?: string | null
+          document_hash_before?: string | null
+          document_id?: string | null
+          geolocation?: Json | null
+          id?: string | null
+          session_id?: string | null
+          signer_email?: string | null
+          signer_name?: string | null
+          signer_role?: string | null
+          tenant_id?: string | null
+          timestamp_signed?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_signatures_audit_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "document_signing_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_signatures_audit_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_signatures_audit_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_signatures_audit_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_signatures_audit_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_signatures_audit_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_signing_sessions: {
+        Row: {
+          audit_version_id: string | null
+          created_at: string | null
+          document_version_id: string | null
+          expires_at: string | null
+          id: string | null
+          operator_user_id: string | null
+          pdf_job_id: string | null
+          result_version_id: string | null
+          signer_email: string | null
+          signer_name: string | null
+          signer_order: number | null
+          signer_role: string | null
+          signing_field_map: Json | null
+          signing_group_id: string | null
+          signing_type: string | null
+          status: string | null
+          tenant_id: string | null
+          timestamps: Json | null
+          total_signers: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          audit_version_id?: string | null
+          created_at?: string | null
+          document_version_id?: string | null
+          expires_at?: string | null
+          id?: string | null
+          operator_user_id?: string | null
+          pdf_job_id?: string | null
+          result_version_id?: string | null
+          signer_email?: string | null
+          signer_name?: string | null
+          signer_order?: number | null
+          signer_role?: string | null
+          signing_field_map?: Json | null
+          signing_group_id?: string | null
+          signing_type?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          timestamps?: Json | null
+          total_signers?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          audit_version_id?: string | null
+          created_at?: string | null
+          document_version_id?: string | null
+          expires_at?: string | null
+          id?: string | null
+          operator_user_id?: string | null
+          pdf_job_id?: string | null
+          result_version_id?: string | null
+          signer_email?: string | null
+          signer_name?: string | null
+          signer_order?: number | null
+          signer_role?: string | null
+          signing_field_map?: Json | null
+          signing_group_id?: string | null
+          signing_type?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          timestamps?: Json | null
+          total_signers?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_signing_sessions_operator_user_id_fkey"
+            columns: ["operator_user_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_signing_sessions_operator_user_id_fkey"
+            columns: ["operator_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_signing_sessions_pdf_job_id_fkey"
+            columns: ["pdf_job_id"]
+            isOneToOne: false
+            referencedRelation: "document_pdf_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_signing_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_signing_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_signing_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_signing_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_signing_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_tag_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          document_id: string | null
+          tag_color: string | null
+          tag_id: string | null
+          tag_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_tag_assignments_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_tag_assignments_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_tag_assignments_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_tag_assignments_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "document_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_tags: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string | null
+          name: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_template_locale_detail: {
+        Row: {
+          created_at: string | null
+          html_content: string | null
+          id: string | null
+          is_active: boolean | null
+          locale: string | null
+          mime_type: string | null
+          sample_values: Json | null
+          signing_roles_schema: Json | null
+          storage_path: string | null
+          template_id: string | null
+          updated_at: string | null
+          variables_schema: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          html_content?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          locale?: string | null
+          mime_type?: string | null
+          sample_values?: Json | null
+          signing_roles_schema?: Json | null
+          storage_path?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+          variables_schema?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          html_content?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          locale?: string | null
+          mime_type?: string | null
+          sample_values?: Json | null
+          signing_roles_schema?: Json | null
+          storage_path?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+          variables_schema?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_template_locales_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_template_locales: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          locale: string | null
+          mime_type: string | null
+          pdf_fields_schema: Json | null
+          sample_values: Json | null
+          signing_roles_schema: Json | null
+          storage_path: string | null
+          template_id: string | null
+          updated_at: string | null
+          variables_schema: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          locale?: string | null
+          mime_type?: string | null
+          pdf_fields_schema?: Json | null
+          sample_values?: Json | null
+          signing_roles_schema?: Json | null
+          storage_path?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+          variables_schema?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          locale?: string | null
+          mime_type?: string | null
+          pdf_fields_schema?: Json | null
+          sample_values?: Json | null
+          signing_roles_schema?: Json | null
+          storage_path?: string | null
+          template_id?: string | null
+          updated_at?: string | null
+          variables_schema?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_template_locales_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_templates: {
+        Row: {
+          category: string | null
+          cloned_from_id: string | null
+          created_at: string | null
+          created_by: string | null
+          default_block_mapping: Json | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          is_platform_default: boolean | null
+          name: string | null
+          target_archetypes: string[] | null
+          target_verticals: string[] | null
+          template_type: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          cloned_from_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          default_block_mapping?: Json | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_platform_default?: boolean | null
+          name?: string | null
+          target_archetypes?: string[] | null
+          target_verticals?: string[] | null
+          template_type?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          cloned_from_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          default_block_mapping?: Json | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_platform_default?: boolean | null
+          name?: string | null
+          target_archetypes?: string[] | null
+          target_verticals?: string[] | null
+          template_type?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_templates_cloned_from_id_fkey"
+            columns: ["cloned_from_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_versions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          document_id: string | null
+          file_path_or_url: string | null
+          id: string | null
+          mime_type: string | null
+          size_bytes: number | null
+          storage_type: string | null
+          version_number: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          document_id?: string | null
+          file_path_or_url?: string | null
+          id?: string | null
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_type?: string | null
+          version_number?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          document_id?: string | null
+          file_path_or_url?: string | null
+          id?: string | null
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_type?: string | null
+          version_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          entity_id: string | null
+          entity_type: string | null
+          expires_at: string | null
+          folder_id: string | null
+          id: string | null
+          is_archived: boolean | null
+          renewal_anchor_day: number | null
+          renewal_anchor_mode: string | null
+          renewal_anchor_month: number | null
+          renewal_interval_months: number | null
+          required_permissions: string[] | null
+          site_id: string | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+          valid_from: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          expires_at?: string | null
+          folder_id?: string | null
+          id?: string | null
+          is_archived?: boolean | null
+          renewal_anchor_day?: number | null
+          renewal_anchor_mode?: string | null
+          renewal_anchor_month?: number | null
+          renewal_interval_months?: number | null
+          required_permissions?: string[] | null
+          site_id?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          expires_at?: string | null
+          folder_id?: string | null
+          id?: string | null
+          is_archived?: boolean | null
+          renewal_anchor_day?: number | null
+          renewal_anchor_mode?: string | null
+          renewal_anchor_month?: number | null
+          renewal_interval_months?: number | null
+          required_permissions?: string[] | null
+          site_id?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_entity_type_fkey"
+            columns: ["entity_type"]
+            isOneToOne: false
+            referencedRelation: "entity_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "document_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_configs: {
+        Row: {
+          created_at: string | null
+          custom_domains_enabled: boolean | null
+          default_from_name: string | null
+          default_layout_id: string | null
+          default_provider: "resend" | "sendgrid" | null
+          default_reply_to: string | null
+          layout_variables: Json | null
+          logo_url: string | null
+          max_custom_domains: number | null
+          max_retries: number | null
+          metadata: Json | null
+          rate_limit_per_day: number | null
+          rate_limit_per_hour: number | null
+          retention_days: number | null
+          tenant_id: string | null
+          tenant_name_fallback: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custom_domains_enabled?: boolean | null
+          default_from_name?: string | null
+          default_layout_id?: string | null
+          default_provider?: "resend" | "sendgrid" | null
+          default_reply_to?: string | null
+          layout_variables?: Json | null
+          logo_url?: string | null
+          max_custom_domains?: number | null
+          max_retries?: number | null
+          metadata?: Json | null
+          rate_limit_per_day?: number | null
+          rate_limit_per_hour?: number | null
+          retention_days?: number | null
+          tenant_id?: string | null
+          tenant_name_fallback?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custom_domains_enabled?: boolean | null
+          default_from_name?: string | null
+          default_layout_id?: string | null
+          default_provider?: "resend" | "sendgrid" | null
+          default_reply_to?: string | null
+          layout_variables?: Json | null
+          logo_url?: string | null
+          max_custom_domains?: number | null
+          max_retries?: number | null
+          metadata?: Json | null
+          rate_limit_per_day?: number | null
+          rate_limit_per_hour?: number | null
+          retention_days?: number | null
+          tenant_id?: string | null
+          tenant_name_fallback?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "email_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "email_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "email_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_email_configs_default_layout_id"
+            columns: ["default_layout_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_domains: {
+        Row: {
+          created_at: string | null
+          default_from_email: string | null
+          default_from_name: string | null
+          default_reply_to: string | null
+          dns_records: Json | null
+          domain: string | null
+          id: string | null
+          is_primary: boolean | null
+          provider_domain_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          verification_status: "pending" | "verified" | "failed" | null
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_from_email?: string | null
+          default_from_name?: string | null
+          default_reply_to?: string | null
+          dns_records?: Json | null
+          domain?: string | null
+          id?: string | null
+          is_primary?: boolean | null
+          provider_domain_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          verification_status?: "pending" | "verified" | "failed" | null
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_from_email?: string | null
+          default_from_name?: string | null
+          default_reply_to?: string | null
+          dns_records?: Json | null
+          domain?: string | null
+          id?: string | null
+          is_primary?: boolean | null
+          provider_domain_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          verification_status?: "pending" | "verified" | "failed" | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "email_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "email_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "email_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_logs: {
+        Row: {
+          attempt_count: number | null
+          bcc_emails: string[] | null
+          cc_emails: string[] | null
+          created_at: string | null
+          delivered_at: string | null
+          email_type: "transactional" | "bulk" | null
+          error_history: Json | null
+          from_email: string | null
+          from_name: string | null
+          html_body: string | null
+          id: string | null
+          idempotency_key: string | null
+          is_dead_letter: boolean | null
+          last_error: string | null
+          provider: "resend" | "sendgrid" | null
+          provider_message_id: string | null
+          reply_to: string | null
+          scheduled_at: string | null
+          sent_at: string | null
+          site_id: string | null
+          status:
+            | "queued"
+            | "processing"
+            | "sent"
+            | "delivered"
+            | "bounced"
+            | "failed"
+            | "complained"
+            | "suppressed"
+            | null
+          subject: string | null
+          tags: string[] | null
+          tenant_id: string | null
+          text_body: string | null
+          to_emails: string[] | null
+        }
+        Insert: {
+          attempt_count?: number | null
+          bcc_emails?: string[] | null
+          cc_emails?: string[] | null
+          created_at?: string | null
+          delivered_at?: string | null
+          email_type?: "transactional" | "bulk" | null
+          error_history?: Json | null
+          from_email?: string | null
+          from_name?: string | null
+          html_body?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          is_dead_letter?: boolean | null
+          last_error?: string | null
+          provider?: "resend" | "sendgrid" | null
+          provider_message_id?: string | null
+          reply_to?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          site_id?: string | null
+          status?:
+            | "queued"
+            | "processing"
+            | "sent"
+            | "delivered"
+            | "bounced"
+            | "failed"
+            | "complained"
+            | "suppressed"
+            | null
+          subject?: string | null
+          tags?: string[] | null
+          tenant_id?: string | null
+          text_body?: string | null
+          to_emails?: string[] | null
+        }
+        Update: {
+          attempt_count?: number | null
+          bcc_emails?: string[] | null
+          cc_emails?: string[] | null
+          created_at?: string | null
+          delivered_at?: string | null
+          email_type?: "transactional" | "bulk" | null
+          error_history?: Json | null
+          from_email?: string | null
+          from_name?: string | null
+          html_body?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          is_dead_letter?: boolean | null
+          last_error?: string | null
+          provider?: "resend" | "sendgrid" | null
+          provider_message_id?: string | null
+          reply_to?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          site_id?: string | null
+          status?:
+            | "queued"
+            | "processing"
+            | "sent"
+            | "delivered"
+            | "bounced"
+            | "failed"
+            | "complained"
+            | "suppressed"
+            | null
+          subject?: string | null
+          tags?: string[] | null
+          tenant_id?: string | null
+          text_body?: string | null
+          to_emails?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "email_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "email_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "email_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          created_at: string | null
+          event_type: string | null
+          html_body_template: string | null
+          id: string | null
+          is_active: boolean | null
+          is_draft: boolean | null
+          is_layout: boolean | null
+          is_platform_default: boolean | null
+          layout_id: string | null
+          name: string | null
+          slug: string | null
+          subject_template: string | null
+          tenant_id: string | null
+          text_body_template: string | null
+          translations: Json | null
+          updated_at: string | null
+          use_layout: boolean | null
+          variables_schema: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_type?: string | null
+          html_body_template?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_draft?: boolean | null
+          is_layout?: boolean | null
+          is_platform_default?: boolean | null
+          layout_id?: string | null
+          name?: string | null
+          slug?: string | null
+          subject_template?: string | null
+          tenant_id?: string | null
+          text_body_template?: string | null
+          translations?: Json | null
+          updated_at?: string | null
+          use_layout?: boolean | null
+          variables_schema?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string | null
+          html_body_template?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_draft?: boolean | null
+          is_layout?: boolean | null
+          is_platform_default?: boolean | null
+          layout_id?: string | null
+          name?: string | null
+          slug?: string | null
+          subject_template?: string | null
+          tenant_id?: string | null
+          text_body_template?: string | null
+          translations?: Json | null
+          updated_at?: string | null
+          use_layout?: boolean | null
+          variables_schema?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_layout_id_fkey"
+            columns: ["layout_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "email_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "email_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "email_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_absences: {
+        Row: {
+          absence_type: string | null
+          calendar_days: number | null
+          created_at: string | null
+          employee_id: string | null
+          end_date: string | null
+          hours_per_day: number | null
+          id: string | null
+          is_paid: boolean | null
+          notes: string | null
+          requested_by: string | null
+          review_comment: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          site_id: string | null
+          start_date: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          absence_type?: string | null
+          calendar_days?: never
+          created_at?: string | null
+          employee_id?: string | null
+          end_date?: string | null
+          hours_per_day?: number | null
+          id?: string | null
+          is_paid?: boolean | null
+          notes?: string | null
+          requested_by?: string | null
+          review_comment?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          site_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          absence_type?: string | null
+          calendar_days?: never
+          created_at?: string | null
+          employee_id?: string | null
+          end_date?: string | null
+          hours_per_day?: number | null
+          id?: string | null
+          is_paid?: boolean | null
+          notes?: string | null
+          requested_by?: string | null
+          review_comment?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          site_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_absences_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_absences_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_absences_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_absences_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_absences_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_absences_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_absences_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_absences_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_absences_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_absences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_absences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_absences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_absences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_absences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_asset_assignments: {
+        Row: {
+          acknowledgment_document_id: string | null
+          asset_calibration_due_on: string | null
+          asset_id: string | null
+          asset_name: string | null
+          asset_requires_calibration: boolean | null
+          asset_site_id: string | null
+          asset_status: string | null
+          asset_tag: string | null
+          asset_type_id: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          created_at: string | null
+          employee_id: string | null
+          employee_name: string | null
+          expected_return_at: string | null
+          id: string | null
+          notes: string | null
+          return_condition: string | null
+          return_document_id: string | null
+          returned_at: string | null
+          returned_by: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_asset_type_id_fkey"
+            columns: ["asset_type_id"]
+            isOneToOne: false
+            referencedRelation: "asset_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_site_id_fkey"
+            columns: ["asset_site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_acknowledgment_document_id_fkey"
+            columns: ["acknowledgment_document_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_acknowledgment_document_id_fkey"
+            columns: ["acknowledgment_document_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_acknowledgment_document_id_fkey"
+            columns: ["acknowledgment_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_return_document_id_fkey"
+            columns: ["return_document_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_return_document_id_fkey"
+            columns: ["return_document_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_return_document_id_fkey"
+            columns: ["return_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_returned_by_fkey"
+            columns: ["returned_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_returned_by_fkey"
+            columns: ["returned_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_asset_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_asset_return_checklist_items: {
+        Row: {
+          asset_id: string | null
+          asset_name: string | null
+          asset_tag: string | null
+          assigned_at: string | null
+          assignment_id: string | null
+          assignment_returned_at: string | null
+          checklist_id: string | null
+          created_at: string | null
+          id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          return_condition: string | null
+          status: string | null
+          tenant_id: string | null
+          waive_reason: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_asset_return_checklist_items_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklist_items_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "employee_asset_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklist_items_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "employee_asset_return_checklists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklist_items_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklist_items_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklist_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklist_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklist_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklist_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklist_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_asset_return_checklists: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          employee_id: string | null
+          id: string | null
+          lifecycle_event_id: string | null
+          notes: string | null
+          status: string | null
+          tenant_id: string | null
+          waive_reason: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string | null
+          lifecycle_event_id?: string | null
+          notes?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          waive_reason?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string | null
+          lifecycle_event_id?: string | null
+          notes?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          waive_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_asset_return_checklists_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklists_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklists_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklists_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklists_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklists_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklists_lifecycle_event_id_fkey"
+            columns: ["lifecycle_event_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lifecycle_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklists_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklists_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklists_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklists_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_asset_return_checklists_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_availability_exceptions: {
+        Row: {
+          created_at: string | null
+          editable_until: string | null
+          employee_id: string | null
+          end_time: string | null
+          exception_date: string | null
+          id: string | null
+          is_active: boolean | null
+          notes: string | null
+          preference: string | null
+          start_time: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          editable_until?: string | null
+          employee_id?: string | null
+          end_time?: string | null
+          exception_date?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          notes?: string | null
+          preference?: string | null
+          start_time?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          editable_until?: string | null
+          employee_id?: string | null
+          end_time?: string | null
+          exception_date?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          notes?: string | null
+          preference?: string | null
+          start_time?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_availability_exceptions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_availability_exceptions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_availability_exceptions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_availability_exceptions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_availability_exceptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_availability_exceptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_availability_exceptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_availability_exceptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_availability_exceptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_availability_rules: {
+        Row: {
+          created_at: string | null
+          day_of_week: number | null
+          editable_until: string | null
+          effective_from: string | null
+          effective_to: string | null
+          employee_id: string | null
+          end_time: string | null
+          id: string | null
+          is_active: boolean | null
+          notes: string | null
+          preference: string | null
+          start_time: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week?: number | null
+          editable_until?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          employee_id?: string | null
+          end_time?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          notes?: string | null
+          preference?: string | null
+          start_time?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: number | null
+          editable_until?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          employee_id?: string | null
+          end_time?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          notes?: string | null
+          preference?: string | null
+          start_time?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_availability_rules_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_availability_rules_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_availability_rules_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_availability_rules_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_availability_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_availability_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_availability_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_availability_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_availability_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_certifications: {
+        Row: {
+          computed_status: string | null
+          created_at: string | null
+          created_by: string | null
+          credential_number: string | null
+          document_id: string | null
+          employee_id: string | null
+          id: string | null
+          issued_on: string | null
+          issuer: string | null
+          notes: string | null
+          requirement_category: string | null
+          requirement_code: string | null
+          requirement_name: string | null
+          requirement_type_id: string | null
+          revoked_at: string | null
+          revoked_reason: string | null
+          signing_submission_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_certifications_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_certifications_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_certifications_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_certifications_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_certifications_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_certifications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_certifications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_certifications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_certifications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_certifications_requirement_type_id_fkey"
+            columns: ["requirement_type_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_requirement_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_certifications_signing_submission_id_fkey"
+            columns: ["signing_submission_id"]
+            isOneToOne: false
+            referencedRelation: "signing_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_certifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_certifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_certifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_certifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_certifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_day_overrides: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          employee_id: string | null
+          id: string | null
+          note: string | null
+          override_date: string | null
+          override_type: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          employee_id?: string | null
+          id?: string | null
+          note?: string | null
+          override_date?: string | null
+          override_type?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          employee_id?: string | null
+          id?: string | null
+          note?: string | null
+          override_date?: string | null
+          override_type?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_day_overrides_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_day_overrides_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_day_overrides_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_day_overrides_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_day_overrides_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_day_overrides_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_day_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_day_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_day_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_day_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_day_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_directory: {
+        Row: {
+          created_at: string | null
+          department_id: string | null
+          employee_code: string | null
+          ends_on: string | null
+          full_name: string | null
+          id: string | null
+          job_position_id: string | null
+          lifecycle_state: string | null
+          manager_employee_id: string | null
+          photo_object_path: string | null
+          preferred_name: string | null
+          site_id: string | null
+          starts_on: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          department_id?: string | null
+          employee_code?: string | null
+          ends_on?: string | null
+          full_name?: string | null
+          id?: string | null
+          job_position_id?: string | null
+          lifecycle_state?: string | null
+          manager_employee_id?: string | null
+          photo_object_path?: string | null
+          preferred_name?: string | null
+          site_id?: string | null
+          starts_on?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          department_id?: string | null
+          employee_code?: string | null
+          ends_on?: string | null
+          full_name?: string | null
+          id?: string | null
+          job_position_id?: string | null
+          lifecycle_state?: string | null
+          manager_employee_id?: string | null
+          photo_object_path?: string | null
+          preferred_name?: string | null
+          site_id?: string | null
+          starts_on?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_job_position_id_fkey"
+            columns: ["job_position_id"]
+            isOneToOne: false
+            referencedRelation: "job_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employees_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_hr_profiles: {
+        Row: {
+          created_at: string | null
+          document_id: string | null
+          id: string | null
+          metadata: Json | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_lifecycle_events: {
+        Row: {
+          created_at: string | null
+          effective_on: string | null
+          employee_id: string | null
+          from_state: string | null
+          id: string | null
+          metadata: Json | null
+          reason_code: string | null
+          source: string | null
+          tenant_id: string | null
+          to_state: string | null
+          triggered_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          effective_on?: string | null
+          employee_id?: string | null
+          from_state?: string | null
+          id?: string | null
+          metadata?: Json | null
+          reason_code?: string | null
+          source?: string | null
+          tenant_id?: string | null
+          to_state?: string | null
+          triggered_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          effective_on?: string | null
+          employee_id?: string | null
+          from_state?: string | null
+          id?: string | null
+          metadata?: Json | null
+          reason_code?: string | null
+          source?: string | null
+          tenant_id?: string | null
+          to_state?: string | null
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_lifecycle_events_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_lifecycle_events_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_lifecycle_events_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_lifecycle_events_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_lifecycle_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_lifecycle_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_lifecycle_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_lifecycle_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_lifecycle_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_lifecycle_events_triggered_by_fkey"
+            columns: ["triggered_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_lifecycle_events_triggered_by_fkey"
+            columns: ["triggered_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_lifecycle_transition_rules: {
+        Row: {
+          auto_reason_codes: string[] | null
+          from_state: string | null
+          id: string | null
+          requires_permission: string | null
+          requires_reason: boolean | null
+          to_state: string | null
+        }
+        Insert: {
+          auto_reason_codes?: string[] | null
+          from_state?: string | null
+          id?: string | null
+          requires_permission?: string | null
+          requires_reason?: boolean | null
+          to_state?: string | null
+        }
+        Update: {
+          auto_reason_codes?: string[] | null
+          from_state?: string | null
+          id?: string | null
+          requires_permission?: string | null
+          requires_reason?: boolean | null
+          to_state?: string | null
+        }
+        Relationships: []
+      }
+      employee_placement_periods: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          employee_id: string | null
+          ends_on: string | null
+          id: string | null
+          job_position_id: string | null
+          metadata: Json | null
+          reason: string | null
+          site_id: string | null
+          source: string | null
+          starts_on: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          employee_id?: string | null
+          ends_on?: string | null
+          id?: string | null
+          job_position_id?: string | null
+          metadata?: Json | null
+          reason?: string | null
+          site_id?: string | null
+          source?: string | null
+          starts_on?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          employee_id?: string | null
+          ends_on?: string | null
+          id?: string | null
+          job_position_id?: string | null
+          metadata?: Json | null
+          reason?: string | null
+          site_id?: string | null
+          source?: string | null
+          starts_on?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_placement_periods_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_placement_periods_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_placement_periods_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_placement_periods_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_placement_periods_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_placement_periods_job_position_id_fkey"
+            columns: ["job_position_id"]
+            isOneToOne: false
+            referencedRelation: "job_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_placement_periods_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_placement_periods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_placement_periods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_placement_periods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_placement_periods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_placement_periods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_portal_tokens: {
+        Row: {
+          compromised: boolean | null
+          created_at: string | null
+          created_by_user_id: string | null
+          employee_id: string | null
+          expires_at: string | null
+          first_accessed_at: string | null
+          id: string | null
+          identity_verified_at: string | null
+          is_active: boolean | null
+          label: string | null
+          last_accessed_at: string | null
+          pin_attempts: number | null
+          pin_locked_until: string | null
+          pin_must_set: boolean | null
+          pin_required: boolean | null
+          pin_set_at: string | null
+          pin_set_by: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          session_version: number | null
+          tenant_id: string | null
+        }
+        Insert: {
+          compromised?: boolean | null
+          created_at?: string | null
+          created_by_user_id?: string | null
+          employee_id?: string | null
+          expires_at?: string | null
+          first_accessed_at?: string | null
+          id?: string | null
+          identity_verified_at?: string | null
+          is_active?: boolean | null
+          label?: string | null
+          last_accessed_at?: string | null
+          pin_attempts?: number | null
+          pin_locked_until?: string | null
+          pin_must_set?: boolean | null
+          pin_required?: never
+          pin_set_at?: string | null
+          pin_set_by?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          session_version?: number | null
+          tenant_id?: string | null
+        }
+        Update: {
+          compromised?: boolean | null
+          created_at?: string | null
+          created_by_user_id?: string | null
+          employee_id?: string | null
+          expires_at?: string | null
+          first_accessed_at?: string | null
+          id?: string | null
+          identity_verified_at?: string | null
+          is_active?: boolean | null
+          label?: string | null
+          last_accessed_at?: string | null
+          pin_attempts?: number | null
+          pin_locked_until?: string | null
+          pin_must_set?: boolean | null
+          pin_required?: never
+          pin_set_at?: string | null
+          pin_set_by?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          session_version?: number | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_portal_tokens_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_portal_tokens_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_portal_tokens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_portal_tokens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_portal_tokens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_portal_tokens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_portal_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_portal_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_portal_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_portal_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_portal_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_private_profiles: {
+        Row: {
+          address: string | null
+          birth_date: string | null
+          city: string | null
+          country_code: string | null
+          created_at: string | null
+          document_number: string | null
+          document_type: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relationship: string | null
+          employee_id: string | null
+          has_iban: boolean | null
+          has_ssn: boolean | null
+          iban_last4: string | null
+          metadata: Json | null
+          nationality_code: string | null
+          personal_email: string | null
+          personal_phone: string | null
+          postal_code: string | null
+          ssn_last4: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          birth_date?: string | null
+          city?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          document_number?: string | null
+          document_type?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
+          employee_id?: string | null
+          has_iban?: never
+          has_ssn?: never
+          iban_last4?: string | null
+          metadata?: Json | null
+          nationality_code?: string | null
+          personal_email?: string | null
+          personal_phone?: string | null
+          postal_code?: string | null
+          ssn_last4?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          birth_date?: string | null
+          city?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          document_number?: string | null
+          document_type?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
+          employee_id?: string | null
+          has_iban?: never
+          has_ssn?: never
+          iban_last4?: string | null
+          metadata?: Json | null
+          nationality_code?: string | null
+          personal_email?: string | null
+          personal_phone?: string | null
+          postal_code?: string | null
+          ssn_last4?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_private_profiles_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_private_profiles_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_private_profiles_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_private_profiles_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_private_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_private_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_private_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_private_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_private_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_qualifications: {
+        Row: {
+          created_at: string | null
+          employee_id: string | null
+          expires_at: string | null
+          id: string | null
+          is_active: boolean | null
+          issued_at: string | null
+          key: string | null
+          label: string | null
+          notes: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          employee_id?: string | null
+          expires_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          issued_at?: string | null
+          key?: string | null
+          label?: string | null
+          notes?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          employee_id?: string | null
+          expires_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          issued_at?: string | null
+          key?: string | null
+          label?: string | null
+          notes?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_qualifications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_qualifications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_qualifications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_qualifications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_qualifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_qualifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_qualifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_qualifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_qualifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_readiness_projection: {
+        Row: {
+          blocking_reasons: Json | null
+          computed_at: string | null
+          configuration_status: string | null
+          employee_id: string | null
+          is_ready: boolean | null
+          payload: Json | null
+          tenant_id: string | null
+        }
+        Insert: {
+          blocking_reasons?: Json | null
+          computed_at?: string | null
+          configuration_status?: string | null
+          employee_id?: string | null
+          is_ready?: boolean | null
+          payload?: Json | null
+          tenant_id?: string | null
+        }
+        Update: {
+          blocking_reasons?: Json | null
+          computed_at?: string | null
+          configuration_status?: string | null
+          employee_id?: string | null
+          is_ready?: boolean | null
+          payload?: Json | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_readiness_projection_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_readiness_projection_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_readiness_projection_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_readiness_projection_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_readiness_projection_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_readiness_projection_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_readiness_projection_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_readiness_projection_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_readiness_projection_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_role_assignments: {
+        Row: {
+          created_at: string | null
+          employee_id: string | null
+          id: string | null
+          is_active: boolean | null
+          is_primary: boolean | null
+          level: number | null
+          role_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          level?: number | null
+          role_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          level?: number | null
+          role_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_role_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_role_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_role_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_role_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_role_assignments_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "work_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_role_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_role_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_role_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_role_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_role_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_skills: {
+        Row: {
+          acquired_on: string | null
+          assessed_by: string | null
+          created_at: string | null
+          employee_id: string | null
+          id: string | null
+          last_assessed_on: string | null
+          level_id: string | null
+          notes: string | null
+          skill_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          acquired_on?: string | null
+          assessed_by?: string | null
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string | null
+          last_assessed_on?: string | null
+          level_id?: string | null
+          notes?: string | null
+          skill_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          acquired_on?: string | null
+          assessed_by?: string | null
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string | null
+          last_assessed_on?: string | null
+          level_id?: string | null
+          notes?: string | null
+          skill_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_skills_assessed_by_fkey"
+            columns: ["assessed_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skills_assessed_by_fkey"
+            columns: ["assessed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skills_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skills_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skills_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skills_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_skills_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "skill_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skills_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skills_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_skills_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_skills_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_skills_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_skills_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_tag_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          employee_id: string | null
+          tag_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          employee_id?: string | null
+          tag_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          employee_id?: string | null
+          tag_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_tag_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_tag_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_tag_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_tag_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_tag_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_tag_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_tag_assignments_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "employee_tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_tag_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_tag_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_tag_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_tag_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_tag_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_tags: {
+        Row: {
+          color_token: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          color_token?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          color_token?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_weekly_intervals: {
+        Row: {
+          created_at: string | null
+          day_of_week: number | null
+          day_type: string | null
+          employee_id: string | null
+          id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_to: string | null
+          work_end: string | null
+          work_intervals: Json | null
+          work_start: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week?: number | null
+          day_type?: string | null
+          employee_id?: string | null
+          id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+          work_end?: string | null
+          work_intervals?: Json | null
+          work_start?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: number | null
+          day_type?: string | null
+          employee_id?: string | null
+          id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+          work_end?: string | null
+          work_intervals?: Json | null
+          work_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_weekly_intervals_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_weekly_intervals_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_weekly_intervals_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_weekly_intervals_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_weekly_intervals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_weekly_intervals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_weekly_intervals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_weekly_intervals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employee_weekly_intervals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          attendance_geo_enabled: boolean | null
+          attendance_work_profile: string | null
+          calendar_group_id: string | null
+          created_at: string | null
+          department_id: string | null
+          email: string | null
+          employee_code: string | null
+          ends_on: string | null
+          full_name: string | null
+          id: string | null
+          job_position_id: string | null
+          legal_name: string | null
+          lifecycle_since: string | null
+          lifecycle_state: string | null
+          lifecycle_updated_at: string | null
+          location_consent_at: string | null
+          location_consent_given: boolean | null
+          location_consent_version: string | null
+          manager_employee_id: string | null
+          phone: string | null
+          photo_object_path: string | null
+          preferred_name: string | null
+          punch_only_at_stations: boolean | null
+          site_id: string | null
+          starts_on: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          user_id: string | null
+          weekly_hours: number | null
+        }
+        Insert: {
+          attendance_geo_enabled?: boolean | null
+          attendance_work_profile?: string | null
+          calendar_group_id?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          email?: string | null
+          employee_code?: string | null
+          ends_on?: string | null
+          full_name?: string | null
+          id?: string | null
+          job_position_id?: string | null
+          legal_name?: string | null
+          lifecycle_since?: string | null
+          lifecycle_state?: string | null
+          lifecycle_updated_at?: string | null
+          location_consent_at?: string | null
+          location_consent_given?: boolean | null
+          location_consent_version?: string | null
+          manager_employee_id?: string | null
+          phone?: string | null
+          photo_object_path?: string | null
+          preferred_name?: string | null
+          punch_only_at_stations?: boolean | null
+          site_id?: string | null
+          starts_on?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          weekly_hours?: number | null
+        }
+        Update: {
+          attendance_geo_enabled?: boolean | null
+          attendance_work_profile?: string | null
+          calendar_group_id?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          email?: string | null
+          employee_code?: string | null
+          ends_on?: string | null
+          full_name?: string | null
+          id?: string | null
+          job_position_id?: string | null
+          legal_name?: string | null
+          lifecycle_since?: string | null
+          lifecycle_state?: string | null
+          lifecycle_updated_at?: string | null
+          location_consent_at?: string | null
+          location_consent_given?: boolean | null
+          location_consent_version?: string | null
+          manager_employee_id?: string | null
+          phone?: string | null
+          photo_object_path?: string | null
+          preferred_name?: string | null
+          punch_only_at_stations?: boolean | null
+          site_id?: string | null
+          starts_on?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          weekly_hours?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_calendar_group_id_fkey"
+            columns: ["calendar_group_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_job_position_id_fkey"
+            columns: ["job_position_id"]
+            isOneToOne: false
+            referencedRelation: "job_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employees_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employment_contract_compensation: {
+        Row: {
+          annual_gross: number | null
+          contract_id: string | null
+          created_at: string | null
+          currency: string | null
+          effective_from: string | null
+          effective_to: string | null
+          employer_annual_cost: number | null
+          gross_amount: number | null
+          id: string | null
+          metadata: Json | null
+          pay_period: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          annual_gross?: number | null
+          contract_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          employer_annual_cost?: number | null
+          gross_amount?: number | null
+          id?: string | null
+          metadata?: Json | null
+          pay_period?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          annual_gross?: number | null
+          contract_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          employer_annual_cost?: number | null
+          gross_amount?: number | null
+          id?: string | null
+          metadata?: Json | null
+          pay_period?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_contract_compensation_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "employment_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contract_compensation_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_compensation_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_compensation_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contract_compensation_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_compensation_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employment_contract_leave_terms: {
+        Row: {
+          allowance_unit: string | null
+          contract_id: string | null
+          counting_method: string | null
+          created_at: string | null
+          id: string | null
+          metadata: Json | null
+          paid_leave_allowance: number | null
+          proration_method: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          allowance_unit?: string | null
+          contract_id?: string | null
+          counting_method?: string | null
+          created_at?: string | null
+          id?: string | null
+          metadata?: Json | null
+          paid_leave_allowance?: number | null
+          proration_method?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          allowance_unit?: string | null
+          contract_id?: string | null
+          counting_method?: string | null
+          created_at?: string | null
+          id?: string | null
+          metadata?: Json | null
+          paid_leave_allowance?: number | null
+          proration_method?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_contract_leave_terms_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "employment_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contract_leave_terms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_leave_terms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_leave_terms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contract_leave_terms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_leave_terms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employment_contract_notice_log: {
+        Row: {
+          contract_id: string | null
+          id: string | null
+          notice_days: number | null
+          notice_kind: string | null
+          sent_at: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          contract_id?: string | null
+          id?: string | null
+          notice_days?: number | null
+          notice_kind?: string | null
+          sent_at?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          contract_id?: string | null
+          id?: string | null
+          notice_days?: number | null
+          notice_kind?: string | null
+          sent_at?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_contract_notice_log_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "employment_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contract_notice_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_notice_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_notice_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contract_notice_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_notice_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employment_contract_types: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          default_signature_requirement: string | null
+          id: string | null
+          is_active: boolean | null
+          is_indefinite: boolean | null
+          metadata: Json | null
+          name: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string | null
+          default_signature_requirement?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_indefinite?: boolean | null
+          metadata?: Json | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string | null
+          default_signature_requirement?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_indefinite?: boolean | null
+          metadata?: Json | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_contract_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contract_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employment_contract_workload_terms: {
+        Row: {
+          commitment_basis: string | null
+          complementary_commitment_minutes: number | null
+          contract_id: string | null
+          created_at: string | null
+          fte_ratio: number | null
+          id: string | null
+          metadata: Json | null
+          ordinary_commitment_minutes: number | null
+          source: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          commitment_basis?: string | null
+          complementary_commitment_minutes?: number | null
+          contract_id?: string | null
+          created_at?: string | null
+          fte_ratio?: number | null
+          id?: string | null
+          metadata?: Json | null
+          ordinary_commitment_minutes?: number | null
+          source?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          commitment_basis?: string | null
+          complementary_commitment_minutes?: number | null
+          contract_id?: string | null
+          created_at?: string | null
+          fte_ratio?: number | null
+          id?: string | null
+          metadata?: Json | null
+          ordinary_commitment_minutes?: number | null
+          source?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_contract_workload_terms_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "employment_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contract_workload_terms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_workload_terms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_workload_terms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contract_workload_terms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contract_workload_terms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employment_contracts: {
+        Row: {
+          activated_at: string | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          calendar_group_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          collective_agreement_id: string | null
+          contract_number: string | null
+          contract_type_id: string | null
+          correlation_id: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          employee_id: string | null
+          ended_at: string | null
+          ends_on: string | null
+          external_identity: string | null
+          external_reference: string | null
+          external_review_status: string | null
+          field_ownership: Json | null
+          final_document_version_id: string | null
+          fte: number | null
+          fully_signed_at: string | null
+          generated_document_id: string | null
+          id: string | null
+          import_idempotency_key: string | null
+          is_primary: boolean | null
+          job_position_id: string | null
+          lifecycle_status: string | null
+          metadata: Json | null
+          probation_ends_on: string | null
+          professional_category_id: string | null
+          signature_requirement: string | null
+          signature_status: string | null
+          signing_submission_id: string | null
+          site_id: string | null
+          source: string | null
+          source_changed_at: string | null
+          source_payload_digest: string | null
+          starts_on: string | null
+          supersedes_contract_id: string | null
+          template_id: string | null
+          template_locale_id: string | null
+          template_snapshot: Json | null
+          tenant_id: string | null
+          termination_notes: string | null
+          termination_reason_code: string | null
+          updated_at: string | null
+          variables_snapshot: Json | null
+          weekly_hours: number | null
+          work_entry_source: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          calendar_group_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          collective_agreement_id?: string | null
+          contract_number?: string | null
+          contract_type_id?: string | null
+          correlation_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          employee_id?: string | null
+          ended_at?: string | null
+          ends_on?: string | null
+          external_identity?: string | null
+          external_reference?: string | null
+          external_review_status?: string | null
+          field_ownership?: Json | null
+          final_document_version_id?: string | null
+          fte?: number | null
+          fully_signed_at?: string | null
+          generated_document_id?: string | null
+          id?: string | null
+          import_idempotency_key?: string | null
+          is_primary?: boolean | null
+          job_position_id?: string | null
+          lifecycle_status?: string | null
+          metadata?: Json | null
+          probation_ends_on?: string | null
+          professional_category_id?: string | null
+          signature_requirement?: string | null
+          signature_status?: string | null
+          signing_submission_id?: string | null
+          site_id?: string | null
+          source?: string | null
+          source_changed_at?: string | null
+          source_payload_digest?: string | null
+          starts_on?: string | null
+          supersedes_contract_id?: string | null
+          template_id?: string | null
+          template_locale_id?: string | null
+          template_snapshot?: Json | null
+          tenant_id?: string | null
+          termination_notes?: string | null
+          termination_reason_code?: string | null
+          updated_at?: string | null
+          variables_snapshot?: Json | null
+          weekly_hours?: number | null
+          work_entry_source?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          calendar_group_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          collective_agreement_id?: string | null
+          contract_number?: string | null
+          contract_type_id?: string | null
+          correlation_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          employee_id?: string | null
+          ended_at?: string | null
+          ends_on?: string | null
+          external_identity?: string | null
+          external_reference?: string | null
+          external_review_status?: string | null
+          field_ownership?: Json | null
+          final_document_version_id?: string | null
+          fte?: number | null
+          fully_signed_at?: string | null
+          generated_document_id?: string | null
+          id?: string | null
+          import_idempotency_key?: string | null
+          is_primary?: boolean | null
+          job_position_id?: string | null
+          lifecycle_status?: string | null
+          metadata?: Json | null
+          probation_ends_on?: string | null
+          professional_category_id?: string | null
+          signature_requirement?: string | null
+          signature_status?: string | null
+          signing_submission_id?: string | null
+          site_id?: string | null
+          source?: string | null
+          source_changed_at?: string | null
+          source_payload_digest?: string | null
+          starts_on?: string | null
+          supersedes_contract_id?: string | null
+          template_id?: string | null
+          template_locale_id?: string | null
+          template_snapshot?: Json | null
+          tenant_id?: string | null
+          termination_notes?: string | null
+          termination_reason_code?: string | null
+          updated_at?: string | null
+          variables_snapshot?: Json | null
+          weekly_hours?: number | null
+          work_entry_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_contracts_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_calendar_group_id_fkey"
+            columns: ["calendar_group_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_collective_agreement_id_fkey"
+            columns: ["collective_agreement_id"]
+            isOneToOne: false
+            referencedRelation: "collective_agreements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_contract_type_id_fkey"
+            columns: ["contract_type_id"]
+            isOneToOne: false
+            referencedRelation: "employment_contract_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_final_document_version_id_fkey"
+            columns: ["final_document_version_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["version_id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_final_document_version_id_fkey"
+            columns: ["final_document_version_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["version_id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_final_document_version_id_fkey"
+            columns: ["final_document_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_generated_document_id_fkey"
+            columns: ["generated_document_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_generated_document_id_fkey"
+            columns: ["generated_document_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_generated_document_id_fkey"
+            columns: ["generated_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_job_position_id_fkey"
+            columns: ["job_position_id"]
+            isOneToOne: false
+            referencedRelation: "job_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_professional_category_id_fkey"
+            columns: ["professional_category_id"]
+            isOneToOne: false
+            referencedRelation: "professional_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_signing_submission_id_fkey"
+            columns: ["signing_submission_id"]
+            isOneToOne: false
+            referencedRelation: "signing_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_supersedes_contract_id_fkey"
+            columns: ["supersedes_contract_id"]
+            isOneToOne: false
+            referencedRelation: "employment_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_template_locale_id_fkey"
+            columns: ["template_locale_id"]
+            isOneToOne: false
+            referencedRelation: "document_template_locale_detail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_template_locale_id_fkey"
+            columns: ["template_locale_id"]
+            isOneToOne: false
+            referencedRelation: "document_template_locales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employment_contracts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_types: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          label_key: string | null
+          supports_documents: boolean | null
+          supports_signing: boolean | null
+          supports_subscriptions: boolean | null
+          supports_timeline: boolean | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string | null
+          label_key?: string | null
+          supports_documents?: boolean | null
+          supports_signing?: boolean | null
+          supports_subscriptions?: boolean | null
+          supports_timeline?: boolean | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string | null
+          label_key?: string | null
+          supports_documents?: boolean | null
+          supports_signing?: boolean | null
+          supports_subscriptions?: boolean | null
+          supports_timeline?: boolean | null
+        }
+        Relationships: []
+      }
+      external_entity_mappings: {
+        Row: {
+          created_at: string | null
+          entity_type: string | null
+          external_id: string | null
+          external_meta: Json | null
+          id: string | null
+          internal_id: string | null
+          last_synced_at: string | null
+          provider: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          entity_type?: string | null
+          external_id?: string | null
+          external_meta?: Json | null
+          id?: string | null
+          internal_id?: string | null
+          last_synced_at?: string | null
+          provider?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          entity_type?: string | null
+          external_id?: string | null
+          external_meta?: Json | null
+          id?: string | null
+          internal_id?: string | null
+          last_synced_at?: string | null
+          provider?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_entity_mappings_internal_id_fkey"
+            columns: ["internal_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_entity_mappings_internal_id_fkey"
+            columns: ["internal_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_entity_mappings_internal_id_fkey"
+            columns: ["internal_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_entity_mappings_internal_id_fkey"
+            columns: ["internal_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "external_entity_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "external_entity_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "external_entity_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_entity_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "external_entity_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      file_nodes: {
+        Row: {
+          can_access_for_me: boolean | null
+          checksum: string | null
+          created_at: string | null
+          created_by: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string | null
+          is_restricted: boolean | null
+          metadata: Json | null
+          mime_type: string | null
+          name: string | null
+          namespace: string | null
+          node_type: string | null
+          parent_id: string | null
+          path: string | null
+          processing_status: string | null
+          site_id: string | null
+          size_bytes: number | null
+          storage_key: string | null
+          storage_provider_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          can_access_for_me?: boolean | null
+          checksum?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string | null
+          is_restricted?: boolean | null
+          metadata?: Json | null
+          mime_type?: string | null
+          name?: string | null
+          namespace?: string | null
+          node_type?: string | null
+          parent_id?: string | null
+          path?: string | null
+          processing_status?: string | null
+          site_id?: string | null
+          size_bytes?: number | null
+          storage_key?: string | null
+          storage_provider_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          can_access_for_me?: boolean | null
+          checksum?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string | null
+          is_restricted?: boolean | null
+          metadata?: Json | null
+          mime_type?: string | null
+          name?: string | null
+          namespace?: string | null
+          node_type?: string | null
+          parent_id?: string | null
+          path?: string | null
+          processing_status?: string | null
+          site_id?: string | null
+          size_bytes?: number | null
+          storage_key?: string | null
+          storage_provider_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_nodes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "file_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "my_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "recent_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "starred_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "trash"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_storage_provider_id_fkey"
+            columns: ["storage_provider_id"]
+            isOneToOne: false
+            referencedRelation: "storage_provider"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      holiday_calendars: {
+        Row: {
+          country_code: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          region_code: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          year: number | null
+        }
+        Insert: {
+          country_code?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          region_code?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          year?: number | null
+        }
+        Update: {
+          country_code?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          region_code?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "holiday_calendars_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "holiday_calendars_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "holiday_calendars_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "holiday_calendars_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "holiday_calendars_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      holidays: {
+        Row: {
+          calendar_id: string | null
+          calendar_name: string | null
+          country_code: string | null
+          created_at: string | null
+          date: string | null
+          holiday_type: string | null
+          id: string | null
+          is_half_day: boolean | null
+          name: string | null
+          region_code: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "holidays_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "holiday_calendars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hour_balance_policies: {
+        Row: {
+          carry_enabled: boolean | null
+          created_at: string | null
+          expire_after_days: number | null
+          metadata: Json | null
+          rounding_rule: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          window_length: number | null
+          window_type: string | null
+        }
+        Insert: {
+          carry_enabled?: boolean | null
+          created_at?: string | null
+          expire_after_days?: number | null
+          metadata?: Json | null
+          rounding_rule?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          window_length?: number | null
+          window_type?: string | null
+        }
+        Update: {
+          carry_enabled?: boolean | null
+          created_at?: string | null
+          expire_after_days?: number | null
+          metadata?: Json | null
+          rounding_rule?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          window_length?: number | null
+          window_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hour_balance_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "hour_balance_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "hour_balance_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hour_balance_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "hour_balance_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interviews: {
+        Row: {
+          application_id: string | null
+          created_at: string | null
+          created_by: string | null
+          duration_minutes: number | null
+          id: string | null
+          job_posting_id: string | null
+          location_or_link: string | null
+          notes: string | null
+          scheduled_at: string | null
+          status: string | null
+          tenant_id: string | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          application_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duration_minutes?: number | null
+          id?: string | null
+          job_posting_id?: string | null
+          location_or_link?: string | null
+          notes?: string | null
+          scheduled_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          application_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duration_minutes?: number | null
+          id?: string | null
+          job_posting_id?: string | null
+          location_or_link?: string | null
+          notes?: string | null
+          scheduled_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interviews_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_job_posting_id_fkey"
+            columns: ["job_posting_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "interviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "interviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "interviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_positions: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          default_calendar_group_id: string | null
+          default_manager_employee_id: string | null
+          default_site_id: string | null
+          department_id: string | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string | null
+          default_calendar_group_id?: string | null
+          default_manager_employee_id?: string | null
+          default_site_id?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string | null
+          default_calendar_group_id?: string | null
+          default_manager_employee_id?: string | null
+          default_site_id?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_positions_default_manager_employee_id_fkey"
+            columns: ["default_manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_positions_default_manager_employee_id_fkey"
+            columns: ["default_manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_positions_default_manager_employee_id_fkey"
+            columns: ["default_manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_positions_default_manager_employee_id_fkey"
+            columns: ["default_manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "job_positions_default_site_id_fkey"
+            columns: ["default_site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_positions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_positions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "job_positions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "job_positions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_positions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "job_positions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_posting_public_sites: {
+        Row: {
+          created_at: string | null
+          job_posting_id: string | null
+          public_site_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          job_posting_id?: string | null
+          public_site_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          job_posting_id?: string | null
+          public_site_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_posting_public_sites_job_posting_id_fkey"
+            columns: ["job_posting_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_posting_public_sites_public_site_id_fkey"
+            columns: ["public_site_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_posting_public_sites_public_site_id_fkey"
+            columns: ["public_site_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_posting_public_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "job_posting_public_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "job_posting_public_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_posting_public_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "job_posting_public_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_posting_templates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string | null
+          interviewer_guide: string | null
+          name: string | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          interviewer_guide?: string | null
+          name?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          interviewer_guide?: string | null
+          name?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_posting_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "job_posting_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "job_posting_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_posting_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "job_posting_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_postings: {
+        Row: {
+          closes_at: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          description: string | null
+          id: string | null
+          interviewer_guide: string | null
+          job_position_id: string | null
+          location_id: string | null
+          opens_at: string | null
+          public_slug: string | null
+          site_id: string | null
+          status: string | null
+          template_id: string | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          closes_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string | null
+          interviewer_guide?: string | null
+          job_position_id?: string | null
+          location_id?: string | null
+          opens_at?: string | null
+          public_slug?: string | null
+          site_id?: string | null
+          status?: string | null
+          template_id?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          closes_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string | null
+          interviewer_guide?: string | null
+          job_position_id?: string | null
+          location_id?: string | null
+          opens_at?: string | null
+          public_slug?: string | null
+          site_id?: string | null
+          status?: string | null
+          template_id?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_postings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_postings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_postings_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_postings_job_position_id_fkey"
+            columns: ["job_position_id"]
+            isOneToOne: false
+            referencedRelation: "job_positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_postings_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_postings_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_postings_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_postings_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "job_posting_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_postings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "job_postings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "job_postings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_postings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "job_postings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      labor_calendar_overrides: {
+        Row: {
+          calendar_date: string | null
+          created_at: string | null
+          day_name: string | null
+          day_type: string | null
+          employee_id: string | null
+          group_id: string | null
+          id: string | null
+          site_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          work_end: string | null
+          work_intervals: Json | null
+          work_start: string | null
+        }
+        Insert: {
+          calendar_date?: string | null
+          created_at?: string | null
+          day_name?: string | null
+          day_type?: string | null
+          employee_id?: string | null
+          group_id?: string | null
+          id?: string | null
+          site_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          work_end?: string | null
+          work_intervals?: Json | null
+          work_start?: string | null
+        }
+        Update: {
+          calendar_date?: string | null
+          created_at?: string | null
+          day_name?: string | null
+          day_type?: string | null
+          employee_id?: string | null
+          group_id?: string | null
+          id?: string | null
+          site_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          work_end?: string | null
+          work_intervals?: Json | null
+          work_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labor_calendar_overrides_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labor_calendar_overrides_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labor_calendar_overrides_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labor_calendar_overrides_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "labor_calendar_overrides_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labor_calendar_overrides_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labor_calendar_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "labor_calendar_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "labor_calendar_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labor_calendar_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "labor_calendar_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      labor_rules: {
+        Row: {
+          collective_agreement_id: string | null
+          created_at: string | null
+          exception_approved_at: string | null
+          exception_approved_by: string | null
+          id: string | null
+          is_active: boolean | null
+          is_less_protective_exception: boolean | null
+          justification: string | null
+          professional_category_id: string | null
+          provenance: string | null
+          rule_key: string | null
+          severity: string | null
+          site_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          value_numeric: number | null
+        }
+        Insert: {
+          collective_agreement_id?: string | null
+          created_at?: string | null
+          exception_approved_at?: string | null
+          exception_approved_by?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_less_protective_exception?: boolean | null
+          justification?: string | null
+          professional_category_id?: string | null
+          provenance?: string | null
+          rule_key?: string | null
+          severity?: string | null
+          site_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          value_numeric?: number | null
+        }
+        Update: {
+          collective_agreement_id?: string | null
+          created_at?: string | null
+          exception_approved_at?: string | null
+          exception_approved_by?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_less_protective_exception?: boolean | null
+          justification?: string | null
+          professional_category_id?: string | null
+          provenance?: string | null
+          rule_key?: string | null
+          severity?: string | null
+          site_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          value_numeric?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labor_rules_collective_agreement_id_fkey"
+            columns: ["collective_agreement_id"]
+            isOneToOne: false
+            referencedRelation: "collective_agreements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labor_rules_professional_category_id_fkey"
+            columns: ["professional_category_id"]
+            isOneToOne: false
+            referencedRelation: "professional_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labor_rules_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labor_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "labor_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "labor_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labor_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "labor_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_entitlement_grants: {
+        Row: {
+          contract_id: string | null
+          created_at: string | null
+          created_by: string | null
+          employee_id: string | null
+          id: string | null
+          idempotency_key: string | null
+          leave_type: string | null
+          period_end: string | null
+          period_start: string | null
+          period_year: number | null
+          quantity: number | null
+          reason: string | null
+          source_event: string | null
+          tenant_id: string | null
+          unit: string | null
+        }
+        Insert: {
+          contract_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          employee_id?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          leave_type?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          period_year?: number | null
+          quantity?: number | null
+          reason?: string | null
+          source_event?: string | null
+          tenant_id?: string | null
+          unit?: string | null
+        }
+        Update: {
+          contract_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          employee_id?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          leave_type?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          period_year?: number | null
+          quantity?: number | null
+          reason?: string | null
+          source_event?: string | null
+          tenant_id?: string | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_entitlement_grants_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "employment_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_entitlement_grants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_entitlement_grants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_entitlement_grants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_entitlement_grants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_entitlement_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "leave_entitlement_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "leave_entitlement_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_entitlement_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "leave_entitlement_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legacy_client_report_inventory: {
+        Row: {
+          client_report_published_at: string | null
+          client_report_published_by: string | null
+          current_published_version_id: string | null
+          current_version_number: number | null
+          dms_document_count: number | null
+          legacy_source: string | null
+          legacy_unresolved: boolean | null
+          project_id: string | null
+          project_name: string | null
+          project_status: string | null
+          reconciliation_status: string | null
+          report_id: string | null
+          run_payload_count: number | null
+          tenant_id: string | null
+          version_published_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_cir_current_version"
+            columns: ["current_published_version_id"]
+            isOneToOne: false
+            referencedRelation: "customer_intervention_report_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locations: {
+        Row: {
+          created_at: string | null
+          geo_coordinates: Json | null
+          id: string | null
+          metadata: Json | null
+          name: string | null
+          parent_id: string | null
+          site_id: string | null
+          status: string | null
+          tenant_id: string | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          geo_coordinates?: Json | null
+          id?: string | null
+          metadata?: Json | null
+          name?: string | null
+          parent_id?: string | null
+          site_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          geo_coordinates?: Json | null
+          id?: string | null
+          metadata?: Json | null
+          name?: string | null
+          parent_id?: string | null
+          site_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_occurrences: {
+        Row: {
+          assignment_id: string | null
+          created_at: string | null
+          due_at: string | null
+          generated_at: string | null
+          id: string | null
+          project_id: string | null
+          skip_reason: string | null
+          status: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          assignment_id?: string | null
+          created_at?: string | null
+          due_at?: string | null
+          generated_at?: string | null
+          id?: string | null
+          project_id?: string | null
+          skip_reason?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          assignment_id?: string | null
+          created_at?: string | null
+          due_at?: string | null
+          generated_at?: string | null
+          id?: string | null
+          project_id?: string | null
+          skip_reason?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_occurrences_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_plan_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_occurrences_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "maintenance_occurrences_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_occurrences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "maintenance_occurrences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "maintenance_occurrences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_occurrences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "maintenance_occurrences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_plan_assignments: {
+        Row: {
+          bymonthday: number | null
+          byweekday: number[] | null
+          created_at: string | null
+          default_assignee_id: string | null
+          entity_id: string | null
+          entity_type: string | null
+          frequency: string | null
+          id: string | null
+          interval_count: number | null
+          is_active: boolean | null
+          lead_days: number | null
+          next_due_at: string | null
+          plan_id: string | null
+          tenant_id: string | null
+          timezone: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          bymonthday?: number | null
+          byweekday?: number[] | null
+          created_at?: string | null
+          default_assignee_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          frequency?: string | null
+          id?: string | null
+          interval_count?: number | null
+          is_active?: boolean | null
+          lead_days?: number | null
+          next_due_at?: string | null
+          plan_id?: string | null
+          tenant_id?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          bymonthday?: number | null
+          byweekday?: number[] | null
+          created_at?: string | null
+          default_assignee_id?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          frequency?: string | null
+          id?: string | null
+          interval_count?: number | null
+          is_active?: boolean | null
+          lead_days?: number | null
+          next_due_at?: string | null
+          plan_id?: string | null
+          tenant_id?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_plan_assignments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_plan_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "maintenance_plan_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "maintenance_plan_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_plan_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "maintenance_plan_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_plan_checklists: {
+        Row: {
+          id: string | null
+          plan_id: string | null
+          position: number | null
+          template_id: string | null
+        }
+        Insert: {
+          id?: string | null
+          plan_id?: string | null
+          position?: number | null
+          template_id?: string | null
+        }
+        Update: {
+          id?: string | null
+          plan_id?: string | null
+          position?: number | null
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_plan_checklists_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_plan_checklists_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_plan_forks: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          source_plan_id: string | null
+          source_version_at_fork: number | null
+          tenant_id: string | null
+          tenant_plan_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          source_plan_id?: string | null
+          source_version_at_fork?: number | null
+          tenant_id?: string | null
+          tenant_plan_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          source_plan_id?: string | null
+          source_version_at_fork?: number | null
+          tenant_id?: string | null
+          tenant_plan_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_plan_forks_source_plan_id_fkey"
+            columns: ["source_plan_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_plan_forks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "maintenance_plan_forks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "maintenance_plan_forks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_plan_forks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "maintenance_plan_forks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_plan_forks_tenant_plan_id_fkey"
+            columns: ["tenant_plan_id"]
+            isOneToOne: true
+            referencedRelation: "maintenance_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_plans: {
+        Row: {
+          archetype: string | null
+          bymonthday: number | null
+          byweekday: number[] | null
+          catalog_version: number | null
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          frequency: string | null
+          id: string | null
+          interval_count: number | null
+          is_active: boolean | null
+          is_archived: boolean | null
+          lead_days: number | null
+          locale: string | null
+          metadata: Json | null
+          name: string | null
+          tenant_id: string | null
+          timezone: string | null
+          updated_at: string | null
+          vertical: string | null
+        }
+        Insert: {
+          archetype?: string | null
+          bymonthday?: number | null
+          byweekday?: number[] | null
+          catalog_version?: number | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          frequency?: string | null
+          id?: string | null
+          interval_count?: number | null
+          is_active?: boolean | null
+          is_archived?: boolean | null
+          lead_days?: number | null
+          locale?: string | null
+          metadata?: Json | null
+          name?: string | null
+          tenant_id?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          vertical?: string | null
+        }
+        Update: {
+          archetype?: string | null
+          bymonthday?: number | null
+          byweekday?: number[] | null
+          catalog_version?: number | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          frequency?: string | null
+          id?: string | null
+          interval_count?: number | null
+          is_active?: boolean | null
+          is_archived?: boolean | null
+          lead_days?: number | null
+          locale?: string | null
+          metadata?: Json | null
+          name?: string | null
+          tenant_id?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          vertical?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "maintenance_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "maintenance_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "maintenance_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mv_today_site_status: {
+        Row: {
+          anomaly_codes: string[] | null
+          current_state: string | null
+          employee_id: string | null
+          employee_name: string | null
+          geo_accuracy_m: number | null
+          geo_lat: number | null
+          geo_lng: number | null
+          last_is_remote: boolean | null
+          last_pause_type: string | null
+          last_punch_at: string | null
+          last_punch_type: string | null
+          needs_review: boolean | null
+          refreshed_at: string | null
+          site_id: string | null
+          tenant_id: string | null
+          work_date: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "employees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      my_files: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          mime_type: string | null
+          name: string | null
+          node_type: string | null
+          path: string | null
+          size_bytes: number | null
+          tenant_id: string | null
+          tenant_name: string | null
+          tenant_slug: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      my_portal_entitlements: {
+        Row: {
+          entitlements: Json | null
+          tenant_id: string | null
+        }
+        Insert: {
+          entitlements?: never
+          tenant_id?: string | null
+        }
+        Update: {
+          entitlements?: never
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
+      my_profile: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      my_public_portal_status: {
+        Row: {
+          employee_portal_enabled: boolean | null
+          public_portal_enabled: boolean | null
+          tenant_id: string | null
+        }
+        Insert: {
+          employee_portal_enabled?: boolean | null
+          public_portal_enabled?: boolean | null
+          tenant_id?: string | null
+        }
+        Update: {
+          employee_portal_enabled?: boolean | null
+          public_portal_enabled?: boolean | null
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
+      my_tenant: {
+        Row: {
+          archetype: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          max_members: number | null
+          max_sites: number | null
+          max_storage_mb: number | null
+          name: string | null
+          plan_display_name: string | null
+          plan_id: string | null
+          plan_name: string | null
+          sector_display_name: string | null
+          sector_icon: string | null
+          sector_labels: Json | null
+          sector_profile_id: string | null
+          sector_vertical: string | null
+          slug: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenants_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenants_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "tenants_sector_profile_id_fkey"
+            columns: ["sector_profile_id"]
+            isOneToOne: false
+            referencedRelation: "sector_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      my_tenant_addons: {
+        Row: {
+          addon_id: string | null
+          addon_name: string | null
+          canceled_at: string | null
+          created_at: string | null
+          id: string | null
+          price_monthly: number | null
+          spoke_config: Json | null
+          started_at: string | null
+          status: string | null
+          stripe_subscription_item_id: string | null
+          tenant_id: string | null
+          trial_available: boolean | null
+          trial_available_again_at: string | null
+          trial_days: number | null
+          trial_ends_at: string | null
+          trial_is_active: boolean | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      node_favorites: {
+        Row: {
+          created_at: string | null
+          node_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          node_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "node_favorites_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "file_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_favorites_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "my_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_favorites_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "recent_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_favorites_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "starred_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_favorites_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "trash"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      node_permissions: {
+        Row: {
+          access_level: string | null
+          avatar_url: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          granted_by: string | null
+          id: string | null
+          node_id: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "node_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_permissions_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "file_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_permissions_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "my_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_permissions_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "recent_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_permissions_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "starred_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_permissions_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "trash"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "node_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notes: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          is_pinned: boolean | null
+          site_id: string | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          is_pinned?: boolean | null
+          site_id?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          is_pinned?: boolean | null
+          site_id?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_event_catalog: {
+        Row: {
+          category: string | null
+          deep_link_template: string | null
+          default_channels:
+            | ("in_app" | "push" | "email" | "sms" | "whatsapp")[]
+            | null
+          description: string | null
+          digest_eligible: boolean | null
+          entity_type: string | null
+          event_code: string | null
+          requires_legal: boolean | null
+        }
+        Insert: {
+          category?: string | null
+          deep_link_template?: string | null
+          default_channels?:
+            | ("in_app" | "push" | "email" | "sms" | "whatsapp")[]
+            | null
+          description?: string | null
+          digest_eligible?: boolean | null
+          entity_type?: string | null
+          event_code?: string | null
+          requires_legal?: boolean | null
+        }
+        Update: {
+          category?: string | null
+          deep_link_template?: string | null
+          default_channels?:
+            | ("in_app" | "push" | "email" | "sms" | "whatsapp")[]
+            | null
+          description?: string | null
+          digest_eligible?: boolean | null
+          entity_type?: string | null
+          event_code?: string | null
+          requires_legal?: boolean | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body_i18n: Json | null
+          created_at: string | null
+          deep_link: string | null
+          id: string | null
+          kind: string | null
+          read_at: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
+          severity: string | null
+          tenant_id: string | null
+          title_i18n: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          body_i18n?: Json | null
+          created_at?: string | null
+          deep_link?: string | null
+          id?: string | null
+          kind?: string | null
+          read_at?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          severity?: string | null
+          tenant_id?: string | null
+          title_i18n?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          body_i18n?: Json | null
+          created_at?: string | null
+          deep_link?: string | null
+          id?: string | null
+          kind?: string | null
+          read_at?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          severity?: string | null
+          tenant_id?: string | null
+          title_i18n?: Json | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_export_profiles: {
+        Row: {
+          column_mapping: Json | null
+          concept_mapping: Json | null
+          connector: string | null
+          created_at: string | null
+          header_row: number | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          output_format: string | null
+          source_mode: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          column_mapping?: Json | null
+          concept_mapping?: Json | null
+          connector?: string | null
+          created_at?: string | null
+          header_row?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          output_format?: string | null
+          source_mode?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          column_mapping?: Json | null
+          concept_mapping?: Json | null
+          connector?: string | null
+          created_at?: string | null
+          header_row?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          output_format?: string | null
+          source_mode?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_export_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "payroll_export_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "payroll_export_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_export_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "payroll_export_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_stages: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          is_terminal_hire: boolean | null
+          is_terminal_reject: boolean | null
+          job_posting_id: string | null
+          name: string | null
+          position: number | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          is_terminal_hire?: boolean | null
+          is_terminal_reject?: boolean | null
+          job_posting_id?: string | null
+          name?: string | null
+          position?: number | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          is_terminal_hire?: boolean | null
+          is_terminal_reject?: boolean | null
+          job_posting_id?: string | null
+          name?: string | null
+          position?: number | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_stages_job_posting_id_fkey"
+            columns: ["job_posting_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_stages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "pipeline_stages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "pipeline_stages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_stages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "pipeline_stages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planning_cost_snapshots: {
+        Row: {
+          budget_label: string | null
+          contract_id: string | null
+          frozen_at: string | null
+          frozen_by: string | null
+          id: string | null
+          on_date: string | null
+          snapshot: Json | null
+          tenant_id: string | null
+        }
+        Insert: {
+          budget_label?: string | null
+          contract_id?: string | null
+          frozen_at?: string | null
+          frozen_by?: string | null
+          id?: string | null
+          on_date?: string | null
+          snapshot?: Json | null
+          tenant_id?: string | null
+        }
+        Update: {
+          budget_label?: string | null
+          contract_id?: string | null
+          frozen_at?: string | null
+          frozen_by?: string | null
+          id?: string | null
+          on_date?: string | null
+          snapshot?: Json | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planning_cost_snapshots_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "employment_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planning_cost_snapshots_frozen_by_fkey"
+            columns: ["frozen_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planning_cost_snapshots_frozen_by_fkey"
+            columns: ["frozen_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planning_cost_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "planning_cost_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "planning_cost_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planning_cost_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "planning_cost_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          display_name: string | null
+          id: string | null
+          max_html_template_size_kb: number | null
+          max_members: number | null
+          max_portal_pages: number | null
+          max_sites: number | null
+          max_storage_mb: number | null
+          name: string | null
+          portal_field_limits: Json | null
+          price_monthly: number | null
+        }
+        Insert: {
+          display_name?: string | null
+          id?: string | null
+          max_html_template_size_kb?: number | null
+          max_members?: number | null
+          max_portal_pages?: number | null
+          max_sites?: number | null
+          max_storage_mb?: number | null
+          name?: string | null
+          portal_field_limits?: Json | null
+          price_monthly?: number | null
+        }
+        Update: {
+          display_name?: string | null
+          id?: string | null
+          max_html_template_size_kb?: number | null
+          max_members?: number | null
+          max_portal_pages?: number | null
+          max_sites?: number | null
+          max_storage_mb?: number | null
+          name?: string | null
+          portal_field_limits?: Json | null
+          price_monthly?: number | null
+        }
+        Relationships: []
+      }
+      portal_usage: {
+        Row: {
+          db_content_bytes: number | null
+          db_total_bytes: number | null
+          page_count: number | null
+          public_site_id: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_public_pages_site_tenant"
+            columns: ["public_site_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "fk_public_pages_site_tenant"
+            columns: ["public_site_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites_full"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "public_pages_public_site_id_fkey"
+            columns: ["public_site_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_pages_public_site_id_fkey"
+            columns: ["public_site_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professional_categories: {
+        Row: {
+          code: string | null
+          collective_agreement_id: string | null
+          contribution_group: string | null
+          created_at: string | null
+          default_weekly_hours: number | null
+          id: string | null
+          is_active: boolean | null
+          metadata: Json | null
+          name: string | null
+          professional_group: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          code?: string | null
+          collective_agreement_id?: string | null
+          contribution_group?: string | null
+          created_at?: string | null
+          default_weekly_hours?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          name?: string | null
+          professional_group?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string | null
+          collective_agreement_id?: string | null
+          contribution_group?: string | null
+          created_at?: string | null
+          default_weekly_hours?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          name?: string | null
+          professional_group?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_categories_collective_agreement_id_fkey"
+            columns: ["collective_agreement_id"]
+            isOneToOne: false
+            referencedRelation: "collective_agreements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "professional_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "professional_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "professional_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_expenses: {
+        Row: {
+          amount_cents: number | null
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          description: string | null
+          id: string | null
+          project_id: string | null
+          receipt_document_id: string | null
+          tenant_id: string | null
+          work_log_id: string | null
+        }
+        Insert: {
+          amount_cents?: number | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string | null
+          project_id?: string | null
+          receipt_document_id?: string | null
+          tenant_id?: string | null
+          work_log_id?: string | null
+        }
+        Update: {
+          amount_cents?: number | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string | null
+          project_id?: string | null
+          receipt_document_id?: string | null
+          tenant_id?: string | null
+          work_log_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_expenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_expenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_expenses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "project_expenses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "project_expenses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_expenses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "project_expenses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_expenses_work_log_id_fkey"
+            columns: ["work_log_id"]
+            isOneToOne: false
+            referencedRelation: "work_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_lines: {
+        Row: {
+          catalog_item_id: string | null
+          catalog_item_name: string | null
+          catalog_item_sku: string | null
+          created_at: string | null
+          description: string | null
+          discount_pct: number | null
+          id: string | null
+          kind: "product" | "service" | null
+          name: string | null
+          notes: string | null
+          position: number | null
+          project_id: string | null
+          quantity: number | null
+          subtotal: number | null
+          tax_rate: number | null
+          tenant_id: string | null
+          total_with_tax: number | null
+          unit: string | null
+          unit_price: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_lines_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_lines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_lines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "project_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "project_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "project_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_materials: {
+        Row: {
+          catalog_item_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          is_billable: boolean | null
+          name: string | null
+          project_id: string | null
+          quantity: number | null
+          tenant_id: string | null
+          unit: string | null
+          unit_price_cents: number | null
+          work_log_id: string | null
+        }
+        Insert: {
+          catalog_item_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          is_billable?: boolean | null
+          name?: string | null
+          project_id?: string | null
+          quantity?: number | null
+          tenant_id?: string | null
+          unit?: string | null
+          unit_price_cents?: number | null
+          work_log_id?: string | null
+        }
+        Update: {
+          catalog_item_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          is_billable?: boolean | null
+          name?: string | null
+          project_id?: string | null
+          quantity?: number | null
+          tenant_id?: string | null
+          unit?: string | null
+          unit_price_cents?: number | null
+          work_log_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_materials_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_materials_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_materials_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_materials_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_materials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "project_materials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "project_materials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_materials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "project_materials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_materials_work_log_id_fkey"
+            columns: ["work_log_id"]
+            isOneToOne: false
+            referencedRelation: "work_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_members: {
+        Row: {
+          avatar_url: string | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+          joined_at: string | null
+          project_id: string | null
+          role: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          asset_id: string | null
+          client_id: string | null
+          client_report_published_at: string | null
+          client_report_published_by: string | null
+          contact_site_id: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          description: string | null
+          id: string | null
+          location_id: string | null
+          member_count: number | null
+          name: string | null
+          pending_task_count: number | null
+          planned_end: string | null
+          planned_start: string | null
+          site_id: string | null
+          source_project_id: string | null
+          source_run_id: string | null
+          status: string | null
+          task_count: number | null
+          tenant_id: string | null
+          type: "internal" | "work_order" | "maintenance" | null
+          updated_at: string | null
+          visibility: "private" | "department" | "company" | null
+          visit_intent: string | null
+          work_notes_html: string | null
+        }
+        Insert: {
+          asset_id?: string | null
+          client_id?: string | null
+          client_report_published_at?: string | null
+          client_report_published_by?: string | null
+          contact_site_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string | null
+          location_id?: string | null
+          member_count?: never
+          name?: string | null
+          pending_task_count?: never
+          planned_end?: string | null
+          planned_start?: string | null
+          site_id?: string | null
+          source_project_id?: string | null
+          source_run_id?: string | null
+          status?: string | null
+          task_count?: never
+          tenant_id?: string | null
+          type?: "internal" | "work_order" | "maintenance" | null
+          updated_at?: string | null
+          visibility?: "private" | "department" | "company" | null
+          visit_intent?: string | null
+          work_notes_html?: string | null
+        }
+        Update: {
+          asset_id?: string | null
+          client_id?: string | null
+          client_report_published_at?: string | null
+          client_report_published_by?: string | null
+          contact_site_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string | null
+          location_id?: string | null
+          member_count?: never
+          name?: string | null
+          pending_task_count?: never
+          planned_end?: string | null
+          planned_start?: string | null
+          site_id?: string | null
+          source_project_id?: string | null
+          source_run_id?: string | null
+          status?: string | null
+          task_count?: never
+          tenant_id?: string | null
+          type?: "internal" | "work_order" | "maintenance" | null
+          updated_at?: string | null
+          visibility?: "private" | "department" | "company" | null
+          visit_intent?: string | null
+          work_notes_html?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_projects_contact"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_contact_site_id_fkey"
+            columns: ["contact_site_id"]
+            isOneToOne: false
+            referencedRelation: "contact_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_source_project_id_fkey"
+            columns: ["source_project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "projects_source_project_id_fkey"
+            columns: ["source_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_domains: {
+        Row: {
+          created_at: string | null
+          domain: string | null
+          failure_reason: string | null
+          id: string | null
+          last_checked_at: string | null
+          public_site_id: string | null
+          public_site_name: string | null
+          public_site_slug: string | null
+          ssl_provisioned_at: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          verification_token: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_public_domains_site_tenant"
+            columns: ["public_site_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "fk_public_domains_site_tenant"
+            columns: ["public_site_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites_full"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "public_domains_public_site_id_fkey"
+            columns: ["public_site_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_domains_public_site_id_fkey"
+            columns: ["public_site_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_leads: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          idempotency_key: string | null
+          message: string | null
+          metadata: Json | null
+          name: string | null
+          phone: string | null
+          public_site_id: string | null
+          public_site_name: string | null
+          public_site_slug: string | null
+          source_page_slug: string | null
+          source_url: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_public_leads_site_tenant"
+            columns: ["public_site_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "fk_public_leads_site_tenant"
+            columns: ["public_site_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites_full"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "public_leads_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_leads_public_site_id_fkey"
+            columns: ["public_site_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_leads_public_site_id_fkey"
+            columns: ["public_site_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_leads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_leads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_leads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_leads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_leads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_pages: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          public_site_id: string | null
+          seo_description: string | null
+          seo_title: string | null
+          show_in_nav: boolean | null
+          slug: string | null
+          sort_order: number | null
+          status: string | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          public_site_id?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          show_in_nav?: boolean | null
+          slug?: string | null
+          sort_order?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          public_site_id?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          show_in_nav?: boolean | null
+          slug?: string | null
+          sort_order?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_public_pages_site_tenant"
+            columns: ["public_site_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "fk_public_pages_site_tenant"
+            columns: ["public_site_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites_full"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "public_pages_public_site_id_fkey"
+            columns: ["public_site_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_pages_public_site_id_fkey"
+            columns: ["public_site_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_pages_full: {
+        Row: {
+          content: Json | null
+          created_at: string | null
+          id: string | null
+          public_site_id: string | null
+          seo_description: string | null
+          seo_title: string | null
+          show_in_nav: boolean | null
+          slug: string | null
+          sort_order: number | null
+          status: string | null
+          tenant_id: string | null
+          title: string | null
+          translations: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string | null
+          id?: string | null
+          public_site_id?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          show_in_nav?: boolean | null
+          slug?: string | null
+          sort_order?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          translations?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string | null
+          id?: string | null
+          public_site_id?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          show_in_nav?: boolean | null
+          slug?: string | null
+          sort_order?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          translations?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_public_pages_site_tenant"
+            columns: ["public_site_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "fk_public_pages_site_tenant"
+            columns: ["public_site_id", "tenant_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites_full"
+            referencedColumns: ["id", "tenant_id"]
+          },
+          {
+            foreignKeyName: "public_pages_public_site_id_fkey"
+            columns: ["public_site_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_pages_public_site_id_fkey"
+            columns: ["public_site_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_sites: {
+        Row: {
+          contact_email_public: string | null
+          created_at: string | null
+          created_by: string | null
+          default_locale: string | null
+          id: string | null
+          name: string | null
+          primary_domain_id: string | null
+          public_portal_enabled: boolean | null
+          seo_description: string | null
+          seo_keywords: string[] | null
+          seo_title: string | null
+          site_id: string | null
+          slug: string | null
+          status: string | null
+          supported_locales: string[] | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_email_public?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          default_locale?: string | null
+          id?: string | null
+          name?: string | null
+          primary_domain_id?: string | null
+          public_portal_enabled?: never
+          seo_description?: string | null
+          seo_keywords?: string[] | null
+          seo_title?: string | null
+          site_id?: string | null
+          slug?: string | null
+          status?: string | null
+          supported_locales?: string[] | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_email_public?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          default_locale?: string | null
+          id?: string | null
+          name?: string | null
+          primary_domain_id?: string | null
+          public_portal_enabled?: never
+          seo_description?: string | null
+          seo_keywords?: string[] | null
+          seo_title?: string | null
+          site_id?: string | null
+          slug?: string | null
+          status?: string | null
+          supported_locales?: string[] | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_public_sites_primary_domain"
+            columns: ["primary_domain_id"]
+            isOneToOne: false
+            referencedRelation: "public_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_sites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_sites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_sites_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_sites_full: {
+        Row: {
+          contact_email_public: string | null
+          content: Json | null
+          created_at: string | null
+          created_by: string | null
+          default_locale: string | null
+          id: string | null
+          lead_ack_copy_email: string | null
+          name: string | null
+          primary_domain_id: string | null
+          public_portal_enabled: boolean | null
+          seo_description: string | null
+          seo_keywords: string[] | null
+          seo_title: string | null
+          site_id: string | null
+          slug: string | null
+          status: string | null
+          supported_locales: string[] | null
+          tenant_id: string | null
+          theme_config: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_email_public?: string | null
+          content?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          default_locale?: string | null
+          id?: string | null
+          lead_ack_copy_email?: string | null
+          name?: string | null
+          primary_domain_id?: string | null
+          public_portal_enabled?: never
+          seo_description?: string | null
+          seo_keywords?: string[] | null
+          seo_title?: string | null
+          site_id?: string | null
+          slug?: string | null
+          status?: string | null
+          supported_locales?: string[] | null
+          tenant_id?: string | null
+          theme_config?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_email_public?: string | null
+          content?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          default_locale?: string | null
+          id?: string | null
+          lead_ack_copy_email?: string | null
+          name?: string | null
+          primary_domain_id?: string | null
+          public_portal_enabled?: never
+          seo_description?: string | null
+          seo_keywords?: string[] | null
+          seo_title?: string | null
+          site_id?: string | null
+          slug?: string | null
+          status?: string | null
+          supported_locales?: string[] | null
+          tenant_id?: string | null
+          theme_config?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_public_sites_primary_domain"
+            columns: ["primary_domain_id"]
+            isOneToOne: false
+            referencedRelation: "public_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_sites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_sites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_sites_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "public_sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recent_files: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          mime_type: string | null
+          name: string | null
+          node_type: string | null
+          parent_id: string | null
+          path: string | null
+          size_bytes: number | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          mime_type?: string | null
+          name?: string | null
+          node_type?: string | null
+          parent_id?: string | null
+          path?: string | null
+          size_bytes?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          mime_type?: string | null
+          name?: string | null
+          node_type?: string | null
+          parent_id?: string | null
+          path?: string | null
+          size_bytes?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "file_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "my_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "recent_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "starred_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "trash"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_email_inbox: {
+        Row: {
+          assigned_application_id: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_posting_id: string | null
+          attachment_paths: string[] | null
+          body_html: string | null
+          body_text: string | null
+          created_at: string | null
+          detected_posting_id: string | null
+          discard_reason: string | null
+          discarded_at: string | null
+          discarded_by: string | null
+          from_email: string | null
+          from_name: string | null
+          id: string | null
+          received_at: string | null
+          resend_email_id: string | null
+          status: string | null
+          subject: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_application_id?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_posting_id?: string | null
+          attachment_paths?: string[] | null
+          body_html?: string | null
+          body_text?: string | null
+          created_at?: string | null
+          detected_posting_id?: string | null
+          discard_reason?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          id?: string | null
+          received_at?: string | null
+          resend_email_id?: string | null
+          status?: string | null
+          subject?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_application_id?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_posting_id?: string | null
+          attachment_paths?: string[] | null
+          body_html?: string | null
+          body_text?: string | null
+          created_at?: string | null
+          detected_posting_id?: string | null
+          discard_reason?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          id?: string | null
+          received_at?: string | null
+          resend_email_id?: string | null
+          status?: string | null
+          subject?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_email_inbox_assigned_application_id_fkey"
+            columns: ["assigned_application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_email_inbox_assigned_posting_id_fkey"
+            columns: ["assigned_posting_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_email_inbox_detected_posting_id_fkey"
+            columns: ["detected_posting_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_email_inbox_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "recruitment_email_inbox_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "recruitment_email_inbox_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_email_inbox_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "recruitment_email_inbox_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_settings: {
+        Row: {
+          ai_assist_enabled: boolean | null
+          ai_checklist_version: string | null
+          ai_dpa_accepted_at: string | null
+          ai_dpa_accepted_by: string | null
+          ai_transfer_accepted_at: string | null
+          ai_transfer_accepted_by: string | null
+          analytics_min_cohort: number | null
+          candidate_portal_base_url: string | null
+          created_at: string | null
+          default_max_retention_months: number | null
+          enforce_department_scope: boolean | null
+          expire_closes_process: boolean | null
+          import_legal_basis: string | null
+          import_legal_basis_note: string | null
+          inbound_address_hint: string | null
+          inbound_enabled: boolean | null
+          privacy_policy_url: string | null
+          rejection_notify_policy: string | null
+          rights_sla_days: number | null
+          rights_sla_notify_emails: string[] | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_assist_enabled?: boolean | null
+          ai_checklist_version?: string | null
+          ai_dpa_accepted_at?: string | null
+          ai_dpa_accepted_by?: string | null
+          ai_transfer_accepted_at?: string | null
+          ai_transfer_accepted_by?: string | null
+          analytics_min_cohort?: number | null
+          candidate_portal_base_url?: string | null
+          created_at?: string | null
+          default_max_retention_months?: number | null
+          enforce_department_scope?: boolean | null
+          expire_closes_process?: boolean | null
+          import_legal_basis?: string | null
+          import_legal_basis_note?: string | null
+          inbound_address_hint?: string | null
+          inbound_enabled?: boolean | null
+          privacy_policy_url?: string | null
+          rejection_notify_policy?: string | null
+          rights_sla_days?: number | null
+          rights_sla_notify_emails?: string[] | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_assist_enabled?: boolean | null
+          ai_checklist_version?: string | null
+          ai_dpa_accepted_at?: string | null
+          ai_dpa_accepted_by?: string | null
+          ai_transfer_accepted_at?: string | null
+          ai_transfer_accepted_by?: string | null
+          analytics_min_cohort?: number | null
+          candidate_portal_base_url?: string | null
+          created_at?: string | null
+          default_max_retention_months?: number | null
+          enforce_department_scope?: boolean | null
+          expire_closes_process?: boolean | null
+          import_legal_basis?: string | null
+          import_legal_basis_note?: string | null
+          inbound_address_hint?: string | null
+          inbound_enabled?: boolean | null
+          privacy_policy_url?: string | null
+          rejection_notify_policy?: string | null
+          rights_sla_days?: number | null
+          rights_sla_notify_emails?: string[] | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "recruitment_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "recruitment_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "recruitment_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_qualification_requirements: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          min_level: number | null
+          qualification_key: string | null
+          required: boolean | null
+          role_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          min_level?: number | null
+          qualification_key?: string | null
+          required?: boolean | null
+          role_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          min_level?: number | null
+          qualification_key?: string | null
+          required?: boolean | null
+          role_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_qualification_requirements_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "work_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_qualification_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "role_qualification_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "role_qualification_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_qualification_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "role_qualification_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sector_profiles: {
+        Row: {
+          archetype: string | null
+          catalog_seed_count: number | null
+          created_at: string | null
+          description_ca: string | null
+          display_name_ca: string | null
+          icon: string | null
+          id: string | null
+          labels: Json | null
+          sort_order: number | null
+          vertical: string | null
+        }
+        Insert: {
+          archetype?: string | null
+          catalog_seed_count?: never
+          created_at?: string | null
+          description_ca?: string | null
+          display_name_ca?: string | null
+          icon?: string | null
+          id?: string | null
+          labels?: Json | null
+          sort_order?: number | null
+          vertical?: string | null
+        }
+        Update: {
+          archetype?: string | null
+          catalog_seed_count?: never
+          created_at?: string | null
+          description_ca?: string | null
+          display_name_ca?: string | null
+          icon?: string | null
+          id?: string | null
+          labels?: Json | null
+          sort_order?: number | null
+          vertical?: string | null
+        }
+        Relationships: []
+      }
+      share_links: {
+        Row: {
+          accessed_at: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string | null
+          node_id: string | null
+          token: string | null
+        }
+        Insert: {
+          accessed_at?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string | null
+          node_id?: string | null
+          token?: string | null
+        }
+        Update: {
+          accessed_at?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string | null
+          node_id?: string | null
+          token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "share_links_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "file_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "share_links_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "my_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "share_links_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "recent_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "share_links_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "starred_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "share_links_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "trash"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_coverage_requirements: {
+        Row: {
+          created_at: string | null
+          day_of_week: number | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string | null
+          required_employees: number | null
+          shift_id: string | null
+          site_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week?: number | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string | null
+          required_employees?: number | null
+          shift_id?: string | null
+          site_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: number | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string | null
+          required_employees?: number | null
+          shift_id?: string | null
+          site_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_coverage_requirements_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "work_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_coverage_requirements_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_coverage_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_coverage_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_coverage_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_coverage_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_coverage_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_opening_claims: {
+        Row: {
+          claimed_at: string | null
+          created_at: string | null
+          employee_id: string | null
+          id: string | null
+          notes: string | null
+          opening_id: string | null
+          resulting_slot_id: string | null
+          review_comment: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string | null
+          notes?: string | null
+          opening_id?: string | null
+          resulting_slot_id?: string | null
+          review_comment?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          claimed_at?: string | null
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string | null
+          notes?: string | null
+          opening_id?: string | null
+          resulting_slot_id?: string | null
+          review_comment?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_opening_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_opening_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_opening_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_opening_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_opening_claims_opening_id_fkey"
+            columns: ["opening_id"]
+            isOneToOne: false
+            referencedRelation: "shift_openings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_opening_claims_resulting_slot_id_fkey"
+            columns: ["resulting_slot_id"]
+            isOneToOne: false
+            referencedRelation: "shift_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_opening_claims_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_opening_claims_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_opening_claims_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_opening_claims_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_opening_claims_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_openings: {
+        Row: {
+          cancelled_at: string | null
+          claim_policy: string | null
+          closes_at: string | null
+          compensation_label: string | null
+          created_at: string | null
+          created_by: string | null
+          end_time: string | null
+          id: string | null
+          location_id: string | null
+          location_name_snapshot: string | null
+          notes: string | null
+          opening_date: string | null
+          opens_at: string | null
+          places_filled: number | null
+          places_total: number | null
+          published_at: string | null
+          role_id: string | null
+          role_name_snapshot: string | null
+          shift_id: string | null
+          site_id: string | null
+          start_time: string | null
+          status: string | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cancelled_at?: string | null
+          claim_policy?: string | null
+          closes_at?: string | null
+          compensation_label?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          end_time?: string | null
+          id?: string | null
+          location_id?: string | null
+          location_name_snapshot?: string | null
+          notes?: string | null
+          opening_date?: string | null
+          opens_at?: string | null
+          places_filled?: number | null
+          places_total?: number | null
+          published_at?: string | null
+          role_id?: string | null
+          role_name_snapshot?: string | null
+          shift_id?: string | null
+          site_id?: string | null
+          start_time?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cancelled_at?: string | null
+          claim_policy?: string | null
+          closes_at?: string | null
+          compensation_label?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          end_time?: string | null
+          id?: string | null
+          location_id?: string | null
+          location_name_snapshot?: string | null
+          notes?: string | null
+          opening_date?: string | null
+          opens_at?: string | null
+          places_filled?: number | null
+          places_total?: number | null
+          published_at?: string | null
+          role_id?: string | null
+          role_name_snapshot?: string | null
+          shift_id?: string | null
+          site_id?: string | null
+          start_time?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_openings_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_openings_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_openings_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "work_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_openings_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "work_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_openings_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_openings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_openings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_openings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_openings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_openings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_publications: {
+        Row: {
+          content_hash: string | null
+          created_at: string | null
+          id: string | null
+          published_at: string | null
+          published_by: string | null
+          site_id: string | null
+          status: string | null
+          summary: Json | null
+          tenant_id: string | null
+          updated_at: string | null
+          version: number | null
+          week_start: string | null
+        }
+        Insert: {
+          content_hash?: string | null
+          created_at?: string | null
+          id?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          site_id?: string | null
+          status?: string | null
+          summary?: Json | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          version?: number | null
+          week_start?: string | null
+        }
+        Update: {
+          content_hash?: string | null
+          created_at?: string | null
+          id?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          site_id?: string | null
+          status?: string | null
+          summary?: Json | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          version?: number | null
+          week_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_publications_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_publications_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_publications_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_publications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_publications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_publications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_publications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_publications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_slots: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string | null
+          created_by: string | null
+          employee_confirmed_at: string | null
+          employee_id: string | null
+          end_time: string | null
+          id: string | null
+          location_id: string | null
+          location_name_snapshot: string | null
+          location_path_snapshot: string | null
+          notes: string | null
+          publication_id: string | null
+          published_at: string | null
+          role_id: string | null
+          role_name_snapshot: string | null
+          shift_color: string | null
+          shift_id: string | null
+          shift_name: string | null
+          site_id: string | null
+          slot_date: string | null
+          spans_midnight: boolean | null
+          start_time: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_slots_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_slots_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_slots_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_slots_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_slots_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_slots_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_slots_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "shift_publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_slots_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "work_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_slots_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "work_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_slots_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_slots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_slots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_slots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_slots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_slots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_swap_requests: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          requester_id: string | null
+          requester_notes: string | null
+          requester_slot_id: string | null
+          review_comment: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          target_employee_id: string | null
+          target_slot_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          requester_id?: string | null
+          requester_notes?: string | null
+          requester_slot_id?: string | null
+          review_comment?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          target_employee_id?: string | null
+          target_slot_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          requester_id?: string | null
+          requester_notes?: string | null
+          requester_slot_id?: string | null
+          review_comment?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          target_employee_id?: string | null
+          target_slot_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_swap_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_requester_slot_id_fkey"
+            columns: ["requester_slot_id"]
+            isOneToOne: false
+            referencedRelation: "shift_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_target_employee_id_fkey"
+            columns: ["target_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_target_employee_id_fkey"
+            columns: ["target_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_target_employee_id_fkey"
+            columns: ["target_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_target_employee_id_fkey"
+            columns: ["target_employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_target_slot_id_fkey"
+            columns: ["target_slot_id"]
+            isOneToOne: false
+            referencedRelation: "shift_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "shift_swap_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signing_events: {
+        Row: {
+          created_at: string | null
+          event_source: "webhook" | "system" | "user" | null
+          event_type: string | null
+          id: string | null
+          payload: Json | null
+          signer_email: string | null
+          signer_name: string | null
+          status_after: string | null
+          status_before: string | null
+          submission_id: string | null
+          tenant_id: string | null
+          webhook_event_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_source?: "webhook" | "system" | "user" | null
+          event_type?: string | null
+          id?: string | null
+          payload?: Json | null
+          signer_email?: string | null
+          signer_name?: string | null
+          status_after?: string | null
+          status_before?: string | null
+          submission_id?: string | null
+          tenant_id?: string | null
+          webhook_event_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_source?: "webhook" | "system" | "user" | null
+          event_type?: string | null
+          id?: string | null
+          payload?: Json | null
+          signer_email?: string | null
+          signer_name?: string | null
+          status_after?: string | null
+          status_before?: string | null
+          submission_id?: string | null
+          tenant_id?: string | null
+          webhook_event_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signing_events_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "signing_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "signing_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "signing_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "signing_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signing_submissions: {
+        Row: {
+          audit_log_url: string | null
+          audit_trail_storage_path: string | null
+          completed_at: string | null
+          created_at: string | null
+          document_title: string | null
+          docuseal_signing_url: string | null
+          docuseal_submission_id: string | null
+          error_message: string | null
+          external_id: string | null
+          first_email_sent_at: string | null
+          id: string | null
+          initiated_by: string | null
+          last_event_at: string | null
+          last_notification_at: string | null
+          metadata: Json | null
+          native_group_id: string | null
+          next_signer_index: number | null
+          notification_enabled: boolean | null
+          notification_mode:
+            | "docuseal_auto"
+            | "app_manual"
+            | "app_auto_all"
+            | "app_auto_sequential"
+            | null
+          result_document_version_id: string | null
+          result_file_path_or_url: string | null
+          result_storage_type: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          signers: Json | null
+          signing_provider: string | null
+          source_document_id: string | null
+          source_document_version_id: string | null
+          source_template_locale_id: string | null
+          source_type: "document_existing" | "template_locale" | null
+          staging_storage_path: string | null
+          status:
+            | "draft"
+            | "pending"
+            | "in_progress"
+            | "completed"
+            | "declined"
+            | "expired"
+            | "cancelled"
+            | "error"
+            | null
+          status_reason: string | null
+          submitted_at: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signing_submissions_initiated_by_fkey"
+            columns: ["initiated_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_initiated_by_fkey"
+            columns: ["initiated_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_result_document_version_id_fkey"
+            columns: ["result_document_version_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["version_id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_result_document_version_id_fkey"
+            columns: ["result_document_version_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["version_id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_result_document_version_id_fkey"
+            columns: ["result_document_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_source_document_version_id_fkey"
+            columns: ["source_document_version_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["version_id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_source_document_version_id_fkey"
+            columns: ["source_document_version_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["version_id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_source_document_version_id_fkey"
+            columns: ["source_document_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_source_template_locale_id_fkey"
+            columns: ["source_template_locale_id"]
+            isOneToOne: false
+            referencedRelation: "document_template_locale_detail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_source_template_locale_id_fkey"
+            columns: ["source_template_locale_id"]
+            isOneToOne: false
+            referencedRelation: "document_template_locales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signing_submitters: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          email: string | null
+          email_log_id: string | null
+          external_submitter_id: string | null
+          id: string | null
+          name: string | null
+          notified_at: string | null
+          opened_at: string | null
+          role: string | null
+          signer_order: number | null
+          signing_url: string | null
+          status: string | null
+          submission_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          email?: string | null
+          email_log_id?: string | null
+          external_submitter_id?: string | null
+          id?: string | null
+          name?: string | null
+          notified_at?: string | null
+          opened_at?: string | null
+          role?: string | null
+          signer_order?: number | null
+          signing_url?: string | null
+          status?: string | null
+          submission_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          email?: string | null
+          email_log_id?: string | null
+          external_submitter_id?: string | null
+          id?: string | null
+          name?: string | null
+          notified_at?: string | null
+          opened_at?: string | null
+          role?: string | null
+          signer_order?: number | null
+          signing_url?: string | null
+          status?: string | null
+          submission_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signing_submitters_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "signing_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submitters_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "signing_submitters_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "signing_submitters_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submitters_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "signing_submitters_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_holiday_calendar_assignments: {
+        Row: {
+          calendar_active: boolean | null
+          calendar_id: string | null
+          calendar_name: string | null
+          country_code: string | null
+          created_at: string | null
+          id: string | null
+          priority: number | null
+          region_code: string | null
+          site_id: string | null
+          year: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_holiday_calendar_assignments_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "holiday_calendars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_holiday_calendar_assignments_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_holiday_exclusions: {
+        Row: {
+          created_at: string | null
+          holiday_id: string | null
+          id: string | null
+          site_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          holiday_id?: string | null
+          id?: string | null
+          site_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          holiday_id?: string | null
+          id?: string | null
+          site_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_holiday_exclusions_holiday_id_fkey"
+            columns: ["holiday_id"]
+            isOneToOne: false
+            referencedRelation: "holidays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_holiday_exclusions_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sites: {
+        Row: {
+          address: string | null
+          city: string | null
+          country_code: string | null
+          created_at: string | null
+          default_email_layout_id: string | null
+          email_from_name: string | null
+          email_logo_url: string | null
+          email_reply_to: string | null
+          email_tenant_name_fallback: string | null
+          geo_coordinates: Json | null
+          id: string | null
+          is_active: boolean | null
+          metadata: Json | null
+          name: string | null
+          postal_code: string | null
+          province: string | null
+          street: string | null
+          street_number: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          default_email_layout_id?: string | null
+          email_from_name?: string | null
+          email_logo_url?: string | null
+          email_reply_to?: string | null
+          email_tenant_name_fallback?: string | null
+          geo_coordinates?: Json | null
+          id?: string | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          name?: string | null
+          postal_code?: string | null
+          province?: string | null
+          street?: string | null
+          street_number?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          default_email_layout_id?: string | null
+          email_from_name?: string | null
+          email_logo_url?: string | null
+          email_reply_to?: string | null
+          email_tenant_name_fallback?: string | null
+          geo_coordinates?: Json | null
+          id?: string | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          name?: string | null
+          postal_code?: string | null
+          province?: string | null
+          street?: string | null
+          street_number?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sites_default_email_layout_id_fkey"
+            columns: ["default_email_layout_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_levels: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          is_default: boolean | null
+          name: string | null
+          progress_pct: number | null
+          rank: number | null
+          skill_type_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          is_default?: boolean | null
+          name?: string | null
+          progress_pct?: number | null
+          rank?: number | null
+          skill_type_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          is_default?: boolean | null
+          name?: string | null
+          progress_pct?: number | null
+          rank?: number | null
+          skill_type_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_levels_skill_type_id_fkey"
+            columns: ["skill_type_id"]
+            isOneToOne: false
+            referencedRelation: "skill_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_types: {
+        Row: {
+          color_token: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          is_certification_type: boolean | null
+          name: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          color_token?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_certification_type?: boolean | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          color_token?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_certification_type?: boolean | null
+          name?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "skill_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "skill_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "skill_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skills: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          skill_type_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          skill_type_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          skill_type_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skills_skill_type_id_fkey"
+            columns: ["skill_type_id"]
+            isOneToOne: false
+            referencedRelation: "skill_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skills_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "skills_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "skills_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skills_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "skills_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      starred_files: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          mime_type: string | null
+          name: string | null
+          node_type: string | null
+          parent_id: string | null
+          path: string | null
+          size_bytes: number | null
+          starred_at: string | null
+          storage_key: string | null
+          storage_provider_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "file_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "my_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "recent_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "starred_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "trash"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_storage_provider_id_fkey"
+            columns: ["storage_provider_id"]
+            isOneToOne: false
+            referencedRelation: "storage_provider"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      storage_provider: {
+        Row: {
+          allowed_mime_types: string[] | null
+          bucket_name: string | null
+          created_at: string | null
+          endpoint_url: string | null
+          id: string | null
+          is_active: boolean | null
+          is_locked: boolean | null
+          is_verified: boolean | null
+          max_file_size_bytes: number | null
+          nickname: string | null
+          provider_type: string | null
+          quota_limit_bytes: number | null
+          region: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          allowed_mime_types?: string[] | null
+          bucket_name?: string | null
+          created_at?: string | null
+          endpoint_url?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_locked?: boolean | null
+          is_verified?: boolean | null
+          max_file_size_bytes?: number | null
+          nickname?: string | null
+          provider_type?: string | null
+          quota_limit_bytes?: number | null
+          region?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          allowed_mime_types?: string[] | null
+          bucket_name?: string | null
+          created_at?: string | null
+          endpoint_url?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_locked?: boolean | null
+          is_verified?: boolean | null
+          max_file_size_bytes?: number | null
+          nickname?: string | null
+          provider_type?: string | null
+          quota_limit_bytes?: number | null
+          region?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storage_providers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "storage_providers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "storage_providers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storage_providers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "storage_providers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      storage_usage: {
+        Row: {
+          committed_bytes: number | null
+          documents_committed_bytes: number | null
+          documents_file_count: number | null
+          documents_reserved_bytes: number | null
+          file_count: number | null
+          grand_total_bytes: number | null
+          reserved_bytes: number | null
+          tenant_id: string | null
+          total_bytes: number | null
+          total_mb: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          committed_bytes?: number | null
+          documents_committed_bytes?: number | null
+          documents_file_count?: number | null
+          documents_reserved_bytes?: number | null
+          file_count?: number | null
+          grand_total_bytes?: never
+          reserved_bytes?: number | null
+          tenant_id?: string | null
+          total_bytes?: never
+          total_mb?: never
+          updated_at?: string | null
+        }
+        Update: {
+          committed_bytes?: number | null
+          documents_committed_bytes?: number | null
+          documents_file_count?: number | null
+          documents_reserved_bytes?: number | null
+          file_count?: number | null
+          grand_total_bytes?: never
+          reserved_bytes?: number | null
+          tenant_id?: string | null
+          total_bytes?: never
+          total_mb?: never
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storage_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "storage_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "storage_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storage_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "storage_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_settings: {
+        Row: {
+          module: string | null
+          settings: Json | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          module?: string | null
+          settings?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          module?: string | null
+          settings?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          assignee_employee_id: string | null
+          assignee_id: string | null
+          created_at: string | null
+          due_date: string | null
+          id: string | null
+          notes_html: string | null
+          position: number | null
+          project_id: string | null
+          source_checklist_run_item_id: string | null
+          source_disposition_note: string | null
+          source_finding_note: string | null
+          status: string | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assignee_employee_id?: string | null
+          assignee_id?: string | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string | null
+          notes_html?: string | null
+          position?: number | null
+          project_id?: string | null
+          source_checklist_run_item_id?: string | null
+          source_disposition_note?: string | null
+          source_finding_note?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assignee_employee_id?: string | null
+          assignee_id?: string | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string | null
+          notes_html?: string | null
+          position?: number | null
+          project_id?: string | null
+          source_checklist_run_item_id?: string | null
+          source_disposition_note?: string | null
+          source_finding_note?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assignee_employee_id_fkey"
+            columns: ["assignee_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_assignee_employee_id_fkey"
+            columns: ["assignee_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_assignee_employee_id_fkey"
+            columns: ["assignee_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_assignee_employee_id_fkey"
+            columns: ["assignee_employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_source_checklist_run_item_id_fkey"
+            columns: ["source_checklist_run_item_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_run_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_absence_type_configs: {
+        Row: {
+          absence_type: string | null
+          affects_entitlement: boolean | null
+          counts_as_worked: boolean | null
+          created_at: string | null
+          entitlement_type: string | null
+          export_code: string | null
+          id: string | null
+          is_active: boolean | null
+          is_it: boolean | null
+          is_partial: boolean | null
+          is_system: boolean | null
+          max_days_per_year: number | null
+          name_i18n: Json | null
+          parent_key: string | null
+          requires_approval: boolean | null
+          requires_document: boolean | null
+          sort_order: number | null
+          subtype_key: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          absence_type?: string | null
+          affects_entitlement?: boolean | null
+          counts_as_worked?: boolean | null
+          created_at?: string | null
+          entitlement_type?: string | null
+          export_code?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_it?: boolean | null
+          is_partial?: boolean | null
+          is_system?: boolean | null
+          max_days_per_year?: number | null
+          name_i18n?: Json | null
+          parent_key?: string | null
+          requires_approval?: boolean | null
+          requires_document?: boolean | null
+          sort_order?: number | null
+          subtype_key?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          absence_type?: string | null
+          affects_entitlement?: boolean | null
+          counts_as_worked?: boolean | null
+          created_at?: string | null
+          entitlement_type?: string | null
+          export_code?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_it?: boolean | null
+          is_partial?: boolean | null
+          is_system?: boolean | null
+          max_days_per_year?: number | null
+          name_i18n?: Json | null
+          parent_key?: string | null
+          requires_approval?: boolean | null
+          requires_document?: boolean | null
+          sort_order?: number | null
+          subtype_key?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_absence_type_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_absence_type_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_absence_type_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_absence_type_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_absence_type_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_content_items: {
+        Row: {
+          content: Json | null
+          content_type: string | null
+          created_at: string | null
+          created_by: string | null
+          employee_audience_department_ids: string[] | null
+          employee_audience_scope: string | null
+          employee_audience_site_id: string | null
+          employee_channel_enabled: boolean | null
+          excerpt: string | null
+          featured_image_url: string | null
+          id: string | null
+          is_sticky: boolean | null
+          public_channel_enabled: boolean | null
+          public_page_id: string | null
+          public_show_in_nav: boolean | null
+          public_show_lead_form: boolean | null
+          public_site_id: string | null
+          publish_end_at: string | null
+          publish_start_at: string | null
+          published_at: string | null
+          seo_description: string | null
+          seo_title: string | null
+          slug: string | null
+          sort_order: number | null
+          status: string | null
+          tenant_id: string | null
+          title: string | null
+          translations: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          content?: Json | null
+          content_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          employee_audience_department_ids?: string[] | null
+          employee_audience_scope?: string | null
+          employee_audience_site_id?: string | null
+          employee_channel_enabled?: boolean | null
+          excerpt?: string | null
+          featured_image_url?: string | null
+          id?: string | null
+          is_sticky?: boolean | null
+          public_channel_enabled?: boolean | null
+          public_page_id?: string | null
+          public_show_in_nav?: boolean | null
+          public_show_lead_form?: boolean | null
+          public_site_id?: string | null
+          publish_end_at?: string | null
+          publish_start_at?: string | null
+          published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string | null
+          sort_order?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          translations?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          content?: Json | null
+          content_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          employee_audience_department_ids?: string[] | null
+          employee_audience_scope?: string | null
+          employee_audience_site_id?: string | null
+          employee_channel_enabled?: boolean | null
+          excerpt?: string | null
+          featured_image_url?: string | null
+          id?: string | null
+          is_sticky?: boolean | null
+          public_channel_enabled?: boolean | null
+          public_page_id?: string | null
+          public_show_in_nav?: boolean | null
+          public_show_lead_form?: boolean | null
+          public_site_id?: string | null
+          publish_end_at?: string | null
+          publish_start_at?: string | null
+          published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string | null
+          sort_order?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          translations?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_content_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_content_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_content_items_employee_audience_site_id_fkey"
+            columns: ["employee_audience_site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_content_items_public_page_id_fkey"
+            columns: ["public_page_id"]
+            isOneToOne: false
+            referencedRelation: "public_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_content_items_public_page_id_fkey"
+            columns: ["public_page_id"]
+            isOneToOne: false
+            referencedRelation: "public_pages_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_content_items_public_site_id_fkey"
+            columns: ["public_site_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_content_items_public_site_id_fkey"
+            columns: ["public_site_id"]
+            isOneToOne: false
+            referencedRelation: "public_sites_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_content_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_content_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_content_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_content_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_content_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_entitlements: {
+        Row: {
+          byos_drive_count: number | null
+          documents_file_count: number | null
+          documents_used_bytes: number | null
+          drive_used_bytes: number | null
+          effective_quota_bytes: number | null
+          file_count: number | null
+          geocoding_allow_overage: boolean | null
+          geocoding_billable: boolean | null
+          geocoding_currency: string | null
+          geocoding_enforce_hard_cap: boolean | null
+          geocoding_included_reverse_requests_month: number | null
+          geocoding_included_search_requests_month: number | null
+          geocoding_included_total_requests_month: number | null
+          geocoding_mode: string | null
+          geocoding_monthly_billable_units: number | null
+          geocoding_monthly_cost_amount: number | null
+          geocoding_monthly_requests: number | null
+          geocoding_overage_price_per_1000: number | null
+          geocoding_provider_enabled: boolean | null
+          geocoding_provider_key: string | null
+          geocoding_rate_limit_per_day: number | null
+          geocoding_rate_limit_per_minute: number | null
+          internal_allowed_mimes: string[] | null
+          internal_max_file_mb: number | null
+          internal_quota_gb: number | null
+          is_active: boolean | null
+          max_members: number | null
+          monthly_egress_bytes: number | null
+          plan_display_name: string | null
+          plan_features: Json | null
+          plan_id: string | null
+          plan_max_storage_mb: number | null
+          plan_name: string | null
+          slug: string | null
+          storage_blocked: boolean | null
+          storage_blocked_reason: string | null
+          storage_used_bytes: number | null
+          tenant_id: string | null
+          tenant_name: string | null
+        }
+        Relationships: []
+      }
+      tenant_holiday_calendar_assignments: {
+        Row: {
+          calendar_active: boolean | null
+          calendar_id: string | null
+          calendar_name: string | null
+          country_code: string | null
+          created_at: string | null
+          id: string | null
+          priority: number | null
+          region_code: string | null
+          tenant_id: string | null
+          year: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_holiday_calendar_assignments_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "holiday_calendars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_holiday_calendar_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_holiday_calendar_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_holiday_calendar_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_holiday_calendar_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_holiday_calendar_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_members: {
+        Row: {
+          avatar_url: string | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+          is_active: boolean | null
+          joined_at: string | null
+          role: string | null
+          site_id: string | null
+          tenant_id: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_members_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_operation_logs: {
+        Row: {
+          actor_user_id: string | null
+          attempt_count: number | null
+          completed_at: string | null
+          correlation_id: string | null
+          created_at: string | null
+          duration_ms: number | null
+          duration_threshold_ms: number | null
+          entity_id: string | null
+          entity_type: string | null
+          error_code: string | null
+          error_message: string | null
+          external_service: string | null
+          id: string | null
+          integration_type:
+            | "email"
+            | "sms"
+            | "push"
+            | "webhook_inbound"
+            | "webhook_outbound"
+            | "erp_sync"
+            | "signing"
+            | "pdf_generation"
+            | "ai_generation"
+            | "ai_chat"
+            | "import"
+            | "export"
+            | "storage"
+            | "geocoding"
+            | "billing"
+            | "other"
+            | null
+          is_retryable: boolean | null
+          max_attempts: number | null
+          message: string | null
+          operation_code: string | null
+          payload_summary: Json | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          site_id: string | null
+          source_job_id: string | null
+          source_job_table: string | null
+          status:
+            | "pending"
+            | "running"
+            | "success"
+            | "failed"
+            | "dead_letter"
+            | "cancelled"
+            | "degraded"
+            | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          attempt_count?: number | null
+          completed_at?: string | null
+          correlation_id?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          duration_threshold_ms?: number | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          external_service?: string | null
+          id?: string | null
+          integration_type?:
+            | "email"
+            | "sms"
+            | "push"
+            | "webhook_inbound"
+            | "webhook_outbound"
+            | "erp_sync"
+            | "signing"
+            | "pdf_generation"
+            | "ai_generation"
+            | "ai_chat"
+            | "import"
+            | "export"
+            | "storage"
+            | "geocoding"
+            | "billing"
+            | "other"
+            | null
+          is_retryable?: boolean | null
+          max_attempts?: number | null
+          message?: string | null
+          operation_code?: string | null
+          payload_summary?: Json | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          site_id?: string | null
+          source_job_id?: string | null
+          source_job_table?: string | null
+          status?:
+            | "pending"
+            | "running"
+            | "success"
+            | "failed"
+            | "dead_letter"
+            | "cancelled"
+            | "degraded"
+            | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          attempt_count?: number | null
+          completed_at?: string | null
+          correlation_id?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          duration_threshold_ms?: number | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          external_service?: string | null
+          id?: string | null
+          integration_type?:
+            | "email"
+            | "sms"
+            | "push"
+            | "webhook_inbound"
+            | "webhook_outbound"
+            | "erp_sync"
+            | "signing"
+            | "pdf_generation"
+            | "ai_generation"
+            | "ai_chat"
+            | "import"
+            | "export"
+            | "storage"
+            | "geocoding"
+            | "billing"
+            | "other"
+            | null
+          is_retryable?: boolean | null
+          max_attempts?: number | null
+          message?: string | null
+          operation_code?: string | null
+          payload_summary?: Json | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          site_id?: string | null
+          source_job_id?: string | null
+          source_job_table?: string | null
+          status?:
+            | "pending"
+            | "running"
+            | "success"
+            | "failed"
+            | "dead_letter"
+            | "cancelled"
+            | "degraded"
+            | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_operation_logs_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_operation_logs_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_operation_logs_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_operation_logs_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_operation_logs_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_operation_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_operation_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_operation_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_operation_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_operation_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_pause_configs: {
+        Row: {
+          counts_as_work: boolean | null
+          created_at: string | null
+          default_duration_min: number | null
+          id: string | null
+          is_active: boolean | null
+          key: string | null
+          label_i18n: Json | null
+          max_duration_minutes: number | null
+          requires_justification: boolean | null
+          site_id: string | null
+          sort_order: number | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          counts_as_work?: boolean | null
+          created_at?: string | null
+          default_duration_min?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          key?: string | null
+          label_i18n?: Json | null
+          max_duration_minutes?: number | null
+          requires_justification?: boolean | null
+          site_id?: string | null
+          sort_order?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          counts_as_work?: boolean | null
+          created_at?: string | null
+          default_duration_min?: number | null
+          id?: string | null
+          is_active?: boolean | null
+          key?: string | null
+          label_i18n?: Json | null
+          max_duration_minutes?: number | null
+          requires_justification?: boolean | null
+          site_id?: string | null
+          sort_order?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_pause_configs_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_pause_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_pause_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_pause_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_pause_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_pause_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_role_defaults: {
+        Row: {
+          created_at: string | null
+          entity_email: string | null
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string | null
+          id: string | null
+          role_key: string | null
+          site_id: string | null
+          source: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          entity_email?: string | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          id?: string | null
+          role_key?: string | null
+          site_id?: string | null
+          source?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          entity_email?: string | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          id?: string | null
+          role_key?: string | null
+          site_id?: string | null
+          source?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_role_defaults_entity_type_fkey"
+            columns: ["entity_type"]
+            isOneToOne: false
+            referencedRelation: "entity_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "tenant_role_defaults_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_role_defaults_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_role_defaults_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_role_defaults_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_role_defaults_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_role_defaults_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_signing_status: {
+        Row: {
+          admin_disabled: boolean | null
+          can_activate: boolean | null
+          created_at: string | null
+          default_notification_mode:
+            | "docuseal_auto"
+            | "app_manual"
+            | "app_auto_all"
+            | "app_auto_sequential"
+            | null
+          docuseal_api_url: string | null
+          effective_is_active: boolean | null
+          feature_enabled: boolean | null
+          is_active: boolean | null
+          mode: "platform" | "byo" | null
+          signing_credits: number | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          admin_disabled?: boolean | null
+          can_activate?: never
+          created_at?: string | null
+          default_notification_mode?:
+            | "docuseal_auto"
+            | "app_manual"
+            | "app_auto_all"
+            | "app_auto_sequential"
+            | null
+          docuseal_api_url?: string | null
+          effective_is_active?: never
+          feature_enabled?: never
+          is_active?: boolean | null
+          mode?: "platform" | "byo" | null
+          signing_credits?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          admin_disabled?: boolean | null
+          can_activate?: never
+          created_at?: string | null
+          default_notification_mode?:
+            | "docuseal_auto"
+            | "app_manual"
+            | "app_auto_all"
+            | "app_auto_sequential"
+            | null
+          docuseal_api_url?: string | null
+          effective_is_active?: never
+          feature_enabled?: never
+          is_active?: boolean | null
+          mode?: "platform" | "byo" | null
+          signing_credits?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_signing_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_signing_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_signing_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_signing_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_signing_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          metadata: Json | null
+          name: string | null
+          slug: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          name?: string | null
+          slug?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          name?: string | null
+          slug?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      time_activity_segments: {
+        Row: {
+          activity_kind: string | null
+          created_at: string | null
+          employee_id: string | null
+          ended_at: string | null
+          expense_ref_id: string | null
+          flags_snapshot: Json | null
+          id: string | null
+          site_id: string | null
+          source_punch_ids: string[] | null
+          started_at: string | null
+          tenant_id: string | null
+          work_date: string | null
+          work_location_ref: string | null
+          work_log_id: string | null
+        }
+        Insert: {
+          activity_kind?: string | null
+          created_at?: string | null
+          employee_id?: string | null
+          ended_at?: string | null
+          expense_ref_id?: string | null
+          flags_snapshot?: Json | null
+          id?: string | null
+          site_id?: string | null
+          source_punch_ids?: string[] | null
+          started_at?: string | null
+          tenant_id?: string | null
+          work_date?: string | null
+          work_location_ref?: string | null
+          work_log_id?: string | null
+        }
+        Update: {
+          activity_kind?: string | null
+          created_at?: string | null
+          employee_id?: string | null
+          ended_at?: string | null
+          expense_ref_id?: string | null
+          flags_snapshot?: Json | null
+          id?: string | null
+          site_id?: string | null
+          source_punch_ids?: string[] | null
+          started_at?: string | null
+          tenant_id?: string | null
+          work_date?: string | null
+          work_location_ref?: string | null
+          work_log_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_activity_segments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_activity_segments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_activity_segments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_activity_segments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "time_activity_segments_expense_ref_id_fkey"
+            columns: ["expense_ref_id"]
+            isOneToOne: false
+            referencedRelation: "project_expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_activity_segments_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_activity_segments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "time_activity_segments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "time_activity_segments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_activity_segments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "time_activity_segments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_activity_segments_work_log_id_fkey"
+            columns: ["work_log_id"]
+            isOneToOne: false
+            referencedRelation: "work_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_daily_summaries: {
+        Row: {
+          absence_minutes: number | null
+          anomaly_codes: string[] | null
+          approved_at: string | null
+          approved_by: string | null
+          break_minutes: number | null
+          consolidation_meta: Json | null
+          created_at: string | null
+          day_type: string | null
+          effective_minutes: number | null
+          employee_id: string | null
+          employment_contract_id: string | null
+          expected_minutes: number | null
+          exported_at: string | null
+          id: string | null
+          needs_review: boolean | null
+          overtime_authorized_minutes: number | null
+          overtime_minutes: number | null
+          paid_minutes: number | null
+          payroll_locked_at: string | null
+          presence_minutes: number | null
+          punch_count: number | null
+          recomputed_at: string | null
+          regular_minutes: number | null
+          resolver_version: string | null
+          site_id: string | null
+          status: string | null
+          tenant_id: string | null
+          travel_minutes: number | null
+          updated_at: string | null
+          work_context_frozen_at: string | null
+          work_context_snapshot: Json | null
+          work_date: string | null
+          work_minutes: number | null
+          work_profile_snapshot: string | null
+          worked_minutes: number | null
+        }
+        Insert: {
+          absence_minutes?: number | null
+          anomaly_codes?: string[] | null
+          approved_at?: string | null
+          approved_by?: string | null
+          break_minutes?: number | null
+          consolidation_meta?: Json | null
+          created_at?: string | null
+          day_type?: string | null
+          effective_minutes?: number | null
+          employee_id?: string | null
+          employment_contract_id?: string | null
+          expected_minutes?: number | null
+          exported_at?: string | null
+          id?: string | null
+          needs_review?: boolean | null
+          overtime_authorized_minutes?: number | null
+          overtime_minutes?: number | null
+          paid_minutes?: number | null
+          payroll_locked_at?: string | null
+          presence_minutes?: number | null
+          punch_count?: number | null
+          recomputed_at?: string | null
+          regular_minutes?: number | null
+          resolver_version?: string | null
+          site_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          travel_minutes?: number | null
+          updated_at?: string | null
+          work_context_frozen_at?: string | null
+          work_context_snapshot?: Json | null
+          work_date?: string | null
+          work_minutes?: number | null
+          work_profile_snapshot?: string | null
+          worked_minutes?: number | null
+        }
+        Update: {
+          absence_minutes?: number | null
+          anomaly_codes?: string[] | null
+          approved_at?: string | null
+          approved_by?: string | null
+          break_minutes?: number | null
+          consolidation_meta?: Json | null
+          created_at?: string | null
+          day_type?: string | null
+          effective_minutes?: number | null
+          employee_id?: string | null
+          employment_contract_id?: string | null
+          expected_minutes?: number | null
+          exported_at?: string | null
+          id?: string | null
+          needs_review?: boolean | null
+          overtime_authorized_minutes?: number | null
+          overtime_minutes?: number | null
+          paid_minutes?: number | null
+          payroll_locked_at?: string | null
+          presence_minutes?: number | null
+          punch_count?: number | null
+          recomputed_at?: string | null
+          regular_minutes?: number | null
+          resolver_version?: string | null
+          site_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          travel_minutes?: number | null
+          updated_at?: string | null
+          work_context_frozen_at?: string | null
+          work_context_snapshot?: Json | null
+          work_date?: string | null
+          work_minutes?: number | null
+          work_profile_snapshot?: string | null
+          worked_minutes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_daily_summaries_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_daily_summaries_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_daily_summaries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_daily_summaries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_daily_summaries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_daily_summaries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "time_daily_summaries_employment_contract_id_fkey"
+            columns: ["employment_contract_id"]
+            isOneToOne: false
+            referencedRelation: "employment_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_daily_summaries_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_daily_summaries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "time_daily_summaries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "time_daily_summaries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_daily_summaries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "time_daily_summaries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_entries: {
+        Row: {
+          adjustment_note: string | null
+          break_minutes: number | null
+          created_at: string | null
+          employee_id: string | null
+          ends_at: string | null
+          gross_minutes: number | null
+          id: string | null
+          net_minutes: number | null
+          overtime_minutes: number | null
+          punch_in_id: string | null
+          punch_out_id: string | null
+          regular_minutes: number | null
+          site_id: string | null
+          starts_at: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          work_date: string | null
+        }
+        Insert: {
+          adjustment_note?: string | null
+          break_minutes?: number | null
+          created_at?: string | null
+          employee_id?: string | null
+          ends_at?: string | null
+          gross_minutes?: number | null
+          id?: string | null
+          net_minutes?: number | null
+          overtime_minutes?: number | null
+          punch_in_id?: string | null
+          punch_out_id?: string | null
+          regular_minutes?: number | null
+          site_id?: string | null
+          starts_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          work_date?: string | null
+        }
+        Update: {
+          adjustment_note?: string | null
+          break_minutes?: number | null
+          created_at?: string | null
+          employee_id?: string | null
+          ends_at?: string | null
+          gross_minutes?: number | null
+          id?: string | null
+          net_minutes?: number | null
+          overtime_minutes?: number | null
+          punch_in_id?: string | null
+          punch_out_id?: string | null
+          regular_minutes?: number | null
+          site_id?: string | null
+          starts_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          work_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "time_entries_punch_in_id_fkey"
+            columns: ["punch_in_id"]
+            isOneToOne: false
+            referencedRelation: "time_punches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_punch_out_id_fkey"
+            columns: ["punch_out_id"]
+            isOneToOne: false
+            referencedRelation: "time_punches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "time_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "time_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "time_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_punches: {
+        Row: {
+          anomaly_codes: string[] | null
+          client_op_id: string | null
+          created_at: string | null
+          device_id: string | null
+          device_info: Json | null
+          device_name_snapshot: string | null
+          employee_id: string | null
+          geo: Json | null
+          geo_accuracy_m: number | null
+          geo_altitude_m: number | null
+          geo_consent: boolean | null
+          geo_error: string | null
+          geo_lat: number | null
+          geo_lng: number | null
+          geo_speed_ms: number | null
+          id: string | null
+          is_remote: boolean | null
+          location_id: string | null
+          location_name_snapshot: string | null
+          location_permission: string | null
+          notes: string | null
+          occurred_at: string | null
+          pause_counts_as_work: boolean | null
+          pause_type: string | null
+          punch_type: string | null
+          received_at: string | null
+          site_id: string | null
+          source: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          anomaly_codes?: string[] | null
+          client_op_id?: string | null
+          created_at?: string | null
+          device_id?: string | null
+          device_info?: Json | null
+          device_name_snapshot?: string | null
+          employee_id?: string | null
+          geo?: Json | null
+          geo_accuracy_m?: number | null
+          geo_altitude_m?: number | null
+          geo_consent?: boolean | null
+          geo_error?: string | null
+          geo_lat?: number | null
+          geo_lng?: number | null
+          geo_speed_ms?: number | null
+          id?: string | null
+          is_remote?: boolean | null
+          location_id?: string | null
+          location_name_snapshot?: string | null
+          location_permission?: string | null
+          notes?: string | null
+          occurred_at?: string | null
+          pause_counts_as_work?: boolean | null
+          pause_type?: string | null
+          punch_type?: string | null
+          received_at?: string | null
+          site_id?: string | null
+          source?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          anomaly_codes?: string[] | null
+          client_op_id?: string | null
+          created_at?: string | null
+          device_id?: string | null
+          device_info?: Json | null
+          device_name_snapshot?: string | null
+          employee_id?: string | null
+          geo?: Json | null
+          geo_accuracy_m?: number | null
+          geo_altitude_m?: number | null
+          geo_consent?: boolean | null
+          geo_error?: string | null
+          geo_lat?: number | null
+          geo_lng?: number | null
+          geo_speed_ms?: number | null
+          id?: string | null
+          is_remote?: boolean | null
+          location_id?: string | null
+          location_name_snapshot?: string | null
+          location_permission?: string | null
+          notes?: string | null
+          occurred_at?: string | null
+          pause_counts_as_work?: boolean | null
+          pause_type?: string | null
+          punch_type?: string | null
+          received_at?: string | null
+          site_id?: string | null
+          source?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_punches_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_punches_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_punches_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_punches_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_punches_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "time_punches_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_punches_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_punches_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_punches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "time_punches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "time_punches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_punches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "time_punches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trash: {
+        Row: {
+          created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          id: string | null
+          mime_type: string | null
+          name: string | null
+          node_type: string | null
+          parent_id: string | null
+          path: string | null
+          size_bytes: number | null
+          storage_provider_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string | null
+          mime_type?: string | null
+          name?: string | null
+          node_type?: string | null
+          parent_id?: string | null
+          path?: string | null
+          size_bytes?: number | null
+          storage_provider_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string | null
+          mime_type?: string | null
+          name?: string | null
+          node_type?: string | null
+          parent_id?: string | null
+          path?: string | null
+          size_bytes?: number | null
+          storage_provider_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_nodes_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "file_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "my_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "recent_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "starred_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "trash"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_storage_provider_id_fkey"
+            columns: ["storage_provider_id"]
+            isOneToOne: false
+            referencedRelation: "storage_provider"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "file_nodes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          avatar_url: string | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string | null
+        }
+        Relationships: []
+      }
+      vacation_entitlements: {
+        Row: {
+          created_at: string | null
+          days_allocated: number | null
+          days_used: number | null
+          department_id: string | null
+          employee_id: string | null
+          id: string | null
+          leave_type: string | null
+          scope: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          year: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          days_allocated?: number | null
+          days_used?: number | null
+          department_id?: string | null
+          employee_id?: string | null
+          id?: string | null
+          leave_type?: string | null
+          scope?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          year?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          days_allocated?: number | null
+          days_used?: number | null
+          department_id?: string | null
+          employee_id?: string | null
+          id?: string | null
+          leave_type?: string | null
+          scope?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_entitlements_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_entitlements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_entitlements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_entitlements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_entitlements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "vacation_entitlements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "vacation_entitlements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "vacation_entitlements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_entitlements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "vacation_entitlements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_logs: {
+        Row: {
+          anomaly_codes: string[] | null
+          check_in: string | null
+          check_in_geo: Json | null
+          check_in_received_at: string | null
+          check_out: string | null
+          check_out_geo: Json | null
+          check_out_received_at: string | null
+          client_op_id: string | null
+          created_at: string | null
+          duration_minutes: number | null
+          employee_id: string | null
+          entry_mode: string | null
+          id: string | null
+          location_permission: string | null
+          notes: string | null
+          project_id: string | null
+          site_id: string | null
+          status: string | null
+          task_id: string | null
+          tenant_id: string | null
+          time_punch_in_id: string | null
+          time_punch_out_id: string | null
+          updated_at: string | null
+          worker_id: string | null
+        }
+        Insert: {
+          anomaly_codes?: string[] | null
+          check_in?: string | null
+          check_in_geo?: Json | null
+          check_in_received_at?: string | null
+          check_out?: string | null
+          check_out_geo?: Json | null
+          check_out_received_at?: string | null
+          client_op_id?: string | null
+          created_at?: string | null
+          duration_minutes?: never
+          employee_id?: string | null
+          entry_mode?: string | null
+          id?: string | null
+          location_permission?: string | null
+          notes?: string | null
+          project_id?: string | null
+          site_id?: string | null
+          status?: string | null
+          task_id?: string | null
+          tenant_id?: string | null
+          time_punch_in_id?: string | null
+          time_punch_out_id?: string | null
+          updated_at?: string | null
+          worker_id?: string | null
+        }
+        Update: {
+          anomaly_codes?: string[] | null
+          check_in?: string | null
+          check_in_geo?: Json | null
+          check_in_received_at?: string | null
+          check_out?: string | null
+          check_out_geo?: Json | null
+          check_out_received_at?: string | null
+          client_op_id?: string | null
+          created_at?: string | null
+          duration_minutes?: never
+          employee_id?: string | null
+          entry_mode?: string | null
+          id?: string | null
+          location_permission?: string | null
+          notes?: string | null
+          project_id?: string | null
+          site_id?: string | null
+          status?: string | null
+          task_id?: string | null
+          tenant_id?: string | null
+          time_punch_in_id?: string | null
+          time_punch_out_id?: string | null
+          updated_at?: string | null
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_logs_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_hr_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "mv_today_site_status"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "work_logs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "work_logs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "work_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "work_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "work_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_time_punch_in_id_fkey"
+            columns: ["time_punch_in_id"]
+            isOneToOne: false
+            referencedRelation: "time_punches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_time_punch_out_id_fkey"
+            columns: ["time_punch_out_id"]
+            isOneToOne: false
+            referencedRelation: "time_punches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_roles: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          key: string | null
+          name: string | null
+          site_id: string | null
+          sort_order: number | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          key?: string | null
+          name?: string | null
+          site_id?: string | null
+          sort_order?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          key?: string | null
+          name?: string | null
+          site_id?: string | null
+          sort_order?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_roles_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "work_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "work_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "work_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_shifts: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          default_location_id: string | null
+          default_location_name: string | null
+          default_location_path: string | null
+          duration_minutes: number | null
+          end_time: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          site_id: string | null
+          spans_midnight: boolean | null
+          start_time: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_shifts_default_location_id_fkey"
+            columns: ["default_location_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_shifts_default_location_id_fkey"
+            columns: ["default_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_shifts_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_shifts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "work_shifts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "work_shifts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_shifts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "work_shifts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      worker_email_logs: {
+        Row: {
+          attachments: Json | null
+          attempt_count: number | null
+          bcc_emails: string[] | null
+          cc_emails: string[] | null
+          created_at: string | null
+          delivered_at: string | null
+          email_type: "transactional" | "bulk" | null
+          error_history: Json | null
+          from_email: string | null
+          from_name: string | null
+          html_body: string | null
+          id: string | null
+          idempotency_key: string | null
+          is_dead_letter: boolean | null
+          last_error: string | null
+          layout_id: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_retries: number | null
+          metadata: Json | null
+          next_retry_at: string | null
+          priority: number | null
+          provider: "resend" | "sendgrid" | null
+          provider_message_id: string | null
+          reply_to: string | null
+          scheduled_at: string | null
+          sent_at: string | null
+          site_id: string | null
+          status:
+            | "queued"
+            | "processing"
+            | "sent"
+            | "delivered"
+            | "bounced"
+            | "failed"
+            | "complained"
+            | "suppressed"
+            | null
+          subject: string | null
+          tags: string[] | null
+          template_id: string | null
+          template_variables: Json | null
+          tenant_id: string | null
+          text_body: string | null
+          to_emails: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          attachments?: Json | null
+          attempt_count?: number | null
+          bcc_emails?: string[] | null
+          cc_emails?: string[] | null
+          created_at?: string | null
+          delivered_at?: string | null
+          email_type?: "transactional" | "bulk" | null
+          error_history?: Json | null
+          from_email?: string | null
+          from_name?: string | null
+          html_body?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          is_dead_letter?: boolean | null
+          last_error?: string | null
+          layout_id?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_retries?: number | null
+          metadata?: Json | null
+          next_retry_at?: string | null
+          priority?: number | null
+          provider?: "resend" | "sendgrid" | null
+          provider_message_id?: string | null
+          reply_to?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          site_id?: string | null
+          status?:
+            | "queued"
+            | "processing"
+            | "sent"
+            | "delivered"
+            | "bounced"
+            | "failed"
+            | "complained"
+            | "suppressed"
+            | null
+          subject?: string | null
+          tags?: string[] | null
+          template_id?: string | null
+          template_variables?: Json | null
+          tenant_id?: string | null
+          text_body?: string | null
+          to_emails?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          attachments?: Json | null
+          attempt_count?: number | null
+          bcc_emails?: string[] | null
+          cc_emails?: string[] | null
+          created_at?: string | null
+          delivered_at?: string | null
+          email_type?: "transactional" | "bulk" | null
+          error_history?: Json | null
+          from_email?: string | null
+          from_name?: string | null
+          html_body?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          is_dead_letter?: boolean | null
+          last_error?: string | null
+          layout_id?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_retries?: number | null
+          metadata?: Json | null
+          next_retry_at?: string | null
+          priority?: number | null
+          provider?: "resend" | "sendgrid" | null
+          provider_message_id?: string | null
+          reply_to?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          site_id?: string | null
+          status?:
+            | "queued"
+            | "processing"
+            | "sent"
+            | "delivered"
+            | "bounced"
+            | "failed"
+            | "complained"
+            | "suppressed"
+            | null
+          subject?: string | null
+          tags?: string[] | null
+          template_id?: string | null
+          template_variables?: Json | null
+          tenant_id?: string | null
+          text_body?: string | null
+          to_emails?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_layout_id_fkey"
+            columns: ["layout_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "email_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "email_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "email_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Functions: {
+      _assert_ai_manager_access: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
+      }
+      _assert_ai_owner_access: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
+      }
+      _assert_attendance_inspection_manage: { Args: never; Returns: string }
+      _employee_portal_assert_batch_rate_limit: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
+      }
+      _employee_portal_build_bootstrap_url: {
+        Args: { p_secret: string; p_site: Json }
+        Returns: string
+      }
+      _employee_portal_generate_secret: { Args: never; Returns: string }
+      _employee_portal_resolve_portal_base_url: {
+        Args: { p_site: Json }
+        Returns: string
+      }
+      _employee_portal_secret_hash_bytea: {
+        Args: { p_secret: string }
+        Returns: string
+      }
+      _employee_portal_token_create_locked: {
+        Args: {
+          p_employee_id: string
+          p_expires_at?: string
+          p_label?: string
+          p_pin_hash?: string
+          p_pin_must_set?: boolean
+          p_tenant_id: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      _get_ai_usage_stats_internal: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
+      accept_customer_access_invitation: {
+        Args: {
+          p_auth_user_id: string
+          p_client_key?: string
+          p_ip_address?: unknown
+          p_session_ttl_minutes?: number
+          p_token_hash: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
+      accept_recruitment_ai_checklist: {
+        Args: {
+          p_accept_dpa: boolean
+          p_accept_transfer: boolean
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      accept_shift_opening_claim: {
+        Args: { p_accept_warnings?: boolean; p_claim_id: string }
+        Returns: Json
+      }
+      accept_shift_swap: {
+        Args: {
+          p_request_id: string
+          p_target_employee_id: string
+          p_target_slot_id?: string
+        }
+        Returns: Json
+      }
+      accumulate_notification_digest: {
+        Args: {
+          p_entity_id?: string
+          p_entity_type?: string
+          p_event_code: string
+          p_group_key?: string
+          p_payload?: Json
+          p_recipient_id: string
+          p_recipient_kind?: "tenant_member" | "contact" | "raw_address"
+          p_site_id?: string
+          p_tenant_id: string
+          p_window_seconds?: number
+        }
+        Returns: Json
+      }
+      ack_employee_portal_token_batch: {
+        Args: { p_batch_id: string }
+        Returns: Json
+      }
+      activate_tenant_geocoding_api_key_candidate: {
+        Args: { p_provider_key: string; p_tenant_id: string }
+        Returns: Json
+      }
+      activate_tenant_maps_js_api_key_candidate: {
+        Args: { p_provider_key: string; p_tenant_id: string }
+        Returns: Json
+      }
+      activate_tenant_routes_api_key_candidate: {
+        Args: { p_provider_key: string; p_tenant_id: string }
+        Returns: Json
+      }
+      add_attendance_location_assignment: {
+        Args: {
+          p_employee_id: string
+          p_ends_on?: string
+          p_location_id: string
+          p_starts_on?: string
+        }
+        Returns: Json
+      }
+      add_document_version: {
+        Args: {
+          p_document_id: string
+          p_file_path_or_url: string
+          p_mime_type?: string
+          p_size_bytes?: number
+          p_storage_type: string
+        }
+        Returns: Json
+      }
+      add_document_version_internal: {
+        Args: {
+          p_document_id: string
+          p_file_path_or_url: string
+          p_mime_type: string
+          p_size_bytes: number
+          p_storage_type?: string
+        }
+        Returns: Json
+      }
+      adjust_time_entry: {
+        Args: {
+          p_adjusted_net_min: number
+          p_break_minutes?: number
+          p_employee_id: string
+          p_reason?: string
+          p_work_date: string
+        }
+        Returns: Json
+      }
+      admin_update_tenant_ai_limits: {
+        Args: {
+          p_hard_block_on_limit?: boolean
+          p_is_active?: boolean
+          p_rate_limit_per_day?: number
+          p_rate_limit_per_hour?: number
+          p_tenant_id: string
+          p_warn_threshold_pct?: number
+        }
+        Returns: Json
+      }
+      advance_native_signing_group: {
+        Args: {
+          p_completed_session_id: string
+          p_new_document_version_id?: string
+        }
+        Returns: Json
+      }
+      aggregate_tenant_ai_analytics_snapshot_service: {
+        Args: { p_site_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      ai_provider_default_base_url: {
+        Args: { p_provider: "openai" | "anthropic" | "gemini" | "openrouter" }
+        Returns: string
+      }
+      ai_provider_default_model: {
+        Args: { p_provider: "openai" | "anthropic" | "gemini" | "openrouter" }
+        Returns: string
+      }
+      all_ai_providers: {
+        Args: never
+        Returns: ("openai" | "anthropic" | "gemini" | "openrouter")[]
+      }
+      anonymize_old_punch_geo: { Args: { p_months?: number }; Returns: number }
+      anonymize_punch_geo: { Args: { p_punch_id: string }; Returns: boolean }
+      answer_checklist_run_item: {
+        Args: {
+          p_client_mutation_id?: string
+          p_item_id: string
+          p_note?: string
+          p_set_note?: boolean
+          p_set_value_bool?: boolean
+          p_set_value_number?: boolean
+          p_set_value_option_id?: boolean
+          p_set_value_text?: boolean
+          p_value_bool?: boolean
+          p_value_number?: number
+          p_value_option_id?: string
+          p_value_text?: string
+        }
+        Returns: string
+      }
+      append_ai_chat_assistant_message: {
+        Args: { p_content: string; p_conversation_id: string; p_payload?: Json }
+        Returns: Json
+      }
+      append_signing_event: {
+        Args: {
+          p_event_source?: "webhook" | "system" | "user"
+          p_event_type: string
+          p_payload?: Json
+          p_signer_email?: string
+          p_signer_name?: string
+          p_status_after?: string
+          p_status_before?: string
+          p_submission_id: string
+          p_webhook_event_id?: string
+        }
+        Returns: string
+      }
+      apply_ai_action_proposal_service: {
+        Args: { p_proposal_id: string; p_tenant_id: string; p_user_id: string }
+        Returns: Json
+      }
+      apply_checklist_to_project: {
+        Args: {
+          p_project_id: string
+          p_supersede_run_id?: string
+          p_template_id: string
+        }
+        Returns: string
+      }
+      apply_checklist_to_project_service: {
+        Args: { p_project_id: string; p_template_id: string }
+        Returns: string
+      }
+      apply_pause_config_template: {
+        Args: { p_archetype_key: string }
+        Returns: number
+      }
+      apply_sector_recipe:
+        | {
+            Args: { p_company_name?: string; p_sector_profile_id: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_company_name?: string
+              p_sector_profile_id: string
+              p_tenant_id?: string
+            }
+            Returns: undefined
+          }
+      apply_weekly_pattern_to_calendar: {
+        Args: {
+          p_day_name?: string
+          p_day_type: string
+          p_dow_array: number[]
+          p_employee_id?: string
+          p_group_id?: string
+          p_site_id?: string
+          p_skip_assigned_holidays?: boolean
+          p_work_intervals?: Json
+          p_year: number
+        }
+        Returns: number
+      }
+      approve_absence: {
+        Args: {
+          p_absence_id: string
+          p_new_status: string
+          p_review_comment?: string
+        }
+        Returns: Json
+      }
+      approve_attendance_month: {
+        Args: { p_employee_id: string; p_month: number; p_year: number }
+        Returns: string
+      }
+      approve_shift_swap: {
+        Args: {
+          p_accept_warnings?: boolean
+          p_comment?: string
+          p_create_opening?: boolean
+          p_new_status: string
+          p_request_id: string
+          p_target_employee_id?: string
+        }
+        Returns: Json
+      }
+      approve_time_day: {
+        Args: { p_employee_id: string; p_work_date: string }
+        Returns: Json
+      }
+      archive_contact: { Args: { p_contact_id: string }; Returns: undefined }
+      archive_deletion_message: { Args: { p_msg_id: number }; Returns: boolean }
+      archive_document: { Args: { p_document_id: string }; Returns: undefined }
+      archive_email_message: { Args: { p_msg_id: number }; Returns: boolean }
+      archive_or_delete_review_point: {
+        Args: { p_point_id: string }
+        Returns: string
+      }
+      archive_queue_message: {
+        Args: { p_msg_id: number; p_queue: string }
+        Returns: boolean
+      }
+      archive_tenant_content_item: {
+        Args: { p_item_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      assert_station_document_resolve_rate_limit: {
+        Args: {
+          p_client_key: string
+          p_max_attempts?: number
+          p_window_minutes?: number
+        }
+        Returns: Json
+      }
+      assert_station_identity_issue_rate_limit: {
+        Args: {
+          p_employee_id: string
+          p_max_attempts?: number
+          p_window_minutes?: number
+        }
+        Returns: Json
+      }
+      assert_station_identity_resolve_rate_limit: {
+        Args: {
+          p_client_key: string
+          p_max_attempts?: number
+          p_window_minutes?: number
+        }
+        Returns: Json
+      }
+      assert_station_register_rate_limit: {
+        Args: {
+          p_client_key: string
+          p_max_attempts?: number
+          p_window_minutes?: number
+        }
+        Returns: Json
+      }
+      assign_employee_asset: {
+        Args: {
+          p_acknowledgment_document_id?: string
+          p_asset_id: string
+          p_employee_id: string
+          p_expected_return_at?: string
+          p_notes?: string
+        }
+        Returns: {
+          acknowledgment_document_id: string | null
+          asset_calibration_due_on: string | null
+          asset_id: string | null
+          asset_name: string | null
+          asset_requires_calibration: boolean | null
+          asset_site_id: string | null
+          asset_status: string | null
+          asset_tag: string | null
+          asset_type_id: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          created_at: string | null
+          employee_id: string | null
+          employee_name: string | null
+          expected_return_at: string | null
+          id: string | null
+          notes: string | null
+          return_condition: string | null
+          return_document_id: string | null
+          returned_at: string | null
+          returned_by: string | null
+          tenant_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_asset_assignments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      assign_recruitment_inbox_item: {
+        Args: { p_id: string; p_job_posting_id: string }
+        Returns: Json
+      }
+      assign_shift_slot: {
+        Args: {
+          p_employee_id: string
+          p_location_id?: string
+          p_notes?: string
+          p_role_id?: string
+          p_shift_id: string
+          p_slot_date: string
+        }
+        Returns: Json
+      }
+      assign_site_holiday_calendar: {
+        Args: { p_calendar_id: string; p_priority?: number; p_site_id: string }
+        Returns: Json
+      }
+      assign_tenant_holiday_calendar: {
+        Args: {
+          p_calendar_id: string
+          p_priority?: number
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      attach_file_node_entity: {
+        Args: {
+          p_entity_id: string
+          p_entity_type: string
+          p_metadata?: Json
+          p_node_id: string
+          p_site_id?: string
+        }
+        Returns: undefined
+      }
+      attach_public_domain: {
+        Args: { p_domain: string; p_public_site_id: string }
+        Returns: string
+      }
+      authorize_customer_intervention_report_media_copy: {
+        Args: { p_draft_id: string }
+        Returns: Json
+      }
+      automation_resume_step_service: {
+        Args: { p_error?: string; p_output?: Json; p_step_run_id: string }
+        Returns: undefined
+      }
+      automation_send_for_signing_service: {
+        Args: {
+          p_document_id: string
+          p_signers: Json
+          p_step_run_id?: string
+          p_tenant_id: string
+          p_workflow_run_id?: string
+        }
+        Returns: Json
+      }
+      automation_start_generate_document: {
+        Args: {
+          p_entity_id?: string
+          p_entity_type?: string
+          p_folder_id?: string
+          p_locale?: string
+          p_step_run_id: string
+          p_template_id: string
+          p_tenant_id: string
+          p_variables?: Json
+          p_workflow_run_id: string
+        }
+        Returns: Json
+      }
+      backfill_attendance_work_plan: {
+        Args: {
+          p_dry_run?: boolean
+          p_from_date?: string
+          p_mode?: string
+          p_site_id?: string
+          p_tenant_id: string
+          p_to_date?: string
+        }
+        Returns: Json
+      }
+      backfill_employment_contracts: {
+        Args: {
+          p_dry_run?: boolean
+          p_employee_id?: string
+          p_tenant_id?: string
+        }
+        Returns: Json
+      }
+      build_and_persist_checklist_public_report: {
+        Args: {
+          p_bypass_reason?: string
+          p_locale?: string
+          p_project_id: string
+        }
+        Returns: Json
+      }
+      build_checklist_public_report: {
+        Args: {
+          p_bypass_reason?: string
+          p_locale?: string
+          p_project_id: string
+        }
+        Returns: Json
+      }
+      bulk_add_attendance_location_assignments: {
+        Args: {
+          p_employee_ids: string[]
+          p_ends_on?: string
+          p_location_id: string
+          p_starts_on?: string
+        }
+        Returns: Json
+      }
+      bulk_delete_shift_slots: { Args: { p_slot_ids: string[] }; Returns: Json }
+      bulk_revoke_attendance_station_secrets: {
+        Args: { p_device_ids: string[] }
+        Returns: Json
+      }
+      bulk_update_attendance_station_ops: {
+        Args: {
+          p_bump_config_version?: boolean
+          p_device_ids: string[]
+          p_ops_lockdown?: boolean
+          p_status?: string
+        }
+        Returns: Json
+      }
+      bulk_update_task_status: {
+        Args: {
+          p_new_status: string
+          p_task_ids: string[]
+          p_tenant_id: string
+        }
+        Returns: {
+          skipped_count: number
+          updated_count: number
+        }[]
+      }
+      can_publish_content: {
+        Args: {
+          p_channel: string
+          p_operation?: string
+          p_public_site_id?: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      cancel_automation_run: { Args: { p_run_id: string }; Returns: undefined }
+      cancel_pdf_job: {
+        Args: { p_job_id: string; p_tenant_id: string }
+        Returns: boolean
+      }
+      cancel_shift_opening: { Args: { p_id: string }; Returns: Json }
+      check_ai_tokens_daily_limit: {
+        Args: {
+          p_estimated_tokens?: number
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      check_and_increment_ai_rate_limit: {
+        Args: { p_tenant_id: string; p_user_id: string }
+        Returns: Json
+      }
+      check_and_increment_worker_limit: {
+        Args: { p_max_day: number; p_max_hour: number; p_tenant_id: string }
+        Returns: boolean
+      }
+      check_and_reserve_geocoding: {
+        Args: {
+          p_operation: string
+          p_provider_key: string
+          p_tenant_id: string
+          p_units?: number
+        }
+        Returns: {
+          allowed: boolean
+          billable: boolean
+          billable_units: number
+          currency: string
+          day_limit: number
+          day_used: number
+          minute_limit: number
+          minute_used: number
+          mode: string
+          month_limit_operation: number
+          month_limit_total: number
+          month_used_operation: number
+          month_used_total: number
+          reason: string
+          unit_price: number
+        }[]
+      }
+      check_dedup: {
+        Args: { p_key: string; p_queue: string }
+        Returns: boolean
+      }
+      check_entity_timeline_slos_service: {
+        Args: { p_window_hours?: number }
+        Returns: Json
+      }
+      check_unclosed_pauses: { Args: { p_tenant_id?: string }; Returns: Json }
+      check_upload_eligibility: {
+        Args: { p_size_bytes: number; p_tenant_id: string }
+        Returns: {
+          current_bytes: number
+          max_bytes: number
+          quota_exceeded: boolean
+          storage_blocked: boolean
+          storage_blocked_reason: string
+        }[]
+      }
+      checklist_closeout_blockers: {
+        Args: { p_project_id: string }
+        Returns: Json
+      }
+      claim_customer_intervention_report_media_copy_jobs: {
+        Args: { p_draft_id: string }
+        Returns: Json
+      }
+      claim_customer_report_share_delivery_intents: {
+        Args: { p_limit?: number; p_stale_after_seconds?: number }
+        Returns: {
+          id: string
+        }[]
+      }
+      claim_notification_delivery: {
+        Args: {
+          p_channel: "in_app" | "push" | "email" | "sms" | "whatsapp"
+          p_correlation_id: string
+          p_delivery_id: string
+          p_tenant_id: string
+        }
+        Returns: {
+          acquired: boolean
+          delivery_id: string
+        }[]
+      }
+      claim_recruitment_export_package: {
+        Args: { p_package_id: string }
+        Returns: Json
+      }
+      claim_shift_opening: {
+        Args: { p_notes?: string; p_opening_id: string }
+        Returns: Json
+      }
+      clear_calendar_group_weekly_day: {
+        Args: {
+          p_day_of_week: number
+          p_effective_from?: string
+          p_group_id: string
+        }
+        Returns: undefined
+      }
+      clear_employee_weekly_day: {
+        Args: {
+          p_day_of_week: number
+          p_effective_from?: string
+          p_employee_id: string
+        }
+        Returns: undefined
+      }
+      clear_tenant_map_api_key: {
+        Args: { p_key_type: string; p_tenant_id: string }
+        Returns: Json
+      }
+      clone_checklist_response_set: {
+        Args: { p_source_set_id: string; p_tenant_id: string }
+        Returns: string
+      }
+      clone_checklist_review_point: {
+        Args: {
+          p_locale?: string
+          p_source_point_id: string
+          p_tenant_id: string
+          p_title?: string
+        }
+        Returns: string
+      }
+      clone_checklist_template: {
+        Args: {
+          p_name?: string
+          p_source_template_id: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      clone_content_block: {
+        Args: {
+          p_name?: string
+          p_source_block_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      clone_maintenance_plan: {
+        Args: { p_name?: string; p_source_plan_id: string; p_tenant_id: string }
+        Returns: string
+      }
+      clone_pipeline_stages_to_posting: {
+        Args: { p_job_posting_id: string }
+        Returns: Json
+      }
+      close_it: {
+        Args: {
+          p_absence_id: string
+          p_document_id?: string
+          p_end_date: string
+          p_it_reference?: string
+        }
+        Returns: Json
+      }
+      communicate_application_outcome: {
+        Args: {
+          p_application_id: string
+          p_outcome_kind?: string
+          p_prefs_base_url?: string
+        }
+        Returns: Json
+      }
+      communicate_posting_outcomes: {
+        Args: { p_job_posting_id: string; p_prefs_base_url?: string }
+        Returns: Json
+      }
+      compare_work_plan_resolver: {
+        Args: {
+          p_employee_id: string
+          p_include_stored?: boolean
+          p_work_date: string
+        }
+        Returns: Json
+      }
+      compensate_signing_credit: {
+        Args: { p_submission_id: string; p_tenant_id: string }
+        Returns: boolean
+      }
+      complete_automation_run: {
+        Args: { p_error?: string; p_run_id: string; p_status: string }
+        Returns: undefined
+      }
+      complete_automation_step_run: {
+        Args: {
+          p_error?: string
+          p_output?: Json
+          p_status: string
+          p_step_run_id: string
+        }
+        Returns: undefined
+      }
+      complete_customer_intervention_report_media_prepare: {
+        Args: { p_draft_id: string }
+        Returns: Json
+      }
+      complete_notification_delivery_by_provider_message: {
+        Args: {
+          p_error_code?: string
+          p_provider: string
+          p_provider_message_id: string
+          p_status:
+            | "pending"
+            | "queued"
+            | "sent"
+            | "delivered"
+            | "failed"
+            | "skipped"
+            | "cancelled"
+        }
+        Returns: undefined
+      }
+      complete_notification_delivery_service: {
+        Args: {
+          p_channel: "in_app" | "push" | "email" | "sms" | "whatsapp"
+          p_correlation_id: string
+          p_delivery_id: string
+          p_error_code?: string
+          p_error_message?: string
+          p_operation_log_id?: string
+          p_provider?: string
+          p_provider_message_id?: string
+          p_status:
+            | "pending"
+            | "queued"
+            | "sent"
+            | "delivered"
+            | "failed"
+            | "skipped"
+            | "cancelled"
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
+      complete_risk_incident: {
+        Args: {
+          p_error_message?: string
+          p_incident_id: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      complete_webhook_delivery: {
+        Args: {
+          p_delivery_log_id: string
+          p_error_message?: string
+          p_response_body?: string
+          p_response_status?: number
+          p_status: string
+        }
+        Returns: undefined
+      }
+      confirm_attendance_month: {
+        Args: { p_employee_id: string; p_month: number; p_year: number }
+        Returns: string
+      }
+      confirm_attendance_period: {
+        Args: {
+          p_calendar_month?: number
+          p_calendar_year?: number
+          p_confirmed_via?: string
+          p_employee_id: string
+          p_period_from: string
+          p_period_to: string
+          p_source_session_id?: string
+        }
+        Returns: string
+      }
+      confirm_shift_slot: { Args: { p_slot_id: string }; Returns: Json }
+      consume_signing_credit: { Args: { p_tenant_id: string }; Returns: number }
+      count_field_project_files: {
+        Args: { p_project_id: string }
+        Returns: number
+      }
+      count_pending_absences: { Args: never; Returns: number }
+      count_projects: {
+        Args: {
+          p_open_only?: boolean
+          p_planned_start_from?: string
+          p_planned_start_to?: string
+          p_tenant_id: string
+          p_type?: string
+        }
+        Returns: number
+      }
+      create_absence_type_subtype: {
+        Args: {
+          p_absence_type: string
+          p_affects_entitlement?: boolean
+          p_counts_as_worked?: boolean
+          p_entitlement_type?: string
+          p_export_code: string
+          p_is_partial?: boolean
+          p_max_days_per_year?: number
+          p_name_i18n: Json
+          p_parent_key: string
+          p_requires_approval?: boolean
+          p_requires_document?: boolean
+          p_subtype_key: string
+        }
+        Returns: string
+      }
+      create_ai_action_proposal_service: {
+        Args: {
+          p_conversation_id: string
+          p_idempotency_key?: string
+          p_payload: Json
+          p_proposal_token: string
+          p_site_id: string
+          p_tenant_id: string
+          p_tool_name: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      create_ai_alert_notification_service: {
+        Args: {
+          p_body: string
+          p_deep_link?: string
+          p_job_id?: string
+          p_severity?: string
+          p_tenant_id: string
+          p_title: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      create_attendance_inspection_access_link: {
+        Args: {
+          p_employee_id: string
+          p_include_consolidated?: boolean
+          p_label?: string
+          p_period_from: string
+          p_period_to: string
+          p_ttl_days?: number
+        }
+        Returns: Json
+      }
+      create_attendance_protocol_assignment: {
+        Args: {
+          p_document_version_id: string
+          p_employee_id: string
+          p_signing_submission_id?: string
+        }
+        Returns: string
+      }
+      create_attendance_station_pairing_code: {
+        Args: {
+          p_location_id?: string
+          p_site_id?: string
+          p_ttl_minutes?: number
+        }
+        Returns: Json
+      }
+      create_automation_pending_approval_service:
+        | {
+            Args: {
+              p_assigned_to_role?: string
+              p_assigned_to_user_id?: string
+              p_context_preview?: Json
+              p_due_hours?: number
+              p_site_id?: string
+              p_step_run_id: string
+              p_tenant_id: string
+              p_workflow_run_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_assigned_to_role?: string
+              p_assigned_to_user_id?: string
+              p_context_preview?: Json
+              p_due_hours?: number
+              p_site_id?: string
+              p_step_run_id: string
+              p_tenant_id: string
+              p_title?: string
+              p_workflow_run_id: string
+            }
+            Returns: Json
+          }
+      create_automation_run_service:
+        | {
+            Args: {
+              p_context?: Json
+              p_site_id: string
+              p_tenant_id: string
+              p_trigger_entity_id: string
+              p_trigger_entity_type: string
+              p_trigger_event: string
+              p_workflow_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_context?: Json
+              p_tenant_id: string
+              p_trigger_event: string
+              p_workflow_id: string
+            }
+            Returns: Json
+          }
+      create_automation_step_run_service: {
+        Args: {
+          p_input?: Json
+          p_step_id: string
+          p_step_name: string
+          p_step_type: string
+          p_tenant_id: string
+          p_workflow_run_id: string
+        }
+        Returns: string
+      }
+      create_automation_step_runs_service: {
+        Args: { p_run_id: string; p_steps: Json }
+        Returns: Json
+      }
+      create_automation_task_service: {
+        Args: {
+          p_assignee_role?: string
+          p_assignee_user_id?: string
+          p_description?: string
+          p_due_date_offset_days?: number
+          p_entity_id?: string
+          p_entity_type?: string
+          p_project_id?: string
+          p_site_id?: string
+          p_tenant_id: string
+          p_title: string
+        }
+        Returns: Json
+      }
+      create_calendar_event_service: {
+        Args: {
+          p_all_day?: boolean
+          p_description?: string
+          p_end_at?: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_site_id?: string
+          p_start_at: string
+          p_tenant_id: string
+          p_title: string
+        }
+        Returns: Json
+      }
+      create_calendar_event_with_reminders: {
+        Args: {
+          p_all_day?: boolean
+          p_color?: string
+          p_description?: string
+          p_end_at?: string
+          p_entity_id: string
+          p_entity_type: string
+          p_metadata?: Json
+          p_reminders?: Json[]
+          p_site_id?: string
+          p_start_at: string
+          p_tenant_id: string
+          p_title: string
+        }
+        Returns: Json
+      }
+      create_catalog_item: {
+        Args: {
+          p_category?: string
+          p_description?: string
+          p_kind: string
+          p_name: string
+          p_sku?: string
+          p_tax_rate?: number
+          p_unit?: string
+          p_unit_price?: number
+        }
+        Returns: string
+      }
+      create_contact: {
+        Args: {
+          p_display_name: string
+          p_email?: string
+          p_family_name?: string
+          p_given_name?: string
+          p_kind: string
+          p_legal_name?: string
+          p_metadata?: Json
+          p_owner_user_id?: string
+          p_phone?: string
+          p_phone_alt?: string
+          p_preferred_channel?: string
+          p_source?: string
+          p_tags?: string[]
+          p_tax_id?: string
+        }
+        Returns: string
+      }
+      create_contact_delivery_channel: {
+        Args: {
+          p_channel_type: string
+          p_contact_id: string
+          p_mark_verified?: boolean
+          p_value: string
+          p_verification_method?: string
+        }
+        Returns: string
+      }
+      create_contact_delivery_rule: {
+        Args: {
+          p_client_account_contact_id: string
+          p_contact_point_id: string
+          p_policy?: string
+          p_purpose: string
+        }
+        Returns: string
+      }
+      create_contact_for_ai_service: {
+        Args: {
+          p_display_name: string
+          p_email?: string
+          p_family_name?: string
+          p_given_name?: string
+          p_kind: string
+          p_legal_name?: string
+          p_phone?: string
+          p_phone_alt?: string
+          p_preferred_channel?: string
+          p_source?: string
+          p_tags?: string[]
+          p_tax_id?: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      create_contact_relationship: {
+        Args: {
+          p_organization_contact_id: string
+          p_person_contact_id: string
+          p_role?: string
+          p_source?: string
+        }
+        Returns: string
+      }
+      create_content_block: {
+        Args: {
+          p_block_type: string
+          p_content?: string
+          p_format?: string
+          p_is_active?: boolean
+          p_name: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      create_corrected_customer_intervention_report_draft: {
+        Args: { p_report_id: string }
+        Returns: string
+      }
+      create_customer_access_invitation: {
+        Args: {
+          p_client_account_contact_id: string
+          p_delivery_channel_id: string
+          p_principal_contact_id: string
+          p_principal_kind: string
+          p_ttl_hours?: number
+        }
+        Returns: Json
+      }
+      create_customer_portal_staff_session: {
+        Args: {
+          p_client_account_contact_id?: string
+          p_report_version_id?: string
+          p_ttl_minutes?: number
+        }
+        Returns: Json
+      }
+      create_customer_report_share: {
+        Args: {
+          p_delivery_channel_id?: string
+          p_max_sessions?: number
+          p_max_views?: number
+          p_project_id: string
+          p_recipient_contact_id?: string
+          p_report_version_id?: string
+          p_second_channel_confirmed?: boolean
+          p_ttl_hours?: number
+        }
+        Returns: Json
+      }
+      create_document_share_link: {
+        Args: {
+          p_document_id: string
+          p_document_version_id: string
+          p_expiry_seconds?: number
+          p_tenant_id: string
+        }
+        Returns: {
+          expires_at: string
+          id: string
+          token: string
+        }[]
+      }
+      create_document_template: {
+        Args: {
+          p_category?: string
+          p_cloned_from_id?: string
+          p_description?: string
+          p_name: string
+          p_target_archetypes?: string[]
+          p_target_verticals?: string[]
+          p_template_type?: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      create_document_with_version: {
+        Args: {
+          p_category?: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_expires_at?: string
+          p_file_path_or_url: string
+          p_folder_id?: string
+          p_mime_type?: string
+          p_renewal_anchor_day?: number
+          p_renewal_anchor_mode?: string
+          p_renewal_anchor_month?: number
+          p_renewal_interval_months?: number
+          p_required_permissions?: string[]
+          p_site_id?: string
+          p_size_bytes?: number
+          p_storage_type: string
+          p_tenant_id: string
+          p_title: string
+          p_valid_from?: string
+        }
+        Returns: Json
+      }
+      create_document_with_version_internal: {
+        Args: {
+          p_category?: string
+          p_created_by?: string
+          p_file_path_or_url: string
+          p_folder_id?: string
+          p_mime_type?: string
+          p_size_bytes?: number
+          p_storage_type: string
+          p_tenant_id: string
+          p_title: string
+        }
+        Returns: Json
+      }
+      create_draft_from_published_checklist: {
+        Args: { p_template_id: string }
+        Returns: string
+      }
+      create_employee_portal_pin_reset: {
+        Args: { p_employee_portal_token_id: string; p_reset_token_hash: string }
+        Returns: Json
+      }
+      create_employee_portal_token: {
+        Args: {
+          p_employee_id: string
+          p_expires_at?: string
+          p_label?: string
+          p_pin_hash?: string
+          p_pin_must_set?: boolean
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      create_employment_contract_renewal: {
+        Args: {
+          p_contract_id: string
+          p_ends_on?: string
+          p_starts_on?: string
+        }
+        Returns: {
+          activated_at: string | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          calendar_group_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          collective_agreement_id: string | null
+          contract_number: string | null
+          contract_type_id: string | null
+          correlation_id: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          employee_id: string | null
+          ended_at: string | null
+          ends_on: string | null
+          external_identity: string | null
+          external_reference: string | null
+          external_review_status: string | null
+          field_ownership: Json | null
+          final_document_version_id: string | null
+          fte: number | null
+          fully_signed_at: string | null
+          generated_document_id: string | null
+          id: string | null
+          import_idempotency_key: string | null
+          is_primary: boolean | null
+          job_position_id: string | null
+          lifecycle_status: string | null
+          metadata: Json | null
+          probation_ends_on: string | null
+          professional_category_id: string | null
+          signature_requirement: string | null
+          signature_status: string | null
+          signing_submission_id: string | null
+          site_id: string | null
+          source: string | null
+          source_changed_at: string | null
+          source_payload_digest: string | null
+          starts_on: string | null
+          supersedes_contract_id: string | null
+          template_id: string | null
+          template_locale_id: string | null
+          template_snapshot: Json | null
+          tenant_id: string | null
+          termination_notes: string | null
+          termination_reason_code: string | null
+          updated_at: string | null
+          variables_snapshot: Json | null
+          weekly_hours: number | null
+          work_entry_source: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employment_contracts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_follow_up_work_order: {
+        Args: {
+          p_move_open_tasks?: boolean
+          p_name?: string
+          p_source_project_id: string
+          p_source_run_id?: string
+        }
+        Returns: Json
+      }
+      create_holiday: {
+        Args: {
+          p_calendar_id: string
+          p_date: string
+          p_holiday_type?: string
+          p_is_half_day?: boolean
+          p_name: string
+        }
+        Returns: Json
+      }
+      create_pdf_job: {
+        Args: {
+          p_document_title: string
+          p_folder_id?: string
+          p_idempotency_key?: string
+          p_intermediate_path?: string
+          p_intermediate_size_bytes?: number
+          p_metadata?: Json
+          p_output_profile?: string
+          p_priority?: number
+          p_source_ref_id: string
+          p_source_type: string
+          p_template_type: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      create_pending_upload: {
+        Args: {
+          p_created_by: string
+          p_id: string
+          p_metadata?: Json
+          p_mime_type: string
+          p_name: string
+          p_parent_id: string
+          p_size_bytes: number
+          p_storage_key: string
+          p_storage_provider_id: string
+          p_tenant_id: string
+          p_upload_expires_at: string
+        }
+        Returns: string
+      }
+      create_project: {
+        Args: {
+          p_client_id?: string
+          p_contact_site_id?: string
+          p_department_id?: string
+          p_description?: string
+          p_location_id?: string
+          p_name: string
+          p_planned_end?: string
+          p_planned_start?: string
+          p_site_id?: string
+          p_status?: string
+          p_tenant_id: string
+          p_type?: "internal" | "work_order" | "maintenance"
+          p_visibility?: "private" | "department" | "company"
+        }
+        Returns: string
+      }
+      create_public_site:
+        | { Args: { p_name: string; p_site_id?: string }; Returns: string }
+        | {
+            Args: { p_name: string; p_site_id?: string; p_slug: string }
+            Returns: string
+          }
+      create_share_link: {
+        Args: {
+          p_created_by: string
+          p_expires_at: string
+          p_node_id: string
+          p_token: string
+        }
+        Returns: string
+      }
+      create_signing_session:
+        | {
+            Args: {
+              p_document_version_id: string
+              p_expires_days?: number
+              p_pdf_job_id?: string
+              p_signer_email?: string
+              p_signer_name?: string
+              p_signer_role?: string
+              p_signing_type: string
+              p_tenant_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_document_version_id: string
+              p_expires_days?: number
+              p_pdf_job_id?: string
+              p_signer_email?: string
+              p_signer_name?: string
+              p_signer_order?: number
+              p_signer_role?: string
+              p_signing_group_id?: string
+              p_signing_type: string
+              p_tenant_id: string
+              p_total_signers?: number
+            }
+            Returns: Json
+          }
+      create_signing_submission: {
+        Args: {
+          p_document_title: string
+          p_external_id: string
+          p_initiated_by: string
+          p_metadata?: Json
+          p_native_group_id?: string
+          p_notification_mode?: string
+          p_signers: Json
+          p_signing_provider?: string
+          p_source_document_id: string
+          p_source_document_version_id: string
+          p_source_template_locale_id: string
+          p_source_type: string
+          p_submitted_at?: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      create_task_with_event: {
+        Args: {
+          p_all_day?: boolean
+          p_assignee_id?: string
+          p_description?: string
+          p_end_at?: string
+          p_project_id: string
+          p_site_id?: string
+          p_start_at: string
+          p_status?: string
+          p_tenant_id: string
+          p_title: string
+        }
+        Returns: Json
+      }
+      create_work_shift: {
+        Args: {
+          p_color?: string
+          p_default_role_id?: string
+          p_end_time: string
+          p_name: string
+          p_site_id: string
+          p_start_time: string
+        }
+        Returns: Json
+      }
+      deactivate_catalog_item: { Args: { p_id: string }; Returns: undefined }
+      deactivate_coverage_demand: { Args: { p_id: string }; Returns: Json }
+      deactivate_employee_availability_exception: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      deactivate_employee_availability_rule: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      deactivate_employee_qualification: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      deactivate_employee_role_assignment: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      deactivate_role_qualification_requirement: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      deactivate_work_role: { Args: { p_id: string }; Returns: Json }
+      deactivate_work_shift: { Args: { p_id: string }; Returns: Json }
+      decline_signing_session_public: {
+        Args: { p_reason?: string; p_token: string }
+        Returns: Json
+      }
+      delete_ai_chat_preset: { Args: { p_id: string }; Returns: undefined }
+      delete_ai_conversation: {
+        Args: { p_conversation_id: string }
+        Returns: Json
+      }
+      delete_audit_event_playbook: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      delete_automation_workflow: { Args: { p_id: string }; Returns: undefined }
+      delete_calendar_group: {
+        Args: { p_group_id: string; p_reassign_to_group_id?: string }
+        Returns: undefined
+      }
+      delete_content_block: {
+        Args: { p_block_id: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      delete_document_all: {
+        Args: { p_document_id: string }
+        Returns: undefined
+      }
+      delete_document_latest_version: {
+        Args: { p_document_id: string }
+        Returns: undefined
+      }
+      delete_employee_portal_push_subscription: {
+        Args: { p_endpoint: string }
+        Returns: boolean
+      }
+      delete_entity_comment: { Args: { p_id: string }; Returns: undefined }
+      delete_entity_comment_template: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      delete_holiday: { Args: { p_id: string }; Returns: undefined }
+      delete_holiday_calendar: {
+        Args: { p_calendar_id: string }
+        Returns: undefined
+      }
+      delete_pipeline_stage_override: {
+        Args: { p_job_posting_id: string }
+        Returns: Json
+      }
+      delete_platform_ai_provider_key: {
+        Args: { p_provider: string }
+        Returns: Json
+      }
+      delete_project_line: { Args: { p_line_id: string }; Returns: undefined }
+      delete_public_page: { Args: { p_id: string }; Returns: undefined }
+      delete_public_site: { Args: { p_id: string }; Returns: undefined }
+      delete_storage_config: {
+        Args: { p_provider_id: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      delete_tenant_ai_provider_key: {
+        Args: { p_provider: string; p_tenant_id: string }
+        Returns: Json
+      }
+      delete_tenant_ai_user_policy: {
+        Args: { p_tenant_id: string; p_user_id: string }
+        Returns: Json
+      }
+      delete_tenant_role_default: {
+        Args: { p_id: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      delete_tenant_webhook: { Args: { p_id: string }; Returns: undefined }
+      detach_public_domain: {
+        Args: { p_domain_id: string }
+        Returns: undefined
+      }
+      diff_shift_publications: {
+        Args: { p_from_publication_id: string; p_to_publication_id: string }
+        Returns: Json
+      }
+      disable_ai_conversation_share: {
+        Args: { p_conversation_id: string }
+        Returns: Json
+      }
+      disable_contact_delivery_channel: {
+        Args: { p_channel_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      disable_contact_delivery_rule: {
+        Args: { p_reason?: string; p_rule_id: string }
+        Returns: undefined
+      }
+      discard_recruitment_inbox_item: {
+        Args: { p_id: string; p_reason?: string }
+        Returns: Json
+      }
+      effective_ai_allowed_models: {
+        Args: {
+          p_provider: "openai" | "anthropic" | "gemini" | "openrouter"
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: string[]
+      }
+      emit_date_field_triggers_for_tenant: {
+        Args: {
+          p_days_ahead?: number
+          p_field_key: string
+          p_tenant_id: string
+        }
+        Returns: number
+      }
+      emit_scheduled_automation_trigger: {
+        Args: { p_event_type?: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      employee_anonymize_punch_geo: {
+        Args: { p_punch_id: string }
+        Returns: boolean
+      }
+      employee_has_active_role: {
+        Args: { p_employee_id: string; p_on_date?: string; p_role_id: string }
+        Returns: boolean
+      }
+      employee_meets_role_qualifications: {
+        Args: { p_employee_id: string; p_on_date?: string; p_role_id: string }
+        Returns: boolean
+      }
+      employee_portal_acknowledge_document: {
+        Args: {
+          p_assignment_id: string
+          p_employee_id: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      employee_portal_attempt_pin: {
+        Args: { p_pin_hash: string; p_token_id: string }
+        Returns: Json
+      }
+      employee_portal_change_pin: {
+        Args: { p_new_pin_hash: string; p_token_id: string }
+        Returns: Json
+      }
+      employee_portal_claim_shift_opening: {
+        Args: {
+          p_employee_id: string
+          p_notes?: string
+          p_opening_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      employee_portal_clear_identity_challenge: {
+        Args: { p_token_hash_hex: string }
+        Returns: Json
+      }
+      employee_portal_confirm_identity: {
+        Args: { p_token_hash_hex: string }
+        Returns: Json
+      }
+      employee_portal_confirm_monthly_report: {
+        Args: {
+          p_employee_id: string
+          p_month: number
+          p_tenant_id: string
+          p_year: number
+        }
+        Returns: string
+      }
+      employee_portal_confirm_period_report: {
+        Args: {
+          p_calendar_month: number
+          p_calendar_year: number
+          p_employee_id: string
+          p_period_from: string
+          p_period_to: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      employee_portal_consume_pin_reset: {
+        Args: { p_new_pin_hash: string; p_reset_token_hash_hex: string }
+        Returns: Json
+      }
+      employee_portal_document_id_matches: {
+        Args: { p_provided: string; p_stored: string }
+        Returns: boolean
+      }
+      employee_portal_get_absence_types: {
+        Args: { p_employee_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      employee_portal_get_access_logs: {
+        Args: {
+          p_employee_id: string
+          p_limit?: number
+          p_tenant_id: string
+          p_token_id: string
+        }
+        Returns: Json
+      }
+      employee_portal_get_content_by_slug: {
+        Args: { p_employee_id: string; p_slug: string; p_tenant_id: string }
+        Returns: Json
+      }
+      employee_portal_get_day_punch_context: {
+        Args: {
+          p_employee_id: string
+          p_tenant_id: string
+          p_work_date: string
+        }
+        Returns: Json
+      }
+      employee_portal_get_history: {
+        Args: {
+          p_employee_id: string
+          p_from: string
+          p_tenant_id: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      employee_portal_get_monthly_report: {
+        Args: {
+          p_employee_id: string
+          p_month: number
+          p_tenant_id: string
+          p_year: number
+        }
+        Returns: Json
+      }
+      employee_portal_get_my_shifts: {
+        Args: {
+          p_employee_id: string
+          p_from: string
+          p_tenant_id: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      employee_portal_get_pause_configs: {
+        Args: { p_employee_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      employee_portal_get_punch_profile: {
+        Args: { p_employee_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      employee_portal_get_schedule: {
+        Args: {
+          p_employee_id: string
+          p_from: string
+          p_tenant_id: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      employee_portal_get_today: {
+        Args: { p_employee_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      employee_portal_has_pending_protocol: {
+        Args: { p_employee_id: string; p_tenant_id: string }
+        Returns: boolean
+      }
+      employee_portal_identity_required: {
+        Args: { p_identity_verified_at: string }
+        Returns: boolean
+      }
+      employee_portal_list_absences: {
+        Args: { p_employee_id: string; p_limit?: number; p_tenant_id: string }
+        Returns: Json
+      }
+      employee_portal_list_content: {
+        Args: { p_employee_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      employee_portal_list_documents: {
+        Args: { p_employee_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      employee_portal_list_shift_openings: {
+        Args: {
+          p_employee_id: string
+          p_from: string
+          p_tenant_id: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      employee_portal_list_shift_swaps: {
+        Args: { p_employee_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      employee_portal_request_absence: {
+        Args: {
+          p_absence_type: string
+          p_employee_id: string
+          p_end_date: string
+          p_notes?: string
+          p_partial_end_time?: string
+          p_partial_start_time?: string
+          p_start_date: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      employee_portal_request_shift_swap: {
+        Args: {
+          p_employee_id: string
+          p_kind: string
+          p_notes?: string
+          p_requester_slot_id: string
+          p_target_employee_id?: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      employee_portal_setup_pin: {
+        Args: { p_pin_hash: string; p_token_hash_hex: string }
+        Returns: Json
+      }
+      employee_portal_upsert_push_subscription: {
+        Args: {
+          p_auth: string
+          p_employee_id: string
+          p_endpoint: string
+          p_p256dh: string
+          p_tenant_id: string
+          p_token_id: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
+      employee_portal_validate_period: {
+        Args: {
+          p_employee_id: string
+          p_period_from: string
+          p_period_to: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      employee_portal_verify_identity_document: {
+        Args: { p_document_id: string; p_token_hash_hex: string }
+        Returns: Json
+      }
+      employee_portal_withdraw_shift_opening_claim: {
+        Args: { p_claim_id: string; p_employee_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      employee_skills_summary: { Args: { p_site_id?: string }; Returns: Json }
+      employee_skills_summary_for_ai: {
+        Args: { p_site_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      enable_ai_conversation_share:
+        | { Args: { p_conversation_id: string }; Returns: Json }
+        | {
+            Args: { p_conversation_id: string; p_expiry_seconds?: number }
+            Returns: Json
+          }
+      enqueue_attendance_protocol_bulk_publish: {
+        Args: {
+          p_calendar_group_id?: string
+          p_scope: string
+          p_site_id?: string
+        }
+        Returns: Json
+      }
+      enqueue_automation_step: {
+        Args: {
+          p_attempt_number?: number
+          p_run_id: string
+          p_step_id: string
+          p_step_run_id: string
+          p_step_type: string
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
+      enqueue_calendar_event_reminders: {
+        Args: {
+          p_event_id: string
+          p_reminders?: Json[]
+          p_site_id?: string
+          p_tenant_id: string
+        }
+        Returns: number
+      }
+      enqueue_customer_report_share_email: {
+        Args: {
+          p_delivery_channel_id: string
+          p_idempotency_key: string
+          p_project_id: string
+          p_recipient_contact_id?: string
+          p_report_version_id?: string
+          p_ttl_hours?: number
+        }
+        Returns: string
+      }
+      enqueue_email: { Args: { payload: Json }; Returns: string }
+      enqueue_employee_portal_punch_reminder: {
+        Args: {
+          p_employee_id: string
+          p_reminder_kind: string
+          p_tenant_id: string
+          p_work_date: string
+        }
+        Returns: number
+      }
+      enqueue_notification: { Args: { payload: Json }; Returns: number }
+      enqueue_signing_notification: {
+        Args: {
+          p_reason?: string
+          p_signer_order: number
+          p_submission_id: string
+        }
+        Returns: string
+      }
+      ensure_ai_conversation_service:
+        | {
+            Args: {
+              p_conversation_id: string
+              p_model: string
+              p_provider: "openai" | "anthropic" | "gemini" | "openrouter"
+              p_site_id: string
+              p_tenant_id: string
+              p_title: string
+              p_user_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_conversation_id: string
+              p_metadata?: Json
+              p_model: string
+              p_provider: "openai" | "anthropic" | "gemini" | "openrouter"
+              p_site_id: string
+              p_tenant_id: string
+              p_title: string
+              p_user_id: string
+            }
+            Returns: string
+          }
+      ensure_checklist_deferred_task: {
+        Args: { p_item_id: string }
+        Returns: string
+      }
+      ensure_customer_intervention_report: {
+        Args: { p_project_id: string }
+        Returns: string
+      }
+      ensure_employee_tag: {
+        Args: { p_color_token?: string; p_name: string }
+        Returns: {
+          color_token: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_tags"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ensure_field_project_folders: {
+        Args: { p_project_id: string }
+        Returns: Json
+      }
+      escalate_urgent_shift_openings: {
+        Args: { p_as_of?: string; p_min_interval_hours?: number }
+        Returns: Json
+      }
+      evaluate_employee_assignment: {
+        Args: {
+          p_employee_id: string
+          p_ends_at: string
+          p_role_id?: string
+          p_site_id: string
+          p_starts_at: string
+        }
+        Returns: Json
+      }
+      evaluate_labor_rules_for_window: {
+        Args: {
+          p_employee_id: string
+          p_end_time: string
+          p_exclude_slot_id?: string
+          p_site_id: string
+          p_slot_date: string
+          p_start_time: string
+        }
+        Returns: Json
+      }
+      evaluate_shift_opening_claim: {
+        Args: { p_claim_id: string }
+        Returns: Json
+      }
+      evaluate_shift_swap_request: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      exchange_customer_portal_login_token: {
+        Args: {
+          p_client_key?: string
+          p_ip_address?: unknown
+          p_session_ttl_minutes?: number
+          p_token_hash: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
+      exchange_customer_portal_staff_session: {
+        Args: {
+          p_ip_address?: unknown
+          p_report_version_id?: string
+          p_token_hash: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
+      exchange_customer_report_share_token: {
+        Args: {
+          p_client_key?: string
+          p_ip_address?: unknown
+          p_session_ttl_minutes?: number
+          p_token_hash: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
+      expire_signing_sessions: { Args: never; Returns: number }
+      export_attendance_inspection: {
+        Args: {
+          p_employee_id?: string
+          p_from: string
+          p_site_id: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      export_attendance_month: {
+        Args: { p_employee_id: string; p_month: number; p_year: number }
+        Returns: Json
+      }
+      export_job_posting_applications_csv: {
+        Args: { p_ack_warning: boolean; p_job_posting_id: string }
+        Returns: Json
+      }
+      export_payroll_days: {
+        Args: { p_from: string; p_site_id: string; p_to: string }
+        Returns: Json
+      }
+      export_payroll_period: {
+        Args: {
+          p_employee_id?: string
+          p_format?: string
+          p_from: string
+          p_site_id: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      export_payroll_period_profile: {
+        Args: {
+          p_employee_id?: string
+          p_from: string
+          p_profile_id: string
+          p_site_id: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      fail_tenant_geocoding_api_key_candidate: {
+        Args: { p_provider_key: string; p_tenant_id: string }
+        Returns: Json
+      }
+      fail_tenant_maps_js_api_key_candidate: {
+        Args: { p_provider_key: string; p_tenant_id: string }
+        Returns: Json
+      }
+      fail_tenant_routes_api_key_candidate: {
+        Args: { p_provider_key: string; p_tenant_id: string }
+        Returns: Json
+      }
+      fetch_domains_for_verification: {
+        Args: { p_batch_size?: number }
+        Returns: {
+          check_count: number
+          domain: string
+          failure_reason: string
+          id: string
+          last_checked_at: string
+          public_site_id: string
+          status: string
+          tenant_id: string
+          verification_token: string
+        }[]
+      }
+      fetch_employee_portal_token_batch_results: {
+        Args: { p_batch_id: string }
+        Returns: Json
+      }
+      fetch_rights_export: { Args: { p_token: string }; Returns: Json }
+      field_punch_start: {
+        Args: {
+          p_client_op_id: string
+          p_employee_id: string
+          p_geo?: Json
+          p_location_perm?: string
+          p_notes?: string
+          p_project_id: string
+          p_punch_type?: string
+          p_task_id?: string
+          p_timestamp?: string
+        }
+        Returns: Json
+      }
+      field_punch_stop: {
+        Args: {
+          p_client_op_id: string
+          p_employee_id: string
+          p_gap_kind?: string
+          p_geo?: Json
+          p_location_perm?: string
+          p_log_id: string
+          p_notes?: string
+          p_record_day_end?: boolean
+          p_timestamp?: string
+        }
+        Returns: Json
+      }
+      finalize_ai_action_proposal_service: {
+        Args: {
+          p_proposal_id: string
+          p_result?: Json
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      finalize_recruitment_export: {
+        Args: { p_package_id: string; p_uploaded?: boolean }
+        Returns: Json
+      }
+      finalize_signing_session: {
+        Args: {
+          p_geolocation?: Json
+          p_ip_address?: string
+          p_result_version_id: string
+          p_session_id: string
+          p_signature_image_path: string
+          p_signed_at?: string
+          p_user_agent?: string
+        }
+        Returns: undefined
+      }
+      flush_notification_digests: {
+        Args: { p_limit?: number }
+        Returns: {
+          correlation_id: string
+          entity_id: string
+          entity_type: string
+          event_code: string
+          group_key: string
+          item_count: number
+          latest_payload: Json
+          recipient_id: string
+          recipient_kind: "tenant_member" | "contact" | "raw_address"
+          site_id: string
+          tenant_id: string
+        }[]
+      }
+      freeze_planning_cost_snapshot: {
+        Args: {
+          p_budget_label?: string
+          p_contract_id: string
+          p_on_date?: string
+        }
+        Returns: string
+      }
+      fulfill_customer_report_share_delivery_intent: {
+        Args: { p_intent_id: string }
+        Returns: Json
+      }
+      generate_due_maintenance_orders: {
+        Args: { p_as_of?: string; p_limit?: number }
+        Returns: Json
+      }
+      generate_employee_asset_acknowledgment_document: {
+        Args: {
+          p_assignment_id: string
+          p_force?: boolean
+          p_template_locale_id?: string
+        }
+        Returns: {
+          acknowledgment_document_id: string | null
+          asset_calibration_due_on: string | null
+          asset_id: string | null
+          asset_name: string | null
+          asset_requires_calibration: boolean | null
+          asset_site_id: string | null
+          asset_status: string | null
+          asset_tag: string | null
+          asset_type_id: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          created_at: string | null
+          employee_id: string | null
+          employee_name: string | null
+          expected_return_at: string | null
+          id: string | null
+          notes: string | null
+          return_condition: string | null
+          return_document_id: string | null
+          returned_at: string | null
+          returned_by: string | null
+          tenant_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_asset_assignments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      generate_employee_asset_return_document: {
+        Args: {
+          p_assignment_id: string
+          p_force?: boolean
+          p_template_locale_id?: string
+        }
+        Returns: {
+          acknowledgment_document_id: string | null
+          asset_calibration_due_on: string | null
+          asset_id: string | null
+          asset_name: string | null
+          asset_requires_calibration: boolean | null
+          asset_site_id: string | null
+          asset_status: string | null
+          asset_tag: string | null
+          asset_type_id: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          created_at: string | null
+          employee_id: string | null
+          employee_name: string | null
+          expected_return_at: string | null
+          id: string | null
+          notes: string | null
+          return_condition: string | null
+          return_document_id: string | null
+          returned_at: string | null
+          returned_by: string | null
+          tenant_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_asset_assignments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      generate_employee_medical_clearance_document: {
+        Args: {
+          p_certification_id: string
+          p_force?: boolean
+          p_template_locale_id?: string
+        }
+        Returns: {
+          computed_status: string | null
+          created_at: string | null
+          created_by: string | null
+          credential_number: string | null
+          document_id: string | null
+          employee_id: string | null
+          id: string | null
+          issued_on: string | null
+          issuer: string | null
+          notes: string | null
+          requirement_category: string | null
+          requirement_code: string | null
+          requirement_name: string | null
+          requirement_type_id: string | null
+          revoked_at: string | null
+          revoked_reason: string | null
+          signing_submission_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_certifications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      generate_employment_contract_document: {
+        Args: {
+          p_contract_id: string
+          p_force?: boolean
+          p_template_locale_id?: string
+        }
+        Returns: {
+          activated_at: string | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          calendar_group_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          collective_agreement_id: string | null
+          contract_number: string | null
+          contract_type_id: string | null
+          correlation_id: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          employee_id: string | null
+          ended_at: string | null
+          ends_on: string | null
+          external_identity: string | null
+          external_reference: string | null
+          external_review_status: string | null
+          field_ownership: Json | null
+          final_document_version_id: string | null
+          fte: number | null
+          fully_signed_at: string | null
+          generated_document_id: string | null
+          id: string | null
+          import_idempotency_key: string | null
+          is_primary: boolean | null
+          job_position_id: string | null
+          lifecycle_status: string | null
+          metadata: Json | null
+          probation_ends_on: string | null
+          professional_category_id: string | null
+          signature_requirement: string | null
+          signature_status: string | null
+          signing_submission_id: string | null
+          site_id: string | null
+          source: string | null
+          source_changed_at: string | null
+          source_payload_digest: string | null
+          starts_on: string | null
+          supersedes_contract_id: string | null
+          template_id: string | null
+          template_locale_id: string | null
+          template_snapshot: Json | null
+          tenant_id: string | null
+          termination_notes: string | null
+          termination_reason_code: string | null
+          updated_at: string | null
+          variables_snapshot: Json | null
+          weekly_hours: number | null
+          work_entry_source: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employment_contracts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_active_automation_workflows: {
+        Args: { p_event_type: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_activity_segments: {
+        Args: { p_employee_id: string; p_work_date?: string }
+        Returns: Json
+      }
+      get_admin_tenant_ai_summary: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
+      get_ai_api_key_for_generation: {
+        Args: { p_provider?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_ai_chat_attachment_file_service: {
+        Args: { p_file_id: string; p_tenant_id: string; p_user_id: string }
+        Returns: Json
+      }
+      get_ai_chat_preset_service: {
+        Args: { p_preset_id: string; p_tenant_id: string; p_user_id: string }
+        Returns: Json
+      }
+      get_ai_config_for_tenant: { Args: { p_tenant_id: string }; Returns: Json }
+      get_ai_conversation_service: {
+        Args: {
+          p_conversation_id: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      get_ai_conversation_share_status: {
+        Args: { p_conversation_id: string }
+        Returns: Json
+      }
+      get_ai_model_capabilities: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
+      get_ai_model_capabilities_admin: {
+        Args: {
+          p_include_deprecated?: boolean
+          p_only_needs_review?: boolean
+          p_provider?: string
+        }
+        Returns: Json
+      }
+      get_ai_shared_conversation:
+        | { Args: { p_share_token: string }; Returns: Json }
+        | {
+            Args: { p_limit?: number; p_offset?: number; p_share_token: string }
+            Returns: Json
+          }
+      get_ai_usage_stats: { Args: { p_tenant_id: string }; Returns: Json }
+      get_ai_user_access: {
+        Args: { p_tenant_id: string; p_user_id?: string }
+        Returns: Json
+      }
+      get_attendance_geo_enabled: {
+        Args: { p_employee_id: string }
+        Returns: boolean
+      }
+      get_attendance_legal_counters: {
+        Args: { p_as_of_date?: string; p_employee_id: string }
+        Returns: Json
+      }
+      get_attendance_month_period_status: {
+        Args: { p_employee_id: string; p_month: number; p_year: number }
+        Returns: Json
+      }
+      get_attendance_month_period_status_batch: {
+        Args: { p_employee_ids: string[]; p_month: number; p_year: number }
+        Returns: Json
+      }
+      get_attendance_protocol_bulk_job: {
+        Args: { p_job_id: string }
+        Returns: Json
+      }
+      get_attendance_protocol_publish_pending: {
+        Args: { p_pending_id: string }
+        Returns: Json
+      }
+      get_attendance_queue_health: { Args: never; Returns: Json }
+      get_attendance_record_policy: {
+        Args: { p_employee_id: string; p_work_date?: string }
+        Returns: Json
+      }
+      get_attendance_retention_purge_status: { Args: never; Returns: Json }
+      get_attendance_station_employee_history: {
+        Args: {
+          p_device_id: string
+          p_employee_id: string
+          p_from: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      get_attendance_station_fleet_health: {
+        Args: { p_tenant_id?: string }
+        Returns: Json
+      }
+      get_auth_settings: { Args: never; Returns: Json }
+      get_automation_dashboard: { Args: never; Returns: Json }
+      get_automation_execution_context: {
+        Args: { p_step_run_id: string }
+        Returns: Json
+      }
+      get_calendar_group_record_policy: {
+        Args: { p_group_id: string; p_site_id?: string; p_work_date?: string }
+        Returns: Json
+      }
+      get_calendar_group_weekly_pattern: {
+        Args: { p_at_date?: string; p_group_id: string }
+        Returns: Json
+      }
+      get_coverage_buckets: {
+        Args: {
+          p_bucket_minutes?: number
+          p_date: string
+          p_location_id?: string
+          p_role_id?: string
+          p_site_id: string
+        }
+        Returns: Json
+      }
+      get_coverage_for_period: {
+        Args: { p_from: string; p_site_id: string; p_to: string }
+        Returns: Json
+      }
+      get_coverage_operational_snapshot: {
+        Args: {
+          p_as_of?: string
+          p_bucket_minutes?: number
+          p_horizon_minutes?: number
+          p_role_id?: string
+          p_site_id: string
+        }
+        Returns: Json
+      }
+      get_docuseal_key_for_signing: {
+        Args: { p_tenant_id: string }
+        Returns: string
+      }
+      get_effective_employment_contract: {
+        Args: { p_employee_id: string; p_on?: string }
+        Returns: {
+          activated_at: string | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          calendar_group_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          collective_agreement_id: string | null
+          contract_number: string | null
+          contract_type_id: string | null
+          correlation_id: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          employee_id: string | null
+          ended_at: string | null
+          ends_on: string | null
+          external_identity: string | null
+          external_reference: string | null
+          external_review_status: string | null
+          field_ownership: Json | null
+          final_document_version_id: string | null
+          fte: number | null
+          fully_signed_at: string | null
+          generated_document_id: string | null
+          id: string | null
+          import_idempotency_key: string | null
+          is_primary: boolean | null
+          job_position_id: string | null
+          lifecycle_status: string | null
+          metadata: Json | null
+          probation_ends_on: string | null
+          professional_category_id: string | null
+          signature_requirement: string | null
+          signature_status: string | null
+          signing_submission_id: string | null
+          site_id: string | null
+          source: string | null
+          source_changed_at: string | null
+          source_payload_digest: string | null
+          starts_on: string | null
+          supersedes_contract_id: string | null
+          template_id: string | null
+          template_locale_id: string | null
+          template_snapshot: Json | null
+          tenant_id: string | null
+          termination_notes: string | null
+          termination_reason_code: string | null
+          updated_at: string | null
+          variables_snapshot: Json | null
+          weekly_hours: number | null
+          work_entry_source: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employment_contracts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_effective_settings: {
+        Args: { p_site_id?: string; p_tenant_id?: string; p_user_id?: string }
+        Returns: Json
+      }
+      get_employee_absence_summary: {
+        Args: { p_employee_id: string; p_year?: number }
+        Returns: Json
+      }
+      get_employee_asset_return_checklist: {
+        Args: { p_employee_id: string; p_include_closed?: boolean }
+        Returns: Json
+      }
+      get_employee_direct_reports: {
+        Args: { p_employee_id: string }
+        Returns: {
+          department_id: string
+          full_name: string
+          id: string
+          job_position_id: string
+          job_position_name: string
+          photo_object_path: string
+          preferred_name: string
+          site_id: string
+          status: string
+        }[]
+      }
+      get_employee_dispatch_status: {
+        Args: { p_as_of?: string; p_employee_id: string }
+        Returns: Json
+      }
+      get_employee_for_ai_service: {
+        Args: { p_employee_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_employee_org_tree: {
+        Args: { p_max_depth?: number; p_root_employee_id?: string }
+        Returns: {
+          department_id: string
+          depth: number
+          full_name: string
+          id: string
+          job_position_id: string
+          job_position_name: string
+          manager_employee_id: string
+          path: string[]
+          photo_object_path: string
+          preferred_name: string
+          site_id: string
+          status: string
+        }[]
+      }
+      get_employee_portal_public_policy: {
+        Args: { p_employee_id: string }
+        Returns: Json
+      }
+      get_employee_portal_token_session: {
+        Args: { p_token_id: string }
+        Returns: Json
+      }
+      get_employee_private_profile: {
+        Args: { p_employee_id: string }
+        Returns: {
+          address: string | null
+          birth_date: string | null
+          city: string | null
+          country_code: string | null
+          created_at: string | null
+          document_number: string | null
+          document_type: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relationship: string | null
+          employee_id: string | null
+          has_iban: boolean | null
+          has_ssn: boolean | null
+          iban_last4: string | null
+          metadata: Json | null
+          nationality_code: string | null
+          personal_email: string | null
+          personal_phone: string | null
+          postal_code: string | null
+          ssn_last4: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_private_profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_employee_readiness: {
+        Args: {
+          p_as_of?: string
+          p_employee_id: string
+          p_required_requirement_codes?: string[]
+        }
+        Returns: Json
+      }
+      get_employee_readiness_projection_summary: {
+        Args: { p_as_of?: string; p_department_id?: string; p_site_id?: string }
+        Returns: Json
+      }
+      get_employee_weekly_pattern: {
+        Args: { p_at_date?: string; p_employee_id: string }
+        Returns: Json
+      }
+      get_entity_comment_replies: {
+        Args: { p_comment_id: string; p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
+      get_entity_comment_revisions: {
+        Args: { p_comment_id: string }
+        Returns: Json
+      }
+      get_entity_open_tasks: {
+        Args: { p_entity_id: string; p_entity_type: string; p_limit?: number }
+        Returns: Json
+      }
+      get_entity_risk_alerts: {
+        Args: { p_entity_id: string; p_entity_type: string }
+        Returns: Json
+      }
+      get_entity_snapshot_for_automation: {
+        Args: {
+          p_entity_id: string
+          p_entity_type: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      get_entity_subscription_status: {
+        Args: { p_entity_id: string; p_entity_type: string }
+        Returns: boolean
+      }
+      get_entity_timeline: {
+        Args: {
+          p_cursor?: string
+          p_cursor_id?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_entity_id: string
+          p_entity_type: string
+          p_include_ai_notes?: boolean
+          p_include_audit?: boolean
+          p_include_background?: boolean
+          p_limit?: number
+          p_open_tasks_only?: boolean
+          p_search?: string
+          p_tasks_only?: boolean
+        }
+        Returns: Json
+      }
+      get_entity_timeline_export: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_entity_id: string
+          p_entity_type: string
+          p_include_audit?: boolean
+          p_include_background?: boolean
+          p_max_rows?: number
+        }
+        Returns: Json
+      }
+      get_entity_timeline_for_ai: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_entity_id: string
+          p_entity_type: string
+          p_include_audit?: boolean
+          p_limit?: number
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      get_entity_timeline_slo_stats: {
+        Args: { p_hours?: number; p_rpc_name?: string }
+        Returns: Json
+      }
+      get_entity_timeline_visit_summary: {
+        Args: { p_entity_id: string; p_entity_type: string }
+        Returns: Json
+      }
+      get_geocoding_api_key_service: {
+        Args: { p_provider_key: string; p_tenant_id: string }
+        Returns: string
+      }
+      get_geocoding_pending_api_key_service: {
+        Args: { p_provider_key: string; p_tenant_id: string }
+        Returns: string
+      }
+      get_geocoding_result_cache: {
+        Args: {
+          p_cache_kind: string
+          p_language?: string
+          p_operation: string
+          p_provider_key: string
+          p_query_hash: string
+        }
+        Returns: Json
+      }
+      get_hr_reporting_summary: {
+        Args: {
+          p_as_of?: string
+          p_department_id?: string
+          p_period_days?: number
+          p_site_id?: string
+        }
+        Returns: Json
+      }
+      get_internal_limits: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          internal_allowed_mimes: string[]
+          internal_max_file_mb: number
+        }[]
+      }
+      get_maps_js_pending_api_key_service: {
+        Args: { p_provider_key: string; p_tenant_id: string }
+        Returns: string
+      }
+      get_maps_js_platform_api_key_service: {
+        Args: { p_access_reason?: string; p_accessed_by_fn?: string }
+        Returns: string
+      }
+      get_my_email_usage: { Args: { p_tenant_id?: string }; Returns: Json }
+      get_my_notification_preferences: { Args: never; Returns: Json }
+      get_my_open_tasks: {
+        Args: { p_cursor?: string; p_cursor_id?: string; p_limit?: number }
+        Returns: Json
+      }
+      get_my_open_work_log: { Args: { p_project_id: string }; Returns: Json }
+      get_my_open_work_log_global: { Args: never; Returns: Json }
+      get_next_ai_message_sequence_service: {
+        Args: {
+          p_conversation_id: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: number
+      }
+      get_own_certifications: {
+        Args: { p_token_hash_hex: string }
+        Returns: {
+          category: string
+          computed_status: string
+          fitness_status: string
+          id: string
+          requirement_code: string
+          requirement_name: string
+          valid_from: string
+          valid_until: string
+        }[]
+      }
+      get_payroll_review_days: {
+        Args: { p_employee_id: string; p_from: string; p_to: string }
+        Returns: Json
+      }
+      get_pdf_converter_config: { Args: never; Returns: Json }
+      get_pdf_converter_health_config: { Args: never; Returns: Json }
+      get_pdf_job_status: {
+        Args: { p_job_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_pending_file: {
+        Args: { p_file_id: string; p_user_id: string }
+        Returns: {
+          id: string
+          processing_status: string
+          storage_key: string
+          storage_provider_id: string
+          tenant_id: string
+        }[]
+      }
+      get_platform_ai_api_key_for_sync: {
+        Args: { p_provider: string }
+        Returns: Json
+      }
+      get_platform_ai_defaults: { Args: never; Returns: Json }
+      get_platform_email_defaults: { Args: never; Returns: Json }
+      get_public_job_posting: {
+        Args: { p_public_site_id: string; p_slug: string }
+        Returns: Json
+      }
+      get_punch_only_at_stations: {
+        Args: { p_employee_id: string }
+        Returns: boolean
+      }
+      get_recruitment_analytics: {
+        Args: {
+          p_department_id?: string
+          p_from?: string
+          p_job_posting_id?: string
+          p_site_id?: string
+          p_to?: string
+        }
+        Returns: Json
+      }
+      get_recruitment_cv_structure_gate: {
+        Args: { p_application_id: string }
+        Returns: Json
+      }
+      get_risk_incident_context: {
+        Args: { p_incident_id: string }
+        Returns: Json
+      }
+      get_routes_api_key_service: {
+        Args: { p_provider_key: string; p_tenant_id: string }
+        Returns: string
+      }
+      get_routes_pending_api_key_service: {
+        Args: { p_provider_key: string; p_tenant_id: string }
+        Returns: string
+      }
+      get_schedule_planner_actuals: {
+        Args: {
+          p_employee_ids?: string[]
+          p_from: string
+          p_site_id: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      get_schedule_planner_days: {
+        Args: {
+          p_employee_ids?: string[]
+          p_from: string
+          p_site_id: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      get_shift_publication: {
+        Args: { p_publication_id: string }
+        Returns: Json
+      }
+      get_shift_slot_push_context: {
+        Args: { p_slot_id: string }
+        Returns: Json
+      }
+      get_signature_audit_for_submission: {
+        Args: { p_submission_id: string }
+        Returns: Json
+      }
+      get_signing_session_public: { Args: { p_token: string }; Returns: Json }
+      get_signing_status: { Args: { p_tenant_id: string }; Returns: Json }
+      get_site_basic: { Args: { p_site_id: string }; Returns: Json }
+      get_site_planning_heuristics: {
+        Args: { p_as_of?: string; p_lookback_days?: number; p_site_id: string }
+        Returns: Json
+      }
+      get_storage_provider_with_secret: {
+        Args: { p_provider_id?: string; p_tenant_id?: string }
+        Returns: {
+          access_key: string
+          allowed_mime_types: string[]
+          bucket_name: string
+          endpoint_url: string
+          id: string
+          is_locked: boolean
+          max_file_size_bytes: number
+          provider_type: string
+          region: string
+          secret_key: string
+        }[]
+      }
+      get_template_locale_for_ai_service: {
+        Args: { p_template_locale_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_template_locale_for_automation: {
+        Args: { p_locale?: string; p_template_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_tenant_ai_user_policies: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
+      get_tenant_basic: { Args: { p_tenant_id: string }; Returns: Json }
+      get_tenant_content_item: {
+        Args: { p_item_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_tenant_content_usage: { Args: { p_tenant_id: string }; Returns: Json }
+      get_tenant_features: { Args: never; Returns: Json }
+      get_tenant_geocoding_usage_summary: {
+        Args: { p_tenant_id?: string }
+        Returns: Json
+      }
+      get_tenant_member_ai_context: {
+        Args: { p_tenant_id: string; p_user_id: string }
+        Returns: Json
+      }
+      get_tenant_operation_logs: {
+        Args: {
+          p_integration_type?:
+            | "email"
+            | "sms"
+            | "push"
+            | "webhook_inbound"
+            | "webhook_outbound"
+            | "erp_sync"
+            | "signing"
+            | "pdf_generation"
+            | "ai_generation"
+            | "ai_chat"
+            | "import"
+            | "export"
+            | "storage"
+            | "geocoding"
+            | "billing"
+            | "other"
+          p_limit?: number
+          p_offset?: number
+          p_status?:
+            | "pending"
+            | "running"
+            | "success"
+            | "failed"
+            | "dead_letter"
+            | "cancelled"
+            | "degraded"
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      get_tenant_push_config: { Args: never; Returns: Json }
+      get_tenant_push_config_service: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
+      get_tenant_role_permissions: {
+        Args: { p_tenant_id?: string }
+        Returns: Json
+      }
+      get_tenant_secret: {
+        Args: {
+          p_access_reason?: string
+          p_accessed_by_fn?: string
+          p_provider: string
+          p_secret_type: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      get_tenant_timeline_activity: {
+        Args: {
+          p_cursor?: string
+          p_cursor_id?: string
+          p_include_audit?: boolean
+          p_include_background?: boolean
+          p_limit?: number
+          p_since?: string
+        }
+        Returns: Json
+      }
+      get_tenant_twilio_config: { Args: never; Returns: Json }
+      get_tenant_twilio_credentials_service: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
+      get_today_dashboard_rows: {
+        Args: { p_site_id: string; p_work_date?: string }
+        Returns: Json
+      }
+      get_today_site_status: {
+        Args: { p_site_id?: string }
+        Returns: {
+          anomaly_codes: string[] | null
+          current_state: string | null
+          employee_id: string | null
+          employee_name: string | null
+          geo_accuracy_m: number | null
+          geo_lat: number | null
+          geo_lng: number | null
+          last_is_remote: boolean | null
+          last_pause_type: string | null
+          last_punch_at: string | null
+          last_punch_type: string | null
+          needs_review: boolean | null
+          refreshed_at: string | null
+          site_id: string | null
+          tenant_id: string | null
+          work_date: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "mv_today_site_status"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_unresolved_operation_count: {
+        Args: { p_since?: string; p_tenant_id: string }
+        Returns: number
+      }
+      get_vacation_entitlement: {
+        Args: { p_employee_id: string; p_leave_type?: string; p_year: number }
+        Returns: Json
+      }
+      get_webhook_dispatch_context: {
+        Args: { p_delivery_log_id: string; p_webhook_id: string }
+        Returns: Json
+      }
+      give_location_consent: { Args: { p_version?: string }; Returns: boolean }
+      handle_project_created_event: {
+        Args: {
+          p_created_by?: string
+          p_planned_start?: string
+          p_project_id: string
+          p_project_name?: string
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
+      handle_project_dates_set_event: {
+        Args: { p_project_id: string; p_tenant_id?: string }
+        Returns: undefined
+      }
+      has_maps_js_platform_api_key_service: { Args: never; Returns: boolean }
+      hire_application: {
+        Args: {
+          p_application_id: string
+          p_department_id?: string
+          p_job_position_id?: string
+          p_site_id?: string
+          p_starts_on?: string
+        }
+        Returns: Json
+      }
+      import_applications_bulk: {
+        Args: {
+          p_import_source_label?: string
+          p_job_posting_id: string
+          p_rows: Json
+        }
+        Returns: Json
+      }
+      import_employees_bulk: {
+        Args: { p_options?: Json; p_rows: Json }
+        Returns: Json
+      }
+      import_holidays: {
+        Args: { p_calendar_id: string; p_holidays_json: Json }
+        Returns: Json
+      }
+      increment_notification_usage: {
+        Args: {
+          p_channel: "in_app" | "push" | "email" | "sms" | "whatsapp"
+          p_tenant_id: string
+        }
+        Returns: boolean
+      }
+      ingest_recruitment_inbound_email: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
+      insert_ai_conversation_message_service: {
+        Args: {
+          p_content: string
+          p_conversation_id: string
+          p_payload: Json
+          p_role: string
+          p_sequence: number
+          p_tenant_id: string
+          p_tool_call_id: string
+          p_tool_name: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      insert_entity_comment:
+        | {
+            Args: {
+              p_content: string
+              p_entity_id: string
+              p_entity_type: string
+              p_is_task?: boolean
+              p_parent_id?: string
+              p_site_id?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_attachments?: Json
+              p_content: string
+              p_due_date?: string
+              p_entity_id: string
+              p_entity_type: string
+              p_is_ai_context_note?: boolean
+              p_is_task?: boolean
+              p_parent_id?: string
+              p_site_id?: string
+            }
+            Returns: string
+          }
+      insert_entity_comment_service: {
+        Args: {
+          p_actor_metadata?: Json
+          p_actor_type?: string
+          p_content: string
+          p_due_date?: string
+          p_entity_id: string
+          p_entity_type: string
+          p_idempotency_key?: string
+          p_is_ai_context_note?: boolean
+          p_is_task?: boolean
+          p_parent_id?: string
+          p_site_id?: string
+          p_tenant_id: string
+          p_user_id?: string
+        }
+        Returns: string
+      }
+      insert_in_app_notification_service: {
+        Args: {
+          p_body_i18n: Json
+          p_deep_link?: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_kind: string
+          p_severity?: string
+          p_tenant_id: string
+          p_title_i18n: Json
+          p_user_id: string
+        }
+        Returns: string
+      }
+      insert_signature_audit_service: {
+        Args: {
+          p_document_hash_after?: string
+          p_document_hash_before?: string
+          p_document_id: string
+          p_geolocation?: Json
+          p_ip_address?: string
+          p_session_id: string
+          p_signature_image_path?: string
+          p_signer_email: string
+          p_signer_name: string
+          p_signer_role: string
+          p_tenant_id: string
+          p_timestamp_signed: string
+          p_user_agent?: string
+        }
+        Returns: string
+      }
+      install_blueprint: {
+        Args: { p_blueprint_id: string; p_config?: Json }
+        Returns: string
+      }
+      install_ec_platform_blueprints: { Args: never; Returns: Json }
+      inventory_legacy_client_reports: {
+        Args: never
+        Returns: {
+          client_report_published_at: string | null
+          client_report_published_by: string | null
+          current_published_version_id: string | null
+          current_version_number: number | null
+          dms_document_count: number | null
+          legacy_source: string | null
+          legacy_unresolved: boolean | null
+          project_id: string | null
+          project_name: string | null
+          project_status: string | null
+          reconciliation_status: string | null
+          report_id: string | null
+          run_payload_count: number | null
+          tenant_id: string | null
+          version_published_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "legacy_client_report_inventory"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      is_tenant_feature_enabled: {
+        Args: { p_feature_key: string; p_tenant_id: string }
+        Returns: boolean
+      }
+      issue_attendance_identity_token: {
+        Args: { p_employee_id: string; p_method?: string }
+        Returns: Json
+      }
+      link_attendance_monthly_report_signing: {
+        Args: {
+          p_document_id: string
+          p_employee_id: string
+          p_month: number
+          p_signing_submission_id: string
+          p_year: number
+        }
+        Returns: string
+      }
+      link_attendance_protocol_signing: {
+        Args: { p_assignment_id: string; p_signing_submission_id: string }
+        Returns: string
+      }
+      link_employee_asset_acknowledgment_document: {
+        Args: { p_assignment_id: string; p_document_id: string }
+        Returns: {
+          acknowledgment_document_id: string | null
+          asset_calibration_due_on: string | null
+          asset_id: string | null
+          asset_name: string | null
+          asset_requires_calibration: boolean | null
+          asset_site_id: string | null
+          asset_status: string | null
+          asset_tag: string | null
+          asset_type_id: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          created_at: string | null
+          employee_id: string | null
+          employee_name: string | null
+          expected_return_at: string | null
+          id: string | null
+          notes: string | null
+          return_condition: string | null
+          return_document_id: string | null
+          returned_at: string | null
+          returned_by: string | null
+          tenant_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_asset_assignments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      link_employee_asset_return_document: {
+        Args: { p_assignment_id: string; p_document_id: string }
+        Returns: {
+          acknowledgment_document_id: string | null
+          asset_calibration_due_on: string | null
+          asset_id: string | null
+          asset_name: string | null
+          asset_requires_calibration: boolean | null
+          asset_site_id: string | null
+          asset_status: string | null
+          asset_tag: string | null
+          asset_type_id: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          created_at: string | null
+          employee_id: string | null
+          employee_name: string | null
+          expected_return_at: string | null
+          id: string | null
+          notes: string | null
+          return_condition: string | null
+          return_document_id: string | null
+          returned_at: string | null
+          returned_by: string | null
+          tenant_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_asset_assignments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      link_employee_medical_clearance_signing: {
+        Args: {
+          p_certification_id: string
+          p_document_id?: string
+          p_signing_submission_id: string
+        }
+        Returns: {
+          computed_status: string | null
+          created_at: string | null
+          created_by: string | null
+          credential_number: string | null
+          document_id: string | null
+          employee_id: string | null
+          id: string | null
+          issued_on: string | null
+          issuer: string | null
+          notes: string | null
+          requirement_category: string | null
+          requirement_code: string | null
+          requirement_name: string | null
+          requirement_type_id: string | null
+          revoked_at: string | null
+          revoked_reason: string | null
+          signing_submission_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_certifications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      link_employment_contract_document: {
+        Args: {
+          p_contract_id: string
+          p_document_id: string
+          p_template_locale_id?: string
+          p_template_snapshot?: Json
+          p_variables_snapshot?: Json
+        }
+        Returns: {
+          activated_at: string | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          calendar_group_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          collective_agreement_id: string | null
+          contract_number: string | null
+          contract_type_id: string | null
+          correlation_id: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          employee_id: string | null
+          ended_at: string | null
+          ends_on: string | null
+          external_identity: string | null
+          external_reference: string | null
+          external_review_status: string | null
+          field_ownership: Json | null
+          final_document_version_id: string | null
+          fte: number | null
+          fully_signed_at: string | null
+          generated_document_id: string | null
+          id: string | null
+          import_idempotency_key: string | null
+          is_primary: boolean | null
+          job_position_id: string | null
+          lifecycle_status: string | null
+          metadata: Json | null
+          probation_ends_on: string | null
+          professional_category_id: string | null
+          signature_requirement: string | null
+          signature_status: string | null
+          signing_submission_id: string | null
+          site_id: string | null
+          source: string | null
+          source_changed_at: string | null
+          source_payload_digest: string | null
+          starts_on: string | null
+          supersedes_contract_id: string | null
+          template_id: string | null
+          template_locale_id: string | null
+          template_snapshot: Json | null
+          tenant_id: string | null
+          termination_notes: string | null
+          termination_reason_code: string | null
+          updated_at: string | null
+          variables_snapshot: Json | null
+          weekly_hours: number | null
+          work_entry_source: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employment_contracts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      link_employment_contract_signing: {
+        Args: {
+          p_contract_id: string
+          p_document_id?: string
+          p_signing_submission_id: string
+        }
+        Returns: {
+          activated_at: string | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          calendar_group_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          collective_agreement_id: string | null
+          contract_number: string | null
+          contract_type_id: string | null
+          correlation_id: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          employee_id: string | null
+          ended_at: string | null
+          ends_on: string | null
+          external_identity: string | null
+          external_reference: string | null
+          external_review_status: string | null
+          field_ownership: Json | null
+          final_document_version_id: string | null
+          fte: number | null
+          fully_signed_at: string | null
+          generated_document_id: string | null
+          id: string | null
+          import_idempotency_key: string | null
+          is_primary: boolean | null
+          job_position_id: string | null
+          lifecycle_status: string | null
+          metadata: Json | null
+          probation_ends_on: string | null
+          professional_category_id: string | null
+          signature_requirement: string | null
+          signature_status: string | null
+          signing_submission_id: string | null
+          site_id: string | null
+          source: string | null
+          source_changed_at: string | null
+          source_payload_digest: string | null
+          starts_on: string | null
+          supersedes_contract_id: string | null
+          template_id: string | null
+          template_locale_id: string | null
+          template_snapshot: Json | null
+          tenant_id: string | null
+          termination_notes: string | null
+          termination_reason_code: string | null
+          updated_at: string | null
+          variables_snapshot: Json | null
+          weekly_hours: number | null
+          work_entry_source: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employment_contracts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      list_absence_type_configs: {
+        Args: { p_include_it?: boolean; p_include_partial?: boolean }
+        Returns: {
+          absence_type: string | null
+          affects_entitlement: boolean | null
+          counts_as_worked: boolean | null
+          created_at: string | null
+          entitlement_type: string | null
+          export_code: string | null
+          id: string | null
+          is_active: boolean | null
+          is_it: boolean | null
+          is_partial: boolean | null
+          is_system: boolean | null
+          max_days_per_year: number | null
+          name_i18n: Json | null
+          parent_key: string | null
+          requires_approval: boolean | null
+          requires_document: boolean | null
+          sort_order: number | null
+          subtype_key: string | null
+          tenant_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "tenant_absence_type_configs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_applicant_data_requests: {
+        Args: { p_status?: string }
+        Returns: Json
+      }
+      list_asset_calibration_alerts: {
+        Args: {
+          p_as_of?: string
+          p_employee_id?: string
+          p_within_days?: number
+        }
+        Returns: Json
+      }
+      list_asset_requirement_rules: {
+        Args: { p_include_inactive?: boolean }
+        Returns: {
+          asset_type_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          is_active: boolean | null
+          is_blocking: boolean | null
+          scope_id: string | null
+          scope_type: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "asset_requirement_rules"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_asset_types: {
+        Args: { p_include_inactive?: boolean }
+        Returns: {
+          blocks_dispatch_if_missing: boolean | null
+          calibration_interval_days: number | null
+          category: string | null
+          code: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          requires_calibration: boolean | null
+          requires_return: boolean | null
+          tenant_id: string | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "asset_types"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_assignable_assets: {
+        Args: { p_site_id?: string }
+        Returns: {
+          asset_tag: string | null
+          asset_type_id: string | null
+          blocks_dispatch_if_missing: boolean | null
+          calibration_due_on: string | null
+          created_at: string | null
+          id: string | null
+          location_id: string | null
+          location_name: string | null
+          metadata: Json | null
+          name: string | null
+          requires_calibration: boolean | null
+          serial_number: string | null
+          site_id: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "assets"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_attendance_anomaly_automation_firings: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
+      }
+      list_attendance_inspection_access_links: {
+        Args: { p_include_inactive?: boolean }
+        Returns: Json
+      }
+      list_attendance_location_assignments: {
+        Args: { p_include_inactive?: boolean; p_location_id: string }
+        Returns: Json
+      }
+      list_attendance_month_amendments: {
+        Args: { p_employee_id: string; p_month: number; p_year: number }
+        Returns: Json
+      }
+      list_attendance_period_confirmations: {
+        Args: {
+          p_calendar_month?: number
+          p_calendar_year?: number
+          p_employee_id: string
+        }
+        Returns: Json
+      }
+      list_attendance_station_admin_audit_logs: {
+        Args: { p_device_id: string; p_limit?: number }
+        Returns: Json
+      }
+      list_attendance_station_employees: {
+        Args: { p_device_id: string }
+        Returns: Json
+      }
+      list_attendance_station_pause_configs: {
+        Args: { p_device_id: string }
+        Returns: Json
+      }
+      list_audit_event_playbooks: { Args: never; Returns: Json }
+      list_calendar_group_employees: {
+        Args: { p_group_id: string }
+        Returns: {
+          employee_id: string
+          full_name: string
+          site_id: string
+        }[]
+      }
+      list_calendar_groups: {
+        Args: { p_site_id?: string }
+        Returns: {
+          attendance_geo_enabled: boolean | null
+          color: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          punch_only_at_stations: boolean | null
+          site_id: string | null
+          sort_order: number | null
+          tenant_id: string | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "calendar_groups"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_compensation_ledger: {
+        Args: { p_employee_id: string; p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
+      list_compliance_requirement_rules: {
+        Args: { p_include_inactive?: boolean }
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          grace_period_days: number | null
+          id: string | null
+          is_active: boolean | null
+          is_blocking: boolean | null
+          requirement_type_id: string | null
+          scope_id: string | null
+          scope_type: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "compliance_requirement_rules"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_compliance_requirement_types: {
+        Args: { p_include_inactive?: boolean }
+        Returns: {
+          category: string | null
+          code: string | null
+          created_at: string | null
+          default_validity_months: number | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          renewal_notice_days: number[] | null
+          tenant_id: string | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "compliance_requirement_types"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_coverage_demands: {
+        Args: { p_include_inactive?: boolean; p_site_id: string }
+        Returns: {
+          created_at: string
+          day_of_week: number
+          demand_date: string
+          effective_from: string
+          effective_to: string
+          end_time: string
+          id: string
+          is_active: boolean
+          kind: string
+          location_id: string
+          name: string
+          notes: string
+          priority: number
+          required_max: number
+          required_min: number
+          required_target: number
+          role_id: string
+          role_key: string
+          role_name: string
+          site_id: string
+          source: string
+          start_time: string
+          tenant_id: string
+          updated_at: string
+        }[]
+      }
+      list_customer_access_grants: {
+        Args: { p_client_account_contact_id?: string; p_only_active?: boolean }
+        Returns: {
+          auth_user_id: string | null
+          client_account_contact_id: string | null
+          contact_relationship_id: string | null
+          created_at: string | null
+          email_normalized: string | null
+          id: string | null
+          invitation_id: string | null
+          is_active: boolean | null
+          last_seen_at: string | null
+          principal_contact_id: string | null
+          principal_kind: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          session_version: number | null
+          tenant_id: string | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "customer_access_grants"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_customer_access_invitations: {
+        Args: { p_client_account_contact_id?: string; p_only_pending?: boolean }
+        Returns: {
+          accepted_at: string | null
+          accepted_auth_user_id: string | null
+          client_account_contact_id: string | null
+          contact_relationship_id: string | null
+          created_at: string | null
+          delivery_channel_id: string | null
+          email_normalized: string | null
+          expires_at: string | null
+          id: string | null
+          invited_by: string | null
+          is_pending: boolean | null
+          principal_contact_id: string | null
+          principal_kind: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          tenant_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "customer_access_invitations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_customer_report_shares: {
+        Args: { p_project_id?: string }
+        Returns: {
+          channel: string | null
+          contact_relationship_id: string | null
+          created_at: string | null
+          created_by: string | null
+          creation_snapshot: Json | null
+          customer_account_contact_id: string | null
+          delivery_channel_id: string | null
+          expires_at: string | null
+          id: string | null
+          is_active: boolean | null
+          max_sessions: number | null
+          max_views: number | null
+          project_id: string | null
+          recipient_contact_id: string | null
+          report_id: string | null
+          report_version_id: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          second_channel_confirmed_at: string | null
+          session_count: number | null
+          session_version: number | null
+          tenant_id: string | null
+          view_count: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "customer_report_shares"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_due_ai_scheduled_jobs_service: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
+      list_employee_asset_assignments: {
+        Args: { p_employee_id: string; p_include_returned?: boolean }
+        Returns: {
+          acknowledgment_document_id: string | null
+          asset_calibration_due_on: string | null
+          asset_id: string | null
+          asset_name: string | null
+          asset_requires_calibration: boolean | null
+          asset_site_id: string | null
+          asset_status: string | null
+          asset_tag: string | null
+          asset_type_id: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          created_at: string | null
+          employee_id: string | null
+          employee_name: string | null
+          expected_return_at: string | null
+          id: string | null
+          notes: string | null
+          return_condition: string | null
+          return_document_id: string | null
+          returned_at: string | null
+          returned_by: string | null
+          tenant_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "employee_asset_assignments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_employee_availability_exceptions: {
+        Args: {
+          p_employee_id: string
+          p_from?: string
+          p_include_inactive?: boolean
+          p_to?: string
+        }
+        Returns: {
+          created_at: string | null
+          editable_until: string | null
+          employee_id: string | null
+          end_time: string | null
+          exception_date: string | null
+          id: string | null
+          is_active: boolean | null
+          notes: string | null
+          preference: string | null
+          start_time: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "employee_availability_exceptions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_employee_availability_rules: {
+        Args: { p_employee_id: string; p_include_inactive?: boolean }
+        Returns: {
+          created_at: string | null
+          day_of_week: number | null
+          editable_until: string | null
+          effective_from: string | null
+          effective_to: string | null
+          employee_id: string | null
+          end_time: string | null
+          id: string | null
+          is_active: boolean | null
+          notes: string | null
+          preference: string | null
+          start_time: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "employee_availability_rules"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_employee_certifications: {
+        Args: { p_employee_id: string; p_include_revoked?: boolean }
+        Returns: {
+          computed_status: string | null
+          created_at: string | null
+          created_by: string | null
+          credential_number: string | null
+          document_id: string | null
+          employee_id: string | null
+          id: string | null
+          issued_on: string | null
+          issuer: string | null
+          notes: string | null
+          requirement_category: string | null
+          requirement_code: string | null
+          requirement_name: string | null
+          requirement_type_id: string | null
+          revoked_at: string | null
+          revoked_reason: string | null
+          signing_submission_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "employee_certifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_employee_portal_access_logs: {
+        Args: { p_limit?: number; p_token_id: string }
+        Returns: Json
+      }
+      list_employee_portal_access_overview: {
+        Args: {
+          p_department_id?: string
+          p_employee_status?: string
+          p_limit?: number
+          p_offset?: number
+          p_portal_filter?: string
+          p_search?: string
+          p_site_id?: string
+          p_sort?: string
+          p_sort_dir?: string
+        }
+        Returns: Json
+      }
+      list_employee_portal_punch_reminder_candidates: {
+        Args: never
+        Returns: Json
+      }
+      list_employee_portal_push_subscriptions: {
+        Args: { p_employee_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      list_employee_portal_token_batches: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
+      list_employee_portal_tokens: {
+        Args: { p_employee_id: string }
+        Returns: Json
+      }
+      list_employee_qualifications: {
+        Args: { p_employee_id: string; p_include_inactive?: boolean }
+        Returns: {
+          created_at: string | null
+          employee_id: string | null
+          expires_at: string | null
+          id: string | null
+          is_active: boolean | null
+          issued_at: string | null
+          key: string | null
+          label: string | null
+          notes: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "employee_qualifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_employee_readiness_projection: {
+        Args: {
+          p_department_id?: string
+          p_is_ready?: boolean
+          p_limit?: number
+          p_offset?: number
+          p_site_id?: string
+        }
+        Returns: {
+          blocking_reasons: Json
+          computed_at: string
+          configuration_status: string
+          department_id: string
+          employee_id: string
+          employee_name: string
+          is_ready: boolean
+          site_id: string
+        }[]
+      }
+      list_employee_role_assignments: {
+        Args: { p_employee_id: string; p_include_inactive?: boolean }
+        Returns: {
+          created_at: string
+          employee_id: string
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          level: number
+          role_id: string
+          role_key: string
+          role_name: string
+          tenant_id: string
+          updated_at: string
+          valid_from: string
+          valid_to: string
+        }[]
+      }
+      list_employment_contract_alerts: {
+        Args: { p_as_of?: string; p_employee_id?: string }
+        Returns: Json
+      }
+      list_entity_comment_templates: {
+        Args: { p_entity_type?: string }
+        Returns: Json
+      }
+      list_entity_risk_rules: { Args: never; Returns: Json }
+      list_labor_rules: { Args: { p_site_id?: string }; Returns: Json }
+      list_pause_configs: {
+        Args: never
+        Returns: {
+          counts_as_work: boolean | null
+          created_at: string | null
+          default_duration_min: number | null
+          id: string | null
+          is_active: boolean | null
+          key: string | null
+          label_i18n: Json | null
+          max_duration_minutes: number | null
+          requires_justification: boolean | null
+          site_id: string | null
+          sort_order: number | null
+          tenant_id: string | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "tenant_pause_configs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_platform_secrets: {
+        Args: never
+        Returns: unknown[]
+        SetofOptions: {
+          from: "*"
+          to: "platform_secret_registry"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_projects_paginated: {
+        Args: {
+          p_created_by?: string
+          p_department_id?: string
+          p_open_only?: boolean
+          p_page?: number
+          p_page_size?: number
+          p_planned_start_from?: string
+          p_planned_start_to?: string
+          p_query?: string
+          p_site_id?: string
+          p_sort_direction?: string
+          p_sort_field?: string
+          p_status?: string
+          p_tenant_id: string
+          p_type?: string
+        }
+        Returns: {
+          items: Json
+          page: number
+          page_size: number
+          total_count: number
+        }[]
+      }
+      list_public_job_postings: {
+        Args: { p_public_site_id: string }
+        Returns: Json
+      }
+      list_recruitment_email_inbox: {
+        Args: { p_status?: string }
+        Returns: Json
+      }
+      list_role_qualification_requirements: {
+        Args: { p_include_inactive?: boolean; p_role_id: string }
+        Returns: {
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          min_level: number | null
+          qualification_key: string | null
+          required: boolean | null
+          role_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "role_qualification_requirements"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_secret_access_log: {
+        Args: {
+          p_accessed_by_fn?: string
+          p_limit?: number
+          p_secret_type?: string
+          p_tenant_id?: string
+        }
+        Returns: unknown[]
+        SetofOptions: {
+          from: "*"
+          to: "secret_access_log"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_secret_rotation_log: {
+        Args: { p_limit?: number; p_tenant_id?: string }
+        Returns: unknown[]
+        SetofOptions: {
+          from: "*"
+          to: "secret_rotation_log"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_shift_opening_claims: {
+        Args: { p_opening_id: string }
+        Returns: {
+          claimed_at: string
+          created_at: string
+          employee_id: string
+          employee_name: string
+          id: string
+          notes: string
+          opening_id: string
+          resulting_slot_id: string
+          review_comment: string
+          reviewed_at: string
+          reviewed_by: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }[]
+      }
+      list_shift_openings: {
+        Args: {
+          p_from?: string
+          p_site_id: string
+          p_status?: string
+          p_to?: string
+        }
+        Returns: {
+          cancelled_at: string | null
+          claim_policy: string | null
+          closes_at: string | null
+          compensation_label: string | null
+          created_at: string | null
+          created_by: string | null
+          end_time: string | null
+          id: string | null
+          location_id: string | null
+          location_name_snapshot: string | null
+          notes: string | null
+          opening_date: string | null
+          opens_at: string | null
+          places_filled: number | null
+          places_total: number | null
+          published_at: string | null
+          role_id: string | null
+          role_name_snapshot: string | null
+          shift_id: string | null
+          site_id: string | null
+          start_time: string | null
+          status: string | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "shift_openings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      list_shift_publications: {
+        Args: { p_limit?: number; p_site_id: string; p_week_start?: string }
+        Returns: Json
+      }
+      list_shift_swap_requests: {
+        Args: {
+          p_from?: string
+          p_site_id: string
+          p_status?: string
+          p_to?: string
+        }
+        Returns: {
+          created_at: string
+          eligibility: Json
+          end_time: string
+          id: string
+          kind: string
+          requester_id: string
+          requester_name: string
+          requester_notes: string
+          requester_slot_id: string
+          review_comment: string
+          slot_date: string
+          start_time: string
+          status: string
+          target_employee_id: string
+          target_employee_name: string
+          target_slot_id: string
+        }[]
+      }
+      list_signing_group_recipients: {
+        Args: { p_session_id: string }
+        Returns: Json
+      }
+      list_site_availability: {
+        Args: {
+          p_date: string
+          p_end_time?: string
+          p_site_id: string
+          p_start_time?: string
+        }
+        Returns: Json
+      }
+      list_site_legal_risk_employees: {
+        Args: { p_site_id: string; p_threshold_pct?: number }
+        Returns: Json
+      }
+      list_tenant_certifications: {
+        Args: {
+          p_computed_status?: string
+          p_department_id?: string
+          p_include_revoked?: boolean
+          p_limit?: number
+          p_offset?: number
+          p_site_id?: string
+        }
+        Returns: {
+          computed_status: string
+          created_at: string
+          credential_number: string
+          department_id: string
+          document_id: string
+          employee_id: string
+          employee_name: string
+          id: string
+          issued_on: string
+          issuer: string
+          requirement_category: string
+          requirement_code: string
+          requirement_name: string
+          requirement_type_id: string
+          revoked_at: string
+          site_id: string
+          tenant_id: string
+          valid_from: string
+          valid_until: string
+        }[]
+      }
+      list_tenant_content_items: {
+        Args: { p_filters?: Json; p_tenant_id: string }
+        Returns: Json
+      }
+      list_tenant_secrets: { Args: { p_tenant_id: string }; Returns: Json }
+      list_tenant_vacation_entitlements: {
+        Args: { p_leave_type?: string }
+        Returns: Json
+      }
+      list_tenant_webhooks: { Args: never; Returns: Json }
+      list_webhook_delivery_log: {
+        Args: { p_limit?: number; p_webhook_id?: string }
+        Returns: Json
+      }
+      list_work_roles: {
+        Args: { p_include_inactive?: boolean; p_site_id?: string }
+        Returns: {
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          key: string | null
+          name: string | null
+          site_id: string | null
+          sort_order: number | null
+          tenant_id: string | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "work_roles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      load_ai_conversation_messages_service: {
+        Args: {
+          p_conversation_id: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      log_ai_usage: {
+        Args: {
+          p_completion_tokens?: number
+          p_error_code?: string
+          p_feature: string
+          p_latency_ms?: number
+          p_model: string
+          p_prompt_tokens?: number
+          p_provider: string
+          p_request_status: string
+          p_site_id?: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      log_egress: {
+        Args: {
+          p_node_id: string
+          p_size_bytes: number
+          p_storage_provider_id: string
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
+      log_email_body_viewed: {
+        Args: { p_email_log_id: string; p_portal?: string }
+        Returns: undefined
+      }
+      log_employee_portal_access_event: {
+        Args: {
+          p_action: string
+          p_employee_id: string
+          p_failure_reason?: string
+          p_http_status?: number
+          p_ip_address?: unknown
+          p_metadata?: Json
+          p_tenant_id: string
+          p_token_id: string
+          p_user_agent?: string
+        }
+        Returns: undefined
+      }
+      log_geocoding_usage: {
+        Args: {
+          p_billable_units?: number
+          p_billing_source?: string
+          p_cache_hit?: boolean
+          p_idempotency_key?: string
+          p_operation: string
+          p_payload?: Json
+          p_provider_key: string
+          p_request_id?: string
+          p_request_status: string
+          p_site_id?: string
+          p_tenant_id: string
+          p_unit_price?: number
+        }
+        Returns: string
+      }
+      log_platform_secret_rotation: {
+        Args: {
+          p_notes?: string
+          p_rotated_by?: string
+          p_rotation_due_at?: string
+          p_secret_key: string
+        }
+        Returns: undefined
+      }
+      log_queue_batch_audit: {
+        Args: {
+          p_dlqed: number
+          p_queue_name: string
+          p_retried: number
+          p_skipped: number
+          p_succeeded: number
+          p_total: number
+        }
+        Returns: undefined
+      }
+      log_signing_evidence: {
+        Args: {
+          p_event_type: string
+          p_geolocation?: Json
+          p_ip_address?: string
+          p_metadata?: Json
+          p_session_id: string
+          p_user_agent?: string
+        }
+        Returns: undefined
+      }
+      log_tenant_operation: {
+        Args: {
+          p_actor_user_id?: string
+          p_attempt_count?: number
+          p_correlation_id?: string
+          p_duration_ms?: number
+          p_duration_threshold_ms?: number
+          p_entity_id?: string
+          p_entity_type?: string
+          p_error_code?: string
+          p_error_message?: string
+          p_external_service?: string
+          p_integration_type:
+            | "email"
+            | "sms"
+            | "push"
+            | "webhook_inbound"
+            | "webhook_outbound"
+            | "erp_sync"
+            | "signing"
+            | "pdf_generation"
+            | "ai_generation"
+            | "ai_chat"
+            | "import"
+            | "export"
+            | "storage"
+            | "geocoding"
+            | "billing"
+            | "other"
+          p_is_retryable?: boolean
+          p_max_attempts?: number
+          p_message?: string
+          p_operation_code: string
+          p_payload_summary?: Json
+          p_site_id?: string
+          p_source_job_id?: string
+          p_source_job_table?: string
+          p_status:
+            | "pending"
+            | "running"
+            | "success"
+            | "failed"
+            | "dead_letter"
+            | "cancelled"
+            | "degraded"
+          p_tenant_id: string
+          p_title: string
+        }
+        Returns: string
+      }
+      lookup_ai_action_proposal_by_token_service: {
+        Args: { p_proposal_token: string; p_tenant_id: string }
+        Returns: Json
+      }
+      lookup_employee_portal_pin_reset_by_hash: {
+        Args: { p_reset_token_hash_hex: string }
+        Returns: Json
+      }
+      lookup_employee_portal_token_by_hash: {
+        Args: { p_token_hash_hex: string }
+        Returns: Json
+      }
+      lookup_signing_session_by_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
+      maintenance_plan_unpublished_templates: {
+        Args: { p_plan_id: string }
+        Returns: number
+      }
+      manager_confirm_attendance_month: {
+        Args: { p_employee_id: string; p_month: number; p_year: number }
+        Returns: string
+      }
+      manager_resolve_open_pause: {
+        Args: {
+          p_also_punch_out?: boolean
+          p_break_end_at?: string
+          p_employee_id: string
+          p_reason: string
+          p_work_date?: string
+        }
+        Returns: Json
+      }
+      mark_customer_intervention_report_media_copy_job: {
+        Args: {
+          p_copied_size_bytes?: number
+          p_failure_reason?: string
+          p_job_id: string
+          p_succeeded: boolean
+        }
+        Returns: undefined
+      }
+      mark_customer_report_share_delivery_result: {
+        Args: {
+          p_failure_reason?: string
+          p_intent_id: string
+          p_success: boolean
+        }
+        Returns: undefined
+      }
+      mark_entity_comment_mention_read: {
+        Args: { p_comment_id: string }
+        Returns: boolean
+      }
+      mark_entity_timeline_seen: {
+        Args: { p_entity_id: string; p_entity_type: string }
+        Returns: Json
+      }
+      mark_file_as_done: {
+        Args: { p_actual_size: number; p_file_id: string }
+        Returns: string
+      }
+      mark_notification_read: { Args: { p_id: string }; Returns: undefined }
+      mark_operation_log_resolved: {
+        Args: { p_log_id: string; p_note?: string; p_tenant_id: string }
+        Returns: boolean
+      }
+      mark_signing_submission_reviewed: {
+        Args: { p_submission_id: string }
+        Returns: Json
+      }
+      maybe_record_geocoding_abuse_alert: {
+        Args: {
+          p_provider_key: string
+          p_tenant_id: string
+          p_threshold?: number
+        }
+        Returns: Json
+      }
+      move_application_stage: {
+        Args: { p_application_id: string; p_stage_id: string }
+        Returns: Json
+      }
+      move_to_dlq: {
+        Args: {
+          p_attempt_count: number
+          p_error: string
+          p_original_msg_id: number
+          p_payload: Json
+          p_queue: string
+        }
+        Returns: undefined
+      }
+      my_attendance_today: { Args: { p_employee_id?: string }; Returns: Json }
+      normalize_employee_document_id: {
+        Args: { p_value: string }
+        Returns: string
+      }
+      on_native_signer_completed:
+        | {
+            Args: {
+              p_result_version_id: string
+              p_session_id: string
+              p_signed_at?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_result_version_id: string
+              p_session_id: string
+              p_signed_at?: string
+              p_staging_storage_path?: string
+            }
+            Returns: Json
+          }
+      parse_ai_provider: {
+        Args: { p_provider: string }
+        Returns: "openai" | "anthropic" | "gemini" | "openrouter"
+      }
+      patch_public_site_theme: {
+        Args: { p_id: string; p_patch: Json; p_section: string }
+        Returns: undefined
+      }
+      peek_attendance_inspection_access: {
+        Args: { p_link_id: string; p_secret: string }
+        Returns: Json
+      }
+      peek_customer_access_invitation: {
+        Args: { p_token_hash: string }
+        Returns: Json
+      }
+      persist_checklist_public_report_document: {
+        Args: { p_payload: Json; p_project_id: string }
+        Returns: string
+      }
+      persist_platform_ai_provider_models: {
+        Args: { p_models: string[]; p_provider: string }
+        Returns: Json
+      }
+      persist_tenant_ai_provider_models: {
+        Args: { p_models: string[]; p_provider: string; p_tenant_id: string }
+        Returns: Json
+      }
+      pgmq_send: { Args: { p_message: Json; p_queue: string }; Returns: number }
+      pin_entity_comment: {
+        Args: { p_id: string; p_pinned?: boolean }
+        Returns: undefined
+      }
+      ping: { Args: never; Returns: boolean }
+      pop_deletion_messages: {
+        Args: { p_batch_size?: number }
+        Returns: {
+          file_node_id: string
+          msg_id: number
+          storage_key: string
+          storage_provider_id: string
+          tenant_id: string
+        }[]
+      }
+      pop_email_messages: {
+        Args: { p_batch_size?: number }
+        Returns: {
+          email_log_id: string
+          idempotency_key: string
+          msg_id: number
+          priority: number
+          scheduled_at: string
+          tenant_id: string
+        }[]
+      }
+      preflight_employment_contracts_backfill: {
+        Args: { p_tenant_id?: string }
+        Returns: Json
+      }
+      preflight_external_contract_import: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
+      preflight_publish_shifts: {
+        Args: { p_site_id: string; p_week_start: string }
+        Returns: Json
+      }
+      prepare_ai_execution: {
+        Args: {
+          p_estimated_tokens?: number
+          p_feature?: string
+          p_model?: string
+          p_provider?: string
+          p_site_id?: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      prepare_customer_intervention_report_media: {
+        Args: { p_draft_id: string }
+        Returns: Json
+      }
+      prepare_employee_medical_clearance_signing: {
+        Args: { p_certification_id: string }
+        Returns: Json
+      }
+      prepare_employment_contract_signing: {
+        Args: { p_contract_id: string }
+        Returns: Json
+      }
+      prepare_notification_delivery_service: {
+        Args: {
+          p_channel: "in_app" | "push" | "email" | "sms" | "whatsapp"
+          p_correlation_id: string
+          p_delivery_id: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_event_code: string
+          p_payload_summary?: Json
+          p_recipient_id: string
+          p_recipient_kind: "tenant_member" | "contact" | "raw_address"
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
+      prepare_regenerate_ai_chat_turn_service: {
+        Args: {
+          p_conversation_id: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      preview_customer_intervention_report_draft: {
+        Args: { p_draft_id: string }
+        Returns: Json
+      }
+      preview_tenant_content_reach: {
+        Args: { p_item_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      process_automation_wait_timers: { Args: never; Returns: Json }
+      process_email_webhook: {
+        Args: {
+          p_metadata?: Json
+          p_new_status: string
+          p_provider_message_id: string
+        }
+        Returns: string
+      }
+      process_playbook_dispatch: {
+        Args: { p_audit_log_id: string; p_playbook_id: string }
+        Returns: Json
+      }
+      process_risk_incident: { Args: { p_incident_id: string }; Returns: Json }
+      promote_lead_to_contact: { Args: { p_lead_id: string }; Returns: string }
+      publish_checklist_template_version: {
+        Args: { p_version_id: string }
+        Returns: string
+      }
+      publish_customer_intervention_report: {
+        Args: { p_draft_id: string }
+        Returns: string
+      }
+      publish_public_site: { Args: { p_id: string }; Returns: undefined }
+      publish_shift_opening: { Args: { p_id: string }; Returns: Json }
+      publish_shifts: {
+        Args: {
+          p_site_id: string
+          p_warnings_accepted?: string[]
+          p_week_start: string
+        }
+        Returns: Json
+      }
+      publish_tenant_content_item: {
+        Args: { p_item_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      read_queue_batch: {
+        Args: { p_count?: number; p_queue: string; p_vt?: number }
+        Returns: {
+          message: Json
+          msg_id: number
+          read_ct: number
+        }[]
+      }
+      recompute_attendance_worker: {
+        Args: {
+          p_employee_id: string
+          p_tenant_id: string
+          p_work_date: string
+        }
+        Returns: Json
+      }
+      reconcile_employment_contracts: {
+        Args: { p_employee_id?: string; p_on?: string }
+        Returns: number
+      }
+      reconcile_storage_usage_service: {
+        Args: { p_limit?: number; p_tenant_id?: string }
+        Returns: Json
+      }
+      record_attendance_station_heartbeat: {
+        Args: {
+          p_device_public_id: string
+          p_device_secret: string
+          p_pending_count?: number
+          p_quarantined_count?: number
+        }
+        Returns: Json
+      }
+      record_compensation_movement: {
+        Args: {
+          p_employee_id: string
+          p_is_credit?: boolean
+          p_minutes: number
+          p_movement_type: string
+          p_notes?: string
+          p_source_type?: string
+          p_source_work_date?: string
+        }
+        Returns: string
+      }
+      record_geocoding_ops_alert: {
+        Args: {
+          p_blocked_requests?: number
+          p_payload?: Json
+          p_provider_key: string
+          p_reason: string
+          p_tenant_id: string
+          p_threshold?: number
+        }
+        Returns: Json
+      }
+      record_login: { Args: never; Returns: undefined }
+      record_maps_js_client_error: {
+        Args: {
+          p_category: string
+          p_code: string
+          p_origin: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      record_platform_ai_key_verification_error: {
+        Args: { p_error: string; p_provider: string }
+        Returns: undefined
+      }
+      record_processed: {
+        Args: { p_key: string; p_msg_id: number; p_queue: string }
+        Returns: undefined
+      }
+      record_station_rate_limit_block: {
+        Args: {
+          p_attempt_count: number
+          p_bucket_type: string
+          p_client_key: string
+          p_employee_id?: string
+          p_max_attempts: number
+          p_tenant_id?: string
+          p_window_minutes: number
+        }
+        Returns: string
+      }
+      record_station_time_punch: {
+        Args: {
+          p_client_op_id: string
+          p_device_geo?: Json
+          p_device_id: string
+          p_employee_id: string
+          p_identity_token?: string
+          p_occurred_at?: string
+          p_pause_type?: string
+          p_punch_type: string
+          p_source?: string
+        }
+        Returns: Json
+      }
+      record_tenant_ai_key_verification_error: {
+        Args: { p_error: string; p_provider: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      record_time_punch: {
+        Args: {
+          p_client_op_id: string
+          p_device_id?: string
+          p_device_info?: Json
+          p_device_name_snapshot?: string
+          p_employee_id: string
+          p_geo?: Json
+          p_geo_consent?: boolean
+          p_geo_error?: string
+          p_is_remote?: boolean
+          p_location_id?: string
+          p_location_name_snapshot?: string
+          p_location_perm?: string
+          p_notes?: string
+          p_occurred_at?: string
+          p_pause_counts_as_work?: boolean
+          p_pause_type?: string
+          p_punch_type: string
+          p_source?: string
+        }
+        Returns: Json
+      }
+      register_ai_models_for_review: {
+        Args: { p_models: string[]; p_provider: string; p_source?: string }
+        Returns: Json
+      }
+      register_attendance_device: {
+        Args: {
+          p_device_public_id: string
+          p_device_secret: string
+          p_local_pin: string
+          p_metadata?: Json
+          p_name?: string
+          p_pairing_code: string
+        }
+        Returns: Json
+      }
+      register_attendance_month_amendment: {
+        Args: {
+          p_description?: string
+          p_employee_id: string
+          p_month: number
+          p_reason: string
+          p_work_date?: string
+          p_year: number
+        }
+        Returns: string
+      }
+      register_it: {
+        Args: {
+          p_absence_type: string
+          p_document_id?: string
+          p_employee_id: string
+          p_end_date?: string
+          p_it_reference?: string
+          p_notes?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      reject_shift_opening_claim: {
+        Args: { p_claim_id: string; p_review_comment?: string }
+        Returns: Json
+      }
+      release_employee_portal_punch_reminder_claim: {
+        Args: {
+          p_employee_id: string
+          p_reminder_kind: string
+          p_work_date: string
+        }
+        Returns: boolean
+      }
+      remove_attendance_location_assignment: {
+        Args: { p_assignment_id: string }
+        Returns: Json
+      }
+      remove_site_holiday_calendar_assignment: {
+        Args: { p_assignment_id: string }
+        Returns: Json
+      }
+      remove_tenant_holiday_calendar_assignment: {
+        Args: { p_assignment_id: string }
+        Returns: Json
+      }
+      reorder_checklist_runs: {
+        Args: { p_project_id: string; p_run_ids: string[] }
+        Returns: number
+      }
+      request_absence: {
+        Args: {
+          p_absence_type: string
+          p_employee_id: string
+          p_end_date: string
+          p_hours_per_day?: number
+          p_notes?: string
+          p_partial_end_time?: string
+          p_partial_start_time?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      request_customer_portal_login_token: {
+        Args: {
+          p_client_key?: string
+          p_email_normalized: string
+          p_ip_address?: unknown
+          p_ttl_minutes?: number
+        }
+        Returns: Json
+      }
+      request_domain_check: {
+        Args: { p_domain_id: string }
+        Returns: undefined
+      }
+      request_shift_swap: {
+        Args: {
+          p_kind?: string
+          p_notes?: string
+          p_requester_slot_id: string
+          p_target_employee_id?: string
+          p_target_slot_id?: string
+        }
+        Returns: Json
+      }
+      reserve_nominatim_global: { Args: never; Returns: Json }
+      resolve_ai_model_capabilities_service: {
+        Args: {
+          p_model_id: string
+          p_provider: "openai" | "anthropic" | "gemini" | "openrouter"
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      resolve_applicant_data_request: {
+        Args: {
+          p_action: string
+          p_export_base_url?: string
+          p_id: string
+          p_rectify_full_name?: string
+          p_rectify_phone?: string
+          p_rejection_reason?: string
+          p_resolution_notes?: string
+        }
+        Returns: Json
+      }
+      resolve_attendance_identity_token: {
+        Args: {
+          p_client_key?: string
+          p_device_public_id: string
+          p_token: string
+        }
+        Returns: Json
+      }
+      resolve_attendance_inspection_access: {
+        Args: {
+          p_client_ip?: string
+          p_link_id: string
+          p_punches_limit?: number
+          p_punches_offset?: number
+          p_secret: string
+          p_summaries_limit?: number
+          p_summaries_offset?: number
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
+      resolve_attendance_station_employee_document: {
+        Args: { p_device_id: string; p_document_id: string }
+        Returns: Json
+      }
+      resolve_automation_approval: {
+        Args: {
+          p_approval_id: string
+          p_comment?: string
+          p_reassign_to_user_id?: string
+          p_resolution: string
+        }
+        Returns: undefined
+      }
+      resolve_contract_planning_cost: {
+        Args: { p_contract_id: string; p_on_date?: string }
+        Returns: Json
+      }
+      resolve_customer_portal_grant_session: {
+        Args: {
+          p_action?: string
+          p_ip_address?: unknown
+          p_report_version_id?: string
+          p_request_id?: string
+          p_session_token_hash: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
+      resolve_customer_portal_share_session: {
+        Args: {
+          p_action?: string
+          p_ip_address?: unknown
+          p_request_id?: string
+          p_session_token_hash: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
+      resolve_document_share_link: {
+        Args: { p_token: string }
+        Returns: {
+          document_id: string
+          is_expired: boolean
+          is_revoked: boolean
+          storage_path: string
+          tenant_id: string
+          title: string
+          version_id: string
+        }[]
+      }
+      resolve_domain_for_portal: {
+        Args: { p_domain: string }
+        Returns: Database["api"]["CompositeTypes"]["portal_site_row"]
+        SetofOptions: {
+          from: "*"
+          to: "portal_site_row"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      resolve_effective_geocoding_provider: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
+      resolve_employee_availability: {
+        Args: {
+          p_date: string
+          p_employee_id: string
+          p_end_time?: string
+          p_start_time?: string
+        }
+        Returns: Json
+      }
+      resolve_employee_baseline_plan: {
+        Args: { p_employee_id: string; p_work_date?: string }
+        Returns: Json
+      }
+      resolve_employee_contract_terms: {
+        Args: { p_employee_id: string; p_work_date?: string }
+        Returns: Json
+      }
+      resolve_employee_hour_balance: {
+        Args: { p_as_of?: string; p_employee_id: string }
+        Returns: Json
+      }
+      resolve_employee_signer_email: {
+        Args: { p_employee_id: string }
+        Returns: string
+      }
+      resolve_employee_work_context: {
+        Args: {
+          p_employee_id: string
+          p_requested_site_id?: string
+          p_work_date?: string
+        }
+        Returns: Json
+      }
+      resolve_entity_comment_task: {
+        Args: { p_id: string; p_resolved?: boolean }
+        Returns: undefined
+      }
+      resolve_labor_rule: {
+        Args: {
+          p_collective_agreement_id?: string
+          p_professional_category_id?: string
+          p_rule_key: string
+          p_site_id: string
+          p_tenant_id: string
+        }
+        Returns: {
+          is_exception: boolean
+          provenance: string
+          rule_id: string
+          severity: string
+          source: string
+          value_numeric: number
+        }[]
+      }
+      resolve_notification_routing_context: {
+        Args: {
+          p_event_code: string
+          p_recipient_id: string
+          p_recipient_kind: "tenant_member" | "contact" | "raw_address"
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      resolve_public_site_for_employee: {
+        Args: { p_employee_id: string }
+        Returns: Json
+      }
+      resolve_share_link: {
+        Args: { p_token: string }
+        Returns: {
+          file_name: string
+          is_expired: boolean
+          mime_type: string
+          node_id: string
+          storage_key: string
+          tenant_id: string
+        }[]
+      }
+      resolve_site_for_portal: {
+        Args: { p_slug: string }
+        Returns: Database["api"]["CompositeTypes"]["portal_site_row"]
+        SetofOptions: {
+          from: "*"
+          to: "portal_site_row"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      resolve_work_day: {
+        Args: { p_employee_id: string; p_work_date: string }
+        Returns: Json
+      }
+      restore_node: { Args: { p_node_id: string }; Returns: number }
+      retry_automation_run: { Args: { p_run_id: string }; Returns: undefined }
+      retry_pdf_dead_letters: {
+        Args: { p_tenant_id?: string }
+        Returns: number
+      }
+      return_employee_asset: {
+        Args: {
+          p_asset_id: string
+          p_condition?: string
+          p_notes?: string
+          p_return_document_id?: string
+        }
+        Returns: {
+          acknowledgment_document_id: string | null
+          asset_calibration_due_on: string | null
+          asset_id: string | null
+          asset_name: string | null
+          asset_requires_calibration: boolean | null
+          asset_site_id: string | null
+          asset_status: string | null
+          asset_tag: string | null
+          asset_type_id: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          created_at: string | null
+          employee_id: string | null
+          employee_name: string | null
+          expected_return_at: string | null
+          id: string | null
+          notes: string | null
+          return_condition: string | null
+          return_document_id: string | null
+          returned_at: string | null
+          returned_by: string | null
+          tenant_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_asset_assignments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reveal_applicant_data_request_email: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      reveal_employee_private_field: {
+        Args: { p_employee_id: string; p_field: string }
+        Returns: Json
+      }
+      revoke_attendance_inspection_access_link: {
+        Args: { p_link_id: string }
+        Returns: Json
+      }
+      revoke_attendance_station_secret: {
+        Args: { p_device_id: string }
+        Returns: Json
+      }
+      revoke_contact_relationship: {
+        Args: { p_reason?: string; p_relationship_id: string }
+        Returns: undefined
+      }
+      revoke_customer_access_grant: {
+        Args: { p_grant_id: string; p_reason?: string }
+        Returns: string
+      }
+      revoke_customer_access_invitation: {
+        Args: { p_invitation_id: string; p_reason?: string }
+        Returns: string
+      }
+      revoke_customer_portal_staff_session: {
+        Args: { p_session_id: string }
+        Returns: string
+      }
+      revoke_customer_report_share: {
+        Args: { p_reason?: string; p_share_id: string }
+        Returns: string
+      }
+      revoke_document_share_link: {
+        Args: { p_share_link_id: string }
+        Returns: boolean
+      }
+      revoke_employee_certification: {
+        Args: { p_id: string; p_reason?: string }
+        Returns: {
+          computed_status: string | null
+          created_at: string | null
+          created_by: string | null
+          credential_number: string | null
+          document_id: string | null
+          employee_id: string | null
+          id: string | null
+          issued_on: string | null
+          issuer: string | null
+          notes: string | null
+          requirement_category: string | null
+          requirement_code: string | null
+          requirement_name: string | null
+          requirement_type_id: string | null
+          revoked_at: string | null
+          revoked_reason: string | null
+          signing_submission_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_certifications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      revoke_employee_portal_token: {
+        Args: { p_compromised?: boolean; p_reason?: string; p_token_id: string }
+        Returns: Json
+      }
+      revoke_employee_portal_token_system: {
+        Args: { p_compromised?: boolean; p_token_id: string }
+        Returns: boolean
+      }
+      revoke_tenant_secret: {
+        Args: { p_provider: string; p_secret_type: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      rotate_tenant_field_dek: { Args: { p_tenant_id: string }; Returns: Json }
+      rotate_tenant_secret: {
+        Args: {
+          p_new_value: string
+          p_provider: string
+          p_secret_type: string
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
+      run_ai_chat_orphan_cleanup_service: {
+        Args: { p_batch_limit?: number; p_ttl_days?: number }
+        Returns: Json
+      }
+      run_attendance_anomaly_automations: {
+        Args: { p_as_of?: string; p_tenant_id?: string }
+        Returns: Json
+      }
+      run_attendance_protocol_orphan_cleanup_service: {
+        Args: { p_batch_limit?: number; p_ttl_days?: number }
+        Returns: Json
+      }
+      run_attendance_retention_purge: {
+        Args: {
+          p_batch_limit?: number
+          p_max_batches?: number
+          p_tenant_id?: string
+        }
+        Returns: Json
+      }
+      run_emit_asset_calibration_notices: {
+        Args: { p_as_of?: string }
+        Returns: Json
+      }
+      run_emit_certification_expiry_notices: {
+        Args: { p_as_of?: string }
+        Returns: Json
+      }
+      run_emit_employment_contract_expiry_notices: {
+        Args: { p_as_of?: string }
+        Returns: Json
+      }
+      run_reconcile_employment_contracts: {
+        Args: { p_as_of?: string }
+        Returns: Json
+      }
+      run_reconcile_scheduled_lifecycle_events: {
+        Args: { p_as_of?: string }
+        Returns: Json
+      }
+      run_refresh_employee_readiness_projection: {
+        Args: { p_employee_id: string }
+        Returns: Json
+      }
+      run_refresh_stale_readiness_projections: {
+        Args: { p_as_of?: string }
+        Returns: Json
+      }
+      save_absence_type_export_settings: {
+        Args: {
+          p_absence_type: string
+          p_export_code: string
+          p_parent_key?: string
+          p_subtype_key?: string
+        }
+        Returns: string
+      }
+      save_application_cv_structured: {
+        Args: { p_application_id: string; p_payload: Json }
+        Returns: Json
+      }
+      save_draft_checklist_items: {
+        Args: { p_items: Json; p_version_id: string }
+        Returns: number
+      }
+      save_platform_ai_provider_secret: {
+        Args: {
+          p_api_key: string
+          p_available_models?: string[]
+          p_base_url?: string
+          p_model?: string
+          p_provider: string
+        }
+        Returns: Json
+      }
+      save_storage_config: {
+        Args: {
+          p_access_key: string
+          p_allowed_mime_types?: string[]
+          p_bucket_name: string
+          p_endpoint_url: string
+          p_max_file_size_bytes?: number
+          p_nickname?: string
+          p_provider_id?: string
+          p_provider_type: string
+          p_quota_limit_bytes?: number
+          p_region: string
+          p_secret_access_key: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
+      save_tenant_ai_config: {
+        Args: {
+          p_api_key: string
+          p_base_url?: string
+          p_model?: string
+          p_provider: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      save_tenant_ai_provider_config: {
+        Args: {
+          p_api_key?: string
+          p_base_url?: string
+          p_model?: string
+          p_provider: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      save_tenant_ai_provider_generation_settings: {
+        Args: {
+          p_max_tokens?: number
+          p_provider: string
+          p_system_prompt?: string
+          p_temperature?: number
+          p_tenant_id: string
+          p_use_platform_defaults?: boolean
+        }
+        Returns: Json
+      }
+      save_tenant_ai_provider_secret: {
+        Args: {
+          p_api_key: string
+          p_available_models?: string[]
+          p_base_url?: string
+          p_model?: string
+          p_provider: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      save_tenant_docuseal_config: {
+        Args: {
+          p_api_key?: string
+          p_api_url?: string
+          p_credits?: number
+          p_mode: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      schedule_automation_wait: {
+        Args: { p_run_id: string; p_step_run_id: string; p_wait_until?: string }
+        Returns: undefined
+      }
+      search_calendar_events_for_ai: {
+        Args: {
+          p_from: string
+          p_limit?: number
+          p_site_id: string
+          p_tenant_id: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      search_document_templates_for_ai: {
+        Args: { p_limit?: number; p_search?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      search_employees_by_skill: {
+        Args: { p_min_level_rank?: number; p_skill_id: string }
+        Returns: {
+          employee_id: string
+          full_name: string
+          level_id: string
+          level_name: string
+          level_rank: number
+          preferred_name: string
+          skill_id: string
+          skill_name: string
+        }[]
+      }
+      search_employees_by_skills: {
+        Args: {
+          p_criteria?: Json
+          p_limit?: number
+          p_match_mode?: string
+          p_site_id?: string
+        }
+        Returns: {
+          employee_id: string
+          full_name: string
+          job_position_name: string
+          matched_skills: Json
+          photo_object_path: string
+          preferred_name: string
+          site_id: string
+          site_name: string
+        }[]
+      }
+      search_employees_by_skills_for_ai: {
+        Args: {
+          p_criteria?: Json
+          p_limit?: number
+          p_match_mode?: string
+          p_site_id?: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      search_employees_for_ai: {
+        Args: {
+          p_department_id?: string
+          p_limit?: number
+          p_search?: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      search_files: {
+        Args: { p_query: string; p_tenant_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          mime_type: string
+          name: string
+          node_type: string
+          parent_id: string
+          path: string
+          size_bytes: number
+          tenant_id: string
+          updated_at: string
+        }[]
+      }
+      search_tenant_members_for_mention: {
+        Args: { p_limit?: number; p_query?: string }
+        Returns: Json
+      }
+      send_test_notification: {
+        Args: {
+          p_channels?: ("in_app" | "push" | "email" | "sms" | "whatsapp")[]
+        }
+        Returns: number
+      }
+      send_test_sms: { Args: { p_phone_e164: string }; Returns: number }
+      set_ai_action_proposal_token_service: {
+        Args: { p_proposal_id: string; p_proposal_token: string }
+        Returns: undefined
+      }
+      set_ai_analytics_cron_enabled: {
+        Args: { p_enabled: boolean; p_tenant_id: string }
+        Returns: Json
+      }
+      set_calendar_group_weekly_day: {
+        Args: {
+          p_day_of_week: number
+          p_day_type: string
+          p_effective_from?: string
+          p_group_id: string
+          p_work_intervals?: Json
+        }
+        Returns: Json
+      }
+      set_checklist_run_item_resolution: {
+        Args: {
+          p_item_id: string
+          p_resolution_note?: string
+          p_resolution_reason?: string
+          p_resolution_status: string
+        }
+        Returns: string
+      }
+      set_checklist_template_default: {
+        Args: { p_is_default?: boolean; p_template_id: string }
+        Returns: string
+      }
+      set_contact_preferred_locale: {
+        Args: { p_contact_id: string; p_locale: string }
+        Returns: undefined
+      }
+      set_contact_site_preferred_locale: {
+        Args: { p_contact_site_id: string; p_locale: string }
+        Returns: undefined
+      }
+      set_customer_portal_kill_switch: {
+        Args: {
+          p_enabled?: boolean
+          p_note?: string
+          p_scope: string
+          p_tenant_id?: string
+        }
+        Returns: Json
+      }
+      set_customer_portal_platform_max_mode: {
+        Args: { p_max_mode: string; p_note?: string }
+        Returns: Json
+      }
+      set_customer_portal_tenant_policies: {
+        Args: {
+          p_existing_access_policy?: string
+          p_new_access_policy?: string
+          p_new_share_policy?: string
+          p_note?: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      set_document_tags: {
+        Args: { p_document_id: string; p_tag_ids?: string[] }
+        Returns: undefined
+      }
+      set_employee_calendar_group: {
+        Args: { p_calendar_group_id?: string; p_employee_id: string }
+        Returns: undefined
+      }
+      set_employee_photo_path: {
+        Args: { p_employee_id: string; p_photo_object_path: string }
+        Returns: Database["api"]["Views"]["employees"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "employees"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_employee_tags: {
+        Args: { p_employee_id: string; p_tag_ids: string[] }
+        Returns: {
+          assigned_at: string | null
+          assigned_by: string | null
+          employee_id: string | null
+          tag_id: string | null
+          tenant_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "employee_tag_assignments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      set_employee_weekly_day: {
+        Args: {
+          p_day_of_week: number
+          p_day_type: string
+          p_effective_from?: string
+          p_employee_id: string
+          p_work_intervals?: Json
+        }
+        Returns: Json
+      }
+      set_entity_subscription: {
+        Args: {
+          p_entity_id: string
+          p_entity_type: string
+          p_subscribed?: boolean
+        }
+        Returns: boolean
+      }
+      set_my_customer_portal_bulletin_bcc: {
+        Args: { p_bcc_emails?: string[] }
+        Returns: Json
+      }
+      set_my_customer_portal_enabled: {
+        Args: { p_enabled: boolean; p_note?: string }
+        Returns: Json
+      }
+      set_primary_domain: {
+        Args: { p_domain_id: string; p_public_site_id: string }
+        Returns: undefined
+      }
+      set_project_visit_intent: {
+        Args: { p_id: string; p_intent: string }
+        Returns: undefined
+      }
+      set_project_work_notes: {
+        Args: { p_html: string; p_id: string }
+        Returns: undefined
+      }
+      set_queue_message_vt: {
+        Args: { p_msg_id: number; p_queue: string; p_vt_seconds: number }
+        Returns: undefined
+      }
+      set_recruitment_ai_assist_enabled: {
+        Args: { p_enabled: boolean; p_tenant_id: string }
+        Returns: Json
+      }
+      set_tenant_ai_default_provider: {
+        Args: { p_provider: string; p_tenant_id: string }
+        Returns: Json
+      }
+      set_tenant_ai_tokens_daily_limit: {
+        Args: { p_rate_limit_tokens_per_day: number; p_tenant_id: string }
+        Returns: Json
+      }
+      set_tenant_ai_user_policy: {
+        Args: {
+          p_ai_enabled?: boolean
+          p_allowed_models?: Json
+          p_custom_daily_limit?: number
+          p_custom_hourly_limit?: number
+          p_custom_tokens_daily_limit?: number
+          p_notes?: string
+          p_policy: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      set_tenant_signing_active: {
+        Args: { p_active: boolean; p_tenant_id: string }
+        Returns: Json
+      }
+      stage_attendance_protocol_publish: {
+        Args: {
+          p_employee_id: string
+          p_employee_name?: string
+          p_pdf_job_id: string
+          p_requires_signature?: boolean
+          p_signer_email?: string
+        }
+        Returns: string
+      }
+      star_node: { Args: { p_node_id: string }; Returns: undefined }
+      start_automation_step_run: {
+        Args: { p_step_run_id: string }
+        Returns: undefined
+      }
+      start_employee_portal_token_batch: {
+        Args: {
+          p_employee_ids: string[]
+          p_force_new?: boolean
+          p_idempotency_key: string
+          p_label?: string
+          p_pin_must_set?: boolean
+          p_skip_inactive?: boolean
+        }
+        Returns: Json
+      }
+      start_work_log: {
+        Args: {
+          p_check_in?: string
+          p_client_op_id: string
+          p_geo?: Json
+          p_location_perm?: string
+          p_notes?: string
+          p_project_id: string
+          p_task_id?: string
+        }
+        Returns: Json
+      }
+      station_employee_location_hint: {
+        Args: { p_device_id: string; p_employee_id: string }
+        Returns: Json
+      }
+      stop_work_log: {
+        Args: {
+          p_check_out?: string
+          p_client_op_id?: string
+          p_close_task?: boolean
+          p_geo?: Json
+          p_location_perm?: string
+          p_log_id?: string
+          p_notes?: string
+        }
+        Returns: Json
+      }
+      submit_applicant_data_request: {
+        Args: {
+          p_email: string
+          p_message?: string
+          p_public_site_id: string
+          p_request_type: string
+        }
+        Returns: Json
+      }
+      submit_job_application: {
+        Args: {
+          p_cover_message?: string
+          p_cv_storage_path?: string
+          p_email: string
+          p_full_name: string
+          p_idempotency_key: string
+          p_job_posting_id: string
+          p_legal_notice_version?: string
+          p_locale?: string
+          p_phone?: string
+          p_privacy_accepted?: boolean
+          p_public_site_id: string
+          p_retention_months?: number
+          p_retention_preference?: string
+          p_source?: string
+          p_verify_base_url?: string
+        }
+        Returns: Json
+      }
+      submit_post_rejection_preferences: {
+        Args: { p_choice: string; p_talent_months?: number; p_token: string }
+        Returns: Json
+      }
+      submit_public_lead: {
+        Args: {
+          p_email?: string
+          p_idempotency_key: string
+          p_message?: string
+          p_metadata?: Json
+          p_name?: string
+          p_phone?: string
+          p_public_site_id: string
+          p_source_page_slug?: string
+          p_source_url?: string
+        }
+        Returns: string
+      }
+      submit_punch_discrepancy: {
+        Args: {
+          p_context?: Json
+          p_note?: string
+          p_punch_id: string
+          p_resolution: string
+        }
+        Returns: Json
+      }
+      suggest_next_expiry: {
+        Args: { p_document_id: string; p_effective_date?: string }
+        Returns: string
+      }
+      summarize_location_work: {
+        Args: {
+          p_employee_id?: string
+          p_from: string
+          p_location_id?: string
+          p_site_id: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      switch_work_log: {
+        Args: {
+          p_client_op_id: string
+          p_current_log_id: string
+          p_employee_id: string
+          p_gap_kind?: string
+          p_geo?: Json
+          p_location_perm?: string
+          p_next_project_id: string
+          p_next_task_id?: string
+          p_notes?: string
+          p_start_at?: string
+          p_stop_at?: string
+        }
+        Returns: Json
+      }
+      sync_ai_analytics_job_for_tenant_service: {
+        Args: { p_notify_user_id: string; p_tenant_id: string }
+        Returns: string
+      }
+      sync_draft_checklist_items_from_points: {
+        Args: { p_version_id: string }
+        Returns: number
+      }
+      sync_portal_entitlements_with_plan: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
+      sync_time_punches: { Args: { p_batch: Json }; Returns: Json }
+      sync_work_log_ops: { Args: { p_batch: Json }; Returns: Json }
+      test_tenant_webhook: { Args: { p_webhook_id: string }; Returns: string }
+      toggle_addon: {
+        Args: { p_addon_id: string; p_enable: boolean }
+        Returns: Json
+      }
+      toggle_site_holiday_exclusion: {
+        Args: {
+          p_holiday_id: string
+          p_is_excluded: boolean
+          p_site_id: string
+        }
+        Returns: undefined
+      }
+      touch_ai_conversation_service: {
+        Args: {
+          p_conversation_id: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      touch_ai_scheduled_job_run_service: {
+        Args: { p_job_id: string; p_status: string; p_summary?: Json }
+        Returns: undefined
+      }
+      touch_tenant_routes_provider: {
+        Args: { p_provider_key: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      transition_employee_lifecycle: {
+        Args: {
+          p_effective_on?: string
+          p_employee_id: string
+          p_metadata?: Json
+          p_reason_code: string
+          p_to_state: string
+        }
+        Returns: {
+          created_at: string | null
+          effective_on: string | null
+          employee_id: string | null
+          from_state: string | null
+          id: string | null
+          metadata: Json | null
+          reason_code: string | null
+          source: string | null
+          tenant_id: string | null
+          to_state: string | null
+          triggered_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_lifecycle_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      transition_employment_contract: {
+        Args: { p_contract_id: string; p_reason?: string; p_to_status: string }
+        Returns: {
+          activated_at: string | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          calendar_group_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          collective_agreement_id: string | null
+          contract_number: string | null
+          contract_type_id: string | null
+          correlation_id: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          employee_id: string | null
+          ended_at: string | null
+          ends_on: string | null
+          external_identity: string | null
+          external_reference: string | null
+          external_review_status: string | null
+          field_ownership: Json | null
+          final_document_version_id: string | null
+          fte: number | null
+          fully_signed_at: string | null
+          generated_document_id: string | null
+          id: string | null
+          import_idempotency_key: string | null
+          is_primary: boolean | null
+          job_position_id: string | null
+          lifecycle_status: string | null
+          metadata: Json | null
+          probation_ends_on: string | null
+          professional_category_id: string | null
+          signature_requirement: string | null
+          signature_status: string | null
+          signing_submission_id: string | null
+          site_id: string | null
+          source: string | null
+          source_changed_at: string | null
+          source_payload_digest: string | null
+          starts_on: string | null
+          supersedes_contract_id: string | null
+          template_id: string | null
+          template_locale_id: string | null
+          template_snapshot: Json | null
+          tenant_id: string | null
+          termination_notes: string | null
+          termination_reason_code: string | null
+          updated_at: string | null
+          variables_snapshot: Json | null
+          weekly_hours: number | null
+          work_entry_source: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employment_contracts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      trash_field_project_files: {
+        Args: { p_project_id: string }
+        Returns: number
+      }
+      trash_field_project_orphan_files: {
+        Args: { p_project_id: string }
+        Returns: number
+      }
+      trash_node: {
+        Args: { force_permanent?: boolean; p_node_id: string }
+        Returns: number
+      }
+      try_claim_employee_portal_punch_reminder: {
+        Args: {
+          p_employee_id: string
+          p_max_per_day?: number
+          p_reminder_kind: string
+          p_tenant_id: string
+          p_work_date: string
+        }
+        Returns: boolean
+      }
+      unarchive_document: {
+        Args: { p_document_id: string }
+        Returns: undefined
+      }
+      unpublish_public_site: { Args: { p_id: string }; Returns: undefined }
+      unstar_node: { Args: { p_node_id: string }; Returns: undefined }
+      update_ai_conversation_title_service: {
+        Args: {
+          p_conversation_id: string
+          p_tenant_id: string
+          p_title: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      update_attendance_location_assignment: {
+        Args: {
+          p_assignment_id: string
+          p_ends_on?: string
+          p_starts_on?: string
+        }
+        Returns: Json
+      }
+      update_attendance_station: {
+        Args: {
+          p_allow_unassigned_punch?: boolean
+          p_allowed_methods?: string[]
+          p_block_wrong_scheduled_location?: boolean
+          p_device_id: string
+          p_display_logo_url?: string
+          p_display_title?: string
+          p_document_match?: string
+          p_document_suffix_length?: number
+          p_employee_list_layout?: string
+          p_entry_mode?: string
+          p_geo_antifraud_enabled?: boolean
+          p_geo_antifraud_radius_m?: number
+          p_identity_confirm?: string
+          p_location_id?: string
+          p_mask_names_on_waiting?: boolean
+          p_name?: string
+          p_qr_identity_confirm?: string
+          p_session_allow_history?: boolean
+          p_session_history_max_days?: number
+          p_session_idle_seconds?: number
+          p_session_return_countdown_seconds?: number
+          p_site_id?: string
+          p_status?: string
+          p_ux_preset?: string
+          p_waiting_idle_seconds?: number
+          p_warn_unassigned_punch?: boolean
+          p_warn_wrong_scheduled_location?: boolean
+        }
+        Returns: Json
+      }
+      update_automation_run_service: {
+        Args: {
+          p_current_step_id?: string
+          p_error?: string
+          p_run_id: string
+          p_status:
+            | "PENDING"
+            | "RUNNING"
+            | "WAITING_HUMAN"
+            | "WAITING_TIMER"
+            | "COMPLETED"
+            | "FAILED"
+            | "CANCELLED"
+        }
+        Returns: undefined
+      }
+      update_automation_run_status: {
+        Args: { p_run_id: string; p_status: string }
+        Returns: undefined
+      }
+      update_automation_step_run_service: {
+        Args: {
+          p_attempt_number?: number
+          p_error?: string
+          p_output?: Json
+          p_status:
+            | "PENDING"
+            | "RUNNING"
+            | "COMPLETED"
+            | "FAILED"
+            | "SKIPPED"
+            | "WAITING_HUMAN"
+            | "WAITING_TIMER"
+            | "CANCELLED"
+          p_step_run_id: string
+        }
+        Returns: undefined
+      }
+      update_calendar_event: {
+        Args: {
+          p_all_day?: boolean
+          p_description?: string
+          p_end_at?: string
+          p_id: string
+          p_start_at?: string
+          p_title: string
+        }
+        Returns: undefined
+      }
+      update_catalog_item: {
+        Args: {
+          p_category?: string
+          p_description?: string
+          p_id: string
+          p_kind: string
+          p_name: string
+          p_sku?: string
+          p_tax_rate?: number
+          p_unit?: string
+          p_unit_price?: number
+        }
+        Returns: undefined
+      }
+      update_content_block: {
+        Args: {
+          p_block_id: string
+          p_content?: string
+          p_is_active?: boolean
+          p_name?: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      update_domain_check_result: {
+        Args: { p_id: string; p_updates: Json }
+        Returns: undefined
+      }
+      update_entity_comment: {
+        Args: {
+          p_clear_due?: boolean
+          p_content: string
+          p_due_date?: string
+          p_id: string
+          p_is_task?: boolean
+        }
+        Returns: undefined
+      }
+      update_entity_field_service: {
+        Args: {
+          p_entity_id: string
+          p_entity_type: string
+          p_field: string
+          p_tenant_id: string
+          p_value: string
+        }
+        Returns: Json
+      }
+      update_holiday: {
+        Args: {
+          p_date: string
+          p_holiday_type: string
+          p_id: string
+          p_is_half_day: boolean
+          p_name: string
+        }
+        Returns: Json
+      }
+      update_my_avatar: { Args: { p_avatar_url: string }; Returns: undefined }
+      update_my_member_settings: {
+        Args: { p_settings: Json; p_tenant_id?: string }
+        Returns: undefined
+      }
+      update_node_permissions: {
+        Args: {
+          p_is_restricted: boolean
+          p_node_id: string
+          p_permissions_json: Json
+        }
+        Returns: undefined
+      }
+      update_pdf_converter_config: {
+        Args: { p_settings: Json }
+        Returns: undefined
+      }
+      update_project: {
+        Args: { p_id: string; p_patch: Json }
+        Returns: undefined
+      }
+      update_public_site: {
+        Args: {
+          p_contact_email_public?: string
+          p_content?: Json
+          p_default_locale?: string
+          p_id: string
+          p_lead_ack_copy_email?: string
+          p_name?: string
+          p_seo_description?: string
+          p_seo_keywords?: string[]
+          p_seo_title?: string
+          p_supported_locales?: string[]
+          p_theme_config?: Json
+        }
+        Returns: undefined
+      }
+      update_signing_session_service: {
+        Args: {
+          p_geolocation?: Json
+          p_ip_address?: string
+          p_session_id: string
+          p_status?: string
+          p_user_agent?: string
+        }
+        Returns: undefined
+      }
+      update_signing_sessions_field_map: {
+        Args: {
+          p_field_map: Json
+          p_pdf_job_id?: string
+          p_signing_group_id?: string
+        }
+        Returns: number
+      }
+      update_site_settings: {
+        Args: { p_settings: Json; p_site_id: string }
+        Returns: undefined
+      }
+      update_template_block_mapping: {
+        Args: {
+          p_block_mapping: Json
+          p_template_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      update_tenant_ai_provider_meta: {
+        Args: {
+          p_available_models?: string[]
+          p_base_url?: string
+          p_enabled_models?: string[]
+          p_model?: string
+          p_provider: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      update_tenant_role_permissions: {
+        Args: { p_permissions: Json; p_tenant_id?: string }
+        Returns: undefined
+      }
+      update_tenant_settings: {
+        Args: { p_settings: Json; p_tenant_id?: string }
+        Returns: undefined
+      }
+      update_work_shift: {
+        Args: {
+          p_clear_role?: boolean
+          p_color?: string
+          p_default_role_id?: string
+          p_end_time?: string
+          p_id: string
+          p_name?: string
+          p_start_time?: string
+        }
+        Returns: Json
+      }
+      upsert_absence_type_config: {
+        Args: {
+          p_absence_type: string
+          p_affects_entitlement?: boolean
+          p_counts_as_worked?: boolean
+          p_entitlement_type?: string
+          p_is_active?: boolean
+          p_max_days_per_year?: number
+          p_name_i18n: Json
+          p_requires_approval?: boolean
+          p_requires_document?: boolean
+        }
+        Returns: string
+      }
+      upsert_ai_chat_preset: {
+        Args: {
+          p_id: string
+          p_is_tenant_shared?: boolean
+          p_model: string
+          p_name: string
+          p_provider: "openai" | "anthropic" | "gemini" | "openrouter"
+          p_system_prompt_override?: string
+          p_temperature_override?: number
+        }
+        Returns: string
+      }
+      upsert_ai_model_capability_admin: {
+        Args: {
+          p_context_window?: number
+          p_deprecated?: boolean
+          p_max_file_size_mb?: number
+          p_max_image_size_mb?: number
+          p_model_id: string
+          p_needs_review?: boolean
+          p_provider: string
+          p_source?: string
+          p_streaming?: boolean
+          p_supported_file_mimes?: string[]
+          p_supported_image_mimes?: string[]
+          p_tools?: boolean
+          p_tools_with_vision?: boolean
+          p_vision?: boolean
+        }
+        Returns: Json
+      }
+      upsert_asset_requirement_rule: {
+        Args: {
+          p_asset_type_id?: string
+          p_id?: string
+          p_is_active?: boolean
+          p_is_blocking?: boolean
+          p_scope_id?: string
+          p_scope_type?: string
+        }
+        Returns: {
+          asset_type_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          is_active: boolean | null
+          is_blocking: boolean | null
+          scope_id: string | null
+          scope_type: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "asset_requirement_rules"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      upsert_asset_type: {
+        Args: {
+          p_blocks_dispatch_if_missing?: boolean
+          p_calibration_interval_days?: number
+          p_category?: string
+          p_code?: string
+          p_id?: string
+          p_is_active?: boolean
+          p_name?: string
+          p_requires_calibration?: boolean
+          p_requires_return?: boolean
+        }
+        Returns: {
+          blocks_dispatch_if_missing: boolean | null
+          calibration_interval_days: number | null
+          category: string | null
+          code: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          requires_calibration: boolean | null
+          requires_return: boolean | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "asset_types"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      upsert_attendance_monthly_report_draft: {
+        Args: {
+          p_content_hash: string
+          p_employee_id: string
+          p_month: number
+          p_tenant_id: string
+          p_year: number
+        }
+        Returns: string
+      }
+      upsert_audit_event_playbook: {
+        Args: {
+          p_action: string
+          p_id?: string
+          p_is_active?: boolean
+          p_sort_order?: number
+          p_template_id: string
+        }
+        Returns: string
+      }
+      upsert_automation_workflow: {
+        Args: {
+          p_description?: string
+          p_id?: string
+          p_is_active?: boolean
+          p_name?: string
+          p_site_id?: string
+          p_steps?: Json
+          p_trigger_event?: string
+          p_trigger_filters?: Json
+        }
+        Returns: string
+      }
+      upsert_calendar_group: {
+        Args: {
+          p_attendance_geo_enabled?: boolean
+          p_color?: string
+          p_description?: string
+          p_id?: string
+          p_is_active?: boolean
+          p_name: string
+          p_punch_only_at_stations?: boolean
+          p_site_id?: string
+          p_sort_order?: number
+        }
+        Returns: string
+      }
+      upsert_calendar_group_record_policy: {
+        Args: {
+          p_effective_from?: string
+          p_group_id: string
+          p_policy: Json
+          p_policy_id?: string
+          p_site_id?: string
+        }
+        Returns: Json
+      }
+      upsert_compliance_requirement_rule: {
+        Args: {
+          p_grace_period_days?: number
+          p_id?: string
+          p_is_active?: boolean
+          p_is_blocking?: boolean
+          p_requirement_type_id?: string
+          p_scope_id?: string
+          p_scope_type?: string
+        }
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          grace_period_days: number | null
+          id: string | null
+          is_active: boolean | null
+          is_blocking: boolean | null
+          requirement_type_id: string | null
+          scope_id: string | null
+          scope_type: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "compliance_requirement_rules"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      upsert_compliance_requirement_type: {
+        Args: {
+          p_category?: string
+          p_code?: string
+          p_default_validity_months?: number
+          p_id?: string
+          p_is_active?: boolean
+          p_name?: string
+          p_renewal_notice_days?: number[]
+        }
+        Returns: {
+          category: string | null
+          code: string | null
+          created_at: string | null
+          default_validity_months: number | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          renewal_notice_days: number[] | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "compliance_requirement_types"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      upsert_coverage_demand: {
+        Args: {
+          p_clear_location?: boolean
+          p_clear_role?: boolean
+          p_day_of_week?: number
+          p_demand_date?: string
+          p_effective_from?: string
+          p_effective_to?: string
+          p_end_time?: string
+          p_id?: string
+          p_is_active?: boolean
+          p_kind?: string
+          p_location_id?: string
+          p_name?: string
+          p_notes?: string
+          p_priority?: number
+          p_required_max?: number
+          p_required_min?: number
+          p_required_target?: number
+          p_role_id?: string
+          p_site_id?: string
+          p_source?: string
+          p_start_time?: string
+        }
+        Returns: Json
+      }
+      upsert_customer_intervention_report_draft: {
+        Args: {
+          p_client_summary_html?: string
+          p_draft_id?: string
+          p_locale?: string
+          p_project_id: string
+          p_projection?: Json
+          p_selected_media?: Json
+        }
+        Returns: string
+      }
+      upsert_document_template_locale: {
+        Args: {
+          p_html_content?: string
+          p_is_active?: boolean
+          p_locale: string
+          p_mime_type: string
+          p_pdf_fields_schema?: Json
+          p_sample_values?: Json
+          p_signing_roles_schema?: Json
+          p_storage_path?: string
+          p_template_id: string
+          p_variables_schema?: Json
+        }
+        Returns: Json
+      }
+      upsert_employee_availability_exception: {
+        Args: {
+          p_clear_times?: boolean
+          p_editable_until?: string
+          p_employee_id?: string
+          p_end_time?: string
+          p_exception_date?: string
+          p_id?: string
+          p_is_active?: boolean
+          p_notes?: string
+          p_preference?: string
+          p_start_time?: string
+        }
+        Returns: Json
+      }
+      upsert_employee_availability_rule: {
+        Args: {
+          p_day_of_week?: number
+          p_editable_until?: string
+          p_effective_from?: string
+          p_effective_to?: string
+          p_employee_id?: string
+          p_end_time?: string
+          p_id?: string
+          p_is_active?: boolean
+          p_notes?: string
+          p_preference?: string
+          p_start_time?: string
+        }
+        Returns: Json
+      }
+      upsert_employee_certification: {
+        Args: {
+          p_credential_number?: string
+          p_document_id?: string
+          p_employee_id?: string
+          p_id?: string
+          p_issued_on?: string
+          p_issuer?: string
+          p_notes?: string
+          p_requirement_type_id?: string
+          p_valid_from?: string
+          p_valid_until?: string
+        }
+        Returns: {
+          computed_status: string | null
+          created_at: string | null
+          created_by: string | null
+          credential_number: string | null
+          document_id: string | null
+          employee_id: string | null
+          id: string | null
+          issued_on: string | null
+          issuer: string | null
+          notes: string | null
+          requirement_category: string | null
+          requirement_code: string | null
+          requirement_name: string | null
+          requirement_type_id: string | null
+          revoked_at: string | null
+          revoked_reason: string | null
+          signing_submission_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_certifications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      upsert_employee_private_profile: {
+        Args: {
+          p_address?: string
+          p_birth_date?: string
+          p_city?: string
+          p_clear_iban?: boolean
+          p_clear_nulls?: boolean
+          p_clear_ssn?: boolean
+          p_country_code?: string
+          p_document_number?: string
+          p_document_type?: string
+          p_emergency_contact_name?: string
+          p_emergency_contact_phone?: string
+          p_emergency_contact_relationship?: string
+          p_employee_id: string
+          p_iban?: string
+          p_iban_set?: boolean
+          p_metadata?: Json
+          p_nationality_code?: string
+          p_personal_email?: string
+          p_personal_phone?: string
+          p_postal_code?: string
+          p_social_security_number?: string
+          p_ssn_set?: boolean
+        }
+        Returns: {
+          address: string | null
+          birth_date: string | null
+          city: string | null
+          country_code: string | null
+          created_at: string | null
+          document_number: string | null
+          document_type: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relationship: string | null
+          employee_id: string | null
+          has_iban: boolean | null
+          has_ssn: boolean | null
+          iban_last4: string | null
+          metadata: Json | null
+          nationality_code: string | null
+          personal_email: string | null
+          personal_phone: string | null
+          postal_code: string | null
+          ssn_last4: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_private_profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      upsert_employee_qualification: {
+        Args: {
+          p_employee_id?: string
+          p_expires_at?: string
+          p_id?: string
+          p_is_active?: boolean
+          p_issued_at?: string
+          p_key?: string
+          p_label?: string
+          p_notes?: string
+        }
+        Returns: Json
+      }
+      upsert_employee_role_assignment: {
+        Args: {
+          p_employee_id?: string
+          p_id?: string
+          p_is_active?: boolean
+          p_is_primary?: boolean
+          p_level?: number
+          p_role_id?: string
+          p_valid_from?: string
+          p_valid_to?: string
+        }
+        Returns: Json
+      }
+      upsert_entity_comment_template: {
+        Args: {
+          p_body: string
+          p_default_is_task?: boolean
+          p_entity_type?: string
+          p_id?: string
+          p_sort_order?: number
+          p_title: string
+        }
+        Returns: string
+      }
+      upsert_entity_risk_rule: {
+        Args: {
+          p_id?: string
+          p_is_active?: boolean
+          p_rule_type?: string
+          p_threshold_value?: number
+        }
+        Returns: string
+      }
+      upsert_geocoding_result_cache: {
+        Args: {
+          p_cache_kind: string
+          p_language: string
+          p_operation: string
+          p_provider_key: string
+          p_query_hash: string
+          p_result: Json
+          p_ttl_days?: number
+        }
+        Returns: undefined
+      }
+      upsert_invited_member: {
+        Args: {
+          p_email: string
+          p_invited_by: string
+          p_new_invite: boolean
+          p_role: string
+          p_site_id: string
+          p_tenant_id: string
+          p_user_id: string
+        }
+        Returns: {
+          membership_id: string
+        }[]
+      }
+      upsert_labor_calendar_days: {
+        Args: {
+          p_dates: string[]
+          p_day_name?: string
+          p_day_type: string
+          p_employee_id?: string
+          p_group_id?: string
+          p_site_id?: string
+          p_work_end?: string
+          p_work_intervals?: Json
+          p_work_start?: string
+        }
+        Returns: undefined
+      }
+      upsert_labor_rule: {
+        Args: {
+          p_collective_agreement_id?: string
+          p_is_active?: boolean
+          p_is_less_protective_exception?: boolean
+          p_justification?: string
+          p_professional_category_id?: string
+          p_rule_key: string
+          p_severity?: string
+          p_site_id?: string
+          p_value_numeric: number
+        }
+        Returns: Json
+      }
+      upsert_maps_js_platform_api_key_service: {
+        Args: { p_api_key: string }
+        Returns: Json
+      }
+      upsert_my_notification_preference: {
+        Args: {
+          p_channels_enabled: (
+            | "in_app"
+            | "push"
+            | "email"
+            | "sms"
+            | "whatsapp"
+          )[]
+          p_event_code: string
+          p_locale?: string
+        }
+        Returns: undefined
+      }
+      upsert_pause_config: {
+        Args: {
+          p_counts_as_work: boolean
+          p_default_duration_min?: number
+          p_is_active?: boolean
+          p_key: string
+          p_label_i18n: Json
+          p_max_duration_minutes?: number
+          p_requires_justification?: boolean
+          p_site_id?: string
+          p_sort_order?: number
+        }
+        Returns: string
+      }
+      upsert_platform_ai_defaults: {
+        Args: {
+          p_billing_url: string
+          p_default_model: string
+          p_max_tokens?: number
+          p_provider: string
+          p_suggested_models: string[]
+          p_system_prompt?: string
+          p_temperature?: number
+        }
+        Returns: Json
+      }
+      upsert_project_line: {
+        Args: {
+          p_catalog_item_id?: string
+          p_description?: string
+          p_discount_pct?: number
+          p_kind?: string
+          p_line_id?: string
+          p_name?: string
+          p_notes?: string
+          p_position?: number
+          p_project_id: string
+          p_quantity?: number
+          p_tax_rate?: number
+          p_unit?: string
+          p_unit_price?: number
+        }
+        Returns: string
+      }
+      upsert_public_page: {
+        Args: {
+          p_content?: Json
+          p_public_site_id: string
+          p_seo_description?: string
+          p_seo_title?: string
+          p_show_in_nav?: boolean
+          p_slug: string
+          p_sort_order?: number
+          p_status?: string
+          p_title: string
+          p_translations?: Json
+        }
+        Returns: string
+      }
+      upsert_role_qualification_requirement: {
+        Args: {
+          p_id?: string
+          p_is_active?: boolean
+          p_min_level?: number
+          p_qualification_key?: string
+          p_required?: boolean
+          p_role_id?: string
+        }
+        Returns: Json
+      }
+      upsert_shift_opening: {
+        Args: {
+          p_claim_policy?: string
+          p_clear_location?: boolean
+          p_clear_role?: boolean
+          p_closes_at?: string
+          p_compensation_label?: string
+          p_end_time?: string
+          p_id?: string
+          p_location_id?: string
+          p_notes?: string
+          p_opening_date?: string
+          p_opens_at?: string
+          p_places_total?: number
+          p_role_id?: string
+          p_shift_id?: string
+          p_site_id?: string
+          p_start_time?: string
+          p_title?: string
+        }
+        Returns: Json
+      }
+      upsert_tenant_content_item: {
+        Args: { p_payload: Json; p_tenant_id: string }
+        Returns: Json
+      }
+      upsert_tenant_geocoding_api_key: {
+        Args: { p_api_key: string; p_provider_key: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      upsert_tenant_geocoding_api_key_candidate: {
+        Args: {
+          p_api_key: string
+          p_provider_key: string
+          p_tenant_id: string
+          p_ttl_hours?: number
+        }
+        Returns: Json
+      }
+      upsert_tenant_maps_js_api_key_candidate: {
+        Args: {
+          p_api_key: string
+          p_provider_key: string
+          p_tenant_id: string
+          p_ttl_hours?: number
+        }
+        Returns: Json
+      }
+      upsert_tenant_portal_entitlements: {
+        Args: { p_payload: Json; p_tenant_id: string }
+        Returns: Json
+      }
+      upsert_tenant_push_config: {
+        Args: {
+          p_is_enabled?: boolean
+          p_onesignal_app_id: string
+          p_rest_api_key: string
+        }
+        Returns: undefined
+      }
+      upsert_tenant_role_default: {
+        Args: {
+          p_entity_email?: string
+          p_entity_id?: string
+          p_entity_label?: string
+          p_entity_type: string
+          p_role_key: string
+          p_site_id?: string
+          p_tenant_id: string
+        }
+        Returns: {
+          created_at: string | null
+          entity_email: string | null
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string | null
+          id: string | null
+          role_key: string | null
+          site_id: string | null
+          source: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tenant_role_defaults"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      upsert_tenant_routes_api_key: {
+        Args: { p_api_key: string; p_provider_key: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      upsert_tenant_routes_api_key_candidate: {
+        Args: {
+          p_api_key: string
+          p_provider_key: string
+          p_tenant_id: string
+          p_ttl_hours?: number
+        }
+        Returns: Json
+      }
+      upsert_tenant_secret: {
+        Args: {
+          p_label?: string
+          p_provider: string
+          p_secret_type: string
+          p_tenant_id: string
+          p_value: string
+        }
+        Returns: string
+      }
+      upsert_tenant_twilio_config: {
+        Args: {
+          p_account_sid: string
+          p_auth_token: string
+          p_messaging_service_sid?: string
+          p_sms_from_number?: string
+          p_tenant_id: string
+          p_whatsapp_from_number?: string
+        }
+        Returns: undefined
+      }
+      upsert_tenant_webhook: {
+        Args: {
+          p_endpoint_url?: string
+          p_entity_types?: string[]
+          p_events?: string[]
+          p_id?: string
+          p_is_active?: boolean
+          p_label?: string
+          p_rotate_secret?: boolean
+        }
+        Returns: Json
+      }
+      upsert_vacation_entitlement: {
+        Args: {
+          p_days_allocated: number
+          p_department_id?: string
+          p_employee_id?: string
+          p_leave_type: string
+          p_scope: string
+          p_year: number
+        }
+        Returns: string
+      }
+      upsert_work_role: {
+        Args: {
+          p_id?: string
+          p_is_active?: boolean
+          p_key?: string
+          p_name?: string
+          p_site_id?: string
+          p_sort_order?: number
+        }
+        Returns: Json
+      }
+      validate_attendance_month_close: {
+        Args: { p_employee_id: string; p_month: number; p_year: number }
+        Returns: Json
+      }
+      validate_attendance_month_employee_confirm: {
+        Args: { p_employee_id: string; p_month: number; p_year: number }
+        Returns: Json
+      }
+      validate_attendance_period_employee_confirm: {
+        Args: {
+          p_employee_id: string
+          p_period_from: string
+          p_period_to: string
+        }
+        Returns: Json
+      }
+      verify_applicant_email: { Args: { p_token: string }; Returns: Json }
+      verify_attendance_station_credentials: {
+        Args: { p_device_public_id: string; p_device_secret: string }
+        Returns: Json
+      }
+      verify_attendance_station_employee_pin: {
+        Args: { p_device_id: string; p_employee_id: string; p_pin: string }
+        Returns: Json
+      }
+      verify_attendance_station_local_pin: {
+        Args: { p_device_id: string; p_local_pin: string }
+        Returns: Json
+      }
+      verify_contact_delivery_channel: {
+        Args: { p_channel_id: string; p_verification_method?: string }
+        Returns: undefined
+      }
+      verify_employee_domain_crons: { Args: never; Returns: Json }
+      waive_employee_asset_return_checklist: {
+        Args: { p_checklist_id: string; p_reason?: string }
+        Returns: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          employee_id: string | null
+          id: string | null
+          lifecycle_event_id: string | null
+          notes: string | null
+          status: string | null
+          tenant_id: string | null
+          waive_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_asset_return_checklists"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      waive_employee_asset_return_checklist_item: {
+        Args: { p_item_id: string; p_reason?: string }
+        Returns: {
+          asset_id: string | null
+          asset_name: string | null
+          asset_tag: string | null
+          assigned_at: string | null
+          assignment_id: string | null
+          assignment_returned_at: string | null
+          checklist_id: string | null
+          created_at: string | null
+          id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          return_condition: string | null
+          status: string | null
+          tenant_id: string | null
+          waive_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_asset_return_checklist_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      withdraw_shift_opening_claim: {
+        Args: { p_claim_id: string }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      portal_site_row: {
+        id: string | null
+        tenant_id: string | null
+        site_id: string | null
+        slug: string | null
+        name: string | null
+        status: string | null
+        primary_domain_id: string | null
+        canonical_domain: string | null
+        seo_title: string | null
+        seo_description: string | null
+        seo_keywords: string[] | null
+        content: Json | null
+        theme_config: Json | null
+        supported_locales: string[] | null
+        default_locale: string | null
+        contact_email_public: string | null
+        created_at: string | null
+        updated_at: string | null
+      }
+    }
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  api: {
+    Enums: {},
+  },
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {},
+  },
+} as const
+

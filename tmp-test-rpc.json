@@ -1,0 +1,6 @@
+{
+  "p_tenant_id": "10000000-0000-0000-0000-000000000001",
+  "p_event_code": "TASK_ASSIGNED",
+  "p_recipient_id": "20000000-0000-0000-0000-000000000002",
+  "p_recipient_kind": "tenant_member"
+}

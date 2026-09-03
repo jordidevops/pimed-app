@@ -1,0 +1,5 @@
+export { bootstrapObservability } from './init-observability'
+export { captureException, captureMessage, setObservabilityScope } from './system-error-tracker'
+export { ObservabilityErrorBoundary } from './ObservabilityErrorBoundary'
+export { SentryScopeSync } from './SentryScopeSync'
+export type { ErrorContext, MessageLevel } from './context'

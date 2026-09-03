@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<!--
+  Plantilla multi-idioma per a l'email d'invitació de Supabase.
+
+  COM USAR:
+  ─────────
+  1. Accedeix a Supabase Dashboard → Authentication → Email Templates → "Invite user"
+  2. Enganxa aquest HTML al camp de plantilla.
+  3. Supabase usa Go Templates (text/template) per renderitzar.
+
+  VARIABLES DISPONIBLES (Supabase built-in):
+    {{ .ConfirmationURL }}  → URL completa amb el token (inclou redirectTo)
+    {{ .Email }}            → Adreça de correu del destinatari
+    {{ .SiteURL }}          → Valor de site_url del projecte
+
+  DADES PERSONALITZADES (passades via inviteUserByEmail):
+    {{ .Data.lang }}        → Codi ISO de l'idioma ("ca", "es", "en", etc.)
+    {{ .Data.full_name }}   → Nom complet si es passa a data: { full_name: "..." }
+
+  COM PASSAR EL CAMP lang DEL CODI:
+  ──────────────────────────────────
+  A l'Edge Function o Server Action que fa la invitació:
+
+    const browserLang = req.headers.get('Accept-Language')?.split(',')[0]?.split('-')[0] ?? 'ca'
+    const lang = ['ca', 'es', 'en'].includes(browserLang) ? browserLang : 'ca'
+
+    await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+      data: { lang, full_name: 'Nom Cognoms' },
+      redirectTo: `${tenantPortalUrl}/auth/callback`,
+    })
+
+  NOTA LOCAL (config.toml):
+  ──────────────────────────
+  Per usar plantilles personalitzades en local, afegeix a supabase/config.toml:
+
+    [auth.email.template.invite]
+    subject = "Invitació a {{ .SiteURL }}"
+    content_path = "./supabase/snippets/email-invite-multilingual.html"
+
+-->
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>
+    {{ if eq .Data.lang "ca" }}Invitació al portal{{ else if eq .Data.lang "es" }}Invitación al portal{{ else }}Invitation to the portal{{ end }}
+  </title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; margin: 0; padding: 32px 16px; }
+    .card { background: #ffffff; border-radius: 16px; max-width: 520px; margin: 0 auto; padding: 40px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+    .logo { text-align: center; margin-bottom: 28px; }
+    .logo-box { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #4f46e5; border-radius: 14px; }
+    h1 { font-size: 20px; font-weight: 700; color: #111827; text-align: center; margin: 0 0 8px; }
+    p  { font-size: 15px; color: #6b7280; line-height: 1.6; margin: 0 0 20px; }
+    .btn { display: block; background: #4f46e5; color: #ffffff !important; text-decoration: none; text-align: center; font-weight: 600; font-size: 15px; padding: 14px 24px; border-radius: 10px; margin: 28px 0; }
+    .fallback { font-size: 12px; color: #9ca3af; word-break: break-all; text-align: center; }
+    .footer { font-size: 11px; color: #d1d5db; text-align: center; margin-top: 32px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <div class="logo">
+      <div class="logo-box">
+        <!-- Elevator icon — substitueix per la teva marca -->
+        <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 5h18M3 19h18M5 5v14M19 5v14M9 9l3-3 3 3M9 15l3 3 3-3"/>
+        </svg>
+      </div>
+    </div>
+
+    {{ if .Data.full_name }}
+      {{ if eq .Data.lang "ca" }}
+        <h1>Hola, {{ .Data.full_name }}!</h1>
+      {{ else if eq .Data.lang "es" }}
+        <h1>Hola, {{ .Data.full_name }}!</h1>
+      {{ else }}
+        <h1>Hi, {{ .Data.full_name }}!</h1>
+      {{ end }}
+    {{ else }}
+      {{ if eq .Data.lang "ca" }}
+        <h1>Benvingut/da al portal</h1>
+      {{ else if eq .Data.lang "es" }}
+        <h1>Bienvenido/a al portal</h1>
+      {{ else }}
+        <h1>Welcome to the portal</h1>
+      {{ end }}
+    {{ end }}
+
+    {{ if eq .Data.lang "ca" }}
+      <p>Has rebut una invitació per accedir al portal de clients. Fes clic al botó per acceptar la invitació i establir la teva contrasenya.</p>
+      <p>L'enllaç és vàlid durant <strong>24 hores</strong>.</p>
+    {{ else if eq .Data.lang "es" }}
+      <p>Has recibido una invitación para acceder al portal de clientes. Haz clic en el botón para aceptar la invitación y configurar tu contraseña.</p>
+      <p>El enlace es válido durante <strong>24 horas</strong>.</p>
+    {{ else }}
+      <p>You have been invited to access the client portal. Click the button below to accept the invitation and set your password.</p>
+      <p>The link is valid for <strong>24 hours</strong>.</p>
+    {{ end }}
+
+    <a class="btn" href="{{ .ConfirmationURL }}">
+      {{ if eq .Data.lang "ca" }}Acceptar la invitació{{ else if eq .Data.lang "es" }}Aceptar la invitación{{ else }}Accept invitation{{ end }}
+    </a>
+
+    <p class="fallback">
+      {{ if eq .Data.lang "ca" }}Si el botó no funciona, copia i enganxa aquest URL al navegador:{{ else if eq .Data.lang "es" }}Si el botón no funciona, copia y pega esta URL en el navegador:{{ else }}If the button doesn't work, copy and paste this URL into your browser:{{ end }}<br/>
+      {{ .ConfirmationURL }}
+    </p>
+
+    <div class="footer">
+      {{ if eq .Data.lang "ca" }}Si no esperaves aquesta invitació, pots ignorar-la.{{ else if eq .Data.lang "es" }}Si no esperabas esta invitación, puedes ignorarla.{{ else }}If you didn't expect this invitation, you can safely ignore it.{{ end }}
+    </div>
+
+  </div>
+</body>
+</html>

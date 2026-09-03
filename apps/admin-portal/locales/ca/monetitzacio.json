@@ -1,0 +1,46 @@
+{
+  "monetitzacio": {
+    "title": "Monetització",
+    "mrr": {
+      "label": "MRR estimat",
+      "subtitle": "Ingressos mensuals recurrents"
+    },
+    "active_tenants": {
+      "label": "Tenants actius",
+      "of_total": "de {{total}} totals"
+    },
+    "upsell_candidates": {
+      "label": "Candidats upsell",
+      "subtitle": "Tenants > 80 % de quota"
+    },
+    "plan_distribution": {
+      "title": "Distribució per pla",
+      "empty": "Sense dades",
+      "columns": {
+        "plan": "Pla",
+        "tenants": "Tenants",
+        "mrr": "MRR"
+      }
+    },
+    "upsell_section": {
+      "title": "Candidats a upsell de storage",
+      "subtitle": "Tenants que superen el 80 % de la seva quota",
+      "empty": "Cap tenant supera el 80 % de la quota de storage ✓",
+      "no_plan": "Sense pla"
+    },
+    "egress_section": {
+      "title": "Top egress (mes actual)",
+      "subtitle": "Tenants amb major consum de descàrregues"    },
+    "geocoding_section": {
+      "title": "Geocoding (mes actual)",
+      "platform_cost_label": "Cost platform",
+      "platform_cost_sub": "Cost facturable al tenant",
+      "byo_cost_label": "Cost BYO (estimat)",
+      "byo_cost_sub": "Clau pr\u00f2pia del tenant",
+      "volume_label": "Peticions totals",
+      "volume_sub": "Search + reverse aquest mes",
+      "top_cost_title": "Top per cost platform",
+      "top_volume_title": "Top per volum",
+      "empty": "Sense activitat geocoding aquest mes."    }
+  }
+}

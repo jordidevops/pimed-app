@@ -1,0 +1,59 @@
+{
+  "catalog": {
+    "title": "Catàleg",
+    "tabs": {
+      "services": "Serveis",
+      "products": "Productes"
+    },
+    "new_item": "Nou ítem",
+    "search_placeholder": "Cerca per nom...",
+    "empty_services": "No hi ha serveis al catàleg",
+    "empty_products": "No hi ha productes al catàleg",
+    "columns": {
+      "name": "Nom",
+      "sku": "SKU",
+      "unit": "Unitat",
+      "unit_price": "Preu unit.",
+      "tax_rate": "IVA",
+      "category": "Categoria",
+      "actions": "Accions"
+    },
+    "actions": {
+      "edit": "Editar",
+      "deactivate": "Desactivar",
+      "deactivate_confirm": "Confirmes que vols desactivar aquest ítem?"
+    },
+    "form": {
+      "title_create": "Nou ítem de catàleg",
+      "title_edit": "Editar ítem",
+      "kind_label": "Tipus",
+      "kind_service": "Servei",
+      "kind_product": "Producte",
+      "name_label": "Nom",
+      "description_label": "Descripció",
+      "sku_label": "SKU / Referència",
+      "unit_label": "Unitat",
+      "unit_price_label": "Preu unitari (€)",
+      "tax_rate_label": "IVA (%)",
+      "category_label": "Categoria",
+      "cancel": "Cancel·lar",
+      "save": "Desar",
+      "saving": "Desant..."
+    },
+    "units": {
+      "u": "Unitats",
+      "h": "Hores",
+      "m2": "m²",
+      "m": "Metres",
+      "kg": "Kg",
+      "visita": "Visita",
+      "dia": "Dia",
+      "m3": "m³"
+    },
+    "errors": {
+      "name_required": "El nom és obligatori",
+      "price_invalid": "El preu ha de ser 0 o superior",
+      "load_failed": "Error en carregar el catàleg"
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "calendar": {
+    "navigation": {
+      "prev": "Mes anterior",
+      "next": "Mes següent"
+    },
+    "loading": "Carregant events…",
+    "empty": "Sense events aquest mes",
+    "emptyDay": "No hi ha events per aquest dia",
+    "addonInactive": "Mòdul inactiu",
+    "addonUpgrade": "Aquest mòdul no està actiu al teu pla. Actualitza el pla per gestionar aquest event.",
+    "untitled": "(Sense títol)",
+    "noDescription": "Sense descripció",
+    "notAvailable": "No disponible",
+    "noEndDate": "Sense data de fi",
+    "readOnly": "Mode només lectura",
+    "mobileAgendaTitle": "Agenda del dia",
+    "desktopAgendaTitle": "Events del dia seleccionat",
+    "detail": {
+      "start": "Inici",
+      "end": "Fi",
+      "defaultDescription": "Detall de l'event",
+      "openProject": "Obrir projecte",
+      "openShiftsPlanner": "Obrir planificador de torns",
+      "slotDate": "Data",
+      "location": "Ubicació"
+    },
+    "actions": {
+      "create": "Nou event",
+      "edit": "Editar event",
+      "delete": "Eliminar event",
+      "close": "Tancar"
+    },
+    "entity": {
+      "task": "Tasca",
+      "project": "Projecte",
+      "shift_slot": "Torn",
+      "work_order": "Ordre de treball",
+      "maintenance": "Manteniment",
+      "invoice": "Factura",
+      "manual": "Event personal"
+    },
+    "weekdays": {
+      "mon": "Dl",
+      "tue": "Dt",
+      "wed": "Dc",
+      "thu": "Dj",
+      "fri": "Dv",
+      "sat": "Ds",
+      "sun": "Dg"
+    },
+    "form": {
+      "title": "Crear event",
+      "titleLabel": "Títol *",
+      "titlePlaceholder": "Afegir títol del event",
+      "descriptionLabel": "Descripció",
+      "descriptionPlaceholder": "Afegir més detalls...",
+      "startDateLabel": "Data i hora inici *",
+      "endDateLabel": "Data i hora fi",
+      "allDayLabel": "Event de tot el dia",
+      "colorLabel": "Color",
+      "remindersSection": "Recordatoris",
+      "addReminder": "Afegir recordatori",
+      "removeReminder": "Eliminar recordatori",
+      "submit": "Crear event",
+      "submitEdit": "Desar canvis",
+      "editTitle": "Editar event",
+      "cancel": "Cancel·lar",
+      "siteContext": "Local: {{name}}"
+    },
+    "reminders": {
+      "offsetLabel": "Recordar",
+      "offsetBefore": "minuts abans",
+      "channel": "Via",
+      "channelEmail": "Email",
+      "channelPush": "Notificació (properament)",
+      "channelSms": "SMS (properament)",
+      "maxReminders": "Màxim 5 recordatoris",
+      "title": "Recordatoris",
+      "noReminders": "Sense recordatoris"
+    },
+    "validation": {
+      "titleRequired": "El títol és obligatori",
+      "titleTooLong": "El títol no pot superar 255 caràcters",
+      "invalidStartDate": "La data d'inici ha de ser vàlida",
+      "endBeforeStart": "La data de fi no pot ser anterior a l'inici",
+      "offsetInvalid": "Els minuts han de ser entre 0 i 10080 (7 dies)",
+      "noPermission": "No tens permís per crear events",
+      "maxRemindersExceeded": "Has superat el límit de recordatoris"
+    },
+    "success": {
+      "eventCreated": "Event creat correctament",
+      "remindersQueued": "Recordatoris encuats"
+    },
+    "error": {
+      "createFailed": "Error en crear l'event",
+      "saveFailed": "Error en desar l'event",
+      "unknown": "Error desconegut"
+    }
+  }
+}

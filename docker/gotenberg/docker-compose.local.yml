@@ -1,0 +1,26 @@
+# Gotenberg per a desenvolupament local (port 3007).
+#
+# Ús:
+#   docker compose -f docker/gotenberg/docker-compose.local.yml up -d
+#   curl http://localhost:3007/health
+#
+# Important: si tens CHROMIUM_DENY_PUBLIC_IPS=true sense allow-list permissiva,
+# Chromium bloqueja connexions a Google (telemetry) i la conversió retorna HTTP 403.
+
+services:
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    ports:
+      - "3007:3000"
+    environment:
+      # Dev local: sense filtratge restrictiu (producció ha de ser més estricte).
+      CHROMIUM_DENY_PRIVATE_IPS: "false"
+      CHROMIUM_DENY_PUBLIC_IPS: "false"
+      # Permet qualsevol outbound (incl. fonts.googleapis.com, telemetry Chromium).
+      CHROMIUM_ALLOW_LIST: ".*"
+      LIBREOFFICE_DENY_PRIVATE_IPS: "false"
+      LIBREOFFICE_DENY_PUBLIC_IPS: "false"
+      LIBREOFFICE_ALLOW_LIST: ".*"
+    command:
+      - "gotenberg"
+      - "--api-timeout=120s"

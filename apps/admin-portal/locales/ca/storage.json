@@ -1,0 +1,25 @@
+{
+  "storage": {
+    "title": "Storage",
+    "description": "Visió global dels buckets i estadístiques per tenant.",
+    "buckets_section": {
+      "title": "Buckets",
+      "source": "origen: esquema storage",
+      "empty": "No s'han trobat buckets.",
+      "public": "públic",
+      "private": "privat",
+      "max_size": "Mida màx.:",
+      "no_limit": "Sense límit"
+    },
+    "tenants_section": {
+      "title": "Estadístiques per tenant (mes actual)",
+      "table": {
+        "tenant": "Tenant",
+        "files": "Fitxers",
+        "used": "Usat",
+        "egress": "Egress (mes)"
+      },
+      "empty": "Cap dada disponible."
+    }
+  }
+}

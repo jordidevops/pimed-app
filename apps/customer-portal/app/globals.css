@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #14213d;
+  --paper: #f7f4ef;
+  --accent: #1b6b5a;
+  --muted: #5c667a;
+  --line: #d9d2c5;
+  --staff: #7a3e1d;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #e8f2ee 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #efe6d8 0%, transparent 50%),
+    var(--paper);
+  font-family: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+
+body {
+  line-height: 1.55;
+}
+
+.sans {
+  font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+}
+
+@media print {
+  body {
+    background: white;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

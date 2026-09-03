@@ -1,0 +1,28 @@
+{
+  "dashboard": {
+    "title": "Visió general",
+    "kpis": {
+      "active_tenants": "Tenants actius",
+      "inactive_sub": "{{count}} inactius",
+      "health": "Salut plataforma",
+      "health_sub": "Tenants amb owner actiu",
+      "storage": "Emmagatzematge intern",
+      "storage_sub": "Committed + reserved",
+      "users": "Usuaris actius",
+      "users_sub": "de {{total}} places totals",
+      "geo_requests": "Geocoding (mes actual)",
+      "geo_requests_sub": "Peticions search + reverse",
+      "geo_cost": "Cost geocoding platform",
+      "geo_cost_sub": "Cost facturable acumulat"
+    },
+    "recent_tenants": {
+      "title": "Tenants recents",
+      "empty": "Sense dades"
+    },
+    "recent_byos": {
+      "title": "BYOS verificats recents",
+      "see_storage": "Veure storage →",
+      "empty": "Cap proveïdor BYOS verificat"
+    }
+  }
+}

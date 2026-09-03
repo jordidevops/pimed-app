@@ -1,0 +1,32 @@
+-- =============================================================================
+-- BurgerVista / Gestió Ràpida BCN — Seed manual QSR (menjar ràpid)
+-- =============================================================================
+-- Pla (gaps / producte): docs/plans/seeds/plan-qsr-burgervista-seed.md
+-- Guia (càrrega, logins, proves): docs/plans/seeds/guia-seed-burgervista.md
+--
+-- ÚS (SQL Editor de Supabase local, DESPRÉS de `supabase db reset`):
+--   1) Enganxa i executa seed.sql (monòlit), O
+--   2) Executa en ordre 01 → 12.
+--
+-- NO afegit a config.toml — no interfereix amb Acme.
+-- Password tots els logins: Test1234!
+-- PIN portal empleat (tokens seed): 1234
+--
+-- LOGINS APP (tenant-portal) — detall a la guia
+--   marc@burgervista.demo     CEO / owner global
+--   nuria@burgervista.demo    Admin corporativa (manager global)
+--   jordi@burgervista.demo    Admin corporatiu (member global)
+--   laura@burgervista.demo    Directora Eixample (manager site)
+--   pau@burgervista.demo      Cap torn Eixample (member site)
+--   elena@burgervista.demo    Directora Diagonal (manager site)
+--   toni@burgervista.demo     Cap torn Diagonal (member site)
+--
+-- IDS FIXOS (prefix a1…)
+--   tenant  a1000000-0000-0000-0000-000000000001
+--   site E  a3000000-0000-0000-0000-000000000001  (Eixample)
+--   site D  a3000000-0000-0000-0000-000000000002  (Diagonal)
+--
+-- RECLUTAMENT (12_recruitment.sql)
+--   flag recruitment_enabled + 3 ofertes en viu + 1 draft + 10 candidatures
+--   Prova: login Marc/Núria → Reclutament → Candidatures (Kanban) / Ofertes
+-- =============================================================================

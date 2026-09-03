@@ -1,0 +1,53 @@
+name: Attendance station tests
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/tests/attendance_station_tests.sql'
+      - 'supabase/tests/attendance_station_offline_e2e_ex055_tests.sql'
+      - 'supabase/tests/run_attendance_station_tests.sh'
+      - 'supabase/tests/run_attendance_station_offline_e2e_ex055.sh'
+      - 'supabase/tests/e2e_attendance_stations_joint.sh'
+      - 'supabase/tests/e2e_attendance_station_offline_ex055.sh'
+      - 'supabase/functions/station-api/**'
+      - 'supabase/functions/_shared/attendance-station/**'
+      - 'apps/public-portal/app/api/station/**'
+      - 'apps/public-portal/lib/attendance-station/**'
+      - '.github/workflows/attendance-station-tests.yml'
+  push:
+    branches: [main, staging]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/tests/attendance_station_tests.sql'
+      - 'supabase/tests/attendance_station_offline_e2e_ex055_tests.sql'
+      - 'supabase/functions/station-api/**'
+
+jobs:
+  station-sql-and-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase local (incl. Edge Functions)
+        run: supabase start -x imgproxy,logflare,vector
+
+      - name: Reset database (migrations + seed)
+        run: supabase db reset --local
+
+      - name: Run attendance station SQL tests
+        run: bash supabase/tests/run_attendance_station_tests.sh
+
+      - name: Run EX-05.5 offline E2E SQL
+        run: bash supabase/tests/run_attendance_station_offline_e2e_ex055.sh
+
+      - name: Run attendance station E2E (station-api)
+        run: bash supabase/tests/e2e_attendance_stations_joint.sh
+
+      - name: Run EX-05.5 offline E2E (station-api HTTP)
+        run: bash supabase/tests/e2e_attendance_station_offline_ex055.sh

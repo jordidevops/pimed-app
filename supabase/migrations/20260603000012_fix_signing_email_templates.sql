@@ -1,0 +1,2 @@
+-- Migration: 20260603000012_fix_signing_email_templates.sql
+-- (Contingut mogut a 20260604000000_seed_email_templates.sql en el refactor de desenvolupament local)

@@ -1,0 +1,451 @@
+{
+  "tenants": {
+    "list": {
+      "title": "Tenants",
+      "table": {
+        "name": "Nom",
+        "plan": "Pla",
+        "users": "Usuaris",
+        "storage_usage": "Ús storage",
+        "status": "Estat",
+        "created": "Creat"
+      },
+      "status": {
+        "active": "Actiu",
+        "archived": "Arxivat",
+        "blocked": "Bloquejat"
+      },
+      "no_owner": "⚠ Sense owner actiu",
+      "over_quota": "Quota superada",
+      "empty": "Encara no hi ha tenants registrats.",
+      "actions": {
+        "archive": "Arxivar",
+        "activate": "Activar"
+      }
+    },
+    "new": {
+      "title": "Nou tenant",
+      "form": {
+        "name_label": "Nom del tenant",
+        "name_placeholder": "Ex: Acme Corp",
+        "slug_label": "Slug",
+        "slug_hint": "Identificador únic, minúscules i guions. S'omple automàticament.",
+        "plan_label": "Pla",
+        "owner_email_label": "Correu owner inicial",
+        "submit": "Crear tenant",
+        "submitting": "Creant...",
+        "errors": {
+          "name_required": "El nom és obligatori.",
+          "slug_required": "El slug és obligatori.",
+          "plan_required": "Selecciona un pla.",
+          "owner_required": "El correu de l'owner inicial és obligatori.",
+          "owner_invalid": "Introdueix un correu electrònic vàlid per a l'owner.",
+          "slug_duplicate": "Aquest slug ja existeix. Tria un altre identificador.",
+          "generic": "Error en crear el tenant. Torna-ho a intentar."
+        }
+      }
+    },
+    "detail": {
+      "storage_blocked_badge": "Emmagatzematge bloquejat",
+      "archived_badge": "Arxivat",
+      "no_owner_warning": "⚠ Atenció: Aquest tenant no té cap administrador actiu",
+      "over_quota_warning": "⚠ Quota d'usuaris superada",
+      "info": {
+        "slug": "Slug",
+        "plan": "Pla",
+        "active_users": "Usuaris actius",
+        "created": "Creat"
+      },
+      "tabs": {
+        "general":  "General",
+        "members":  "Membres",
+        "clients":  "Clients portal",
+        "sites":    "Sites / Locals",
+        "activity": "Activitat / Logs",
+        "features": "Feature Flags",
+        "firmes":   "Firmes",
+        "ai":       "IA"
+      },
+      "feature_flags": {
+        "title": "Feature flags",
+        "hint": "Override per aquest tenant. Sense override s'aplica el valor global (i el rollout).",
+        "global_link": "Configuració global",
+        "active_suffix": "actius",
+        "override_active": "Override actiu",
+        "from_global": "Des del global",
+        "on": "Actiu",
+        "off": "Inactiu",
+        "clear_override": "Treure override"
+      },
+      "audit": {
+        "title":    "Registre d'activitat",
+        "subtitle": "Últims {{count}} registres",
+        "empty":    "No hi ha activitat registrada per a aquest tenant.",
+        "system":   "Sistema",
+        "col_date":    "Data",
+        "col_action":  "Acció",
+        "col_entity":  "Entitat",
+        "col_actor":   "Realitzat per",
+        "col_details": "Detalls",
+        "actions": {
+          "TENANT_ACTIVATED":         "Tenant activat",
+          "TENANT_DEACTIVATED":       "Tenant desactivat",
+          "TENANT_PLAN_CHANGED":      "Pla canviat",
+          "TENANT_STORAGE_BLOCKED":   "Emmagatzematge bloquejat",
+          "TENANT_STORAGE_UNBLOCKED": "Emmagatzematge desbloquejat",
+          "SITE_CREATED":             "Site creat",
+          "SITE_ACTIVATED":           "Site activat",
+          "SITE_DEACTIVATED":         "Site desactivat",
+          "SITE_RENAMED":             "Site reanomenat",
+          "MEMBER_INVITED":           "Membre afegit",
+          "MEMBER_INVITE_EMAIL_SENT": "Invitació enviada",
+          "MEMBER_ROLE_CHANGED":      "Rol canviat",
+          "MEMBER_ACTIVATED":         "Membre activat",
+          "MEMBER_DEACTIVATED":       "Membre desactivat",
+          "MEMBER_REMOVED":           "Membre eliminat"
+        }
+      },
+      "storage_section": {
+        "title": "Ús d'emmagatzematge",
+        "internal_quota": "Quota del bucket intern",
+        "monthly_egress": "Egress mensual (mes actual)"
+      },
+      "drives_section": {
+        "title": "Unitats d'emmagatzematge"
+      }
+    },
+    "limits": {
+      "title": "Control d'accés",
+      "block_reason_label": "Motiu del bloqueig",
+      "block_reason_placeholder": "Raó visible a l'usuari...",
+      "block_storage": "Bloquejar emmagatzematge",
+      "unblock_storage": "Desbloquejar emmagatzematge",
+      "bucket_limits_title": "Límits del bucket intern",
+      "bucket_limits_hint": "Deixa el camp buit per usar els valors del pla assignat.",
+      "quota_label": "Quota (GB)",
+      "max_file_label": "Mida màx. fitxer (MB)",
+      "max_bucket_hint": "màx. bucket: {{max}} MB",
+      "mime_label": "MIME types permesos",
+      "mime_subset_hint": "Selecciona un subconjunt dels permesos pel bucket. Desmarca-ho tot per heretar els del pla.",
+      "mime_text_placeholder": "Ex: image/jpeg, image/png, application/pdf",
+      "mime_text_hint": "Separats per comes. Buit = tots els tipus permesos.",
+      "save_limits": "Desar límits",
+      "saved": "Desat ✓",
+      "unsaved_changes": "Canvis sense desar",
+      "email_domains_title": "Dominis personalitzats d'email",
+      "email_domains_hint": "Controla si aquest tenant pot afegir i verificar dominis d'email propis.",
+      "email_domains_enabled_label": "Habilitar dominis personalitzats",
+      "max_email_domains_label": "Límit de dominis",
+      "max_email_domains_hint": "Nombre màxim de dominis que pot registrar aquest tenant. Mínim 1.",
+      "feature_flags_title": "Feature Flags",
+      "override_active": "Override actiu",
+      "reset_override": "Reseteja override",
+      "platform_value": "Valor plataforma",
+      "geocoding_title": "Geocoding",
+      "geocoding_hint": "Configura el proveïdor de geocoding i els límits per a aquest tenant.",
+      "geocoding_provider_label": "Proveïdor",
+      "geocoding_mode_label": "Mode",
+      "geocoding_mode_platform": "Platform (plataforma gestiona les quotes)",
+      "geocoding_mode_byo": "BYO (clau pròpia del tenant)",
+      "geocoding_enabled_label": "Actiu",
+      "geocoding_overrides_title": "Overrides de límits",
+      "geocoding_overrides_hint": "Els camps buits hereden el valor del pla assignat.",
+      "geocoding_rpm_label": "Màx. req/minut",
+      "geocoding_rpd_label": "Màx. req/dia",
+      "geocoding_month_total_label": "Quota mensual total",
+      "geocoding_month_search_label": "Quota search",
+      "geocoding_month_reverse_label": "Quota reverse",
+      "geocoding_hard_cap_label": "Hard cap",
+      "geocoding_allow_overage_label": "Permet overage",
+      "geocoding_billable_label": "Facturable",
+      "geocoding_unit_price_label": "Preu /1000 req.",
+      "geocoding_currency_label": "Moneda",
+      "geocoding_inherit": "Hereta del pla",
+      "geocoding_save_config": "Desar configuració",
+      "geocoding_save_override": "Desar overrides",
+      "geocoding_delete_override": "Eliminar overrides",
+      "geocoding_usage_title": "Ús aquest mes",
+      "geocoding_usage_total": "Total",
+      "geocoding_usage_search": "Search",
+      "geocoding_usage_reverse": "Reverse",
+      "geocoding_usage_blocked": "Bloquejats",
+      "geocoding_usage_billable": "Fact.",
+      "geocoding_usage_cost": "Cost estimat",
+      "geocoding_no_usage": "Sense activitat geocoding aquest mes."
+    },
+    "signing": {
+      "access_title": "Accés al mòdul de Firmes",
+      "access_hint": "Override per a aquest tenant. Té prioritat sobre el valor global de la plataforma. Gestiona el valor global a Configuració → Signing.",
+      "global_value_hint": "Valor global: {{value}}",
+      "enabled": "Habilitat",
+      "disabled": "Deshabilitat",
+      "status_enabled": "Firmes habilitades per a aquest tenant",
+      "status_disabled": "Firmes deshabilitades per a aquest tenant",
+      "config_title": "Configuració de DocuSeal",
+      "config_hint": "Configuració activa de DocuSeal per a aquest tenant. Gestionada des del portal del tenant.",
+      "config_mode": "Mode",
+      "mode_platform": "Platform",
+      "mode_byo": "BYO (clau pròpia)",
+      "config_active": "DocuSeal actiu",
+      "config_credits": "Crèdits platform",
+      "config_url": "URL DocuSeal",
+      "yes": "Sí",
+      "no": "No",
+      "config_not_configured": "Aquest tenant encara no ha configurat DocuSeal. La configuració es crea quan el tenant guarda els paràmetres des del portal.",
+      "admin_disable_title": "Desactivació forçada per admin",
+      "admin_disable_hint": "Quan actiu, el tenant no pot usar la signatura independentment del seu estat. Reservat per a incidències o incompliments.",
+      "admin_disabled_label": "Desactivació forçada",
+      "admin_disabled_active_badge": "Firmes BLOQUEJADES per admin-portal",
+      "credits_title": "Crèdits de signatura (mode platform)",
+      "credits_hint": "Cada firma de document consumeix 1 crèdit. En mode BYO els crèdits no s'apliquen.",
+      "credits_label": "Crèdits disponibles",
+      "credits_save": "Desar",
+      "credits_saved": "Desat ✓",
+      "credits_byo_note": "Aquest tenant usa mode BYO. Els crèdits no tenen efecte.",
+      "credits_no_config": "El tenant encara no ha activat les firmes. Els crèdits es podran assignar un cop ho faci."
+    },
+    "members": {
+      "invite_button": "Convidar membre",
+      "health": {
+        "seats": "Places ocupades",
+        "active_owner": "Owner actiu",
+        "yes": "SÍ",
+        "no": "NO",
+        "over_quota_alert": "Alerta",
+        "quota_exceeded": "Quota superada"
+      },
+      "table": {
+        "user": "Usuari",
+        "assignments": "Assignacions",
+        "status": "Estat",
+        "access": "Accés",
+        "actions": "Accions",
+        "empty": "Cap membre en aquest tenant.",
+        "no_name": "Sense nom"
+      },
+      "status": {
+        "inactive": "Inactiu",
+        "active_short": "Actiu",
+        "pending_short": "Pendent d'activació",
+        "pending": "⏳ Pendent d'activació",
+        "active": "✓ Actiu"
+      },
+      "access": {
+        "never": "No ha accedit mai",
+        "first": "1r:",
+        "last": "Últim:"
+      },
+      "no_name": "Sense nom",
+      "empty": "Cap membre en aquest tenant.",
+      "flash": {
+        "invite_sent": "Invitació multi-tenant enviada correctament.",
+        "resend_ok": "Invitació reenviada correctament.",
+        "role_ok": "Rol actualitzat correctament.",
+        "assignment_deactivated": "Assignació desactivada correctament.",
+        "deactivate_ok": "Membre desactivat correctament en aquest tenant.",
+        "suspended": "Usuari suspès del sistema correctament.",
+        "invite_error": "Error en enviar la invitació.",
+        "resend_error": "Error en reenviar la invitació.",
+        "role_error": "Error en actualitzar el rol.",
+        "assignment_error": "Error en desactivar l'assignació.",
+        "suspend_error": "Error en suspendre l'usuari.",
+        "deactivate_error": "Error en desactivar el membre."
+      },
+      "errors": {
+        "email_required": "L'adreça de correu és obligatòria.",
+        "assignment_required": "Cal afegir almenys una assignació de tenant.",
+        "unknown": "Error desconegut."
+      },
+      "success": {
+        "invited": "Invitació multi-tenant enviada correctament.",
+        "resent": "Invitació reenviada correctament.",
+        "role_updated": "Rol actualitzat correctament.",
+        "assignment_deactivated": "Assignació desactivada correctament.",
+        "member_deactivated": "Membre desactivat correctament en aquest tenant.",
+        "user_suspended": "Usuari suspès del sistema correctament."
+      },
+      "roles": {
+        "owner": "Propietari",
+        "manager": "Gestor",
+        "member": "Membre",
+        "viewer": "Viewer"
+      },
+      "scope": {
+        "global": "Global",
+        "label": "Àmbit",
+        "no_name": "Sense nom",
+        "site_prefix": "Site:"
+      },
+      "modal": {
+        "title": "Convidar membre",
+        "email_label": "Adreça de correu",
+        "assignments_label": "Assignacions",
+        "add_tenant": "+ Afegir tenant",
+        "add_assignment": "+ Afegir assignació",
+        "cancel": "Cancel·lar",
+        "submit": "Enviar invitació",
+        "submitting": "Enviant invitació…",
+        "invite": "Convidar",
+        "inviting": "Convidant...",
+        "tenant_label": "Tenant",
+        "role_label": "Rol",
+        "errors": {
+          "email_required": "L'adreça de correu és obligatòria.",
+          "assignment_required": "Cal afegir almenys una assignació de tenant."
+        }
+      },
+      "detail": {
+        "title": "Detall del membre",
+        "close": "Tancar",
+        "loading": "Carregant…",
+        "suspend_confirm": "Segur? Afectarà tots els tenants.",
+        "section_membership": "Membres",
+        "scope_label": "Àmbit",
+        "role_label": "Rol",
+        "status_label": "Estat",
+        "added_label": "Afegit el",
+        "section_access": "Historial d'accés (registrat per l'app)",
+        "first_access": "Primer accés",
+        "last_access": "Últim accés",
+        "section_auth": "Compte Supabase Auth",
+        "account_created": "Compte creat",
+        "email_confirmed": "Email confirmat",
+        "not_confirmed": "No confirmat",
+        "providers": "Proveïdors",
+        "phone": "Telèfon",
+        "banned_until": "Bloquejat fins",
+        "no_name": "Sense nom",
+        "cancel": "Cancel·lar",
+        "suspend": "Suspendre",
+        "suspending": "Suspenent...",
+        "uid": "UID",
+        "provider": "Proveïdor",
+        "first_login": "Primer accés",
+        "last_login": "Últim accés",
+        "memberships": "Memberships actives"
+      },
+      "deactivate_confirm": {
+        "title": "Desactivar membre",
+        "message": "Segur que vols desactivar {{name}} d'aquest tenant?",
+        "cancel": "Cancel·lar",
+        "confirm": "Desactivar"
+      },
+      "actions": {
+        "invite": "Convidar membre",
+        "view_detail": "Veure detall",
+        "resend": "Re-enviar invitació",
+        "resending": "Reenviant…",
+        "deactivate": "Desactivar",
+        "deactivating": "Desactivant…",
+        "suspend": "Suspendre del sistema…",
+        "suspending": "Suspenent…",
+        "confirm": "Confirmar"
+      }
+    },
+    "sites": {
+      "header": {
+        "occupied": "Locals ocupats",
+        "plan_limit": "Límit del pla",
+        "no_limit": "Sense límit definit",
+        "limit_reached": "Límit assolit"
+      },
+      "flash": {
+        "created_prefix": "Local",
+        "created_suffix": "creat correctament.",
+        "updated": "Local actualitzat.",
+        "create_error": "Error en crear el local.",
+        "update_error": "Error en actualitzar el local.",
+        "toggled_prefix": "Local",
+        "activated": "activat",
+        "deactivated": "desactivat",
+        "toggle_error": "Error en canviar l'estat del local."
+      },
+      "occupied": "Locals ocupats:",
+      "plan_limit": "Límit del pla",
+      "no_limit": "Sense límit definit",
+      "limit_reached": "Límit assolit",
+      "limit_reached_tooltip": "Aquest tenant ha arribat al límit de locals del pla.",
+      "new_site": "+ Nou local",
+      "empty": "Aquest tenant no té cap local. Crea'n un per començar.",
+      "table": {
+        "name": "Nom",
+        "address": "Adreça",
+        "status": "Estat",
+        "actions": "Accions",
+        "empty": "Aquest tenant no té cap local. Crea'n un per començar.",
+        "col_name": "Nom",
+        "col_address": "Adreça",
+        "col_status": "Estat",
+        "col_actions": "Accions"
+      },
+      "status": {
+        "active": "Actiu",
+        "inactive": "Inactiu"
+      },
+      "toggle": {
+        "activate": "Activar",
+        "deactivate": "Desactivar"
+      },
+      "actions": {
+        "create": "+ Nou local",
+        "create_disabled_title": "Aquest tenant ha arribat al límit de locals del pla.",
+        "edit": "Editar",
+        "save": "Desar",
+        "saving": "Desant…",
+        "cancel": "Cancel·lar",
+        "activate": "Activar",
+        "deactivate": "Desactivar"
+      },
+      "edit": {
+        "save": "Desar",
+        "cancel": "Cancel·lar"
+      },
+      "modal": {
+        "title": "Nou local",
+        "name_label": "Nom",
+        "name_placeholder": "Ex: Seu Central",
+        "name_required": "El nom del local és obligatori.",
+        "address_label": "Adreça",
+        "optional": "opcional",
+        "address_placeholder": "Ex: Carrer Major, 1",
+        "cancel": "Cancel·lar",
+        "submit": "Crear local",
+        "creating": "Creant…",
+        "create": "Crear"
+      },
+      "errors": {
+        "name_required": "El nom del local és obligatori.",
+        "name_required_edit": "El nom és obligatori.",
+        "generic": "Error en crear el local.",
+        "edit_generic": "Error en actualitzar el local.",
+        "toggle_generic": "Error en canviar l'estat del local."
+      },
+      "success": {
+        "created": "Local \"{{name}}\" creat correctament.",
+        "updated": "Local actualitzat.",
+        "toggled_active": "Local \"{{name}}\" activat.",
+        "toggled_inactive": "Local \"{{name}}\" desactivat."
+      }
+    },
+    "ai": {
+      "requests30d": "Crides (30d)",
+      "tokens30d": "Tokens (30d)",
+      "blocked30d": "Bloquejades (30d)",
+      "providersTitle": "Estat BYOK per proveïdor",
+      "verified": "Verificat",
+      "unverified": "Clau sense verificar",
+      "noKey": "Sense clau",
+      "limitsTitle": "Override de límits",
+      "hourLimit": "Crides/hora",
+      "dayLimit": "Crides/dia",
+      "warnPct": "% avís",
+      "hardBlock": "Bloqueig dur",
+      "isActive": "IA activa",
+      "saveLimits": "Desar límits",
+      "limitsSaved": "Límits IA desats",
+      "topUsers": "Top usuaris (30d)",
+      "user": "Usuari",
+      "requests": "Crides"
+    }
+  }
+}

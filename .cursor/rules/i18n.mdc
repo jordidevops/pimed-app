@@ -1,0 +1,49 @@
+---
+description: Internacionalització obligatòria (react-i18next) als portals frontend
+globs:
+  - apps/tenant-portal/**
+  - apps/customer-portal/**
+  - apps/admin-portal/**
+---
+
+# Regles del Projecte: Internacionalització (i18n)
+
+Ets un expert en React i TypeScript. En aquest projecte, la internacionalització és obligatòria i segueix unes regles sintàctiques estrictes.
+
+Font canònica també a `.github/copilot-instructions.md`.
+
+## Regla d'Or del Text al Frontend
+
+Tots els strings visibles per l'usuari han d'utilitzar la llibreria `react-i18next` amb el mètode `t()`.
+
+## Sintaxi Obligatòria
+
+S'ha de fer servir SEMPRE el patró de "Clau amb Fallback" (dos arguments):
+
+`{t('namespace.clau', 'Text per defecte en Català')}`
+
+### Exemple Correcte
+
+- `const { t } = useTranslation('storage');`
+- `{t('storage.actions.upload', 'Pujar fitxer')}`
+
+### Prohibit
+
+- Prohibit posar text pla: `<span>Pujar fitxer</span>`
+- Prohibit posar només la clau: `{t('storage.actions.upload')}`
+
+## Procediment de Treball
+
+Cada vegada que creïs un component:
+
+1. Utilitza el format de dos arguments.
+2. Si crees claus noves, afegeix-les al JSON de locale corresponent mantenint l'estructura jeràrquica:
+   - tenant-portal: `apps/tenant-portal/src/locales/ca/...`
+   - customer-portal: `apps/customer-portal/locales/{ca,es,en}/...`
+3. El text per defecte (segon argument) ha d'ajudar al debug i servir de fallback real; **sempre en català** (convenció del monorepo).
+
+## customer-portal (Next.js)
+
+- També `react-i18next` + JSON sota `apps/customer-portal/locales/{ca,es,en}/`.
+- `lng` inicial = `ui_locale` resolt pel BFF (preferred del compte → tenant default → **`es`**).
+- El segon argument de `t()` continua en català; això **no** és el `lng` per defecte del portal (runtime default = `es`).

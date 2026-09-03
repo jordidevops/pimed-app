@@ -1,0 +1,49 @@
+flowchart TD
+
+%% ===== FRONTEND =====
+A[Frontend Vite - Tenant] -->|Insert job + idempotency_key| B[(pgmq Queue)]
+
+%% ===== OPTIONAL TRIGGER =====
+B -->|Webhook / Hint| C[Edge Function - Wake Worker]
+
+%% ===== WORKER =====
+C --> D["Worker Loop<br/>(Edge Function o Node)"]
+D -->|Fetch batch LIMIT N| B
+D --> E["Lock jobs<br/>(locked_at)"]
+
+%% ===== PROCESSING =====
+E --> F[Load Template + Variables]
+F --> G["Resolve Attachments<br/>(Supabase Storage)"]
+G --> H["Apply Rate Limit<br/>(tenant/global)"]
+
+H -->|Allowed| I["Provider Adapter<br/>(Resend / Sendgrid)"]
+H -->|Throttled| J[Requeue + Delay]
+
+%% ===== SEND RESULT =====
+I -->|Success| K[Update email_logs<br/>status: sent]
+I -->|Error| L[Retry / Failed<br/>attempt_count++]
+
+J --> B
+L --> B
+
+%% ===== FEEDBACK LOOP =====
+I --> M["Provider (Resend/Sendgrid)"]
+M -->|Webhook events| N[Edge Function - Webhook Handler]
+N --> O[Update email_logs<br/>status: delivered/bounced]
+
+%% ===== DATABASE =====
+K --> P[(email_logs)]
+O --> P
+
+%% ===== REALTIME =====
+P -->|RLS filtered| Q[Supabase Realtime]
+Q --> R["Frontend UI<br/>(toasts + logs)"]
+
+%% ===== CONFIG =====
+S[(email_configs)]
+T[(email_domains)]
+U[(email_templates)]
+
+D --> S
+D --> T
+F --> U

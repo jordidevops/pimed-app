@@ -1,0 +1,8 @@
+export { RecruitmentLayout } from './components/RecruitmentLayout'
+export { ApplicationsPage } from './components/ApplicationsPage'
+export { JobPostingsPage } from './components/JobPostingsPage'
+export { JobPostingDetailPage } from './components/JobPostingDetailPage'
+export { RecruitmentSettingsPage } from './components/RecruitmentSettingsPanel'
+export { RightsInboxPage } from './components/RightsInboxPage'
+export { RecruitmentAnalyticsPage } from './components/RecruitmentAnalyticsPage'
+export { RecruitmentInboundInboxPage } from './components/RecruitmentInboundInboxPage'
