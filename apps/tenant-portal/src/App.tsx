@@ -84,6 +84,8 @@ import { ATTENDANCE_MGMT_BASE } from './features/attendance/attendanceMgmtRoutes
 import { ChatPage } from './features/ai-chat/pages/ChatPage'
 import { ChatSharedPage } from './features/ai-chat/pages/ChatSharedPage'
 import { AutomationPage } from './pages/AutomationPage'
+import { AppIndexPage } from './pages/AppIndexPage'
+import { SidebarEditorPage } from './pages/SidebarEditorPage'
 import { Toaster } from './components/ui/toaster'
 import { TooltipProvider } from './components/ui/tooltip'
 import { SentryScopeSync } from './lib/observability'
@@ -151,6 +153,8 @@ export default function App() {
             </ProtectedRoute>
           }
         >
+          <Route path="/app" element={<AppIndexPage />} />
+          <Route path="/app/sidebar" element={<SidebarEditorPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/files" element={<FilesPage />} />
           <Route path="/contacts" element={<ContactsPage />} />

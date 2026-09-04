@@ -20,6 +20,10 @@ const stationCsp = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Evita l'avís de múltiples lockfiles (root + apps/*/package-lock.json).
+  turbopack: {
+    root: process.cwd(),
+  },
   images: {
     remotePatterns: [
       {

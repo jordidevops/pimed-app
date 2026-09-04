@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
-import { Button } from '@/components/ui/button'
 import {
   useTheme,
   COLOR_PRESETS,
@@ -11,11 +10,11 @@ import { cn } from '@/lib/utils'
 
 function PaletteIcon() {
   return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+    <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} aria-hidden>
       <circle cx="12" cy="12" r="10" />
       <circle cx="8.5" cy="14.5" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="12"  cy="9"    r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="15.5"cy="14.5" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="9" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="14.5" r="1.5" fill="currentColor" stroke="none" />
     </svg>
   )
 }
@@ -52,22 +51,30 @@ const THEME_OPTIONS: { value: Theme; icon: React.ReactNode; labelKey: string; la
   { value: 'system', icon: <SystemIcon />, labelKey: 'theme.system', labelFallback: 'Sistema' },
 ]
 
-export function ThemeCustomizer() {
+export function ThemeCustomizer({
+  className,
+  label,
+  showIcon = true,
+}: {
+  className?: string
+  label?: string
+  showIcon?: boolean
+}) {
   const { t } = useTranslation('common')
   const { theme, setTheme, colorPresetId, setColorPresetId, radiusId, setRadiusId } = useTheme()
+  const displayLabel = label ?? t('theme.customizer_label', 'Aparença')
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-2 text-muted-foreground hover:text-foreground"
-          aria-label={t('theme.customizer_label', "Personalitzar aparença")}
+        <button
+          type="button"
+            className={cn('tp-nav-item', className)}
+          aria-label={displayLabel}
         >
-          <PaletteIcon />
-          <span className="text-xs">{t('theme.customizer_label', 'Aparença')}</span>
-        </Button>
+          {showIcon ? <PaletteIcon /> : <span className="inline-block h-5 w-5 shrink-0" aria-hidden />}
+          <span>{displayLabel}</span>
+        </button>
       </PopoverTrigger>
 
       <PopoverContent className="w-64 space-y-4" align="start" side="top">

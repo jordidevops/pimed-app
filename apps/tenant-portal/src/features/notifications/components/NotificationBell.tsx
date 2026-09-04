@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bell } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNotificationsRealtime } from '../api/useNotificationsRealtime'
 import { invalidateEntityTimelineCaches } from '@/features/entity-timeline/api/invalidateEntityTimelineCaches'
@@ -20,9 +21,11 @@ import {
 
 interface NotificationBellProps {
   compact?: boolean
+  /** Classes de hover/estat idle del sidebar (mateix estil que els NavLink). */
+  itemClassName?: string
 }
 
-export function NotificationBell({ compact = false }: NotificationBellProps) {
+export function NotificationBell({ compact = false, itemClassName }: NotificationBellProps) {
   const { t } = useTranslation('common')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -88,8 +91,8 @@ export function NotificationBell({ compact = false }: NotificationBellProps) {
           type="button"
           className={
             compact
-              ? 'relative rounded-lg p-1.5 text-muted-foreground hover:bg-accent'
-              : 'relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground'
+              ? 'relative tp-nav-item tp-nav-item-compact'
+              : cn('relative tp-nav-item', itemClassName)
           }
           aria-label={t('notifications.bell_label', 'Notificacions')}
         >

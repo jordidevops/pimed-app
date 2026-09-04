@@ -22050,9 +22050,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      clear_my_member_setting: {
+        Args: { p_setting_key: string; p_tenant_id?: string }
+        Returns: undefined
+      }
       clear_tenant_map_api_key: {
         Args: { p_key_type: string; p_tenant_id: string }
         Returns: Json
+      }
+      clear_tenant_setting: {
+        Args: { p_setting_key: string; p_tenant_id?: string }
+        Returns: undefined
       }
       clone_checklist_response_set: {
         Args: { p_source_set_id: string; p_tenant_id: string }
