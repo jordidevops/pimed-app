@@ -12,6 +12,8 @@ import { formatElapsedSeconds } from '@/lib/dateLocal'
 
 interface WorkLogCardProps {
   projectId: string
+  /** When true, start punch is blocked (visit closed / on_hold / cancelled). */
+  locked?: boolean
 }
 
 function getErrorMessage(err: unknown): string {
@@ -51,11 +53,18 @@ function getWorklogUiErrorMessage(
     )
   }
 
+  if (message.includes('work_log_blocked_visit_closed')) {
+    return t(
+      'field-service:punch.blocked_closed',
+      'La visita està tancada; no es pot fitxar.',
+    )
+  }
+
   return message
 }
 
-export function WorkLogCard({ projectId }: WorkLogCardProps) {
-  const { t } = useTranslation('projects')
+export function WorkLogCard({ projectId, locked = false }: WorkLogCardProps) {
+  const { t } = useTranslation(['projects', 'field-service'])
   const { toast } = useToast()
   const { activeTenant } = useTenant()
   const sync = useFieldSync(activeTenant?.id ?? null)
@@ -104,6 +113,7 @@ export function WorkLogCard({ projectId }: WorkLogCardProps) {
     || sync.quarantinedCount > 0
 
   async function onStart() {
+    if (locked) return
     try {
       const result = await startWorkLog()
       await summary.refetch()
@@ -253,15 +263,25 @@ export function WorkLogCard({ projectId }: WorkLogCardProps) {
         </div>
       )}
 
+      {locked && !openLog?.id && (
+        <p className="text-xs text-muted-foreground">
+          {t('field-service:punch.blocked_closed', 'La visita està tancada; no es pot fitxar.')}
+        </p>
+      )}
+
       <div className="flex flex-wrap gap-2">
         {!openLog?.id ? (
           <Button
             size="sm"
             onClick={onStart}
-            disabled={isActionPending || isCheckingOpenLogInOtherProject || startBlockedByOtherProject}
-            title={startBlockedByOtherProject
-              ? t('projects.worklog.start_blocked_other_project_tooltip', 'No pots iniciar: ja tens un fitxatge obert en un altre projecte.')
-              : undefined}
+            disabled={locked || isActionPending || isCheckingOpenLogInOtherProject || startBlockedByOtherProject}
+            title={
+              locked
+                ? t('field-service:punch.blocked_closed', 'La visita està tancada; no es pot fitxar.')
+                : startBlockedByOtherProject
+                  ? t('projects.worklog.start_blocked_other_project_tooltip', 'No pots iniciar: ja tens un fitxatge obert en un altre projecte.')
+                  : undefined
+            }
           >
             {isActionPending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Play className="h-3.5 w-3.5 mr-1" />}
             {t('projects.worklog.start', 'Iniciar')}

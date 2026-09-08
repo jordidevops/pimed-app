@@ -60,7 +60,15 @@ Deno.serve(async (req: Request) => {
       { p_draft_id: draftId },
     );
     if (authorizationError || !authorization) {
-      return json({ error: { code: "draft_not_copyable" } }, 404);
+      log("warn", FEATURE, "authorize failed", {
+        extra: { draft_id: draftId, error: authorizationError?.message ?? "empty" },
+      });
+      return json({
+        error: {
+          code: "draft_not_copyable",
+          message: authorizationError?.message ?? "draft_not_copyable",
+        },
+      }, 404);
     }
 
     const admin = createAdminClient() as any;

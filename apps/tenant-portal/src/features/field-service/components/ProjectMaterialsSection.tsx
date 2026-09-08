@@ -12,6 +12,7 @@ interface ProjectMaterialsSectionProps {
   projectId: string
   workLogId?: string | null
   readOnly?: boolean
+  embedded?: boolean
 }
 
 function formatError(err: unknown): string {
@@ -39,6 +40,7 @@ export function ProjectMaterialsSection({
   projectId,
   workLogId,
   readOnly = false,
+  embedded = false,
 }: ProjectMaterialsSectionProps) {
   const { t } = useTranslation('field-service')
   const { toast } = useToast()
@@ -90,20 +92,22 @@ export function ProjectMaterialsSection({
 
   return (
     <section className="space-y-3">
-      <div>
-        <h3 className="text-sm font-semibold">{t('materials.title', 'Materials')}</h3>
-        <p className="text-xs text-muted-foreground">
-          {readOnly
-            ? t(
-                'materials.hint_readonly',
-                'La visita té el part publicat; els materials són només de lectura.',
-              )
-            : t(
-                'materials.hint',
-                "Omple el formulari i prem Afegir per desar-lo a l'ordre.",
-              )}
-        </p>
-      </div>
+      {!embedded && (
+        <div>
+          <h3 className="text-sm font-semibold">{t('materials.title', 'Materials')}</h3>
+          <p className="text-xs text-muted-foreground">
+            {readOnly
+              ? t(
+                  'materials.hint_readonly',
+                  'La visita té el part publicat; els materials són només de lectura.',
+                )
+              : t(
+                  'materials.hint',
+                  "Omple el formulari i prem Afegir per desar-lo a l'ordre.",
+                )}
+          </p>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="h-12 animate-pulse rounded-lg bg-accent/40" />

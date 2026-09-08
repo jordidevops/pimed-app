@@ -14,6 +14,8 @@ const buttonVariants = cva(
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
+        warning:
+          'bg-amber-500 text-amber-950 hover:bg-amber-500/90 dark:bg-amber-400 dark:text-amber-950 dark:hover:bg-amber-400/90',
       },
       size: {
         default: 'h-10 px-4 py-2',

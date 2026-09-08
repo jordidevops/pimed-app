@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Camera, CheckCircle2, Square } from 'lucide-react'
+import { Camera, CheckCircle2, CheckSquare, NotebookPen, Package, Paperclip, Square } from 'lucide-react'
 import {
   Drawer,
   DrawerContent,
@@ -30,11 +30,24 @@ import {
   listRunsForProject,
   projectHasDeferredFindings,
   projectNeedsOnHoldForDeferred,
-  runProgress,
 } from '../api/checklistTemplatesService'
 import { FollowUpOrdersSection } from './FollowUpOrdersSection'
+import {
+  CloseOutAttachmentsPreview,
+  CloseOutChecklistsPreview,
+  CloseOutMaterialsPreview,
+  CloseOutNotesPreview,
+  CloseOutPhotosPreview,
+  CloseOutReviewCard,
+  CloseOutTasksPreview,
+  type CloseOutEditSection,
+} from './CloseOutReview'
 import { listFollowUpProjects } from '@/features/projects/api/projectsService'
 import { projectsKeys } from '@/features/projects/api/projectsKeys'
+import { getTasks } from '@/features/projects/api/tasksService'
+import { tasksKeys } from '@/features/projects/api/tasksKeys'
+
+const LEGACY_CHECKLIST_TAGS = ['[fs-checklist]', '[migrated-checklist]']
 
 interface CloseOutSheetProps {
   projectId: string
@@ -60,8 +73,13 @@ export function CloseOutSheet({
   const offlinePhotoRef = useRef<HTMLInputElement>(null)
   const [completing, setCompleting] = useState(false)
   const [bypassReason, setBypassReason] = useState('')
+  const [editing, setEditing] = useState<Partial<Record<CloseOutEditSection, boolean>>>({})
 
   const isManager = activeRole === 'owner' || activeRole === 'manager'
+
+  useEffect(() => {
+    if (!open) setEditing({})
+  }, [open])
 
   const { data: blockers = [] } = useQuery({
     queryKey: ['checklist_closeout_blockers', projectId],
@@ -87,6 +105,18 @@ export function CloseOutSheet({
     enabled: open && !!activeTenant?.id && !!projectId,
     refetchInterval: 5_000,
   })
+
+  const { data: tasks = [] } = useQuery({
+    queryKey: tasksKeys.byProject(projectId),
+    queryFn: () => getTasks(projectId),
+    enabled: open && !!projectId,
+  })
+
+  const workTasks = tasks.filter(
+    (task) => !LEGACY_CHECKLIST_TAGS.some((tag) => task.title?.includes(tag)),
+  )
+  const tasksDoneCount = workTasks.filter((task) => task.status === 'done').length
+  const tasksOpenCount = workTasks.length - tasksDoneCount
 
   const activeRuns = runs.filter((r) => r.status !== 'superseded')
   const hasFollowUp = followUps.length > 0
@@ -247,35 +277,6 @@ export function CloseOutSheet({
             </p>
           )}
 
-          {activeRuns.length > 0 && (
-            <div className="space-y-2 rounded-xl border border-border p-3">
-              <p className="text-sm font-medium">{t('closeout.checklist_summary', 'Checklists')}</p>
-              {activeRuns.map((run) => {
-                const progress = runProgress(run)
-                const pendingRequired = (run.items ?? []).filter(
-                  (i) =>
-                    i.is_required &&
-                    !(
-                      i.value_bool != null ||
-                      i.value_option_id != null ||
-                      i.value_number != null ||
-                      i.value_text?.trim()
-                    ),
-                ).length
-                return (
-                  <p key={run.id} className="text-xs text-muted-foreground">
-                    {run.name_snapshot}: {progress.answered}/{progress.total}
-                    {pendingRequired > 0 && (
-                      <span className="ml-1 text-destructive">
-                        ({t('closeout.pending_required', '{{n}} obligatoris pendents', { n: pendingRequired })})
-                      </span>
-                    )}
-                  </p>
-                )
-              })}
-            </div>
-          )}
-
           {showFollowUpSection && (
             <FollowUpOrdersSection
               projectId={projectId}
@@ -339,63 +340,125 @@ export function CloseOutSheet({
             </Button>
           )}
 
-          <div className="rounded-xl border border-border p-3">
-            <ProjectPhotosSection
-              projectId={projectId}
-              projectName={projectName}
-              compact
-            />
-            {!isOnline && (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="mt-2 w-full gap-2"
-                onClick={() => offlinePhotoRef.current?.click()}
-              >
-                <Camera className="h-3.5 w-3.5" />
-                {t('closeout.queue_photo', 'Encuar foto (offline)')}
-              </Button>
-            )}
-            <input
-              ref={offlinePhotoRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => {
-                void handleOfflinePhoto(e.target.files?.[0])
-                e.target.value = ''
-              }}
-            />
-          </div>
+          {activeRuns.length > 0 && (
+            <div className="rounded-xl border border-border p-3">
+              <CloseOutChecklistsPreview runs={activeRuns} />
+            </div>
+          )}
 
-          <div className="rounded-xl border border-border p-3">
-            <ProjectAttachmentsSection
-              projectId={projectId}
-              projectName={projectName}
-              compact
-              readOnly={!isOnline}
-            />
-          </div>
-
-          <div className="rounded-xl border border-border p-3">
-            {isOnline ? (
-              <ProjectMaterialsSection projectId={projectId} workLogId={openLog?.id} />
+          <CloseOutReviewCard
+            title={t('work_notes.title', 'Notes de feina')}
+            icon={NotebookPen}
+            editing={editing.notes}
+            onToggleEdit={() => setEditing((prev) => ({ ...prev, notes: !prev.notes }))}
+          >
+            {editing.notes ? (
+              <WorkNotesSection
+                projectId={projectId}
+                initialHtml={project?.work_notes_html}
+                compact
+                embedded
+              />
             ) : (
-              <p className="text-sm text-muted-foreground">
-                {t('closeout.materials_requires_online', 'Cal connexió per registrar materials')}
-              </p>
+              <CloseOutNotesPreview html={project?.work_notes_html} />
             )}
-          </div>
+          </CloseOutReviewCard>
 
-          <div className="rounded-xl border border-border p-3">
-            <WorkNotesSection
-              projectId={projectId}
-              initialHtml={project?.work_notes_html}
-              compact
+          <CloseOutReviewCard
+            title={t('photos.title', 'Fotos')}
+            icon={Camera}
+            editing={editing.photos}
+            onToggleEdit={() => setEditing((prev) => ({ ...prev, photos: !prev.photos }))}
+          >
+            {editing.photos ? (
+              <>
+                <ProjectPhotosSection
+                  projectId={projectId}
+                  projectName={projectName}
+                  compact
+                  embedded
+                />
+                {!isOnline && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="mt-2 w-full gap-2"
+                    onClick={() => offlinePhotoRef.current?.click()}
+                  >
+                    <Camera className="h-3.5 w-3.5" />
+                    {t('closeout.queue_photo', 'Encuar foto (offline)')}
+                  </Button>
+                )}
+                <input
+                  ref={offlinePhotoRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => {
+                    void handleOfflinePhoto(e.target.files?.[0])
+                    e.target.value = ''
+                  }}
+                />
+              </>
+            ) : (
+              <CloseOutPhotosPreview projectId={projectId} />
+            )}
+          </CloseOutReviewCard>
+
+          <CloseOutReviewCard
+            title={t('attachments.title', 'Adjunts')}
+            icon={Paperclip}
+            editing={editing.attachments}
+            onToggleEdit={() => setEditing((prev) => ({ ...prev, attachments: !prev.attachments }))}
+          >
+            {editing.attachments ? (
+              <ProjectAttachmentsSection
+                projectId={projectId}
+                projectName={projectName}
+                compact
+                embedded
+                readOnly={!isOnline}
+              />
+            ) : (
+              <CloseOutAttachmentsPreview projectId={projectId} />
+            )}
+          </CloseOutReviewCard>
+
+          <CloseOutReviewCard
+            title={t('materials.title', 'Materials')}
+            icon={Package}
+            editing={editing.materials}
+            onToggleEdit={() => setEditing((prev) => ({ ...prev, materials: !prev.materials }))}
+          >
+            {editing.materials ? (
+              isOnline ? (
+                <ProjectMaterialsSection
+                  projectId={projectId}
+                  workLogId={openLog?.id}
+                  embedded
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {t('closeout.materials_requires_online', 'Cal connexió per registrar materials')}
+                </p>
+              )
+            ) : (
+              <CloseOutMaterialsPreview projectId={projectId} />
+            )}
+          </CloseOutReviewCard>
+
+          <CloseOutReviewCard
+            title={t('closeout.tasks_summary', 'Tasques')}
+            icon={CheckSquare}
+          >
+            <CloseOutTasksPreview
+              tasks={workTasks}
+              doneCount={tasksDoneCount}
+              openCount={tasksOpenCount}
             />
-          </div>
+          </CloseOutReviewCard>
         </div>
 
         <DrawerFooter className="mt-2 shrink-0">

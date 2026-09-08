@@ -17,8 +17,16 @@ type Props = {
   tenantNameFallback?: string
   contentDigest?: string
   media?: BulletinPreviewMediaItem[]
-  /** Banner when previewing an unpublished draft. */
+  /**
+   * unpublished: pending changes not yet published
+   * published: frozen published version
+   * matches_published: current content equals published version
+   */
+  previewKind?: 'unpublished' | 'published' | 'matches_published' | null
+  /** @deprecated Prefer previewKind */
   draftBanner?: boolean
+  /** Opens the same bulletin in a chrome-less tab (how the client will read it). */
+  openInNewTabHref?: string
 }
 
 const HTML_ALLOWED = {
@@ -187,9 +195,13 @@ export function BulletinClientPreview({
   tenantNameFallback,
   contentDigest,
   media = [],
+  previewKind = null,
   draftBanner = false,
+  openInNewTabHref,
 }: Props) {
   const { t } = useTranslation('field-service')
+  const kind =
+    previewKind ?? (draftBanner ? 'unpublished' : null)
 
   const summaryHtml = sanitizeClientHtml(
     typeof projection.client_summary_html === 'string' ? projection.client_summary_html : '',
@@ -202,6 +214,17 @@ export function BulletinClientPreview({
   const items = checklistItems(projection)
   const tasks = taskItems(projection)
   const materials = materialItems(projection)
+
+  const openTabLink = openInNewTabHref ? (
+    <a
+      href={openInNewTabHref}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="bp-sans shrink-0 font-medium text-[var(--bp-accent)] underline-offset-2 hover:underline"
+    >
+      {t('bulletin.preview_open_tab', 'Obrir en nova pestanya')}
+    </a>
+  ) : null
 
   return (
     <div className="bulletin-client-preview mx-auto max-w-2xl px-1 py-2 sm:px-2">
@@ -235,14 +258,29 @@ export function BulletinClientPreview({
       `}</style>
 
       <div className="px-4 py-6 sm:px-6 sm:py-8">
-        {draftBanner && (
-          <div className="bp-sans mb-6 rounded-lg border border-[var(--bp-line)] bg-white/60 px-3 py-2 text-sm text-[var(--bp-muted)]">
-            {t(
-              'bulletin.preview_draft_banner',
-              'Vista prèvia de l’esborrany (com el veurà el client). Les notes de feina no s’inclouen.',
-            )}
+        {kind ? (
+          <div className="bp-sans mb-6 space-y-2 rounded-lg border border-[var(--bp-line)] bg-white/60 px-3 py-2 text-sm text-[var(--bp-muted)]">
+            <p>
+              {kind === 'matches_published'
+                ? t(
+                    'bulletin.preview_matches_published_banner',
+                    'Aquesta vista prèvia és la mateixa que la versió publicada.',
+                  )
+                : kind === 'published'
+                  ? t(
+                      'bulletin.preview_published_banner',
+                      'Versió publicada actual. Això és el que pot veure el client si té accés.',
+                    )
+                  : t(
+                      'bulletin.preview_unpublished_banner',
+                      'Vista prèvia (encara no publicada). Les notes de feina no s’inclouen.',
+                    )}
+            </p>
+            {openTabLink}
           </div>
-        )}
+        ) : openTabLink ? (
+          <div className="mb-4">{openTabLink}</div>
+        ) : null}
 
         <header className="border-b border-[var(--bp-line)] pb-6">
           <p className="bp-sans text-xs uppercase tracking-[0.18em] text-[var(--bp-muted)]">

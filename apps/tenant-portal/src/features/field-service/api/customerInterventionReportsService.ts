@@ -334,40 +334,19 @@ export function seedOrMergeContentSelection(
     checklistIds = candidates.checklist_items
       .filter((i) => i.include_in_report === true)
       .map((i) => String(i.id))
-  } else {
-    const prevSet = new Set(prev.checklist_run_item_ids)
-    for (const item of candidates.checklist_items) {
-      const id = String(item.id)
-      if (!prevSet.has(id) && !checklistIds.includes(id) && item.include_in_report === true) {
-        checklistIds.push(id)
-      }
-    }
   }
+  // When seeded, trust checklist_run_item_ids as the curated set (do not re-add
+  // include_in_report items the user unchecked).
 
   if (!prev.tasks_seeded) {
     taskIds = candidates.tasks.map((t) => String(t.id))
-  } else {
-    const prevSet = new Set(prev.task_ids)
-    // Keep prior inclusions that still exist; newly appeared tasks default on.
-    for (const task of candidates.tasks) {
-      const id = String(task.id)
-      if (!prevSet.has(id) && !taskIds.includes(id)) {
-        taskIds.push(id)
-      }
-    }
   }
+  // When seeded, trust task_ids as curated (same rule as checklists).
 
   if (!prev.materials_seeded) {
     materialIds = candidates.materials.map((m) => String(m.id))
-  } else {
-    const prevSet = new Set(prev.material_ids)
-    for (const material of candidates.materials) {
-      const id = String(material.id)
-      if (!prevSet.has(id) && !materialIds.includes(id)) {
-        materialIds.push(id)
-      }
-    }
   }
+  // When seeded, trust material_ids as curated.
 
   return {
     checklist_run_item_ids: checklistIds,
@@ -665,9 +644,42 @@ export async function createCorrectedCirDraft(reportId: string): Promise<string>
   return data as string
 }
 
+async function mediaCopyInvokeError(error: unknown): Promise<Error> {
+  const err = error as {
+    message?: string
+    context?: { status?: number; clone?: () => { json: () => Promise<unknown> }; json?: () => Promise<unknown> }
+  }
+  const status = err.context?.status
+  let code = ''
+  try {
+    const bodySource = err.context?.clone?.() ?? err.context
+    const body = (await bodySource?.json?.()) as
+      | { error?: { code?: string; message?: string }; msg?: string }
+      | null
+    code = body?.error?.code || body?.msg || ''
+  } catch {
+    /* Kong 404s are often HTML, not JSON */
+  }
+  if (code === 'draft_not_copyable') return new Error('media_copy_draft_not_copyable')
+  if (status === 404 || /not found/i.test(err.message || '') || /not found/i.test(code)) {
+    return new Error('media_copy_unavailable')
+  }
+  return new Error(err.message || 'media_copy_failed')
+}
+
+function activeTenantIdFromClient(): string | null {
+  const restHeaders = (supabase as unknown as { rest?: { headers?: Headers } }).rest?.headers
+  const fromHeader = restHeaders?.get?.('x-tenant-id')
+  if (typeof fromHeader === 'string' && fromHeader.trim()) return fromHeader.trim()
+  if (typeof sessionStorage === 'undefined') return null
+  const stored = sessionStorage.getItem('selectedTenantId')
+  return stored && stored !== '__ALL_TENANTS__' ? stored : null
+}
+
 /** Prepare media (copy pending → customer-report-media) + publish. */
 export async function publishBulletin(params: {
   projectId: string
+  tenantId?: string | null
   clientSummaryHtml?: string | null
   locale?: string
   draftId?: string | null
@@ -707,15 +719,17 @@ export async function publishBulletin(params: {
     (typeof prepared?.pending_count === 'number' && prepared.pending_count > 0)
 
   if (needsCopy) {
+    const tenantId = params.tenantId?.trim() || activeTenantIdFromClient()
     const { data, error } = await supabase.functions.invoke('copy-customer-report-media', {
       body: { draft_id: draftId },
+      headers: tenantId ? { 'x-tenant-id': tenantId } : undefined,
     })
     if (error) {
-      throw new Error(error.message || 'media_copy_failed')
+      throw await mediaCopyInvokeError(error)
     }
-    const payload = data as { ok?: boolean; error?: { message?: string } } | null
+    const payload = data as { ok?: boolean; error?: { code?: string; message?: string } } | null
     if (payload && payload.ok === false) {
-      throw new Error(payload.error?.message || 'media_copy_failed')
+      throw new Error(payload.error?.code || payload.error?.message || 'media_copy_failed')
     }
   }
 

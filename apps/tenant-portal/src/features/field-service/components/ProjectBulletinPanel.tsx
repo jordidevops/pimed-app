@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -11,7 +11,7 @@ import {
   Link2,
   Loader2,
   Mail,
-  RefreshCw,
+  Pencil,
   ShieldOff,
   Trash2,
 } from 'lucide-react'
@@ -19,12 +19,14 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import { useToast } from '@/hooks/use-toast'
 import { usePermission } from '@/hooks/usePermission'
 import { useAuth } from '@/contexts/AuthContext'
@@ -36,7 +38,6 @@ import { listCustomerAccessGrants } from '../api/customerAccessGrantsService'
 import { projectsKeys } from '@/features/projects/api/projectsKeys'
 import {
   buildBulletinProjection,
-  createCorrectedCirDraft,
   createManualShare,
   createStaffPreviewSession,
   enqueueShareEmail,
@@ -47,13 +48,14 @@ import {
   listBulletinContentCandidates,
   listProjectShares,
   parseContentSelection,
-  previewCirDraft,
   publishBulletin,
   resolveBulletinShowFlags,
   revokeShare,
   seedOrMergeContentSelection,
   upsertCirDraft,
+  type BulletinContentCandidates,
   type BulletinContentSelection,
+  type CirVersion,
 } from '../api/customerInterventionReportsService'
 import {
   evidenceNodeIdsForSelection,
@@ -76,6 +78,85 @@ const bulletinKeys = {
   root: (projectId: string) => ['bulletin', projectId] as const,
 }
 
+function fileNodeIdsFromMediaJson(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  const ids: string[] = []
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue
+    const id = (item as { file_node_id?: unknown }).file_node_id
+    if (typeof id === 'string' && id) ids.push(id)
+  }
+  return ids
+}
+
+function summaryFromVersion(version: CirVersion | null): string | null {
+  if (!version?.projection || typeof version.projection !== 'object') return null
+  const summary = (version.projection as Record<string, unknown>).client_summary_html
+  return typeof summary === 'string' ? summary : null
+}
+
+function sortedIds(ids: string[]): string[] {
+  return [...ids].map(String).sort()
+}
+
+function bulletinContentFingerprint(input: {
+  summary: string
+  locale: string
+  checklistIds: string[]
+  taskIds: string[]
+  materialIds: string[]
+  showChecklists: boolean
+  showTasks: boolean
+  showMaterials: boolean
+  mediaIds: string[]
+}): string {
+  return JSON.stringify({
+    summary: input.summary.trim(),
+    locale: input.locale,
+    checklistIds: sortedIds(input.checklistIds),
+    taskIds: sortedIds(input.taskIds),
+    materialIds: sortedIds(input.materialIds),
+    showChecklists: input.showChecklists,
+    showTasks: input.showTasks,
+    showMaterials: input.showMaterials,
+    mediaIds: sortedIds(input.mediaIds),
+  })
+}
+
+function fingerprintFromVersion(
+  version: CirVersion,
+  opts?: {
+    candidates?: BulletinContentCandidates | null
+    tenantShowChecklists?: boolean
+    tenantShowTasks?: boolean
+    tenantShowMaterials?: boolean
+  },
+): string {
+  let selection = parseContentSelection(version.content_selection ?? {})
+  if (opts?.candidates) {
+    selection = seedOrMergeContentSelection(selection, opts.candidates)
+  }
+  const flags = resolveBulletinShowFlags({
+    draftShowChecklists: version.show_checklists,
+    draftShowTasks: version.show_tasks,
+    draftShowMaterials: version.show_materials,
+    tenantShowChecklists: opts?.tenantShowChecklists !== false,
+    tenantShowTasks: opts?.tenantShowTasks !== false,
+    tenantShowMaterials: opts?.tenantShowMaterials !== false,
+  })
+  return bulletinContentFingerprint({
+    summary: summaryFromVersion(version) ?? '',
+    locale: version.locale,
+    checklistIds: selection.checklist_run_item_ids,
+    taskIds: selection.task_ids,
+    materialIds: selection.material_ids,
+    showChecklists: flags.showChecklists,
+    showTasks: flags.showTasks,
+    showMaterials: flags.showMaterials,
+    mediaIds: fileNodeIdsFromMediaJson(version.media_manifest),
+  })
+}
+
 interface ProjectBulletinPanelProps {
   projectId: string
   clientId: string | null
@@ -93,7 +174,7 @@ export function ProjectBulletinPanel({
   siteId,
   visitClosed,
   workLocked,
-  publishedAt,
+  publishedAt: _publishedAt,
 }: ProjectBulletinPanelProps) {
   const { t, i18n } = useTranslation('field-service')
   const { toast } = useToast()
@@ -109,7 +190,6 @@ export function ProjectBulletinPanel({
   const sharesAllowed = portalEntitlementsLoaded && canCreateShares === true
 
   const canPublish = usePermission('field_service.reports.publish', siteId)
-  const canRegenerate = usePermission('field_service.reports.regenerate', siteId)
   const canShare = usePermission('field_service.reports.share', siteId)
   const canRevoke = usePermission('field_service.reports.revoke', siteId)
   const canPreview = usePermission('field_service.reports.preview_as_customer', siteId)
@@ -120,11 +200,15 @@ export function ProjectBulletinPanel({
   const [busy, setBusy] = useState<string | null>(null)
   const [freshSecretUrl, setFreshSecretUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-  const [previewOpen, setPreviewOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const [previewJson, setPreviewJson] = useState<Record<string, unknown> | null>(null)
   const [previewMedia, setPreviewMedia] = useState<BulletinPreviewMediaItem[]>([])
-  const [previewIsDraft, setPreviewIsDraft] = useState(false)
+  const [previewKind, setPreviewKind] = useState<
+    'unpublished' | 'published' | 'matches_published' | null
+  >(null)
   const [previewDigest, setPreviewDigest] = useState<string | undefined>(undefined)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewFocus, setPreviewFocus] = useState<'live' | 'published'>('live')
   const [selectedMediaIds, setSelectedMediaIds] = useState<string[]>([])
   const [mediaHydrated, setMediaHydrated] = useState(false)
   const [contentSelection, setContentSelection] = useState<BulletinContentSelection>({
@@ -141,6 +225,12 @@ export function ProjectBulletinPanel({
   const [showTasksMode, setShowTasksMode] = useState<ShowMode>('inherit')
   const [showMaterialsMode, setShowMaterialsMode] = useState<ShowMode>('inherit')
   const [autoMediaDoneFor, setAutoMediaDoneFor] = useState<string | null>(null)
+  /** Skip the first auto-evidence merge after hydrate so published media stays intact. */
+  const skipAutoMediaOnceRef = useRef(true)
+  /** Skip the first autosave after opening the editor (hydrate, not a user edit). */
+  const skipEditorAutosaveRef = useRef(true)
+  /** Drop stale async preview updates when selection changes quickly. */
+  const previewRequestIdRef = useRef(0)
 
   const tenantId = activeTenant?.id ?? ''
 
@@ -222,50 +312,53 @@ export function ProjectBulletinPanel({
   }, [client?.preferred_locale, supportedLocales, defaultLocale])
 
   const userEmail = user?.email?.trim().toLowerCase() ?? null
-
-  useEffect(() => {
-    if (draft?.client_summary_html != null) {
-      setSummaryHtml((prev) => (prev ? prev : draft.client_summary_html ?? ''))
-    }
-  }, [draft?.id, draft?.client_summary_html])
+  const editorSourceKey = draft?.id ?? version?.id ?? 'none'
 
   useEffect(() => {
     setMediaHydrated(false)
     setContentHydrated(false)
     setAutoMediaDoneFor(null)
-  }, [draft?.id])
+    skipAutoMediaOnceRef.current = true
+    if (draft?.client_summary_html != null) {
+      setSummaryHtml(draft.client_summary_html)
+    } else {
+      setSummaryHtml(summaryFromVersion(version) ?? '')
+    }
+    // Reset only when the active draft/version document changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- editorSourceKey gates the reset
+  }, [editorSourceKey])
 
   useEffect(() => {
-    if (mediaHydrated || !draft) return
-    const raw = draft.selected_media
-    if (!Array.isArray(raw)) {
-      setSelectedMediaIds([])
+    if (mediaHydrated) return
+    if (draft) {
+      setSelectedMediaIds(fileNodeIdsFromMediaJson(draft.selected_media))
       setMediaHydrated(true)
       return
     }
-    const ids: string[] = []
-    for (const item of raw) {
-      if (!item || typeof item !== 'object') continue
-      const id = (item as { file_node_id?: unknown }).file_node_id
-      if (typeof id === 'string' && id) ids.push(id)
+    if (version) {
+      setSelectedMediaIds(fileNodeIdsFromMediaJson(version.media_manifest))
+      setMediaHydrated(true)
+      return
     }
-    setSelectedMediaIds(ids)
+    setSelectedMediaIds([])
     setMediaHydrated(true)
-  }, [draft, mediaHydrated])
+  }, [draft, version, mediaHydrated])
 
   useEffect(() => {
     if (contentHydrated || !contentCandidates) return
-    const fromDraft = draft?.content_selection
-      ? parseContentSelection(draft.content_selection)
-      : null
-    setContentSelection(seedOrMergeContentSelection(fromDraft, contentCandidates))
-    setShowChecklistsMode(
-      draft?.show_checklists == null ? 'inherit' : draft.show_checklists ? 'on' : 'off',
-    )
-    setShowTasksMode(draft?.show_tasks == null ? 'inherit' : draft.show_tasks ? 'on' : 'off')
-    setShowMaterialsMode(
-      draft?.show_materials == null ? 'inherit' : draft.show_materials ? 'on' : 'off',
-    )
+    // Prefer the active draft whenever it exists (even if content_selection is {}).
+    const fromStored = draft
+      ? parseContentSelection(draft.content_selection ?? {})
+      : version
+        ? parseContentSelection(version.content_selection ?? {})
+        : null
+    setContentSelection(seedOrMergeContentSelection(fromStored, contentCandidates))
+    const showChecklists = draft ? draft.show_checklists : version?.show_checklists
+    const showTasks = draft ? draft.show_tasks : version?.show_tasks
+    const showMaterials = draft ? draft.show_materials : version?.show_materials
+    setShowChecklistsMode(showChecklists == null ? 'inherit' : showChecklists ? 'on' : 'off')
+    setShowTasksMode(showTasks == null ? 'inherit' : showTasks ? 'on' : 'off')
+    setShowMaterialsMode(showMaterials == null ? 'inherit' : showMaterials ? 'on' : 'off')
     setContentHydrated(true)
   }, [
     contentCandidates,
@@ -275,6 +368,11 @@ export function ProjectBulletinPanel({
     draft?.show_tasks,
     draft?.show_materials,
     draft?.id,
+    version?.content_selection,
+    version?.show_checklists,
+    version?.show_tasks,
+    version?.show_materials,
+    version?.id,
   ])
 
   const effectiveFlags = useMemo(() => {
@@ -294,7 +392,7 @@ export function ProjectBulletinPanel({
   useEffect(() => {
     if (!contentHydrated || !mediaHydrated || !contentCandidates) return
     const key = [
-      draft?.id ?? 'new',
+      editorSourceKey,
       effectiveFlags.showChecklists,
       effectiveFlags.showTasks,
       contentSelection.checklist_run_item_ids.join(','),
@@ -302,6 +400,12 @@ export function ProjectBulletinPanel({
       projectMedia.length,
     ].join('|')
     if (autoMediaDoneFor === key) return
+
+    if (skipAutoMediaOnceRef.current) {
+      skipAutoMediaOnceRef.current = false
+      setAutoMediaDoneFor(key)
+      return
+    }
 
     const evidenceIds = evidenceNodeIdsForSelection(projectMedia, {
       showChecklists: effectiveFlags.showChecklists,
@@ -324,7 +428,7 @@ export function ProjectBulletinPanel({
     contentSelection.checklist_run_item_ids,
     contentSelection.media_excluded_ids,
     contentSelection.task_ids,
-    draft?.id,
+    editorSourceKey,
     effectiveFlags.showChecklists,
     effectiveFlags.showTasks,
     mediaHydrated,
@@ -332,10 +436,16 @@ export function ProjectBulletinPanel({
   ])
 
   function buildDraftPayload() {
-    const locale = draft?.locale || bulletinDefaultLocale
+    const locale = draft?.locale || version?.locale || bulletinDefaultLocale
     const selection = contentCandidates
       ? seedOrMergeContentSelection(contentSelection, contentCandidates)
       : contentSelection
+    const existingProjection =
+      draft?.projection && typeof draft.projection === 'object'
+        ? (draft.projection as Record<string, unknown>)
+        : version?.projection && typeof version.projection === 'object'
+          ? (version.projection as Record<string, unknown>)
+          : null
     const projection =
       contentCandidates != null
         ? buildBulletinProjection({
@@ -346,10 +456,7 @@ export function ProjectBulletinPanel({
             showChecklists: effectiveFlags.showChecklists,
             showTasks: effectiveFlags.showTasks,
             showMaterials: effectiveFlags.showMaterials,
-            existingProjection:
-              draft?.projection && typeof draft.projection === 'object'
-                ? (draft.projection as Record<string, unknown>)
-                : null,
+            existingProjection,
           })
         : undefined
     return {
@@ -376,17 +483,11 @@ export function ProjectBulletinPanel({
         n: version.version_number,
       })
     }
-    if (draft?.status === 'ready') {
-      return t('bulletin.status.ready', 'Preview a punt de publicar')
-    }
     if (draft?.status === 'preparing_media') {
       return t('bulletin.status.preparing', 'Preparant media…')
     }
     if (draft?.status === 'failed') {
       return t('bulletin.status.failed', 'Preparació fallida')
-    }
-    if (draft) {
-      return t('bulletin.status.draft', 'Esborrany')
     }
     if (visitClosed && !workLocked) {
       return t('bulletin.status.curation', 'Visita tancada — pendent de publicació')
@@ -400,7 +501,99 @@ export function ProjectBulletinPanel({
   const canEditDraft = canPublish && !report?.legacy_unresolved
   const draftRetryable =
     draft?.status === 'preparing_media' || draft?.status === 'failed'
-  const publishDisabled = Boolean(busy) || !visitClosed || Boolean(report?.legacy_unresolved)
+  const hasActiveShare = shares.some((s) => Boolean(s.is_active) && !s.revoked_at)
+  const clientCanAccess = Boolean(version) && (hasActiveShare || grants.length > 0)
+
+  const matchesPublished = useMemo(() => {
+    if (!version) return false
+    // Until editor + auto-media baseline settle, treat as unchanged.
+    if (!contentHydrated || !mediaHydrated || !autoMediaDoneFor) return true
+    const live = bulletinContentFingerprint({
+      summary: summaryHtml,
+      locale: draft?.locale || version.locale || bulletinDefaultLocale,
+      checklistIds: contentSelection.checklist_run_item_ids,
+      taskIds: contentSelection.task_ids,
+      materialIds: contentSelection.material_ids,
+      showChecklists: effectiveFlags.showChecklists,
+      showTasks: effectiveFlags.showTasks,
+      showMaterials: effectiveFlags.showMaterials,
+      mediaIds: selectedMediaIds,
+    })
+    return (
+      live ===
+      fingerprintFromVersion(version, {
+        candidates: contentCandidates,
+        tenantShowChecklists: contentCandidates?.tenant_show_checklists !== false,
+        tenantShowTasks: contentCandidates?.tenant_show_tasks !== false,
+        tenantShowMaterials: contentCandidates?.tenant_show_materials !== false,
+      })
+    )
+  }, [
+    version,
+    contentHydrated,
+    mediaHydrated,
+    autoMediaDoneFor,
+    summaryHtml,
+    draft?.locale,
+    bulletinDefaultLocale,
+    contentSelection.checklist_run_item_ids,
+    contentSelection.task_ids,
+    contentSelection.material_ids,
+    effectiveFlags.showChecklists,
+    effectiveFlags.showTasks,
+    effectiveFlags.showMaterials,
+    selectedMediaIds,
+    contentCandidates,
+  ])
+
+  const publishDisabled =
+    Boolean(busy) ||
+    !visitClosed ||
+    Boolean(report?.legacy_unresolved) ||
+    (Boolean(version) && matchesPublished && !draftRetryable)
+
+  const visibility = useMemo(() => {
+    if (report?.legacy_unresolved) {
+      return {
+        label: t(
+          'bulletin.visibility_legacy',
+          'Llegat pendent de revisar. El client no hi pot accedir.',
+        ),
+        variant: 'destructive' as const,
+      }
+    }
+    if (!visitClosed) {
+      return {
+        label: t(
+          'bulletin.visibility_open_visit',
+          'El client encara no el pot veure. Cal tancar la visita i publicar.',
+        ),
+        variant: 'secondary' as const,
+      }
+    }
+    if (!version) {
+      return {
+        label: t(
+          'bulletin.visibility_not_published',
+          'El client encara no el pot veure. Encara no està publicat.',
+        ),
+        variant: 'secondary' as const,
+      }
+    }
+    if (!clientCanAccess) {
+      return {
+        label: t(
+          'bulletin.visibility_not_shared',
+          'Publicat. Encara no s\'ha compartit amb el client.',
+        ),
+        variant: 'secondary' as const,
+      }
+    }
+    return {
+      label: t('bulletin.visibility_visible', 'El client ja pot veure el butlletí.'),
+      variant: 'default' as const,
+    }
+  }, [report?.legacy_unresolved, visitClosed, version, clientCanAccess, t])
 
   const selectedMediaPayload = useMemo(
     () => selectedMediaIds.map((file_node_id) => ({ file_node_id })),
@@ -457,33 +650,113 @@ export function ProjectBulletinPanel({
 
   function mediaIdsFromDraftOrSelection(): string[] {
     if (selectedMediaIds.length > 0) return selectedMediaIds
-    const raw = draft?.selected_media
-    if (!Array.isArray(raw)) return []
-    const ids: string[] = []
-    for (const item of raw) {
-      if (!item || typeof item !== 'object') continue
-      const id = (item as { file_node_id?: unknown }).file_node_id
-      if (typeof id === 'string' && id) ids.push(id)
-    }
-    return ids
+    if (draft) return fileNodeIdsFromMediaJson(draft.selected_media)
+    if (version) return fileNodeIdsFromMediaJson(version.media_manifest)
+    return []
   }
 
   async function openClientPreview(opts: {
     projection: Record<string, unknown>
-    isDraft: boolean
+    kind: 'unpublished' | 'published' | 'matches_published' | null
     digest?: string
     mediaNodeIds?: string[]
+    requestId?: number
   }) {
     const withTenant: Record<string, unknown> = { ...opts.projection }
     if (!withTenant.tenant && activeTenant?.name) {
       withTenant.tenant = { name: activeTenant.name }
     }
+    if (
+      opts.kind !== 'published' &&
+      opts.kind !== 'matches_published' &&
+      summaryHtml &&
+      typeof withTenant.client_summary_html !== 'string'
+    ) {
+      withTenant.client_summary_html = summaryHtml
+    }
     const media = await buildPreviewMedia(opts.mediaNodeIds ?? mediaIdsFromDraftOrSelection())
+    if (opts.requestId != null && opts.requestId !== previewRequestIdRef.current) return
     setPreviewJson(withTenant)
     setPreviewMedia(media)
-    setPreviewIsDraft(opts.isDraft)
+    setPreviewKind(opts.kind)
     setPreviewDigest(opts.digest)
-    setPreviewOpen(true)
+  }
+
+  async function refreshLivePreviewFromEditor(requestId?: number) {
+    const req = requestId ?? ++previewRequestIdRef.current
+    const payload = buildDraftPayload()
+    const projection = {
+      ...((payload.projection && typeof payload.projection === 'object'
+        ? payload.projection
+        : {}) as Record<string, unknown>),
+    }
+    if (summaryHtml) projection.client_summary_html = summaryHtml
+    const sameAsPublished =
+      Boolean(version) &&
+      bulletinContentFingerprint({
+        summary: summaryHtml,
+        locale: payload.locale,
+        checklistIds: payload.selection.checklist_run_item_ids,
+        taskIds: payload.selection.task_ids,
+        materialIds: payload.selection.material_ids,
+        showChecklists: effectiveFlags.showChecklists,
+        showTasks: effectiveFlags.showTasks,
+        showMaterials: effectiveFlags.showMaterials,
+        mediaIds: selectedMediaIds,
+      }) ===
+        fingerprintFromVersion(version!, {
+          candidates: contentCandidates,
+          tenantShowChecklists: contentCandidates?.tenant_show_checklists !== false,
+          tenantShowTasks: contentCandidates?.tenant_show_tasks !== false,
+          tenantShowMaterials: contentCandidates?.tenant_show_materials !== false,
+        })
+
+    if (sameAsPublished && version?.projection && typeof version.projection === 'object') {
+      await openClientPreview({
+        projection: version.projection as Record<string, unknown>,
+        kind: 'matches_published',
+        digest: version.content_digest,
+        mediaNodeIds: fileNodeIdsFromMediaJson(version.media_manifest),
+        requestId: req,
+      })
+      return
+    }
+
+    await openClientPreview({
+      projection,
+      kind: 'unpublished',
+      mediaNodeIds: selectedMediaIds,
+      requestId: req,
+    })
+  }
+
+  async function showPublishedPreview() {
+    if (!version?.projection || typeof version.projection !== 'object') return
+    const req = ++previewRequestIdRef.current
+    setPreviewFocus('published')
+    setPreviewLoading(true)
+    try {
+      await openClientPreview({
+        projection: version.projection as Record<string, unknown>,
+        kind: 'published',
+        digest: version.content_digest,
+        mediaNodeIds: fileNodeIdsFromMediaJson(version.media_manifest),
+        requestId: req,
+      })
+    } finally {
+      if (req === previewRequestIdRef.current) setPreviewLoading(false)
+    }
+  }
+
+  async function showLivePreview() {
+    const req = ++previewRequestIdRef.current
+    setPreviewFocus('live')
+    setPreviewLoading(true)
+    try {
+      await loadInlinePreview(true, 'live', req)
+    } finally {
+      if (req === previewRequestIdRef.current) setPreviewLoading(false)
+    }
   }
 
   async function invalidateAll() {
@@ -541,12 +814,12 @@ export function ProjectBulletinPanel({
     })
   }
 
-  async function handleSaveDraft() {
+  async function persistEditorSilently() {
     if (!canEditDraft) return
-    setBusy('draft')
     try {
+      setPreviewFocus('live')
       const payload = buildDraftPayload()
-      const draftId = await upsertCirDraft({
+      await upsertCirDraft({
         projectId,
         locale: payload.locale,
         clientSummaryHtml: summaryHtml || null,
@@ -563,24 +836,13 @@ export function ProjectBulletinPanel({
         refreshProjectionFromChecklist: false,
       })
       setContentSelection(payload.selection)
-      toast({ description: t('bulletin.draft_saved', 'Esborrany desat') })
-      await invalidateAll()
+      // Don't await a full refetch before refreshing preview — local editor state is source of truth.
       if (canPreview) {
-        const raw = await previewCirDraft(draftId)
-        const projection = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
-        await openClientPreview({
-          projection,
-          isDraft: true,
-          mediaNodeIds: selectedMediaIds,
-        })
+        await refreshLivePreviewFromEditor()
       }
-    } catch (e) {
-      toast({
-        variant: 'destructive',
-        description: (e as Error).message || t('bulletin.draft_failed', 'No s\'ha pogut desar'),
-      })
-    } finally {
-      setBusy(null)
+      void invalidateAll()
+    } catch {
+      /* Keep last preview; publish will surface errors. */
     }
   }
 
@@ -591,6 +853,7 @@ export function ProjectBulletinPanel({
       const payload = buildDraftPayload()
       await publishBulletin({
         projectId,
+        tenantId: activeTenant?.id,
         clientSummaryHtml: summaryHtml || null,
         locale: payload.locale,
         draftId: draft?.id,
@@ -613,6 +876,7 @@ export function ProjectBulletinPanel({
           ),
         })
       }
+      setPreviewFocus('live')
       await invalidateAll()
     } catch (e) {
       const msg = (e as Error).message || ''
@@ -620,24 +884,14 @@ export function ProjectBulletinPanel({
         variant: 'destructive',
         description: msg.includes('legacy_unresolved')
           ? t('bulletin.legacy_block', 'Cal resoldre el llegat abans de publicar')
-          : t('bulletin.publish_failed', 'No s\'ha pogut publicar el butlletí'),
-      })
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  async function handleCorrected() {
-    if (!canRegenerate || !report?.id) return
-    setBusy('correct')
-    try {
-      await createCorrectedCirDraft(report.id)
-      toast({ description: t('bulletin.corrected_draft', 'Esborrany de correcció creat') })
-      await invalidateAll()
-    } catch (e) {
-      toast({
-        variant: 'destructive',
-        description: (e as Error).message || t('bulletin.correct_failed', 'No s\'ha pogut crear la correcció'),
+          : msg.includes('media_copy_unavailable')
+            ? t(
+                'bulletin.publish_media_unavailable',
+                'No s\'ha pogut preparar el media del butlletí. En local cal tenir les Edge Functions en marxa.',
+              )
+            : msg.includes('media_copy')
+              ? t('bulletin.publish_media_failed', 'No s\'ha pogut copiar el media del butlletí.')
+              : t('bulletin.publish_failed', 'No s\'ha pogut publicar el butlletí'),
       })
     } finally {
       setBusy(null)
@@ -646,13 +900,18 @@ export function ProjectBulletinPanel({
 
   async function handleStaffHandoff() {
     if (!canPreview || !version) return
+    const tab = window.open('about:blank', '_blank')
     setBusy('staff')
     try {
       const result = await createStaffPreviewSession({
         reportVersionId: version.id,
         ttlMinutes: 30,
       })
-      window.open(result.preview_url, '_blank', 'noopener,noreferrer')
+      if (tab && !tab.closed) {
+        tab.location.replace(result.preview_url)
+      } else {
+        window.open(result.preview_url, '_blank', 'noopener,noreferrer')
+      }
       toast({
         description: t(
           'bulletin.staff_opened',
@@ -660,6 +919,7 @@ export function ProjectBulletinPanel({
         ),
       })
     } catch (e) {
+      tab?.close()
       toast({
         variant: 'destructive',
         description:
@@ -670,49 +930,114 @@ export function ProjectBulletinPanel({
     }
   }
 
-  async function handlePreview() {
+  async function loadInlinePreview(
+    silent = false,
+    focus: 'live' | 'published' = previewFocus,
+    requestId?: number,
+  ) {
     if (!canPreview) return
-    setBusy('preview')
+    const req = requestId ?? ++previewRequestIdRef.current
+    if (requestId == null) setPreviewLoading(true)
     try {
-      if (draft?.id && draft.status !== 'superseded') {
-        const raw = await previewCirDraft(draft.id)
-        const projection = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
-        await openClientPreview({
-          projection,
-          isDraft: true,
-          mediaNodeIds: mediaIdsFromDraftOrSelection(),
-        })
-      } else if (version?.projection && typeof version.projection === 'object') {
-        const ids: string[] = []
-        const raw = version.media_manifest
-        if (Array.isArray(raw)) {
-          for (const item of raw) {
-            if (!item || typeof item !== 'object') continue
-            const id = (item as { file_node_id?: unknown }).file_node_id
-            if (typeof id === 'string' && id) ids.push(id)
-          }
-        }
+      if (focus === 'published' && version?.projection && typeof version.projection === 'object') {
         await openClientPreview({
           projection: version.projection as Record<string, unknown>,
-          isDraft: false,
+          kind: 'published',
           digest: version.content_digest,
-          mediaNodeIds: ids.length > 0 ? ids : mediaIdsFromDraftOrSelection(),
+          mediaNodeIds: fileNodeIdsFromMediaJson(version.media_manifest),
+          requestId: req,
         })
+        return
+      }
+
+      await refreshLivePreviewFromEditor(req)
+    } catch (e) {
+      if (req !== previewRequestIdRef.current) return
+      if (silent) {
+        setPreviewJson(null)
+        setPreviewMedia([])
+        setPreviewKind(null)
       } else {
         toast({
           variant: 'destructive',
-          description: t('bulletin.preview_empty', 'Sense contingut de preview.'),
+          description: (e as Error).message || t('bulletin.preview_failed', 'No s\'ha pogut previsualitzar'),
         })
       }
-    } catch (e) {
-      toast({
-        variant: 'destructive',
-        description: (e as Error).message || t('bulletin.preview_failed', 'No s\'ha pogut previsualitzar'),
-      })
     } finally {
-      setBusy(null)
+      if (requestId == null && req === previewRequestIdRef.current) {
+        setPreviewLoading(false)
+      }
     }
   }
+
+  useEffect(() => {
+    if (isLoading || !contentHydrated || !mediaHydrated) return
+    if (previewFocus === 'published') {
+      void loadInlinePreview(true, 'published')
+      return () => {
+        previewRequestIdRef.current += 1
+      }
+    }
+    const timer = window.setTimeout(() => {
+      void loadInlinePreview(true, 'live')
+    }, 120)
+    return () => {
+      window.clearTimeout(timer)
+      // Cancel in-flight preview started by a previous run of this effect.
+      previewRequestIdRef.current += 1
+    }
+  }, [
+    isLoading,
+    contentHydrated,
+    mediaHydrated,
+    draft?.id,
+    draft?.status,
+    version?.id,
+    canPreview,
+    projectMedia.length,
+    matchesPublished,
+    previewFocus,
+    summaryHtml,
+    selectedMediaIds.join(','),
+    contentSelection.checklist_run_item_ids.join(','),
+    contentSelection.task_ids.join(','),
+    contentSelection.material_ids.join(','),
+    effectiveFlags.showChecklists,
+    effectiveFlags.showTasks,
+    effectiveFlags.showMaterials,
+  ])
+
+  // Autosave curation while the editor is open (checklist / media / summary / flags).
+  useEffect(() => {
+    if (editOpen) skipEditorAutosaveRef.current = true
+  }, [editOpen])
+
+  useEffect(() => {
+    if (!editOpen || !canEditDraft || !contentHydrated || !mediaHydrated || isLoading) return
+    if (skipEditorAutosaveRef.current) {
+      skipEditorAutosaveRef.current = false
+      return
+    }
+    const timer = window.setTimeout(() => {
+      void persistEditorSilently()
+    }, 450)
+    return () => window.clearTimeout(timer)
+  }, [
+    editOpen,
+    canEditDraft,
+    contentHydrated,
+    mediaHydrated,
+    isLoading,
+    summaryHtml,
+    selectedMediaIds.join(','),
+    contentSelection.checklist_run_item_ids.join(','),
+    contentSelection.task_ids.join(','),
+    contentSelection.material_ids.join(','),
+    contentSelection.media_excluded_ids?.join(','),
+    showChecklistsMode,
+    showTasksMode,
+    showMaterialsMode,
+  ])
 
   async function handleCreateLink() {
     if (!canShare || !sharesAllowed || !version) {
@@ -852,50 +1177,33 @@ export function ProjectBulletinPanel({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="text-base font-semibold">
-            {t('bulletin.title', 'Butlletí del client')}
-          </h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t(
-              'bulletin.subtitle',
-              'Publica una versió immutable i comparteix-la amb destinataris verificats.',
-            )}
-          </p>
-        </div>
-        <Badge variant={report?.legacy_unresolved ? 'destructive' : version ? 'default' : 'secondary'}>
-          {statusLabel}
-        </Badge>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start gap-2">
+        <Badge variant={visibility.variant}>{statusLabel}</Badge>
+        <p className="min-w-[12rem] flex-1 text-sm text-muted-foreground">{visibility.label}</p>
       </div>
 
-      {report?.legacy_unresolved && (
-        <div className="flex gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-          <p>
-            {t(
-              'bulletin.legacy_hint',
-              'Aquest projecte té un part llegat sense payload clar. No es poden crear shares fins a revisar-lo.',
+      {canPreview && version && (
+        <div className="space-y-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            disabled={Boolean(busy)}
+            onClick={() => void handleStaffHandoff()}
+          >
+            {busy === 'staff' ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Eye className="h-3.5 w-3.5" />
             )}
-          </p>
-        </div>
-      )}
-
-      {portalEntitlementsLoaded && canCreateShares === false && (
-        <div className="flex gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-          <p>
+            {t('bulletin.staff_view', 'Obrir a portal del client')}
+          </Button>
+          <p className="text-xs text-muted-foreground">
             {t(
-              'bulletin.shares_disabled',
-              'No es poden crear shares: el portal de clients no ho permet ara.',
-            )}{' '}
-            <Link
-              to="/settings/customer-portal"
-              className="font-medium underline underline-offset-2 hover:no-underline"
-            >
-              {t('bulletin.shares_disabled_link', 'Configuració del portal de clients')}
-            </Link>
+              'bulletin.staff_view_hint',
+              'Obre la mateixa vista que veu el client, per poder-li donar suport si pregunta alguna cosa.',
+            )}
           </p>
         </div>
       )}
@@ -906,40 +1214,441 @@ export function ProjectBulletinPanel({
         </p>
       )}
 
-      {clientId && (
-        <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-4 text-sm">
-          <h4 className="text-sm font-semibold">
-            {t('bulletin.preflight_title', 'Preflight')}
+      {version && !report?.legacy_unresolved && (
+        <div className="space-y-3 rounded-xl border border-border p-4">
+          <h4 className="text-sm font-semibold flex items-center gap-2">
+            <Link2 className="h-4 w-4" />
+            {t('bulletin.shares_title', 'Compartició')}
           </h4>
-          <ul className="space-y-1 text-muted-foreground">
-            <li>
-              {t('bulletin.preflight_account', 'Compte client')}:{' '}
-              <span className="text-foreground font-medium">
-                {client?.display_name ?? clientId.slice(0, 8)}
-              </span>
-            </li>
-            <li>
-              {t('bulletin.preflight_grants', 'Accessos portal actius')}:{' '}
-              <span className="text-foreground font-medium">{grants.length}</span>
-            </li>
-            <li>
-              {t('bulletin.preflight_on_publish', 'Regles on_publish')}:{' '}
-              <span className="text-foreground font-medium">{onPublishRulesCount}</span>
-            </li>
-            <li>
-              {t('bulletin.preflight_bcc', 'BCC del butlletí')}:{' '}
-              <Link
-                to="/settings/customer-portal"
-                className="text-foreground underline underline-offset-2"
-              >
-                {t('bulletin.preflight_bcc_link', 'Veure configuració')}
-              </Link>
-            </li>
-          </ul>
+
+          {portalEntitlementsLoaded && canCreateShares === false && (
+            <div className="flex gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <p>
+                {t(
+                  'bulletin.shares_disabled',
+                  'No es poden crear shares: el portal de clients no ho permet ara.',
+                )}{' '}
+                <Link
+                  to="/settings/customer-portal"
+                  className="font-medium underline underline-offset-2 hover:no-underline"
+                >
+                  {t('bulletin.shares_disabled_link', 'Configuració del portal de clients')}
+                </Link>
+              </p>
+            </div>
+          )}
+
+          {freshSecretUrl && (
+            <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm dark:border-emerald-800 dark:bg-emerald-950/30">
+              <p className="font-medium mb-1">
+                {t('bulletin.fresh_secret', 'Secret nou (copia ara — no es tornarà a mostrar)')}
+              </p>
+              <div className="flex gap-2 items-center">
+                <code className="flex-1 truncate text-xs">{freshSecretUrl}</code>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(freshSecretUrl)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  }}
+                >
+                  {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {canShare && sharesAllowed && (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label className="text-xs">{t('bulletin.email_channels', 'Emails verificats')}</Label>
+                {selectableChannels.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t(
+                      'bulletin.no_channels',
+                      'Cap canal d\'email verificat. Afegeix-ne a la fitxa del contacte.',
+                    )}
+                  </p>
+                ) : (
+                  <ul className="space-y-1.5 max-h-40 overflow-y-auto rounded-lg border border-border p-2">
+                    {selectableChannels.map((ch) => (
+                      <li key={ch.id}>
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedChannelIds.includes(ch.id)}
+                            onChange={() => toggleChannel(ch.id)}
+                          />
+                          <span className="truncate">
+                            {ch.value_normalized}
+                            <span className="text-muted-foreground"> · {ch.contactLabel}</span>
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {userEmail && (
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={sendMeCopy}
+                    onChange={(e) => setSendMeCopy(e.target.checked)}
+                  />
+                  {t('bulletin.send_me_copy', 'Enviar-me una còpia')}
+                </label>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  disabled={Boolean(busy)}
+                  onClick={() => void handleCreateLink()}
+                >
+                  {busy === 'share' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5" />}
+                  {t('bulletin.create_copy', 'Crear i copiar link')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={Boolean(busy) || (selectedChannelIds.length === 0 && !sendMeCopy)}
+                  onClick={() => void handleEnqueueEmail()}
+                >
+                  {busy === 'email' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                  {t('bulletin.send_email', 'Enviar per email')}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {shares.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {t('bulletin.no_shares', 'Cap share encara.')}
+            </p>
+          ) : (
+            <ul className="divide-y divide-border rounded-lg border border-border">
+              {shares.map((s) => (
+                <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={s.revoked_at || !s.is_active ? 'secondary' : 'default'}>
+                        {t(`bulletin.share_channel.${s.channel}`, s.channel === 'email' ? 'Email' : 'Enllaç manual')}
+                      </Badge>
+                      {s.revoked_at ? (
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          <ShieldOff className="h-3.5 w-3.5" />
+                          {t('bulletin.share_revoked', 'Revocada')}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {t('bulletin.share_expires', 'Link vàlid fins {{date}}', {
+                            date: new Date(s.expires_at).toLocaleString('ca-ES'),
+                          })}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {t(
+                        'bulletin.share_ttl_hint',
+                        'Cada obertura del link crea una sessió d’uns 30 min. Mentre el link no caduqui ni es revoqui, es poden obrir sessions noves.',
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {t('bulletin.share_stats', '{{sessions}} sessions · {{views}} vistes', {
+                        sessions: s.session_count,
+                        views: s.view_count,
+                      })}
+                    </p>
+                  </div>
+                  {canRevoke && !s.revoked_at && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive"
+                      disabled={busy === `revoke-${s.id}`}
+                      onClick={() => void handleRevoke(s.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {t('bulletin.revoke', 'Revocar')}
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-xs text-muted-foreground">
+            {t(
+              'bulletin.no_copy_existing',
+              'Les shares existents no tenen botó Copiar: el secret no és recuperable. TTL del link (defecte 72 h) ≠ TTL de sessió (~30 min per obertura).',
+            )}
+          </p>
         </div>
       )}
 
-      <div className="space-y-3 rounded-xl border border-border p-4">
+      {version ? (
+        <Tabs
+          value={previewFocus === 'published' ? 'published' : 'live'}
+          onValueChange={(value) => {
+            if (value === 'published') void showPublishedPreview()
+            else void showLivePreview()
+          }}
+          className="overflow-hidden rounded-2xl border border-border"
+        >
+          <div className="border-b border-border bg-muted/30 px-3 py-2">
+            <TabsList>
+              <TabsTrigger value="live">
+                {t('bulletin.preview_tab_live', 'Vista prèvia')}
+              </TabsTrigger>
+              <TabsTrigger value="published">
+                {t('bulletin.preview_tab_published', 'Vista publicada (v{{n}})', {
+                  n: version.version_number,
+                })}
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <div className="space-y-4 px-3 pb-4 pt-5">
+            <div className="flex min-h-[4.25rem] flex-col justify-center gap-1">
+              {previewFocus !== 'published' ? (
+                <>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {canPublish && !report?.legacy_unresolved && (
+                      <Button
+                        className="w-fit gap-1.5"
+                        disabled={publishDisabled}
+                        onClick={() => void handlePublish()}
+                      >
+                        {busy === 'publish' ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <FileSignature className="h-4 w-4" />
+                        )}
+                        {draftRetryable
+                          ? t('bulletin.retry_publish', 'Reintentar publicació')
+                          : t('bulletin.publish_next', 'Publicar butlletí (v{{n}})', {
+                              n: version.version_number + 1,
+                            })}
+                      </Button>
+                    )}
+                    {canEditDraft && (
+                      <button
+                        type="button"
+                        aria-label={t('bulletin.edit_fab', 'Editar butlletí')}
+                        onClick={() => setEditOpen(true)}
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted text-foreground shadow-md transition-colors hover:bg-muted/80"
+                      >
+                        <Pencil className="h-5 w-5" />
+                      </button>
+                    )}
+                  </div>
+                  {canPublish && !report?.legacy_unresolved && (
+                    <p
+                      className={`min-h-4 text-xs ${
+                        visitClosed && draftRetryable && draft?.failure_reason
+                          ? 'text-destructive'
+                          : 'text-muted-foreground'
+                      }`}
+                    >
+                      {!visitClosed
+                        ? t('bulletin.publish_needs_close', 'Cal tancar l\'OS')
+                        : matchesPublished && !draftRetryable
+                          ? t(
+                              'bulletin.publish_no_changes',
+                              'Sense canvis respecte a la versió publicada. Tornar a publicar no canvia res.',
+                            )
+                          : draftRetryable && draft?.failure_reason
+                            ? `${t('bulletin.failure_reason', 'Error')}: ${draft.failure_reason}`
+                            : '\u00a0'}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div className="flex flex-col justify-center gap-0.5">
+                  <p className="text-sm font-medium text-foreground">
+                    {t('bulletin.status.published', 'Versió publicada (v{{n}})', {
+                      n: version.version_number,
+                    })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('bulletin.published_at', 'Publicat el {{date}}', {
+                      date: new Date(version.published_at).toLocaleString(i18n.language),
+                    })}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {previewLoading && !previewJson ? (
+              <div className="flex items-center justify-center py-16 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+              </div>
+            ) : previewJson ? (
+              <BulletinClientPreview
+                key={[
+                  previewKind ?? 'none',
+                  contentSelection.checklist_run_item_ids.join(','),
+                  contentSelection.task_ids.join(','),
+                  contentSelection.material_ids.join(','),
+                  selectedMediaIds.join(','),
+                  summaryHtml.slice(0, 64),
+                  effectiveFlags.showChecklists ? '1' : '0',
+                  effectiveFlags.showTasks ? '1' : '0',
+                  effectiveFlags.showMaterials ? '1' : '0',
+                ].join('|')}
+                projection={previewJson}
+                locale={
+                  (typeof previewJson.locale === 'string'
+                    ? previewJson.locale
+                    : draft?.locale) || bulletinDefaultLocale
+                }
+                tenantNameFallback={activeTenant?.name}
+                contentDigest={previewDigest}
+                media={previewMedia}
+                previewKind={previewKind}
+                openInNewTabHref={
+                  tenantId
+                    ? `/field/orders/${projectId}/bulletin-preview?tenant=${encodeURIComponent(tenantId)}`
+                    : `/field/orders/${projectId}/bulletin-preview`
+                }
+              />
+            ) : (
+              <div className="space-y-2 rounded-xl border border-dashed border-border px-4 py-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {t('bulletin.preview_empty', 'Sense contingut de preview.')}
+                </p>
+                {canEditDraft && previewFocus !== 'published' && (
+                  <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                    {t('bulletin.preview_empty_cta', 'Obre l\'edició per preparar el butlletí.')}
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </Tabs>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-start gap-3">
+            {canPublish && !report?.legacy_unresolved && (
+              <div className="flex flex-col gap-1">
+                <Button
+                  className="gap-1.5"
+                  disabled={publishDisabled}
+                  onClick={() => void handlePublish()}
+                >
+                  {busy === 'publish' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileSignature className="h-4 w-4" />
+                  )}
+                  {draftRetryable
+                    ? t('bulletin.retry_publish', 'Reintentar publicació')
+                    : t('bulletin.publish', 'Publicar butlletí')}
+                </Button>
+                {!visitClosed && (
+                  <p className="text-xs text-muted-foreground">
+                    {t('bulletin.publish_needs_close', 'Cal tancar l\'OS')}
+                  </p>
+                )}
+                {draftRetryable && draft?.failure_reason && (
+                  <p className="text-xs text-destructive">
+                    {t('bulletin.failure_reason', 'Error')}: {draft.failure_reason}
+                  </p>
+                )}
+              </div>
+            )}
+            {canEditDraft && (
+              <button
+                type="button"
+                aria-label={t('bulletin.edit_fab', 'Editar butlletí')}
+                onClick={() => setEditOpen(true)}
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted text-foreground shadow-md transition-colors hover:bg-muted/80"
+              >
+                <Pencil className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+
+          {previewLoading && !previewJson ? (
+            <div className="flex items-center justify-center py-16 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          ) : previewJson ? (
+            <BulletinClientPreview
+              key={[
+                previewKind ?? 'none',
+                contentSelection.checklist_run_item_ids.join(','),
+                contentSelection.task_ids.join(','),
+                contentSelection.material_ids.join(','),
+                selectedMediaIds.join(','),
+                summaryHtml.slice(0, 64),
+              ].join('|')}
+              projection={previewJson}
+              locale={
+                (typeof previewJson.locale === 'string'
+                  ? previewJson.locale
+                  : draft?.locale) || bulletinDefaultLocale
+              }
+              tenantNameFallback={activeTenant?.name}
+              contentDigest={previewDigest}
+              media={previewMedia}
+              previewKind={previewKind}
+              openInNewTabHref={
+                tenantId
+                  ? `/field/orders/${projectId}/bulletin-preview?tenant=${encodeURIComponent(tenantId)}`
+                  : `/field/orders/${projectId}/bulletin-preview`
+              }
+            />
+          ) : (
+            <div className="space-y-2 rounded-xl border border-dashed border-border px-4 py-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                {t('bulletin.preview_empty', 'Sense contingut de preview.')}
+              </p>
+              {canEditDraft && (
+                <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                  {t('bulletin.preview_empty_cta', 'Obre l\'edició per preparar el butlletí.')}
+                </Button>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      <Drawer
+        open={editOpen}
+        onOpenChange={(open) => {
+          setEditOpen(open)
+          if (!open) void persistEditorSilently()
+        }}
+      >
+        <DrawerContent className="flex max-h-[90dvh] flex-col overflow-hidden">
+          <DrawerHeader className="shrink-0">
+            <DrawerTitle>{t('bulletin.edit_title', 'Editar butlletí')}</DrawerTitle>
+            <DrawerDescription>
+              {t(
+                'bulletin.edit_hint',
+                'Canvia el contingut i publica una nova versió des de la pestanya Butlletí.',
+              )}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-1 pb-4">
+            {report?.legacy_unresolved && (
+              <div className="flex gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                <p>
+                  {t(
+                    'bulletin.legacy_hint',
+                    'Aquest projecte té un part llegat sense payload clar. No es poden crear shares fins a revisar-lo.',
+                  )}
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-3 rounded-xl border border-border p-4">
         <div className="space-y-2">
           <Label>{t('bulletin.summary', 'Resum per al client')}</Label>
           <Textarea
@@ -1028,279 +1737,10 @@ export function ProjectBulletinPanel({
             )}
           </div>
         )}
-
-        {draftRetryable && draft?.failure_reason && (
-          <p className="text-xs text-destructive">
-            {t('bulletin.failure_reason', 'Error')}: {draft.failure_reason}
-          </p>
-        )}
-
-        <div className="flex flex-wrap gap-2">
-          {canEditDraft && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5"
-              disabled={Boolean(busy)}
-              onClick={() => void handleSaveDraft()}
-            >
-              {busy === 'draft' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-              {t('bulletin.save_draft', 'Desar / regenerar esborrany')}
-            </Button>
-          )}
-          {canPublish && !report?.legacy_unresolved && (
-            <div className="flex flex-col gap-1">
-              <Button
-                size="sm"
-                className="gap-1.5"
-                disabled={publishDisabled}
-                onClick={() => void handlePublish()}
-              >
-                {busy === 'publish' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSignature className="h-3.5 w-3.5" />}
-                {draftRetryable
-                  ? t('bulletin.retry_publish', 'Reintentar publicació')
-                  : t('bulletin.publish', 'Publicar butlletí')}
-              </Button>
-              {!visitClosed && (
-                <p className="text-xs text-muted-foreground">
-                  {t('bulletin.publish_needs_close', 'Cal tancar l\'OS')}
-                </p>
-              )}
-            </div>
-          )}
-          {canRegenerate && version && !report?.legacy_unresolved && (
-            <Button
-              size="sm"
-              variant="secondary"
-              className="gap-1.5"
-              disabled={Boolean(busy)}
-              onClick={() => void handleCorrected()}
-            >
-              {busy === 'correct' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-              {t('bulletin.correct', 'Versió corregida')}
-            </Button>
-          )}
-          {canPreview && (draft || version) && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="gap-1.5"
-              disabled={Boolean(busy)}
-              onClick={() => void handlePreview()}
-            >
-              <Eye className="h-3.5 w-3.5" />
-              {t('bulletin.preview', 'Veure com el client')}
-            </Button>
-          )}
-          {canPreview && version && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5"
-              disabled={Boolean(busy)}
-              onClick={() => void handleStaffHandoff()}
-            >
-              {busy === 'staff' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
-              {t('bulletin.staff_view', 'Obrir reader (suport)')}
-            </Button>
-          )}
-        </div>
-
-        {publishedAt && version && (
-          <p className="text-xs text-muted-foreground">
-            {t('bulletin.published_meta', 'Publicat el {{date}} · digest {{digest}}', {
-              date: new Date(version.published_at).toLocaleString(
-                i18n.language?.startsWith('es') ? 'es-ES' : i18n.language?.startsWith('en') ? 'en-GB' : 'ca-ES',
-              ),
-              digest: version.content_digest.slice(0, 12),
-            })}
-          </p>
-        )}
       </div>
-
-      <div className="space-y-3 rounded-xl border border-border p-4">
-        <h4 className="text-sm font-semibold flex items-center gap-2">
-          <Link2 className="h-4 w-4" />
-          {t('bulletin.shares_title', 'Compartició')}
-        </h4>
-
-        {freshSecretUrl && (
-          <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm dark:border-emerald-800 dark:bg-emerald-950/30">
-            <p className="font-medium mb-1">
-              {t('bulletin.fresh_secret', 'Secret nou (copia ara — no es tornarà a mostrar)')}
-            </p>
-            <div className="flex gap-2 items-center">
-              <code className="flex-1 truncate text-xs">{freshSecretUrl}</code>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  void navigator.clipboard.writeText(freshSecretUrl)
-                  setCopied(true)
-                  setTimeout(() => setCopied(false), 2000)
-                }}
-              >
-                {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
-              </Button>
-            </div>
           </div>
-        )}
-
-        {canShare && sharesAllowed && version && !report?.legacy_unresolved && (
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label className="text-xs">{t('bulletin.email_channels', 'Emails verificats')}</Label>
-              {selectableChannels.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  {t(
-                    'bulletin.no_channels',
-                    'Cap canal d\'email verificat. Afegeix-ne a la fitxa del contacte.',
-                  )}
-                </p>
-              ) : (
-                <ul className="space-y-1.5 max-h-40 overflow-y-auto rounded-lg border border-border p-2">
-                  {selectableChannels.map((ch) => (
-                    <li key={ch.id}>
-                      <label className="flex items-center gap-2 text-sm cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedChannelIds.includes(ch.id)}
-                          onChange={() => toggleChannel(ch.id)}
-                        />
-                        <span className="truncate">
-                          {ch.value_normalized}
-                          <span className="text-muted-foreground"> · {ch.contactLabel}</span>
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {userEmail && (
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={sendMeCopy}
-                  onChange={(e) => setSendMeCopy(e.target.checked)}
-                />
-                {t('bulletin.send_me_copy', 'Enviar-me una còpia')}
-              </label>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                disabled={Boolean(busy)}
-                onClick={() => void handleCreateLink()}
-              >
-                {busy === 'share' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5" />}
-                {t('bulletin.create_copy', 'Crear i copiar link')}
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={Boolean(busy) || (selectedChannelIds.length === 0 && !sendMeCopy)}
-                onClick={() => void handleEnqueueEmail()}
-              >
-                {busy === 'email' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-                {t('bulletin.send_email', 'Enviar per email')}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {shares.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {t('bulletin.no_shares', 'Cap share encara.')}
-          </p>
-        ) : (
-          <ul className="divide-y divide-border rounded-lg border border-border">
-            {shares.map((s) => (
-              <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={s.revoked_at || !s.is_active ? 'secondary' : 'default'}>
-                      {s.channel}
-                    </Badge>
-                    {s.revoked_at ? (
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        <ShieldOff className="h-3.5 w-3.5" />
-                        {t('bulletin.share_revoked', 'Revocada')}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">
-                        {t('bulletin.share_expires', 'Link vàlid fins {{date}}', {
-                          date: new Date(s.expires_at).toLocaleString('ca-ES'),
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {t(
-                      'bulletin.share_ttl_hint',
-                      'Cada obertura del link crea una sessió d’uns 30 min. Mentre el link no caduqui ni es revoqui, es poden obrir sessions noves.',
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {t('bulletin.share_stats', '{{sessions}} sessions · {{views}} vistes', {
-                      sessions: s.session_count,
-                      views: s.view_count,
-                    })}
-                  </p>
-                </div>
-                {canRevoke && !s.revoked_at && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-destructive"
-                    disabled={busy === `revoke-${s.id}`}
-                    onClick={() => void handleRevoke(s.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    {t('bulletin.revoke', 'Revocar')}
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="text-xs text-muted-foreground">
-          {t(
-            'bulletin.no_copy_existing',
-            'Les shares existents no tenen botó Copiar: el secret no és recuperable. TTL del link (defecte 72 h) ≠ TTL de sessió (~30 min per obertura).',
-          )}
-        </p>
-      </div>
-
-      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 sm:p-0 gap-0 border-0 bg-transparent shadow-none">
-          <DialogHeader className="sr-only">
-            <DialogTitle>{t('bulletin.preview_title', 'Vista client (preview)')}</DialogTitle>
-          </DialogHeader>
-          {previewJson ? (
-            <div className="relative overflow-hidden rounded-2xl shadow-lg">
-              <BulletinClientPreview
-                projection={previewJson}
-                locale={
-                  (typeof previewJson.locale === 'string'
-                    ? previewJson.locale
-                    : draft?.locale) || bulletinDefaultLocale
-                }
-                tenantNameFallback={activeTenant?.name}
-                contentDigest={previewDigest}
-                media={previewMedia}
-                draftBanner={previewIsDraft}
-              />
-            </div>
-          ) : (
-            <div className="rounded-2xl border bg-card p-6 text-sm text-muted-foreground">
-              {t('bulletin.preview_empty', 'Sense contingut de preview.')}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+        </DrawerContent>
+      </Drawer>
     </div>
   )
 }

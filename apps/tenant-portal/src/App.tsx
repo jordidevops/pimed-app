@@ -72,6 +72,7 @@ import {
   ChecklistPointsPage,
   ChecklistResponseSetsPage,
   MaintenancePlansPage,
+  BulletinStandalonePreviewPage,
 } from './features/field-service'
 import { PublicPortalPage } from './features/public-portal'
 import {
@@ -138,6 +139,17 @@ export default function App() {
             <ProtectedRoute>
               <InternalMemberGate>
                 <OnboardingPage />
+              </InternalMemberGate>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/field/orders/:id/bulletin-preview"
+          element={
+            <ProtectedRoute>
+              <InternalMemberGate>
+                <BulletinStandalonePreviewPage />
               </InternalMemberGate>
             </ProtectedRoute>
           }

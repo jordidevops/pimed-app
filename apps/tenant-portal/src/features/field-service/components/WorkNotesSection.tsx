@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next'
 import { NotebookPen } from 'lucide-react'
 import { RichTextEditor } from '@/components/ui/RichTextEditor'
-import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { setProjectWorkNotes } from '@/features/projects/api/projectsService'
 import { useQueryClient } from '@tanstack/react-query'
 import { projectsKeys } from '@/features/projects/api/projectsKeys'
 import { useAutosaveHtml } from '@/hooks/useAutosaveHtml'
+import { AutosaveStatus } from './AutosaveStatus'
 
 interface WorkNotesSectionProps {
   projectId: string
@@ -14,6 +14,8 @@ interface WorkNotesSectionProps {
   /** Compact mode for close-out drawer */
   compact?: boolean
   readOnly?: boolean
+  /** Hide the section title when nested under a close-out card. */
+  embedded?: boolean
 }
 
 export function WorkNotesSection({
@@ -21,6 +23,7 @@ export function WorkNotesSection({
   initialHtml,
   compact = false,
   readOnly = false,
+  embedded = false,
 }: WorkNotesSectionProps) {
   const { t } = useTranslation('field-service')
   const { toast } = useToast()
@@ -47,24 +50,19 @@ export function WorkNotesSection({
 
   return (
     <section className={compact ? 'space-y-2' : 'space-y-3'}>
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <NotebookPen className="h-4 w-4" />
-          {t('work_notes.title', 'Notes de feina')}
-        </h3>
+      <div className={`flex items-center gap-2 ${embedded ? 'justify-end' : 'justify-between'}`}>
+        {!embedded && (
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <NotebookPen className="h-4 w-4" />
+            {t('work_notes.title', 'Notes de feina')}
+          </h3>
+        )}
         {!readOnly && (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={saving}
-            onClick={() => void flush()}
-          >
-            {saving
-              ? t('work_notes.saving', 'Desant…')
-              : dirty
-                ? t('work_notes.save', 'Desar')
-                : t('work_notes.saved', 'Desat')}
-          </Button>
+          <AutosaveStatus
+            dirty={dirty}
+            saving={saving}
+            onSave={() => void flush()}
+          />
         )}
       </div>
 
@@ -72,7 +70,7 @@ export function WorkNotesSection({
         <p className="text-xs text-muted-foreground">
           {t(
             'work_notes.hint',
-            'Escriu el que s\'ha fet en qualsevol moment; també es veurà en tancar la visita. Es desa automàticament.',
+            'Escriu els treballs realitzats.',
           )}
         </p>
       )}

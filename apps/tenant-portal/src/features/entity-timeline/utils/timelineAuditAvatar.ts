@@ -252,6 +252,42 @@ const ACTION_AVATARS: Record<string, AuditAvatarIconConfig> = {
     labelKey: 'timeline.audit_avatar.notifications_sent',
     labelDefault: 'Notificacions enviades',
   },
+  CLIENT_REPORT_PUBLISHED: {
+    Icon: FileSignature,
+    className: emeraldIcon,
+    labelKey: 'timeline.audit_avatar.client_report_published',
+    labelDefault: 'Butlletí publicat',
+  },
+  CLIENT_REPORT_VERSION_CREATED: {
+    Icon: FileSignature,
+    className: emeraldIcon,
+    labelKey: 'timeline.audit_avatar.client_report_version',
+    labelDefault: 'Nova versió del butlletí',
+  },
+  CLIENT_REPORT_SHARE_CREATED: {
+    Icon: Link,
+    className: skyIcon,
+    labelKey: 'timeline.audit_avatar.client_report_share',
+    labelDefault: 'Compartició del butlletí',
+  },
+  CLIENT_REPORT_SHARE_EMAIL_ENQUEUED: {
+    Icon: FileText,
+    className: skyIcon,
+    labelKey: 'timeline.audit_avatar.client_report_email',
+    labelDefault: 'Email del butlletí',
+  },
+  CLIENT_REPORT_SHARE_REVOKED: {
+    Icon: Unlink,
+    className: amberIcon,
+    labelKey: 'timeline.audit_avatar.client_report_revoke',
+    labelDefault: 'Compartició revocada',
+  },
+  CLIENT_REPORT_STAFF_SESSION_CREATED: {
+    Icon: Eye,
+    className: blueIcon,
+    labelKey: 'timeline.audit_avatar.client_report_staff',
+    labelDefault: 'Portal del client',
+  },
   ATTENDANCE_COMPENSATION_RECORDED: {
     Icon: BookOpen,
     className: violetIcon,

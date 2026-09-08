@@ -398,6 +398,7 @@ function RunCard({
   onMove,
   canMoveUp,
   canMoveDown,
+  showReorder = true,
   reordering,
   allowManage,
   readOnly = false,
@@ -411,6 +412,7 @@ function RunCard({
   onMove: (direction: 'up' | 'down') => void
   canMoveUp: boolean
   canMoveDown: boolean
+  showReorder?: boolean
   reordering: boolean
   allowManage: boolean
   readOnly?: boolean
@@ -544,26 +546,30 @@ function RunCard({
         </div>
         {!disabled && allowManage && (
           <div className="flex shrink-0 items-center gap-0.5">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8"
-              disabled={reordering || !canMoveUp}
-              aria-label={t('runs.move_up', 'Pujar')}
-              onClick={() => onMove('up')}
-            >
-              <ArrowUp className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8"
-              disabled={reordering || !canMoveDown}
-              aria-label={t('runs.move_down', 'Baixar')}
-              onClick={() => onMove('down')}
-            >
-              <ArrowDown className="h-4 w-4" />
-            </Button>
+            {showReorder && (
+              <>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  disabled={reordering || !canMoveUp}
+                  aria-label={t('runs.move_up', 'Pujar')}
+                  onClick={() => onMove('up')}
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  disabled={reordering || !canMoveDown}
+                  aria-label={t('runs.move_down', 'Baixar')}
+                  onClick={() => onMove('down')}
+                >
+                  <ArrowDown className="h-4 w-4" />
+                </Button>
+              </>
+            )}
             <Button
               size="icon"
               variant="ghost"
@@ -919,6 +925,7 @@ export function VisitChecklistSection({
                 readOnly={readOnly}
                 canMoveUp={index > 0}
                 canMoveDown={index < activeRuns.length - 1}
+                showReorder={activeRuns.length > 1}
                 onMove={(direction) => void handleMove(run.id, direction)}
                 onRemoveRequest={() => setRemoveTarget(run)}
               />
@@ -945,7 +952,7 @@ export function VisitChecklistSection({
           <p className="mt-2 text-[11px] text-muted-foreground">
             {t(
               'resolution.open_tasks_hint',
-              'Es gestionen també a Treball addicional (a sota).',
+              'Es gestionen també a Tasques (botó a sota de les notes).',
             )}
           </p>
         </div>

@@ -31,6 +31,7 @@ interface ProjectPhotosSectionProps {
   projectName?: string
   compact?: boolean
   readOnly?: boolean
+  embedded?: boolean
 }
 
 function PhotoThumb({
@@ -88,6 +89,7 @@ export function ProjectPhotosSection({
   projectName,
   compact = false,
   readOnly = false,
+  embedded = false,
 }: ProjectPhotosSectionProps) {
   const { t } = useTranslation('field-service')
   const { toast } = useToast()
@@ -180,14 +182,16 @@ export function ProjectPhotosSection({
 
   return (
     <section className={compact ? 'space-y-2' : 'space-y-3'}>
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <Camera className="h-4 w-4" />
-          {t('photos.title', 'Fotos')}
-          {photos.length > 0 && (
-            <span className="text-xs font-normal text-muted-foreground">({photos.length})</span>
-          )}
-        </h3>
+      <div className={`flex items-center gap-2 ${embedded ? 'justify-end' : 'justify-between'}`}>
+        {!embedded && (
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <Camera className="h-4 w-4" />
+            {t('photos.title', 'Fotos')}
+            {photos.length > 0 && (
+              <span className="text-xs font-normal text-muted-foreground">({photos.length})</span>
+            )}
+          </h3>
+        )}
         {!readOnly && (
           <div className="flex gap-1">
             <Button

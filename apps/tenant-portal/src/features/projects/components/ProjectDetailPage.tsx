@@ -33,9 +33,11 @@ import {
   ProjectAttachmentsSection,
   WorkNotesSection,
   CloseOutSheet,
+  ClosedVisitWorkReview,
   ProjectPunchStrip,
-  WorkSectionsNav,
+  WorkExtraFabs,
   ProjectBulletinPanel,
+  type WorkExtraSection,
 } from '@/features/field-service'
 import { DeleteProjectDialog } from './DeleteProjectDialog'
 import {
@@ -55,6 +57,8 @@ export function ProjectDetailPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [closeOutOpen, setCloseOutOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [workExtra, setWorkExtra] = useState<WorkExtraSection | null>(null)
+  const [workEditing, setWorkEditing] = useState(false)
   const { activeTenant, activeRole, selectedTenantId, tenantScopeReady } = useTenant()
   const canEditVisitIntent =
     activeRole === 'owner' || activeRole === 'manager' || activeRole === 'member'
@@ -107,6 +111,11 @@ export function ProjectDetailPage() {
   })
 
   useEffect(() => {
+    setWorkExtra(null)
+    setWorkEditing(false)
+  }, [id])
+
+  useEffect(() => {
     if (!highlightCommentId) return
     const section = document.getElementById('project-activity')
     section?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -157,6 +166,8 @@ export function ProjectDetailPage() {
   // Publish is only allowed for completed | on_hold (SQL). Cancelled is closed for edits but not publishable.
   const visitClosedForPublish = status === 'completed' || status === 'on_hold'
   const visitClosed = punchLocked
+  const showClosedWorkReview = isFieldService && visitClosed && (workLocked || !workEditing)
+  const bulletinTabOpen = activeTab === 'bulletin'
   const canShowPublish =
     isFieldService &&
     canPublishReport &&
@@ -353,8 +364,10 @@ export function ProjectDetailPage() {
           {canShowPublish && (
             <Button
               size="sm"
-              variant="secondary"
-              className="gap-1.5"
+              variant={bulletinTabOpen ? 'outline' : 'secondary'}
+              className={`gap-1.5${bulletinTabOpen ? ' text-muted-foreground opacity-60' : ''}`}
+              disabled={bulletinTabOpen}
+              aria-current={bulletinTabOpen ? 'page' : undefined}
               onClick={() => setTab('bulletin')}
             >
               <FileSignature className="h-3.5 w-3.5" />
@@ -364,8 +377,10 @@ export function ProjectDetailPage() {
           {isFieldService && workLocked && (
             <Button
               size="sm"
-              variant="secondary"
-              className="gap-1.5"
+              variant={bulletinTabOpen ? 'outline' : 'secondary'}
+              className={`gap-1.5${bulletinTabOpen ? ' text-muted-foreground opacity-60' : ''}`}
+              disabled={bulletinTabOpen}
+              aria-current={bulletinTabOpen ? 'page' : undefined}
               onClick={() => setTab('bulletin')}
             >
               <FileSignature className="h-3.5 w-3.5" />
@@ -394,7 +409,7 @@ export function ProjectDetailPage() {
       </div>
 
       {isFieldService && visitClosed && !workLocked && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100 space-y-2">
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100 space-y-2">
           <p>
             {t(
               'field-service:publish.curation_banner',
@@ -402,7 +417,14 @@ export function ProjectDetailPage() {
             )}
           </p>
           {canShowPublish && (
-            <Button size="sm" className="gap-1.5" onClick={() => setTab('bulletin')}>
+            <Button
+              size="sm"
+              className={`gap-1.5${bulletinTabOpen ? ' opacity-60' : ''}`}
+              variant={bulletinTabOpen ? 'outline' : 'default'}
+              disabled={bulletinTabOpen}
+              aria-current={bulletinTabOpen ? 'page' : undefined}
+              onClick={() => setTab('bulletin')}
+            >
               <FileSignature className="h-3.5 w-3.5" />
               {t('field-service:bulletin.open_tab', 'Obrir butlletí')}
             </Button>
@@ -411,13 +433,20 @@ export function ProjectDetailPage() {
       )}
 
       {isFieldService && workLocked && reportPublishedAt && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100 flex flex-wrap items-center justify-between gap-2">
+        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100 flex flex-wrap items-center justify-between gap-2">
           <span>
             {t('field-service:publish.published_banner', 'Part del client publicat el {{date}}. La Feina és només de lectura.', {
               date: new Date(reportPublishedAt).toLocaleString('ca-ES'),
             })}
           </span>
-          <Button size="sm" variant="outline" onClick={() => setTab('bulletin')}>
+          <Button
+            size="sm"
+            variant="outline"
+            className={bulletinTabOpen ? 'text-muted-foreground opacity-60' : undefined}
+            disabled={bulletinTabOpen}
+            aria-current={bulletinTabOpen ? 'page' : undefined}
+            onClick={() => setTab('bulletin')}
+          >
             {t('field-service:bulletin.open_tab', 'Obrir butlletí')}
           </Button>
         </div>
@@ -459,17 +488,33 @@ export function ProjectDetailPage() {
               {t('field-service:detail.tab_budget', 'Pressupost')}
             </TabsTrigger>
           </TabsList>
-          {isFieldService && activeTab === 'work' && project.id && (
-            <WorkSectionsNav
-              projectId={project.id}
-              hasWorkNotes={Boolean(project.work_notes_html?.replace(/<[^>]+>/g, '').trim())}
-              embedded
-            />
-          )}
         </div>
 
         <TabsContent value="work" className="space-y-4">
-          {isFieldService && (
+          {isFieldService && visitClosed && !workLocked && (
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                size="sm"
+                variant={workEditing ? 'secondary' : 'outline'}
+                className="gap-1.5"
+                aria-pressed={workEditing}
+                onClick={() => setWorkEditing((prev) => !prev)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                {workEditing
+                  ? t('field-service:closeout.back_to_review', 'Tornar a la revisió')
+                  : t('field-service:closeout.edit', 'Editar')}
+              </Button>
+            </div>
+          )}
+          {isFieldService && showClosedWorkReview && (
+            <ClosedVisitWorkReview
+              projectId={project.id!}
+              notesHtml={project.work_notes_html}
+            />
+          )}
+          {isFieldService && !showClosedWorkReview && (
             <>
               <section id="work-checklist" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
                 <VisitChecklistSection
@@ -486,37 +531,53 @@ export function ProjectDetailPage() {
                   readOnly={workLocked}
                 />
               </section>
-              <section id="work-photos" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
-                <ProjectPhotosSection
-                  projectId={project.id!}
-                  projectName={project.name ?? undefined}
-                  readOnly={workLocked}
-                />
-              </section>
-              <section id="work-attachments" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
-                <ProjectAttachmentsSection
-                  projectId={project.id!}
-                  projectName={project.name ?? undefined}
-                  readOnly={workLocked}
-                />
-              </section>
-              <section id="work-materials" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
-                <ProjectMaterialsSection projectId={project.id!} readOnly={workLocked} />
-              </section>
+              <WorkExtraFabs
+                projectId={project.id!}
+                active={workExtra}
+                onChange={setWorkExtra}
+              />
+              {workExtra === 'photos' && (
+                <section id="work-photos" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
+                  <ProjectPhotosSection
+                    projectId={project.id!}
+                    projectName={project.name ?? undefined}
+                    readOnly={workLocked}
+                  />
+                </section>
+              )}
+              {workExtra === 'attachments' && (
+                <section id="work-attachments" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
+                  <ProjectAttachmentsSection
+                    projectId={project.id!}
+                    projectName={project.name ?? undefined}
+                    readOnly={workLocked}
+                  />
+                </section>
+              )}
+              {workExtra === 'materials' && (
+                <section id="work-materials" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
+                  <ProjectMaterialsSection projectId={project.id!} readOnly={workLocked} />
+                </section>
+              )}
+              {workExtra === 'tasks' && (
+                <section id="work-tasks" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
+                  <h3 className="text-sm font-semibold mb-3">
+                    {t('field-service:detail.additional_work', 'Treball addicional')}
+                  </h3>
+                  <TaskList projectId={project.id!} readOnly={workLocked} />
+                </section>
+              )}
             </>
           )}
-          <section id="work-tasks" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
-            {isFieldService && (
-              <h3 className="text-sm font-semibold mb-3">
-                {t('field-service:detail.additional_work', 'Treball addicional')}
-              </h3>
-            )}
-            <TaskList projectId={project.id!} readOnly={workLocked} />
-          </section>
+          {!isFieldService && (
+            <section id="work-tasks" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
+              <TaskList projectId={project.id!} readOnly={workLocked} />
+            </section>
+          )}
           {isFieldService && !visitClosed && (
             <Button className="w-full sm:w-auto gap-1.5" onClick={() => setCloseOutOpen(true)}>
               <CheckCircle2 className="h-4 w-4" />
-              {t('field-service:detail.close_out_photos', 'Tancar visita / fotos')}
+              {t('field-service:detail.close_out', 'Tancar visita')}
             </Button>
           )}
         </TabsContent>
@@ -537,7 +598,7 @@ export function ProjectDetailPage() {
         )}
 
         <TabsContent value="punch" className="space-y-4">
-          <WorkLogCard projectId={project.id!} />
+          <WorkLogCard projectId={project.id!} locked={punchLocked} />
           {syncPanel}
         </TabsContent>
 

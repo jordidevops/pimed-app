@@ -244,6 +244,32 @@ export function formatAuditMessage(
         label: messageVars.label ?? '—',
         defaultValue: 'primer accés al portal personal ({{label}})',
       })
+    case 'CLIENT_REPORT_PUBLISHED':
+      return prefix + t('activity:audit.CLIENT_REPORT_PUBLISHED', {
+        n: messageVars.version_number ?? '—',
+        defaultValue: 'ha publicat el butlletí (v{{n}})',
+      })
+    case 'CLIENT_REPORT_VERSION_CREATED':
+      return prefix + t('activity:audit.CLIENT_REPORT_VERSION_CREATED', {
+        n: messageVars.version_number ?? '—',
+        defaultValue: 'ha publicat una nova versió del butlletí (v{{n}})',
+      })
+    case 'CLIENT_REPORT_SHARE_CREATED':
+      return prefix + t('activity:audit.CLIENT_REPORT_SHARE_CREATED', {
+        defaultValue: 'ha creat un enllaç de compartició del butlletí',
+      })
+    case 'CLIENT_REPORT_SHARE_EMAIL_ENQUEUED':
+      return prefix + t('activity:audit.CLIENT_REPORT_SHARE_EMAIL_ENQUEUED', {
+        defaultValue: 'ha encuat l’enviament del butlletí per email',
+      })
+    case 'CLIENT_REPORT_SHARE_REVOKED':
+      return prefix + t('activity:audit.CLIENT_REPORT_SHARE_REVOKED', {
+        defaultValue: 'ha revocat una compartició del butlletí',
+      })
+    case 'CLIENT_REPORT_STAFF_SESSION_CREATED':
+      return prefix + t('activity:audit.CLIENT_REPORT_STAFF_SESSION_CREATED', {
+        defaultValue: 'ha obert el portal del client (suport)',
+      })
     default:
       return prefix + t('activity:audit.GENERIC', {
         action: stripEntityActionPrefix(action),

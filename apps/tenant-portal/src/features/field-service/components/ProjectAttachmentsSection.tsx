@@ -43,6 +43,7 @@ interface ProjectAttachmentsSectionProps {
   projectName?: string
   compact?: boolean
   readOnly?: boolean
+  embedded?: boolean
 }
 
 export function ProjectAttachmentsSection({
@@ -50,6 +51,7 @@ export function ProjectAttachmentsSection({
   projectName,
   compact = false,
   readOnly = false,
+  embedded = false,
 }: ProjectAttachmentsSectionProps) {
   const { t } = useTranslation('field-service')
   const { toast } = useToast()
@@ -163,14 +165,16 @@ export function ProjectAttachmentsSection({
 
   return (
     <section className={compact ? 'space-y-2' : 'space-y-3'}>
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <Paperclip className="h-4 w-4" />
-          {t('attachments.title', 'Adjunts')}
-          {attachments.length > 0 && (
-            <span className="text-xs font-normal text-muted-foreground">({attachments.length})</span>
-          )}
-        </h3>
+      <div className={`flex items-center gap-2 ${embedded ? 'justify-end' : 'justify-between'}`}>
+        {!embedded && (
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <Paperclip className="h-4 w-4" />
+            {t('attachments.title', 'Adjunts')}
+            {attachments.length > 0 && (
+              <span className="text-xs font-normal text-muted-foreground">({attachments.length})</span>
+            )}
+          </h3>
+        )}
         {!readOnly && (
           <Button
             type="button"
