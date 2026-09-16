@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { CheckCircle2 } from 'lucide-react'
 import { useTenant } from '@/contexts/TenantContext'
 import { Button } from '@/components/ui/button'
@@ -20,9 +20,10 @@ interface ArchetypeCardProps {
   profile: SectorProfile
   selected: boolean
   onSelect: () => void
+  showSeedCount: boolean
 }
 
-function ArchetypeCard({ profile, selected, onSelect }: ArchetypeCardProps) {
+function ArchetypeCard({ profile, selected, onSelect, showSeedCount }: ArchetypeCardProps) {
   const { t } = useTranslation('onboarding')
 
   // Map archetype key → i18n name (fallback to DB display_name_ca)
@@ -71,8 +72,8 @@ function ArchetypeCard({ profile, selected, onSelect }: ArchetypeCardProps) {
         </span>
       )}
 
-      {/* Catalog seed count */}
-      {seedCount > 0 && (
+      {/* Catalog seed count (first-time only; re-apply does not re-seed) */}
+      {showSeedCount && seedCount > 0 && (
         <span className="mt-1 rounded-full bg-indigo-100 dark:bg-indigo-900/50 px-2.5 py-0.5 text-[11px] text-indigo-700 dark:text-indigo-300 font-medium">
           {t('onboarding.catalog_seed_count_badge', '+{{count}} ítems catàleg', { count: seedCount })}
         </span>
@@ -113,8 +114,13 @@ function StepDots({ currentStep, total }: StepDotsProps) {
 export function OnboardingWizard() {
   const { t } = useTranslation('onboarding')
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const { activeTenant } = useTenant()
+
+  const isReconfigure = Boolean(activeTenant?.sector_profile_id)
+  const totalSteps = isReconfigure ? 2 : TOTAL_STEPS
+  const exitTo = searchParams.get('reconfigure') === '1' ? '/settings/config' : '/dashboard'
 
   const [step, setStep] = useState(1)
   const [selectedProfile, setSelectedProfile] = useState<SectorProfile | null>(null)
@@ -137,6 +143,12 @@ export function OnboardingWizard() {
     queryKey: ['sector_profiles'],
     queryFn: getSectorProfiles,
   })
+
+  useEffect(() => {
+    if (selectedProfile || !activeTenant?.sector_profile_id || profiles.length === 0) return
+    const current = profiles.find((p) => p.id === activeTenant.sector_profile_id)
+    if (current) setSelectedProfile(current)
+  }, [profiles, activeTenant?.sector_profile_id, selectedProfile])
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
@@ -166,10 +178,13 @@ export function OnboardingWizard() {
     try {
       // Defensa addicional: assegura el context de tenant abans de la RPC.
       setActiveTenantId(activeTenant.id)
-      await applySectorRecipe(selectedProfile.id!, companyName.trim() || undefined, activeTenant.id)
-      // Invalida la cache de tenants perquè el wizard desaparegui
+      await applySectorRecipe(
+        selectedProfile.id!,
+        isReconfigure ? undefined : (companyName.trim() || undefined),
+        activeTenant.id,
+      )
       await queryClient.invalidateQueries({ queryKey: ['tenants'] })
-      navigate('/dashboard', { replace: true })
+      navigate(exitTo, { replace: true })
     } catch (err) {
       setApplyError(t('onboarding.error_apply', 'No s\'ha pogut configurar el sector. Torna-ho a intentar.'))
       setIsApplying(false)
@@ -184,14 +199,21 @@ export function OnboardingWizard() {
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold text-foreground">
-            {t('onboarding.step_sector_title', 'Quin és el teu sector?')}
+            {isReconfigure
+              ? t('onboarding.reconfigure_title', 'Vols canviar de sector?')
+              : t('onboarding.step_sector_title', 'Quin és el teu sector?')}
           </h1>
           <p className="text-muted-foreground text-sm max-w-md mx-auto">
-            {t('onboarding.step_sector_subtitle', 'Triarem una configuració inicial adaptada al teu negoci.')}
+            {isReconfigure
+              ? t(
+                  'onboarding.reconfigure_subtitle',
+                  'Això actualitza el vocabulari i els menús (p. ex. ordres vs projectes). El catàleg existent no es buida.',
+                )
+              : t('onboarding.step_sector_subtitle', 'Triarem una configuració inicial adaptada al teu negoci.')}
           </p>
         </div>
 
-        <StepDots currentStep={1} total={TOTAL_STEPS} />
+        <StepDots currentStep={1} total={totalSteps} />
 
         {/* Archetype grid */}
         {profilesLoading ? (
@@ -217,13 +239,19 @@ export function OnboardingWizard() {
                 profile={profile}
                 selected={selectedProfile?.id === profile.id}
                 onSelect={() => handleSelectProfile(profile)}
+                showSeedCount={!isReconfigure}
               />
             ))}
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex justify-end pt-2">
+        <div className={`flex pt-2 ${isReconfigure ? 'items-center justify-between' : 'justify-end'}`}>
+          {isReconfigure && (
+            <Button variant="ghost" onClick={() => navigate(exitTo)}>
+              {t('onboarding.btn_cancel', 'Cancel·lar')}
+            </Button>
+          )}
           <Button
             onClick={handleNextFromStep1}
             disabled={!selectedProfile}
@@ -237,9 +265,9 @@ export function OnboardingWizard() {
     )
   }
 
-  // ─── Step 2: Company name ───────────────────────────────────────────────────
+  // ─── Step 2: Company name (first-time only) ─────────────────────────────────
 
-  if (step === 2) {
+  if (step === 2 && !isReconfigure) {
     return (
       <div className="space-y-8">
         {/* Header */}
@@ -307,7 +335,7 @@ export function OnboardingWizard() {
     )
   }
 
-  // ─── Step 3: Done / confirm ─────────────────────────────────────────────────
+  // ─── Confirm (step 3 first-time, step 2 when reconfiguring) ─────────────────
 
   return (
     <div className="space-y-8">
@@ -317,14 +345,21 @@ export function OnboardingWizard() {
           <CheckCircle2 className="w-9 h-9 text-green-600 dark:text-green-400" />
         </div>
         <h1 className="text-2xl font-bold text-foreground">
-          {t('onboarding.step_done_title', 'Tot a punt!')}
+          {isReconfigure
+            ? t('onboarding.reconfigure_done_title', 'Confirma el canvi de sector')
+            : t('onboarding.step_done_title', 'Tot a punt!')}
         </h1>
         <p className="text-muted-foreground text-sm max-w-md mx-auto">
-          {t('onboarding.step_done_subtitle', 'El teu espai de treball ja està configurat. Pots personalitzar-lo en qualsevol moment.')}
+          {isReconfigure
+            ? t(
+                'onboarding.reconfigure_done_subtitle',
+                'Els noms dels mòduls i el menú s’adaptaran al sector nou. Les dades existents (catàleg, contactes, ordres) es conserven.',
+              )
+            : t('onboarding.step_done_subtitle', 'El teu espai de treball ja està configurat. Pots personalitzar-lo en qualsevol moment.')}
         </p>
       </div>
 
-      <StepDots currentStep={3} total={TOTAL_STEPS} />
+      <StepDots currentStep={isReconfigure ? 2 : 3} total={totalSteps} />
 
       {/* Summary card */}
       <div className="rounded-2xl border bg-card p-6 max-w-sm mx-auto space-y-4">
@@ -337,16 +372,29 @@ export function OnboardingWizard() {
             <p className="font-semibold text-foreground">{selectedProfile?.display_name_ca}</p>
           </div>
         </div>
-        <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{t('onboarding.summary_company_label', 'Empresa')}</p>
-          <p className="font-semibold text-foreground">{companyName}</p>
-        </div>
-        {(selectedProfile?.catalog_seed_count ?? 0) > 0 && (
-          <div className="rounded-lg bg-muted/60 px-3 py-2">
-            <p className="text-xs text-muted-foreground">
-              {t('onboarding.catalog_seed_hint', "S'afegiran {{count}} ítems al teu catàleg per començar.", { count: selectedProfile?.catalog_seed_count ?? 0 })}
+        {!isReconfigure && (
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{t('onboarding.summary_company_label', 'Empresa')}</p>
+            <p className="font-semibold text-foreground">{companyName}</p>
+          </div>
+        )}
+        {isReconfigure ? (
+          <div className="rounded-lg bg-amber-50 dark:bg-amber-950/40 px-3 py-2">
+            <p className="text-xs text-amber-900 dark:text-amber-200">
+              {t(
+                'onboarding.reconfigure_catalog_note',
+                'El catàleg no es torna a omplir: només es canvien etiquetes i menús.',
+              )}
             </p>
           </div>
+        ) : (
+          (selectedProfile?.catalog_seed_count ?? 0) > 0 && (
+            <div className="rounded-lg bg-muted/60 px-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                {t('onboarding.catalog_seed_hint', "S'afegiran {{count}} ítems al teu catàleg per començar.", { count: selectedProfile?.catalog_seed_count ?? 0 })}
+              </p>
+            </div>
+          )
         )}
       </div>
 
@@ -357,7 +405,7 @@ export function OnboardingWizard() {
 
       {/* Actions */}
       <div className="flex items-center justify-between pt-2">
-        <Button variant="ghost" onClick={() => setStep(2)} disabled={isApplying}>
+        <Button variant="ghost" onClick={() => setStep(isReconfigure ? 1 : 2)} disabled={isApplying}>
           {t('onboarding.btn_back', 'Enrere')}
         </Button>
         <Button
@@ -368,7 +416,9 @@ export function OnboardingWizard() {
         >
           {isApplying
             ? t('onboarding.btn_applying', 'Configurant...')
-            : t('onboarding.btn_finish', 'Entrar al tauler')}
+            : isReconfigure
+              ? t('onboarding.btn_save_sector', 'Desar sector')
+              : t('onboarding.btn_finish', 'Entrar al tauler')}
         </Button>
       </div>
     </div>

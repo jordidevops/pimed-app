@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, LogOut, X } from 'lucide-react'
 import type { EmployeeAbsence, AbsenceTypeConfig } from '../../api/shiftsService'
-import { useApproveAbsence } from '../../api/useAbsences'
+import { useApproveAbsence, useRevokeAbsence } from '../../api/useAbsences'
 import { useFormatAttendanceDate } from '../../hooks/useFormatAttendanceDate'
 import { ABSENCE_STATUS_COLORS, absenceTypeLabel } from './absenceUiUtils'
 import { CloseITDialog } from './CloseITDialog'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 interface EmployeeAbsenceRowProps {
   absence: EmployeeAbsence
@@ -27,7 +29,10 @@ export function EmployeeAbsenceRow({
   const { t } = useTranslation('attendance')
   const formatDate = useFormatAttendanceDate()
   const { mutate: approve, isPending } = useApproveAbsence()
+  const revoke = useRevokeAbsence()
   const [closeOpen, setCloseOpen] = useState(false)
+  const [revokeOpen, setRevokeOpen] = useState(false)
+  const [revokeReason, setRevokeReason] = useState('')
 
   const typeLabel = absenceTypeLabel(typeCfg, absence.absence_type ?? '?', lang)
   const isIT = typeCfg?.is_it ?? false
@@ -108,6 +113,17 @@ export function EmployeeAbsenceRow({
                 </button>
               </>
             ) : null}
+            {!isIT && absence.status === 'approved' ? (
+              <button
+                type="button"
+                onClick={() => setRevokeOpen(true)}
+                disabled={revoke.isPending}
+                className="flex items-center gap-1 rounded-md bg-amber-100 px-2.5 py-1.5 text-xs text-amber-900 hover:bg-amber-200 disabled:opacity-50"
+              >
+                <X className="h-3 w-3" />
+                {t('absences.revoke', 'Revocar')}
+              </button>
+            ) : null}
             {isIT && absence.status === 'active' ? (
               <button
                 type="button"
@@ -123,6 +139,46 @@ export function EmployeeAbsenceRow({
       </div>
 
       <CloseITDialog absence={absence} open={closeOpen} onOpenChange={setCloseOpen} />
+      <Dialog open={revokeOpen} onOpenChange={setRevokeOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('absences.revoke_title', "Revocar l'aprovació")}</DialogTitle>
+          </DialogHeader>
+          <label className="space-y-1 text-sm">
+            <span>{t('absences.revoke_reason', 'Motiu')}</span>
+            <textarea
+              value={revokeReason}
+              onChange={(event) => setRevokeReason(event.target.value)}
+              rows={3}
+              required
+              className="w-full resize-none rounded-md border bg-background px-3 py-2"
+            />
+          </label>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setRevokeOpen(false)}>
+              {t('absences.form.cancel', 'Cancel·lar')}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!revokeReason.trim() || revoke.isPending}
+              onClick={() => {
+                if (!absence.id) return
+                revoke.mutate(
+                  { absenceId: absence.id, reason: revokeReason },
+                  {
+                    onSuccess: () => {
+                      setRevokeOpen(false)
+                      setRevokeReason('')
+                    },
+                  },
+                )
+              }}
+            >
+              {t('absences.revoke_confirm', 'Revocar')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

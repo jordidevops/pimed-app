@@ -4,6 +4,7 @@ import { log } from "../_shared/observability/structured-logger.ts";
 import { sha256Bytes, bytesToPostgresHex } from "../_shared/employee-portal/crypto.ts";
 import { requireCustomerPortalBffAuth } from "../_shared/customer-portal/internal-auth.ts";
 import { pickLocalePayload } from "../_shared/customer-portal/locale-payload.ts";
+import { enrichResolveWithBulletinTitle } from "../_shared/customer-portal/bulletin-title.ts";
 
 const FEATURE = "resolve-customer-portal-grant";
 const HEX_64_RE = /^[0-9a-f]{64}$/;
@@ -294,19 +295,21 @@ Deno.serve(async (req: Request) => {
       const row = data as Record<string, unknown> | null;
       if (!row || row.ok !== true) return denied();
 
+      const enriched = await enrichResolveWithBulletinTitle(admin, row);
       return jsonResponse(200, {
         actor_type: "grant",
-        grant_id: row.grant_id,
-        tenant_id: row.tenant_id,
-        bulletins: row.bulletins,
-        locale: row.locale,
-        content_digest: row.content_digest,
-        projection: row.projection,
-        media_manifest: row.media_manifest,
-        report_version_id: row.report_version_id,
-        client_account_contact_id: row.client_account_contact_id,
-        access_activity: row.access_activity,
-        ...pickLocalePayload(row),
+        grant_id: enriched.grant_id,
+        tenant_id: enriched.tenant_id,
+        bulletins: enriched.bulletins,
+        locale: enriched.locale,
+        content_digest: enriched.content_digest,
+        projection: enriched.projection,
+        media_manifest: enriched.media_manifest,
+        report_version_id: enriched.report_version_id,
+        client_account_contact_id: enriched.client_account_contact_id,
+        access_activity: enriched.access_activity,
+        title: enriched.title,
+        ...pickLocalePayload(enriched),
       });
     }
 

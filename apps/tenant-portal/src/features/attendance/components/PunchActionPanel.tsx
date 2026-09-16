@@ -15,6 +15,7 @@ import type { ExtendedPunchType, PunchDayState } from '../utils/punchProfileUi'
 import {
   getPrimaryPunchAction,
   getSecondaryPunchActions,
+  punchHeroColorClass,
   PUNCH_TYPE_CONFIRM_I18N_KEY,
   PUNCH_TYPE_I18N_KEY,
   PUNCH_TYPE_DEFAULT_LABEL,
@@ -46,23 +47,6 @@ function PunchTypeIcon({ type, className }: { type: ExtendedPunchType; className
       return <MapPin className={cn} aria-hidden />
     default:
       return null
-  }
-}
-
-function heroColorClass(type: ExtendedPunchType): string {
-  switch (type) {
-    case 'in':
-      return 'bg-emerald-600 hover:bg-emerald-700 text-white'
-    case 'out':
-    case 'day_end':
-      return 'bg-slate-600 hover:bg-slate-700 text-white'
-    case 'day_start':
-      return 'bg-sky-600 hover:bg-sky-700 text-white'
-    case 'travel_start':
-    case 'travel_end':
-      return 'bg-violet-600 hover:bg-violet-700 text-white'
-    default:
-      return 'bg-primary hover:bg-primary/90 text-primary-foreground'
   }
 }
 
@@ -114,7 +98,7 @@ export function PunchActionPanel({
           size="lg"
           disabled={isLoading}
           onClick={() => onPunch(primary)}
-          className={`h-40 w-40 rounded-full text-lg font-bold shadow-xl ${heroColorClass(primary)}`}
+          className={`h-40 w-40 rounded-full text-lg font-bold shadow-xl ${punchHeroColorClass(primary)}`}
           aria-label={t(PUNCH_TYPE_CONFIRM_I18N_KEY[primary], PUNCH_TYPE_DEFAULT_LABEL[primary])}
         >
         {loadingType === primary ? (

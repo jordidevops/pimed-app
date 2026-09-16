@@ -7,10 +7,12 @@
 -- Crea:
 --   Plans:   free, pro, enterprise
 --   Tenants: acme-corp (pro, sense sector), beta-startup (free),
---            volt-serveis (pro, archetype field_service)
+--            volt-serveis (pro, archetype field_service, autònom),
+--            riera-instal (pro, archetype field_service, PIME oficina + tècnics)
 --   Usuaris:
 --     · 1 superadmin (app_metadata.role = 'admin') per al admin-portal
 --     · perfils globals i locals per validar jerarquia de rols multi-tenant/site
+--     · Gina (owner oficina) + Hèctor/Inés (members tècnics) a Riera Instal·lacions
 --
 -- Passwords de tots els usuaris de prova: Test1234!
 -- UUIDs fixes perquè les dades de seed siguin reproducibles.
@@ -38,19 +40,24 @@ UPDATE data.plans SET is_default = true WHERE name = 'free';
 -- Tenants
 -- ---------------------------------------------------------------------------
 -- Acme / Beta: sense sector_profile (onboarding + E2E Bob).
--- Volt Serveis: field_service real (shell Avui / Ordres).
+-- Volt Serveis: field_service autònom (Alice ho fa tot).
+-- Riera Instal·lacions: field_service PIME (oficina + tècnics member).
 INSERT INTO data.tenants (id, name, slug, plan_id)
 VALUES
   ('10000000-0000-0000-0000-000000000001', 'Acme Corp',     'acme-corp',     '00000000-0000-0000-0000-000000000002'),
   ('10000000-0000-0000-0000-000000000002', 'Beta Startup',  'beta-startup',  '00000000-0000-0000-0000-000000000001'),
-  ('10000000-0000-0000-0000-000000000003', 'Volt Serveis',  'volt-serveis',  '00000000-0000-0000-0000-000000000002')
+  ('10000000-0000-0000-0000-000000000003', 'Volt Serveis',  'volt-serveis',  '00000000-0000-0000-0000-000000000002'),
+  ('10000000-0000-0000-0000-000000000004', 'Riera Instal·lacions', 'riera-instal', '00000000-0000-0000-0000-000000000002')
 ON CONFLICT (id) DO NOTHING;
 
 UPDATE data.tenants t
 SET sector_profile_id = sp.id,
     updated_at = now()
 FROM data.sector_profiles sp
-WHERE t.id = '10000000-0000-0000-0000-000000000003'
+WHERE t.id IN (
+    '10000000-0000-0000-0000-000000000003',
+    '10000000-0000-0000-0000-000000000004'
+  )
   AND sp.archetype = 'field_service'
   AND sp.vertical IS NULL;
 
@@ -61,7 +68,8 @@ INSERT INTO data.subscriptions (tenant_id, plan_id, status)
 VALUES
   ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', 'active'),
   ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'trial'),
-  ('10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000002', 'active')
+  ('10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000002', 'active'),
+  ('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000002', 'active')
 ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------------------
@@ -202,6 +210,63 @@ INSERT INTO auth.users (
   'authenticated', 'authenticated', now(), now()
 ) ON CONFLICT (id) DO NOTHING;
 
+-- Gina — owner oficina de Riera Instal·lacions (PIME field_service)
+INSERT INTO auth.users (
+  instance_id, id, email, encrypted_password, email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change_token_current,
+  email_change,
+  raw_app_meta_data, raw_user_meta_data, aud, role, created_at, updated_at
+) VALUES (
+  '00000000-0000-0000-0000-000000000000',
+  '20000000-0000-0000-0000-000000000008',
+  'gina@riera-instal.com',
+  crypt('Test1234!', gen_salt('bf')),
+  now(),
+  '', '', '', '',
+  '',
+  '{"provider":"email","providers":["email"]}',
+  '{"full_name":"Gina Riera","email_verified":true}',
+  'authenticated', 'authenticated', now(), now()
+) ON CONFLICT (id) DO NOTHING;
+
+-- Hèctor — tècnic de camp (member) de Riera Instal·lacions
+INSERT INTO auth.users (
+  instance_id, id, email, encrypted_password, email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change_token_current,
+  email_change,
+  raw_app_meta_data, raw_user_meta_data, aud, role, created_at, updated_at
+) VALUES (
+  '00000000-0000-0000-0000-000000000000',
+  '20000000-0000-0000-0000-000000000009',
+  'hector@riera-instal.com',
+  crypt('Test1234!', gen_salt('bf')),
+  now(),
+  '', '', '', '',
+  '',
+  '{"provider":"email","providers":["email"]}',
+  '{"full_name":"Hèctor Soler","email_verified":true}',
+  'authenticated', 'authenticated', now(), now()
+) ON CONFLICT (id) DO NOTHING;
+
+-- Inés — tècnica de camp (member) de Riera Instal·lacions
+INSERT INTO auth.users (
+  instance_id, id, email, encrypted_password, email_confirmed_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change_token_current,
+  email_change,
+  raw_app_meta_data, raw_user_meta_data, aud, role, created_at, updated_at
+) VALUES (
+  '00000000-0000-0000-0000-000000000000',
+  '20000000-0000-0000-0000-000000000010',
+  'ines@riera-instal.com',
+  crypt('Test1234!', gen_salt('bf')),
+  now(),
+  '', '', '', '',
+  '',
+  '{"provider":"email","providers":["email"]}',
+  '{"full_name":"Inés Vidal","email_verified":true}',
+  'authenticated', 'authenticated', now(), now()
+) ON CONFLICT (id) DO NOTHING;
+
 -- ---------------------------------------------------------------------------
 -- Identities — necessàries perquè GoTrue pugui autenticar per email/password.
 -- Sense auth.identities, auth.users existeix però el login falla silenciosament.
@@ -249,6 +314,24 @@ VALUES
     '20000000-0000-0000-0000-000000000007',
     '{"sub":"20000000-0000-0000-0000-000000000007","email":"frank@beta-startup.com","email_verified":true}',
     'email', now(), now(), now()
+  ),
+  (
+    '20000000-0000-0000-0000-000000000008',
+    '20000000-0000-0000-0000-000000000008',
+    '{"sub":"20000000-0000-0000-0000-000000000008","email":"gina@riera-instal.com","email_verified":true}',
+    'email', now(), now(), now()
+  ),
+  (
+    '20000000-0000-0000-0000-000000000009',
+    '20000000-0000-0000-0000-000000000009',
+    '{"sub":"20000000-0000-0000-0000-000000000009","email":"hector@riera-instal.com","email_verified":true}',
+    'email', now(), now(), now()
+  ),
+  (
+    '20000000-0000-0000-0000-000000000010',
+    '20000000-0000-0000-0000-000000000010',
+    '{"sub":"20000000-0000-0000-0000-000000000010","email":"ines@riera-instal.com","email_verified":true}',
+    'email', now(), now(), now()
   )
 ON CONFLICT (provider_id, provider) DO NOTHING;
 
@@ -265,7 +348,10 @@ VALUES
   ('20000000-0000-0000-0000-000000000004', 'charlie@acme-corp.com',   'Charlie Manager',  now() - INTERVAL '10 days', now() - INTERVAL '2 hours'),
   ('20000000-0000-0000-0000-000000000005', 'dave@acme-corp.com',      'Dave Member',      now() - INTERVAL '9 days',  now() - INTERVAL '30 minutes'),
   ('20000000-0000-0000-0000-000000000006', 'eve@acme-corp.com',       'Eve Viewer',       now() - INTERVAL '8 days',  now() - INTERVAL '12 hours'),
-  ('20000000-0000-0000-0000-000000000007', 'frank@beta-startup.com',  'Frank Manager',    now() - INTERVAL '6 days',  now() - INTERVAL '6 days')
+  ('20000000-0000-0000-0000-000000000007', 'frank@beta-startup.com',  'Frank Manager',    now() - INTERVAL '6 days',  now() - INTERVAL '6 days'),
+  ('20000000-0000-0000-0000-000000000008', 'gina@riera-instal.com',   'Gina Riera',       now() - INTERVAL '5 days',  now() - INTERVAL '1 hour'),
+  ('20000000-0000-0000-0000-000000000009', 'hector@riera-instal.com', 'Hèctor Soler',     now() - INTERVAL '5 days',  now() - INTERVAL '2 hours'),
+  ('20000000-0000-0000-0000-000000000010', 'ines@riera-instal.com',   'Inés Vidal',       now() - INTERVAL '4 days',  now() - INTERVAL '3 hours')
 ON CONFLICT (id) DO UPDATE
   SET first_login_at = EXCLUDED.first_login_at,
       last_login_at  = EXCLUDED.last_login_at
@@ -292,10 +378,14 @@ VALUES
   ('30000000-0000-0000-0000-000000000003',
    '10000000-0000-0000-0000-000000000002',
    'Beta Workshop', 'Carrer de la Indústria, 77, 08960 Sant Just Desvern'),
-  -- Volt Serveis (field_service)
+  -- Volt Serveis (field_service autònom)
   ('30000000-0000-0000-0000-000000000004',
    '10000000-0000-0000-0000-000000000003',
-   'Volt Serveis', 'Carrer de Provença, 200, 08036 Barcelona')
+   'Volt Serveis', 'Carrer de Provença, 200, 08036 Barcelona'),
+  -- Riera Instal·lacions (field_service PIME)
+  ('30000000-0000-0000-0000-000000000005',
+   '10000000-0000-0000-0000-000000000004',
+   'Riera Instal·lacions', 'Carrer de la Riera de Sant Miquel, 18, 08006 Barcelona')
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
@@ -316,6 +406,12 @@ ON CONFLICT (id) DO NOTHING;
 --     · Acme Gràcia  → viewer local
 --   Frank (20000000-...007)
 --     · Beta Workshop → manager local
+--   Gina (20000000-...008)
+--     · Riera Instal·lacions → owner GLOBAL (oficina PIME)
+--   Hèctor (20000000-...009)
+--     · Riera Instal·lacions → member GLOBAL (tècnic de camp)
+--   Inés (20000000-...010)
+--     · Riera Instal·lacions → member GLOBAL (tècnica de camp)
 
 -- Rols globals (site_id IS NULL)
 INSERT INTO data.tenant_members (tenant_id, user_id, role)
@@ -325,8 +421,12 @@ VALUES
   ('10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000003', 'owner'),
   -- Beta Startup globals
   ('10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002', 'owner'),
-  -- Volt Serveis (field_service)
-  ('10000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000002', 'owner')
+  -- Volt Serveis (field_service autònom)
+  ('10000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000002', 'owner'),
+  -- Riera Instal·lacions (field_service PIME)
+  ('10000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000008', 'owner'),
+  ('10000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000009', 'member'),
+  ('10000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000010', 'member')
 ON CONFLICT (tenant_id, user_id) WHERE site_id IS NULL DO NOTHING;
 
 -- Rols limitats per site (site_id IS NOT NULL)
@@ -2179,3 +2279,246 @@ ON CONFLICT (id) DO UPDATE SET
   department_id = EXCLUDED.department_id,
   site_id = EXCLUDED.site_id,
   updated_at = now();
+
+-- ─── Field Service: Riera Instal·lacions (PIME oficina + tècnics) ─────────────
+-- Gina owner (oficina). Hèctor i Inés members (UI limitada, sempre /field/today).
+UPDATE data.tenants
+SET settings = COALESCE(settings, '{}') || '{
+  "default_event_start_time": "08:00",
+  "default_event_duration_minutes": 60,
+  "week_starts_on": 1,
+  "default_language": "ca",
+  "default_calendar_timezone": "Europe/Madrid"
+}'::jsonb
+WHERE id = '10000000-0000-0000-0000-000000000004';
+
+INSERT INTO data.departments (id, tenant_id, parent_id, name, code, manager_id, is_active)
+VALUES
+  (
+    '43000000-0000-0000-0000-000000000201',
+    '10000000-0000-0000-0000-000000000004',
+    NULL,
+    'Oficina',
+    'OFI',
+    NULL,
+    true
+  ),
+  (
+    '43000000-0000-0000-0000-000000000202',
+    '10000000-0000-0000-0000-000000000004',
+    NULL,
+    'Operacions de camp',
+    'CAMP',
+    NULL,
+    true
+  )
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO data.job_positions (id, tenant_id, code, name, is_active)
+VALUES
+  (
+    '41000000-0000-0000-0000-000000000401',
+    '10000000-0000-0000-0000-000000000004',
+    'ADMIN',
+    'Administració',
+    true
+  ),
+  (
+    '41000000-0000-0000-0000-000000000402',
+    '10000000-0000-0000-0000-000000000004',
+    'TECNIC',
+    'Tècnic de camp',
+    true
+  )
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO data.employees (id, tenant_id, site_id, user_id, full_name, email, job_position_id, status, weekly_hours, department_id)
+VALUES
+  (
+    '40000000-0000-0000-0000-000000000201',
+    '10000000-0000-0000-0000-000000000004',
+    '30000000-0000-0000-0000-000000000005',
+    '20000000-0000-0000-0000-000000000008',
+    'Gina Riera',
+    'gina@riera-instal.com',
+    '41000000-0000-0000-0000-000000000401',
+    'active',
+    40,
+    '43000000-0000-0000-0000-000000000201'
+  ),
+  (
+    '40000000-0000-0000-0000-000000000202',
+    '10000000-0000-0000-0000-000000000004',
+    '30000000-0000-0000-0000-000000000005',
+    '20000000-0000-0000-0000-000000000009',
+    'Hèctor Soler',
+    'hector@riera-instal.com',
+    '41000000-0000-0000-0000-000000000402',
+    'active',
+    40,
+    '43000000-0000-0000-0000-000000000202'
+  ),
+  (
+    '40000000-0000-0000-0000-000000000203',
+    '10000000-0000-0000-0000-000000000004',
+    '30000000-0000-0000-0000-000000000005',
+    '20000000-0000-0000-0000-000000000010',
+    'Inés Vidal',
+    'ines@riera-instal.com',
+    '41000000-0000-0000-0000-000000000402',
+    'active',
+    40,
+    '43000000-0000-0000-0000-000000000202'
+  )
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO data.catalog_items (id, tenant_id, kind, name, unit, unit_price, tax_rate, is_active)
+SELECT
+  v.id,
+  '10000000-0000-0000-0000-000000000004',
+  (v.item->>'kind')::data.catalog_item_kind,
+  v.item->>'name',
+  COALESCE(v.item->>'unit', 'u'),
+  COALESCE((v.item->>'unit_price')::numeric, 0),
+  COALESCE((v.item->>'tax_rate')::numeric, 21),
+  true
+FROM data.sector_profiles sp
+CROSS JOIN LATERAL (
+  SELECT
+    ('82000000-0000-0000-0000-00000000001' || gs.i)::uuid AS id,
+    jsonb_array_element(sp.catalog_seed, gs.i - 1) AS item
+  FROM generate_series(1, LEAST(jsonb_array_length(sp.catalog_seed), 4)) AS gs(i)
+) v
+WHERE sp.archetype = 'field_service'
+  AND sp.vertical IS NULL
+ON CONFLICT (id) DO NOTHING;
+
+DO $$
+BEGIN
+  PERFORM data.ensure_visita_estandard_pricing_template('10000000-0000-0000-0000-000000000004');
+END $$;
+
+INSERT INTO data.contacts (
+  id, tenant_id, site_id, kind, display_name, given_name, family_name, legal_name,
+  tax_id, email, phone, tags, source
+)
+VALUES
+  (
+    '80000000-0000-0000-0000-000000000201',
+    '10000000-0000-0000-0000-000000000004',
+    NULL,
+    'company',
+    'Comunitat Propietaris Clot',
+    NULL,
+    NULL,
+    'Comunitat Propietaris Clot',
+    'B-87654321',
+    'junta@clot.cat',
+    '+34933445566',
+    '{"client","comunitat"}',
+    'manual'
+  ),
+  (
+    '80000000-0000-0000-0000-000000000202',
+    '10000000-0000-0000-0000-000000000004',
+    NULL,
+    'person',
+    'Marta Roca',
+    'Marta',
+    'Roca',
+    NULL,
+    NULL,
+    'marta.roca@clot.cat',
+    '+34611222999',
+    '{"client","portal"}',
+    'manual'
+  )
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO data.contact_sites (
+  id, tenant_id, contact_id, name, address, city, postal_code, country_code, notes, is_active
+)
+VALUES
+  (
+    '81000000-0000-0000-0000-000000000201',
+    '10000000-0000-0000-0000-000000000004',
+    '80000000-0000-0000-0000-000000000201',
+    'Edifici Clot 12',
+    'Carrer del Clot 12',
+    'Barcelona',
+    '08018',
+    'ES',
+    'Revisió de caldera comunitària',
+    true
+  ),
+  (
+    '81000000-0000-0000-0000-000000000202',
+    '10000000-0000-0000-0000-000000000004',
+    '80000000-0000-0000-0000-000000000201',
+    'Local comercial Rogent',
+    'Carrer de Rogent 45',
+    'Barcelona',
+    '08026',
+    'ES',
+    'Avària de climatització',
+    true
+  )
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO data.projects (
+  id, tenant_id, type, name, description, status, visibility,
+  site_id, department_id, client_id, contact_site_id,
+  created_by, planned_start, planned_end
+)
+VALUES
+  (
+    '51000000-0000-0000-0000-000000000201',
+    '10000000-0000-0000-0000-000000000004',
+    'work_order',
+    'Revisió caldera — Edifici Clot',
+    'Ordre assignada a Hèctor (tècnic de camp).',
+    'active',
+    'company',
+    '30000000-0000-0000-0000-000000000005',
+    '43000000-0000-0000-0000-000000000202',
+    '80000000-0000-0000-0000-000000000201',
+    '81000000-0000-0000-0000-000000000201',
+    '20000000-0000-0000-0000-000000000008',
+    (timezone('Europe/Madrid', now()))::date + time '09:00'
+      AT TIME ZONE 'Europe/Madrid',
+    (timezone('Europe/Madrid', now()))::date + time '12:00'
+      AT TIME ZONE 'Europe/Madrid'
+  ),
+  (
+    '51000000-0000-0000-0000-000000000202',
+    '10000000-0000-0000-0000-000000000004',
+    'work_order',
+    'Avària clima — Local Rogent',
+    'Ordre assignada a Inés (tècnica de camp).',
+    'active',
+    'company',
+    '30000000-0000-0000-0000-000000000005',
+    '43000000-0000-0000-0000-000000000202',
+    '80000000-0000-0000-0000-000000000201',
+    '81000000-0000-0000-0000-000000000202',
+    '20000000-0000-0000-0000-000000000008',
+    (timezone('Europe/Madrid', now()))::date + time '14:00'
+      AT TIME ZONE 'Europe/Madrid',
+    (timezone('Europe/Madrid', now()))::date + time '17:00'
+      AT TIME ZONE 'Europe/Madrid'
+  )
+ON CONFLICT (id) DO UPDATE SET
+  status = EXCLUDED.status,
+  planned_start = EXCLUDED.planned_start,
+  planned_end = EXCLUDED.planned_end,
+  client_id = EXCLUDED.client_id,
+  contact_site_id = EXCLUDED.contact_site_id,
+  department_id = EXCLUDED.department_id,
+  site_id = EXCLUDED.site_id,
+  updated_at = now();
+
+INSERT INTO data.project_members (project_id, user_id, role)
+VALUES
+  ('51000000-0000-0000-0000-000000000201', '20000000-0000-0000-0000-000000000009', 'contributor'),
+  ('51000000-0000-0000-0000-000000000202', '20000000-0000-0000-0000-000000000010', 'contributor')
+ON CONFLICT (project_id, user_id) DO NOTHING;

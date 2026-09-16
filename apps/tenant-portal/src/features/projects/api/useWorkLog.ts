@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
@@ -6,6 +6,8 @@ import { useTenant } from '@/contexts/TenantContext'
 import { enqueueFieldOp } from '@/hooks/useFieldSync'
 import { useGeoCapture } from '@/hooks/useGeoCapture'
 import type { Json } from '@/types/database.types'
+import { getFieldOpsAdapter, type WorklogStartPayload, type WorklogStopPayload } from '@/lib/field-ops-db'
+import { isRetryableSyncError } from '@/features/field-service/utils/fieldSyncError'
 
 type WorkLog = {
   id: string | null
@@ -44,6 +46,15 @@ function isMissingRpcError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false
   const code = (err as { code?: unknown }).code
   return code === 'PGRST202'
+}
+
+async function enqueueDurableFieldOp(
+  op: Parameters<typeof enqueueFieldOp>[0],
+): Promise<boolean> {
+  const { isFallback } = await getFieldOpsAdapter()
+  if (isFallback) return false
+  await enqueueFieldOp(op)
+  return true
 }
 
 async function getOpenWorkLogGlobalSafe() {
@@ -100,6 +111,59 @@ export function useWorkLog(projectId: string | null) {
     [activeTenant?.id, user?.id],
   )
 
+  async function getLocalOpenWorkLog(targetProjectId: string): Promise<WorkLog | null> {
+    if (!activeTenant?.id) return null
+    const { adapter } = await getFieldOpsAdapter()
+    const ops = await adapter.listProjectOps(activeTenant.id, targetProjectId, [
+      'pending',
+      'syncing',
+      'rejected',
+      'quarantined',
+    ])
+    const starts = ops.filter((op) => op.kind === 'worklog.start')
+    const stoppedStartIds = new Set(
+      ops
+        .filter((op) => op.kind === 'worklog.stop')
+        .map((op) => (op.payload as WorklogStopPayload).client_op_id),
+    )
+    const start = [...starts].reverse().find((op) => !stoppedStartIds.has(op.id))
+    if (!start) return null
+    return {
+      id: start.server_id ?? start.id,
+      check_in: (start.payload as WorklogStartPayload).occurred_at,
+      client_op_id: start.id,
+      project_id: targetProjectId,
+    }
+  }
+
+  async function getLocalOpenWorkLogGlobal(): Promise<OpenWorkLogGlobal | null> {
+    if (!activeTenant?.id) return null
+    const { adapter } = await getFieldOpsAdapter()
+    const statusGroups = await Promise.all(
+      (['pending', 'syncing', 'rejected', 'quarantined'] as const).map((status) =>
+        adapter.listByStatus(activeTenant.id, status),
+      ),
+    )
+    const ops = statusGroups.flat().sort((a, b) => a.created_at.localeCompare(b.created_at))
+    const stoppedStartIds = new Set(
+      ops
+        .filter((op) => op.kind === 'worklog.stop')
+        .map((op) => (op.payload as WorklogStopPayload).client_op_id),
+    )
+    const start = [...ops]
+      .reverse()
+      .find((op) => op.kind === 'worklog.start' && !stoppedStartIds.has(op.id))
+    if (!start) return null
+    const payload = start.payload as WorklogStartPayload
+    return {
+      id: start.server_id ?? start.id,
+      check_in: payload.occurred_at,
+      client_op_id: start.id,
+      project_id: start.project_id ?? payload.project_id,
+      project_name: payload.project_name || null,
+    }
+  }
+
   const openLogQuery = useQuery<WorkLog | null>({
     queryKey,
     enabled: !!projectId && !!activeTenant?.id && !!user?.id,
@@ -109,14 +173,29 @@ export function useWorkLog(projectId: string | null) {
         { p_project_id: projectId! } as never,
       )
 
-      if (error) throw toAppError(error, 'get_my_open_work_log_failed')
-      if (!data) return null
+      if (error && navigator.onLine) throw toAppError(error, 'get_my_open_work_log_failed')
+      if (!data) return getLocalOpenWorkLog(projectId!)
 
       const row = data as {
         id?: string | null
         check_in?: string | null
         client_op_id?: string | null
       }
+      const { adapter } = await getFieldOpsAdapter()
+      const localOps = activeTenant?.id
+        ? await adapter.listProjectOps(activeTenant.id, projectId!, [
+            'pending',
+            'syncing',
+            'rejected',
+            'quarantined',
+          ])
+        : []
+      const hasPendingStop = localOps.some((op) => {
+        if (op.kind !== 'worklog.stop') return false
+        const payload = op.payload as WorklogStopPayload
+        return payload.work_log_id === row.id || payload.client_op_id === row.client_op_id
+      })
+      if (hasPendingStop) return null
 
       return {
         id: row.id ?? null,
@@ -126,12 +205,27 @@ export function useWorkLog(projectId: string | null) {
     },
   })
 
+  useEffect(() => {
+    const refresh = () => {
+      void queryClient.invalidateQueries({ queryKey })
+      void queryClient.invalidateQueries({ queryKey: globalOpenLogQueryKey })
+    }
+    window.addEventListener('fieldop:changed', refresh)
+    return () => window.removeEventListener('fieldop:changed', refresh)
+  }, [queryClient, queryKey, globalOpenLogQueryKey])
+
   const globalOpenLogQuery = useQuery<OpenWorkLogGlobal | null>({
     queryKey: globalOpenLogQueryKey,
     enabled: !!activeTenant?.id && !!user?.id,
     queryFn: async () => {
-      const data = await getOpenWorkLogGlobalSafe()
-      if (!data) return null
+      let data: unknown
+      try {
+        data = await getOpenWorkLogGlobalSafe()
+      } catch (error) {
+        if (navigator.onLine) throw error
+        return getLocalOpenWorkLogGlobal()
+      }
+      if (!data) return getLocalOpenWorkLogGlobal()
 
       const row = data as {
         id?: string | null
@@ -139,6 +233,19 @@ export function useWorkLog(projectId: string | null) {
         client_op_id?: string | null
         project_id?: string | null
         project_name?: string | null
+      }
+      const { adapter } = await getFieldOpsAdapter()
+      const localStops = (await Promise.all(
+        (['pending', 'syncing', 'rejected', 'quarantined'] as const).map((status) =>
+          adapter.listByStatus(activeTenant!.id, status),
+        ),
+      )).flat()
+      if (localStops.some((op) => {
+        if (op.kind !== 'worklog.stop') return false
+        const payload = op.payload as WorklogStopPayload
+        return payload.work_log_id === row.id || payload.client_op_id === row.client_op_id
+      })) {
+        return null
       }
 
       return {
@@ -170,6 +277,7 @@ export function useWorkLog(projectId: string | null) {
         await enqueueFieldOp({
           id: opId,
           tenant_id: activeTenant.id,
+          project_id: projectId,
           kind: 'worklog.start',
           status: 'pending',
           payload: {
@@ -217,7 +325,24 @@ export function useWorkLog(projectId: string | null) {
         // EXCLUDE one_open_log_per_worker: ja existeix un fitxatge obert.
         throw new Error('worklog_already_open')
       }
-      if (error) throw toAppError(error, 'start_work_log_failed')
+      if (error) {
+        const queued = isRetryableSyncError(error) && await enqueueDurableFieldOp({
+          id: opId,
+          tenant_id: activeTenant.id,
+          project_id: projectId,
+          kind: 'worklog.start',
+          status: 'pending',
+          payload: {
+            project_id: projectId,
+            project_name: '',
+            occurred_at: occurredAt,
+            geo: geo as WorklogStartPayload['geo'],
+            location_permission: locationPermission,
+          },
+        })
+        if (queued) return { mode: 'offline' as const, opId, occurredAt }
+        throw toAppError(error, 'start_work_log_failed')
+      }
       return { mode: 'online' as const }
     },
     onSuccess: (result) => {
@@ -267,7 +392,7 @@ export function useWorkLog(projectId: string | null) {
       const opId = crypto.randomUUID()
       const occurredAt = new Date().toISOString()
 
-      if (!navigator.onLine) {
+      if (!navigator.onLine || openLog.id === openLog.client_op_id) {
         const resolvedClientOpId = openLog.client_op_id ?? opId
         // Si el log obert és local (id == client_op_id), NO enviem work_log_id.
         // El servidor el resoldrà després per client_op_id quan el start estigui creat.
@@ -278,8 +403,10 @@ export function useWorkLog(projectId: string | null) {
         await enqueueFieldOp({
           id: opId,
           tenant_id: activeTenant.id,
+          project_id: projectId ?? undefined,
           kind: 'worklog.stop',
           status: 'pending',
+          depends_on: openLog.client_op_id === openLog.id ? [openLog.client_op_id] : undefined,
           payload: {
             client_op_id: resolvedClientOpId,
             ...(resolvedWorkLogId ? { work_log_id: resolvedWorkLogId } : {}),
@@ -299,7 +426,29 @@ export function useWorkLog(projectId: string | null) {
         p_location_perm: locationPermission,
       })
 
-      if (error) throw toAppError(error, 'stop_work_log_failed')
+      if (error) {
+        const resolvedClientOpId = openLog.client_op_id ?? opId
+        const resolvedWorkLogId = openLog.id && openLog.id !== resolvedClientOpId
+          ? openLog.id
+          : undefined
+        const queued = isRetryableSyncError(error) && await enqueueDurableFieldOp({
+          id: opId,
+          tenant_id: activeTenant.id,
+          project_id: projectId ?? undefined,
+          kind: 'worklog.stop',
+          status: 'pending',
+          depends_on: openLog.client_op_id === openLog.id ? [openLog.client_op_id] : undefined,
+          payload: {
+            client_op_id: resolvedClientOpId,
+            ...(resolvedWorkLogId ? { work_log_id: resolvedWorkLogId } : {}),
+            occurred_at: occurredAt,
+            geo: geo as WorklogStopPayload['geo'],
+            location_permission: locationPermission,
+          },
+        })
+        if (queued) return { mode: 'offline' as const }
+        throw toAppError(error, 'stop_work_log_failed')
+      }
       return { mode: 'online' as const }
     },
     onSuccess: (result) => {

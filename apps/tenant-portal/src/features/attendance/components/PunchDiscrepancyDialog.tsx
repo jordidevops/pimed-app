@@ -3,7 +3,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -64,9 +63,14 @@ export function PunchDiscrepancyDialog({
 
   return (
     <Dialog open={open} onOpenChange={() => { /* controlled */ }}>
-      <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
-        <DialogHeader>
-          <DialogTitle>{t('discrepancy.title', 'Incidència al fitxar')}</DialogTitle>
+      <DialogContent
+        className="w-[calc(100%-1.5rem)] max-w-sm min-w-0 overflow-x-hidden rounded-lg p-4 sm:p-6"
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
+        <DialogHeader className="text-left">
+          <DialogTitle className="pr-8 text-balance">
+            {t('discrepancy.title', 'Incidència al fitxar')}
+          </DialogTitle>
           <DialogDescription asChild>
             <div className="space-y-3 text-left text-sm text-muted-foreground">
               <p>
@@ -87,20 +91,20 @@ export function PunchDiscrepancyDialog({
             </div>
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="flex flex-col gap-2 sm:flex-col sm:space-x-0">
+        <div className="flex min-w-0 flex-col gap-2">
           {options.map((option) => (
             <Button
               key={option}
               type="button"
               variant={option === 'confirmed_ok' ? 'default' : 'outline'}
-              className="w-full justify-start"
+              className="h-auto min-h-11 w-full justify-start whitespace-normal px-3 py-2.5 text-left leading-snug"
               disabled={isSubmitting}
               onClick={() => onSelect(option)}
             >
               {t(RESOLUTION_LABELS[option], RESOLUTION_FALLBACKS[option])}
             </Button>
           ))}
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   )

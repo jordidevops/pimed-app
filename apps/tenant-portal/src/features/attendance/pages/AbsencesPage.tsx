@@ -152,6 +152,7 @@ export function AbsencesPage() {
           <option value="closed">{t('absences.status.closed', 'IT tancada')}</option>
           <option value="rejected">{t('absences.status.rejected', 'Rebutjada')}</option>
           <option value="cancelled">{t('absences.status.cancelled', 'Cancel·lada')}</option>
+          <option value="revoked">{t('absences.status.revoked', 'Revocada')}</option>
         </select>
       </div>
 

@@ -8,23 +8,20 @@ import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase'
 import { hasSeenGeoNotice, setGeoNoticeChoice } from '../api/geoNoticeStorage'
 import { useMyEmployee } from '../api/useMyEmployee'
-import { useMyAttendanceToday } from '../api/useMyAttendanceToday'
 import { useAttendanceRecordPolicy } from '../api/useAttendanceRecordPolicy'
 import { useMyPunchSchedule } from '../api/useMyPunchSchedule'
 import { useAttendanceGeoEnabled } from '../api/useAttendanceGeoEnabled'
 import { usePauseConfigs } from '../api/usePauseConfigs'
-import { useAttendanceSync } from '../hooks/useAttendanceSync'
 import { useRecordPunch } from '../hooks/useRecordPunch'
-import { attendanceDb } from '../db/attendanceDb'
-import type { LocalAttendanceOp } from '../db/attendanceDb'
+import { useAttendanceSession } from '../hooks/useAttendanceSession'
 import { PunchActionPanel } from '../components/PunchActionPanel'
 import { PauseButtonGroup } from '../components/PauseButtonGroup'
 import { RemoteWorkSwitch } from '../components/RemoteWorkSwitch'
 import { LocationConsentDialog } from '../components/LocationConsentDialog'
 import { AttendanceStatusBadge } from '../components/AttendanceStatusBadge'
+import { WorkedTimeDisplay } from '../components/WorkedTimeDisplay'
 import { AnomalyAlert } from '../components/AnomalyAlert'
 import { DailyTimeline } from '../components/DailyTimeline'
-import { AttendanceTabs } from '../components/AttendanceTabs'
 import { PunchDaySchedule } from '../components/PunchDaySchedule'
 import { WorkScheduleStatusCard } from '../components/WorkScheduleStatusCard'
 import { PunchDiscrepancyDialog } from '../components/PunchDiscrepancyDialog'
@@ -51,14 +48,16 @@ export function PunchPage() {
   const { activeTenant, tenantsLoading } = useTenant()
 
   const { data: myEmployee, isLoading: employeeLoading, error: employeeError } = useMyEmployee()
-  const { data: recordPolicy } = useAttendanceRecordPolicy(myEmployee?.id)
+  const { data: recordPolicy } = useAttendanceRecordPolicy(myEmployee?.id ?? undefined)
   const workProfile = recordPolicy?.work_profile ?? 'fixed_site'
   const legacyInOutOnly = isLegacyInOutOnly(workProfile, recordPolicy?.policy)
   const isMobileProfile = isMobileWorkProfile(workProfile) && !legacyInOutOnly
   const { data: pauseConfigs = [], isLoading: pauseConfigsLoading } = usePauseConfigs()
 
+  const session = useAttendanceSession({ workProfile, legacyInOutOnly })
   const {
     punches,
+    projectedPunches,
     lastPunch,
     currentStatus,
     dayState,
@@ -69,10 +68,9 @@ export function PunchPage() {
     isRemote: derivedRemote,
     isLoading: todayLoading,
     invalidateToday,
-  } = useMyAttendanceToday(myEmployee?.id, {
-    workProfile,
-    legacyInOutOnly,
-  })
+    pendingOps,
+    sync: { isOnline, isSyncing, pendingCount, refreshCounts },
+  } = session
 
   const [isRemote, setIsRemote] = useState(false)
   const [geoConsent, setGeoConsent] = useState(false)
@@ -87,11 +85,12 @@ export function PunchPage() {
   const [discrepancyOptions, setDiscrepancyOptions] = useState<PunchDiscrepancyResolution[]>([])
   const submitDiscrepancy = useSubmitPunchDiscrepancy()
 
-  // Actualitzem "now" cada minut per recalcular el timeout de pausa sense reload
+  // Recalc pause timeout and live worked counter
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 60_000)
+    const ms = currentStatus === 'working' ? 1_000 : 30_000
+    const id = setInterval(() => setNow(Date.now()), ms)
     return () => clearInterval(id)
-  }, [])
+  }, [currentStatus])
 
   useEffect(() => {
     if (!myEmployee?.id) return
@@ -115,12 +114,6 @@ export function PunchPage() {
     loadSettings()
     return () => { mounted = false }
   }, [activeTenant?.id])
-
-  const { isOnline, isSyncing, pendingCount, lastSyncedAt, refreshCounts } = useAttendanceSync(
-    myEmployee?.id ?? '',
-    activeTenant?.id ?? '',
-    invalidateToday,
-  )
 
   // Detecció client-side del timeout de pausa
   const pauseTimeoutReached = useMemo(() => {
@@ -214,38 +207,12 @@ export function PunchPage() {
     invalidateToday()
   }
 
-  const [pendingOps, setPendingOps] = useState<LocalAttendanceOp[]>([])
-  useEffect(() => {
-    let mounted = true
-    const empId = myEmployee?.id
-    const tenantId = activeTenant?.id
-    if (!empId || !tenantId) {
-      setPendingOps([])
-      return () => { mounted = false }
-    }
-    async function load() {
-      const ops = await attendanceDb.attendance_ops
-        .filter(
-          (op) =>
-            op.tenant_id === tenantId &&
-            op.employee_id === empId &&
-            (op.status === 'pending' || op.status === 'quarantined'),
-        )
-        .toArray()
-      ops.sort((a, b) => (a.created_at ?? '').localeCompare(b.created_at ?? ''))
-      if (mounted) setPendingOps(ops)
-    }
-    load()
-    return () => { mounted = false }
-  }, [myEmployee?.id, activeTenant?.id, pendingCount, lastSyncedAt])
-
   async function handleAcceptConsent() {
     const tenantId = activeTenant?.id
     if (tenantId) setGeoNoticeChoice(tenantId, 'accepted')
 
     try {
       await supabase.rpc(
-        // @ts-expect-error RPC added in attendance v2 migration
         'give_location_consent',
         { p_version: '1.0' },
       )
@@ -316,7 +283,6 @@ export function PunchPage() {
 
   return (
     <div className="mx-auto max-w-lg space-y-8 px-4 py-8">
-      <AttendanceTabs />
       <LocationConsentDialog
         open={consentDialogOpen}
         onAccept={handleAcceptConsent}
@@ -330,21 +296,30 @@ export function PunchPage() {
         onSelect={handleDiscrepancySelect}
       />
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{t('title', 'Control horari')}</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">{myEmployee?.full_name}</p>
-          <p className="mt-1 text-xs">
-            <Link to="/attendance/record?view=month" className="text-primary underline">
-              {t('punch.hours_link', 'Com es calculen les meves hores?')}
-            </Link>
-          </p>
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-foreground">{t('title', 'Control horari')}</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">{myEmployee?.full_name}</p>
+          </div>
+          <AttendanceStatusBadge
+            status={currentStatus}
+            activePauseType={activePauseType}
+            isRemote={derivedRemote || isRemote}
+          />
         </div>
-        <AttendanceStatusBadge
+        <WorkedTimeDisplay
+          punches={projectedPunches}
           status={currentStatus}
-          activePauseType={activePauseType}
-          isRemote={derivedRemote || isRemote}
+          nowMs={now}
+          size="hero"
+          align="start"
         />
+        <p className="text-xs">
+          <Link to="/attendance/record?view=month" className="text-primary underline">
+            {t('punch.hours_link', 'Com es calculen les meves hores?')}
+          </Link>
+        </p>
       </div>
 
       <div className="flex items-center gap-2 text-xs">

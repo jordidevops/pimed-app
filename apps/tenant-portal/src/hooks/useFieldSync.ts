@@ -7,14 +7,11 @@ import {
   type LocalFieldOp,
 } from '@/lib/field-ops-db'
 import { useOnlineStatus } from './useOnlineStatus'
-
-// Resposta per ítem de api.sync_work_log_ops
-interface SyncItemResult {
-  client_op_id: string
-  status: 'created' | 'duplicate' | 'synced' | 'rejected'
-  server_id: string | null
-  message: string | null
-}
+import { isRetryableSyncError } from '@/features/field-service/utils/fieldSyncError'
+import {
+  applyFieldSyncResults,
+  type FieldSyncItemResult,
+} from '@/features/field-service/utils/processFieldSyncResults'
 
 export interface FieldSyncState {
   isOnline: boolean
@@ -27,57 +24,25 @@ export interface FieldSyncState {
   lastError: string | null
 }
 
+export type FieldDrainMode = 'non_close' | 'close' | 'all'
+
 const DRAIN_INTERVAL_MS = 30_000
-const MAX_RETRY_BEFORE_QUARANTINE = 3
-
-// ---------------------------------------------------------------------------
-// Helpers interns
-// ---------------------------------------------------------------------------
-
-function isNetworkError(err: unknown): boolean {
-  if (err instanceof Error) {
-    const msg = err.message.toLowerCase()
-    return (
-      msg.includes('network') ||
-      msg.includes('fetch') ||
-      msg.includes('failed to fetch') ||
-      msg.includes('networkerror')
-    )
-  }
-  return false
-}
-
-async function processSyncResults(
-  adapter: FieldOpsAdapter,
-  batch: LocalFieldOp[],
-  results: SyncItemResult[],
-): Promise<void> {
-  for (const result of results) {
-    const op = batch.find((o) => o.id === result.client_op_id)
-    if (!op) continue
-
-    if (result.status === 'created' || result.status === 'duplicate' || result.status === 'synced') {
-      // 'created'/'duplicate' venen de worklog.start; 'synced' de worklog.stop.
-      // Tots es mapegen a l'estat local 'synced'.
-      await adapter.markSynced(op.id, result.server_id ?? undefined)
-    } else if (result.status === 'rejected') {
-      // Error funcional del servidor (validació, permisos): quarantined directament.
-      await adapter.markQuarantined(op.id, result.message ?? 'rejected_by_server')
-    }
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Hook principal
 // ---------------------------------------------------------------------------
 
-export function useFieldSync(tenantId: string | null): FieldSyncState & {
-  drainNow: () => Promise<void>
+export function useFieldSync(
+  tenantId: string | null,
+  options?: { autoDrain?: boolean },
+): FieldSyncState & {
+  drainNow: (mode?: FieldDrainMode, projectId?: string) => Promise<void>
   refreshNow: () => Promise<void>
   retryQuarantined: () => Promise<void>
   discardFailed: () => Promise<number>
 } {
   const isOnline = useOnlineStatus()
+  const autoDrain = options?.autoDrain ?? true
   const [state, setState] = useState<Omit<FieldSyncState, 'isOnline'>>({
     isSyncing: false,
     isFallbackStorage: false,
@@ -119,7 +84,10 @@ export function useFieldSync(tenantId: string | null): FieldSyncState & {
     }
   }, [tenantId])
 
-  const drain = useCallback(async () => {
+  const drain = useCallback(async (
+    mode: FieldDrainMode = 'non_close',
+    projectId?: string,
+  ) => {
     if (!adapterRef.current || !tenantId) return
     if (!navigator.onLine) {
       await refreshPendingCount()
@@ -131,60 +99,54 @@ export function useFieldSync(tenantId: string | null): FieldSyncState & {
       const adapter = adapterRef.current!
 
       try {
-        const batch = await adapter.nextPendingBatch(tenantId, 20)
+        const staleBefore = new Date(Date.now() - 2 * 60_000).toISOString()
+        await adapter.recoverStaleSyncing(tenantId, staleBefore)
 
-        if (batch.length === 0) {
-          setState((s) => ({ ...s, isSyncing: false }))
-          return
-        }
+        // Drain several batches in one cycle so a close-out does not wait 30s
+        // per dependency. The cap prevents one device from monopolising the lock.
+        for (let cycle = 0; cycle < 10; cycle += 1) {
+          const batch = await adapter.nextPendingBatch(tenantId, 20, mode, projectId)
+          if (batch.length === 0) break
 
-        await adapter.markSyncing(batch.map((o) => o.id))
+          await adapter.markSyncing(batch.map((o) => o.id))
+          const batchPayload = batch.map((op) => ({
+            id: op.id,
+            kind: op.kind,
+            payload: op.payload,
+          }))
 
-      // Construir el payload per a sync_work_log_ops
-      // Cada op s'envia com a { id, kind, payload } per respectar el contracte SQL
-      const batchPayload = batch.map((op) => ({
-        id: op.id,
-        kind: op.kind,
-        payload: op.payload,
-      }))
+          const { data, error } = await supabase.rpc('sync_field_ops' as never, {
+            p_batch: batchPayload as unknown as Json,
+          } as never)
 
-      const { data, error } = await supabase.rpc('sync_work_log_ops', {
-        p_batch: batchPayload as unknown as Json,
-      })
+          if (error) {
+            const isRetryable = isRetryableSyncError(error)
+            for (const op of batch) {
+              if (isRetryable) {
+                await adapter.markRetryable(op.id, error.message)
+              } else {
+                await adapter.markQuarantined(op.id, error.message)
+              }
+            }
+            await adapter.updateSyncState({
+              isSyncing: false,
+              consecutiveErrors: (await adapter.getSyncState()).consecutiveErrors + 1,
+            })
+            if (mountedRef.current) {
+              setState((s) => ({ ...s, isSyncing: false, lastError: error.message }))
+            }
+            return
+          }
 
-      if (error) {
-        // Error HTTP de la crida. Distinció: xarxa vs error d'autenticació/servidor
-        const isNet = isNetworkError(error)
-        if (isNet) {
-          // Marcar com a rejected (retryable), no quarantined
-          for (const op of batch) {
-            if (op.retry_count >= MAX_RETRY_BEFORE_QUARANTINE) {
-              await adapter.markQuarantined(op.id, error.message)
-            } else {
-              await adapter.markRejected(op.id, error.message)
+          const results = data as FieldSyncItemResult[] | null
+          if (results) {
+            await applyFieldSyncResults(adapter, batch, results)
+          } else {
+            for (const op of batch) {
+              await adapter.markRetryable(op.id, 'empty_sync_response')
             }
           }
-        } else {
-          // Error no retryable (autenticació, permís global): quarantine tot el batch
-          for (const op of batch) {
-            await adapter.markQuarantined(op.id, error.message)
-          }
         }
-        await adapter.updateSyncState({
-          isSyncing: false,
-          consecutiveErrors: (await adapter.getSyncState()).consecutiveErrors + 1,
-        })
-        if (mountedRef.current) {
-          setState((s) => ({ ...s, isSyncing: false, lastError: error.message }))
-        }
-        return
-      }
-
-      // Guard: el servidor pot retornar NULL si el batch resultava buit internament
-      const results = data as SyncItemResult[] | null
-      if (results) {
-        await processSyncResults(adapter, batch, results)
-      }
 
       const now = new Date().toISOString()
       await adapter.updateSyncState({
@@ -201,6 +163,9 @@ export function useFieldSync(tenantId: string | null): FieldSyncState & {
           lastError: null,
         }))
       }
+      window.dispatchEvent(new CustomEvent('fieldop:changed'))
+      const purgeBefore = new Date(Date.now() - 7 * 24 * 60 * 60_000).toISOString()
+      await adapter.purgeSynced(tenantId, purgeBefore)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'unknown_error'
       if (mountedRef.current) {
@@ -265,29 +230,29 @@ export function useFieldSync(tenantId: string | null): FieldSyncState & {
 
   // Trigger: event online
   useEffect(() => {
-    if (isOnline) {
-      drain()
+    if (autoDrain && isOnline) {
+      void drain('non_close')
     }
-  }, [isOnline, drain])
+  }, [autoDrain, isOnline, drain])
 
   // Trigger: visibilitychange (l'usuari torna a la pestanya)
   useEffect(() => {
     const onVisibility = () => {
-      if (!document.hidden && navigator.onLine) {
-        drain()
+      if (autoDrain && !document.hidden && navigator.onLine) {
+        void drain('non_close')
       }
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
-  }, [drain])
+  }, [autoDrain, drain])
 
   // Trigger: interval periòdic 30s
   useEffect(() => {
     const timer = setInterval(() => {
-      if (navigator.onLine) drain()
+      if (autoDrain && navigator.onLine) void drain('non_close')
     }, DRAIN_INTERVAL_MS)
     return () => clearInterval(timer)
-  }, [drain])
+  }, [autoDrain, drain])
 
   // Actualitzar pending count quan canvia tenantId o al muntar
   useEffect(() => {
@@ -304,8 +269,8 @@ export function useFieldSync(tenantId: string | null): FieldSyncState & {
   return {
     isOnline,
     ...state,
-    drainNow: () => drain(),
-    refreshNow: () => refreshPendingCount(),
+    drainNow: drain,
+    refreshNow: refreshPendingCount,
     retryQuarantined,
     discardFailed,
   }
@@ -317,13 +282,19 @@ export function useFieldSync(tenantId: string | null): FieldSyncState & {
 
 export async function enqueueFieldOp(
   op: Omit<LocalFieldOp, 'retry_count' | 'created_at'>,
-): Promise<void> {
+): Promise<string> {
   const { adapter } = await getFieldOpsAdapter()
+  const projectId =
+    op.project_id ??
+    ('project_id' in op.payload ? op.payload.project_id : undefined)
   await adapter.enqueueOp({
     ...op,
+    project_id: projectId,
     retry_count: 0,
     created_at: new Date().toISOString(),
   })
   // Notifica useFieldSync perquè actualitzi el pending count
   window.dispatchEvent(new CustomEvent('fieldop:enqueued'))
+  window.dispatchEvent(new CustomEvent('fieldop:changed'))
+  return op.id
 }

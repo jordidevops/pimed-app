@@ -1,3 +1,27 @@
+Field Management Service (FSM)
+
+Volt Serveis es queda com l’autònom (Alice ho fa tot).
+
+### Riera Instal·lacions (PIME)
+Tots amb password `Test1234!`
+
+| Persona | Email | Rol | Paper |
+|---|---|---|---|
+| Gina Riera | `gina@riera-instal.com` | owner | Oficina: crea ordres, catàleg, comercial |
+| Hèctor Soler | `hector@riera-instal.com` | member | Tècnic de camp |
+| Inés Vidal | `ines@riera-instal.com` | member | Tècnica de camp |
+
+Hi ha dues ordres d’avui: caldera (Hèctor) i clima (Inés).
+
+### Entrada a l’app (`field_service`)
+- **Member/viewer:** sempre `/field/today`, també a escriptori.
+- **Owner/manager:** per defecte `/field/today` al mòbil i `/dashboard` a pantalla gran (`lg` ≥ 1024px).
+- Ho poden canviar a **Pantalla d’inici**: automàtica, sempre Avui o sempre Inici (a l’Inici i a Més).
+
+Alice a Volt, a escriptori, ja entra a Inici i pot obrir Avui des del menú. Ho he comprovat al portal local.
+
+### UI limitada dels tècnics
+Els `member` no veuen mòduls d’oficina (empleats, catàleg, pressupostos, configuració, plantilles…). A **Més** els queda el que necessiten al camp: fitxatge, clients i preferències del dispositiu.
 
 
 DocuSeal

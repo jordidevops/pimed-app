@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createCatalogItem, updateCatalogItem, type CatalogItem } from '../api/catalogService'
+import { unitSelectOptions } from '../unitOptions'
 import { useToast } from '@/hooks/use-toast'
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -37,7 +38,6 @@ interface CatalogItemFormProps {
   item?: CatalogItem | null
 }
 
-const UNIT_OPTIONS = ['u', 'h', 'm2', 'm', 'kg', 'visita', 'dia', 'm3'] as const
 const TAX_RATE_OPTIONS = [0, 4, 10, 21] as const
 
 // ─── CatalogItemForm ──────────────────────────────────────────────────────────
@@ -79,6 +79,8 @@ export function CatalogItemForm({ open, onClose, onSaved, item }: CatalogItemFor
   })
 
   const kind = watch('kind')
+  const unit = watch('unit')
+  const unitOptions = unitSelectOptions(unit)
 
   async function onSubmit(values: CatalogItemFormValues) {
     try {
@@ -200,7 +202,7 @@ export function CatalogItemForm({ open, onClose, onSaved, item }: CatalogItemFor
                 {...register('unit')}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                {UNIT_OPTIONS.map((u) => (
+                {unitOptions.map((u) => (
                   <option key={u} value={u}>
                     {t(`catalog.units.${u}`, u)}
                   </option>

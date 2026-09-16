@@ -205,6 +205,12 @@
     "CLIENT_REPORT_SHARE_EMAIL_ENQUEUED": "ha encuat l'enviament del butlletí per email",
     "CLIENT_REPORT_SHARE_REVOKED": "ha revocat una compartició del butlletí",
     "CLIENT_REPORT_STAFF_SESSION_CREATED": "ha obert el portal del client (suport)",
+    "PROJECT_COMMERCIAL_ISSUED": "ha emès {{doc_number}}",
+    "PROJECT_COMMERCIAL_SENT": "ha enviat el document {{doc_number}}",
+    "PROJECT_COMMERCIAL_ACCEPTED": "ha registrat l’acceptació de {{doc_number}}",
+    "PROJECT_COMMERCIAL_REJECTED": "ha registrat el refús de {{doc_number}}",
+    "PROJECT_COMMERCIAL_CANCELLED": "ha descartat {{doc_number}}",
+    "PROJECT_COMMERCIAL_SUPERSEDED": "ha substituït {{doc_number}}",
     "GENERIC": "{{action}}"
   },
   "visit_summary": {

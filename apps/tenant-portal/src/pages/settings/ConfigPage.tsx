@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { BuildingIcon, MapPinIcon, SaveIcon, LockIcon, InfoIcon } from 'lucide-react'
+import { BuildingIcon, MapPinIcon, SaveIcon, LockIcon, InfoIcon, PanelLeftIcon } from 'lucide-react'
 import { useTenant } from '../../contexts/TenantContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useEffectiveSettings, useTenantSettingsMutation, useSiteSettingsMutation } from '../../hooks/useSettings'
@@ -8,6 +9,10 @@ import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Checkbox } from '../../components/ui/checkbox'
 import type { SiteInfo } from '../../hooks/useSites'
+import { ThemeCustomizer } from '../../components/ThemeCustomizer'
+import { FieldServiceHomePreferenceCard } from '@/features/field-service/components/FieldServiceHomePreferenceCard'
+import { useFieldServiceHome } from '@/features/field-service/hooks/useFieldServiceHome'
+import { useIsFieldService } from '@/hooks/useSectorLabel'
 
 // ─── Level badge ─────────────────────────────────────────────────────────────
 
@@ -84,6 +89,8 @@ export function ConfigPage() {
 
   const isOwner   = activeRole === 'owner'
   const canManage = activeRole === 'owner' || activeRole === 'manager'
+  const isFieldService = useIsFieldService()
+  const fieldHome = useFieldServiceHome()
 
   // Selector de context: null = valors del tenant, string = valors efectius del site
   const [previewSiteId, setPreviewSiteId] = useState<string | null>(null)
@@ -240,6 +247,91 @@ export function ConfigPage() {
 
       {!isLoading && (
         <>
+          {!previewSiteId && (
+            <SettingsSection
+              title={t('config.sector.title', 'Sector')}
+              level="tenant"
+              description={t(
+                'config.sector.description',
+                'Defineix el vocabulari i els mòduls de l’organització (p. ex. ordres de servei vs projectes).',
+              )}
+              locked={!isOwner}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-2xl leading-none" role="img" aria-hidden>
+                    {activeTenant?.sector_icon ?? '🏢'}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      {t('config.sector.current', 'Sector actual')}
+                    </p>
+                    <p className="font-medium text-foreground truncate">
+                      {activeTenant?.sector_display_name
+                        ?? t('config.sector.none', 'Encara no s’ha triat un sector.')}
+                    </p>
+                  </div>
+                </div>
+                {isOwner ? (
+                  <Button asChild variant="outline" size="sm">
+                    <Link to="/onboarding?reconfigure=1">
+                      {t('config.sector.change', 'Canviar sector')}
+                    </Link>
+                  </Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    {t('config.sector.owner_only', 'Només el propietari pot canviar el sector.')}
+                  </p>
+                )}
+              </div>
+            </SettingsSection>
+          )}
+
+          {!previewSiteId && (
+            <SettingsSection
+              title={t('config.menu.title', 'Menú lateral')}
+              level="tenant"
+              description={t(
+                'config.menu.description',
+                'Tria quines seccions apareixen al menú i en quin ordre. El logo de l’app obre l’índex, d’on també es personalitza.',
+              )}
+            >
+              <div className="flex flex-wrap gap-2">
+                <Button asChild variant="default" size="sm">
+                  <Link to="/app/sidebar">
+                    <PanelLeftIcon className="h-4 w-4" />
+                    {t('config.menu.customize_mine', 'Personalitzar el meu menú')}
+                  </Link>
+                </Button>
+                {canManage && (
+                  <Button asChild variant="outline" size="sm">
+                    <Link to="/app/sidebar?scope=tenant">
+                      {t('config.menu.customize_org', 'Menú de l’organització')}
+                    </Link>
+                  </Button>
+                )}
+              </div>
+            </SettingsSection>
+          )}
+
+          {!previewSiteId && (
+            <SettingsSection
+              title={t('config.appearance.title', 'Aparença i inici')}
+              level="tenant"
+              description={t(
+                'config.appearance.description',
+                "Preferències personals d'aparença i de pantalla inicial de l'app.",
+              )}
+            >
+              <ThemeCustomizer contentOnly />
+              {isFieldService && fieldHome.canConfigure && (
+                <div className="border-t pt-4">
+                  <FieldServiceHomePreferenceCard preference={fieldHome.preference} embedded />
+                </div>
+              )}
+            </SettingsSection>
+          )}
+
           {/* ── General ── */}
           <SettingsSection
             title={t('config.general.title', 'Idioma i formats')}

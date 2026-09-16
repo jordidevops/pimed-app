@@ -1,13 +1,24 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useFieldSync } from '@/hooks/useFieldSync'
 import { usePendingPhotoDrain } from './usePendingPhotoDrain'
+import { usePendingChecklistDrain } from './usePendingChecklistDrain'
 import {
-  countPendingChecklistAnswers,
   discardFailedFieldMedia,
   listPendingFieldMedia,
   countPendingFieldMedia,
+  purgeOldFieldProjectSnapshots,
+  listPendingChecklistAnswers,
+  resetFailedChecklistAnswersToPending,
 } from '@/lib/today-cache'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
+import { getFieldOpsAdapter } from '@/lib/field-ops-db'
+import {
+  FIELD_DEVICE_SYNC_REQUEST_EVENT,
+  requestFieldDeviceSync,
+  type FieldDeviceSyncRequestDetail,
+} from '../utils/fieldDeviceSyncEvents'
+
+const DRAIN_INTERVAL_MS = 30_000
 
 /**
  * Aggregates device-local sync lanes: worklog + field media + checklist answers.
@@ -19,27 +30,36 @@ export function useFieldDeviceSync(
 ) {
   const enableDrain = options?.enableDrain ?? true
   const isOnline = useOnlineStatus()
-  const worklog = useFieldSync(enableDrain ? tenantId : null)
-  const media = usePendingPhotoDrain(enableDrain ? tenantId : null)
+  const worklog = useFieldSync(tenantId, { autoDrain: false })
+  const media = usePendingPhotoDrain(enableDrain ? tenantId : null, { autoDrain: false })
+  const checklist = usePendingChecklistDrain(enableDrain ? tenantId : null, { autoDrain: false })
+  const drainPromiseRef = useRef<Promise<void> | null>(null)
   const [checklistPending, setChecklistPending] = useState(0)
+  const [checklistFailed, setChecklistFailed] = useState(0)
   const [mediaPending, setMediaPending] = useState(0)
   const [mediaFailed, setMediaFailed] = useState(0)
 
   const refreshExtras = useCallback(async () => {
     if (!tenantId) {
       setChecklistPending(0)
+      setChecklistFailed(0)
       setMediaPending(0)
       setMediaFailed(0)
       return
     }
-    const [c, rows, mp] = await Promise.all([
-      countPendingChecklistAnswers(tenantId),
+    const [checklistRows, rows, mp] = await Promise.all([
+      listPendingChecklistAnswers(tenantId),
       listPendingFieldMedia(tenantId),
       countPendingFieldMedia(tenantId),
     ])
-    setChecklistPending(c)
+    setChecklistPending(checklistRows.filter((row) => row.status === 'pending').length)
+    setChecklistFailed(checklistRows.filter((row) => row.status === 'failed').length)
     setMediaPending(mp)
     setMediaFailed(rows.filter((r) => r.status === 'failed').length)
+    void purgeOldFieldProjectSnapshots(
+      tenantId,
+      new Date(Date.now() - 30 * 24 * 60 * 60_000).toISOString(),
+    )
   }, [tenantId])
 
   useEffect(() => {
@@ -50,22 +70,82 @@ export function useFieldDeviceSync(
 
   const mediaPendingCount = enableDrain ? media.pendingCount : mediaPending
   const pendingTotal =
-    (enableDrain ? worklog.pendingCount : 0) + mediaPendingCount + checklistPending
+    worklog.pendingCount + mediaPendingCount + checklistPending
   const failedTotal =
-    (enableDrain ? worklog.rejectedCount + worklog.quarantinedCount : 0) + mediaFailed
+    worklog.rejectedCount + worklog.quarantinedCount + mediaFailed + checklistFailed
+
+  const runCoordinatedDrain = useCallback(async () => {
+    await checklist.drainNow()
+    await worklog.drainNow('non_close')
+    await media.drainNow()
+    if (tenantId) {
+      const [remainingChecklist, remainingMedia, fieldOps] = await Promise.all([
+        listPendingChecklistAnswers(tenantId),
+        listPendingFieldMedia(tenantId),
+        getFieldOpsAdapter(),
+      ])
+      const blockedProjects = new Set([
+        ...remainingChecklist.map((row) => row.project_id),
+        ...remainingMedia.map((row) => row.project_id),
+      ])
+      const pendingCloseOps = (await fieldOps.adapter.listByStatus(tenantId, 'pending'))
+        .filter((op) => op.kind === 'project.close_out')
+      for (const projectId of new Set(
+        pendingCloseOps
+          .map((op) => op.project_id)
+          .filter((id): id is string => !!id && !blockedProjects.has(id)),
+      )) {
+        await worklog.drainNow('close', projectId)
+      }
+    }
+    await refreshExtras()
+  }, [
+    checklist.drainNow,
+    worklog.drainNow,
+    media.drainNow,
+    refreshExtras,
+    tenantId,
+  ])
 
   const drainAll = useCallback(async () => {
-    if (!enableDrain) {
-      // Parent layout owns drain; trigger photo drain via shared module
-      const { drainPendingPhotos } = await import('../api/uploadQueuedPhoto')
-      if (tenantId && isOnline) await drainPendingPhotos(tenantId)
-      await refreshExtras()
-      return
+    if (!enableDrain) return requestFieldDeviceSync()
+    if (!isOnline || !tenantId) return
+    if (drainPromiseRef.current) return drainPromiseRef.current
+
+    const promise = runCoordinatedDrain().finally(() => {
+      if (drainPromiseRef.current === promise) {
+        drainPromiseRef.current = null
+      }
+    })
+    drainPromiseRef.current = promise
+    return promise
+  }, [enableDrain, isOnline, tenantId, runCoordinatedDrain])
+
+  useEffect(() => {
+    if (!enableDrain || !isOnline || !tenantId) return
+    void drainAll()
+    const id = window.setInterval(() => void drainAll(), DRAIN_INTERVAL_MS)
+    return () => window.clearInterval(id)
+  }, [enableDrain, isOnline, tenantId, drainAll])
+
+  useEffect(() => {
+    if (!enableDrain) return
+    const onEnqueued = () => {
+      if (isOnline) void drainAll()
     }
-    await worklog.drainNow()
-    await media.drainNow()
-    await refreshExtras()
-  }, [enableDrain, worklog, media, refreshExtras, tenantId, isOnline])
+    window.addEventListener('fieldop:enqueued', onEnqueued)
+    return () => window.removeEventListener('fieldop:enqueued', onEnqueued)
+  }, [enableDrain, isOnline, drainAll])
+
+  useEffect(() => {
+    if (!enableDrain) return
+    const onRequested = (event: Event) => {
+      const detail = (event as CustomEvent<FieldDeviceSyncRequestDetail>).detail
+      void drainAll().then(detail?.resolve, detail?.reject)
+    }
+    window.addEventListener(FIELD_DEVICE_SYNC_REQUEST_EVENT, onRequested)
+    return () => window.removeEventListener(FIELD_DEVICE_SYNC_REQUEST_EVENT, onRequested)
+  }, [enableDrain, drainAll])
 
   const discardMediaFailed = useCallback(async () => {
     if (!tenantId) return 0
@@ -74,6 +154,14 @@ export function useFieldDeviceSync(
     await refreshExtras()
     return n
   }, [tenantId, enableDrain, media, refreshExtras])
+
+  const retryChecklistFailed = useCallback(async () => {
+    if (!tenantId) return 0
+    const n = await resetFailedChecklistAnswersToPending(tenantId)
+    if (enableDrain) await checklist.refresh()
+    await refreshExtras()
+    return n
+  }, [tenantId, enableDrain, checklist, refreshExtras])
 
   return useMemo(
     () => ({
@@ -85,8 +173,11 @@ export function useFieldDeviceSync(
       mediaFailed,
       mediaDraining: enableDrain ? media.isDraining : false,
       checklistPending,
+      checklistFailed,
+      checklistDraining: enableDrain ? checklist.isDraining : false,
       drainAll,
       discardMediaFailed,
+      retryChecklistFailed,
       refresh: async () => {
         if (enableDrain) {
           await worklog.refreshNow()
@@ -104,8 +195,11 @@ export function useFieldDeviceSync(
       mediaPendingCount,
       mediaFailed,
       checklistPending,
+      checklistFailed,
+      checklist.isDraining,
       drainAll,
       discardMediaFailed,
+      retryChecklistFailed,
       refreshExtras,
       enableDrain,
     ],

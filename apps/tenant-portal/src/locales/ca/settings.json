@@ -36,7 +36,8 @@
       "maps": "Mapes",
       "customer_portal": "Portal de clients",
       "legal": "Legal",
-      "operations": "Operacions"
+      "operations": "Operacions",
+      "sidebar": "Menú lateral"
     },
     "nav": {
       "aria": "Seccions de configuració",
@@ -76,6 +77,24 @@
       "page_description": "Paràmetres generals de l'organització heretats per tots els membres i locals.",
       "read_only": "Només els gestors i propietaris poden modificar la configuració.",
       "owner_only": "Només el propietari pot modificar aquestes opcions.",
+      "sector": {
+        "title": "Sector",
+        "description": "Defineix el vocabulari i els mòduls de l’organització (p. ex. ordres de servei vs projectes).",
+        "current": "Sector actual",
+        "none": "Encara no s’ha triat un sector.",
+        "change": "Canviar sector",
+        "owner_only": "Només el propietari pot canviar el sector."
+      },
+      "menu": {
+        "title": "Menú lateral",
+        "description": "Tria quines seccions apareixen al menú i en quin ordre. El logo de l’app obre l’índex, d’on també es personalitza.",
+        "customize_mine": "Personalitzar el meu menú",
+        "customize_org": "Menú de l’organització"
+      },
+      "appearance": {
+        "title": "Aparença i inici",
+        "description": "Preferències personals d'aparença i de pantalla inicial de l'app."
+      },
       "general": {
         "title": "Idioma i formats",
         "description": "Valors per defecte per a tots els membres.",

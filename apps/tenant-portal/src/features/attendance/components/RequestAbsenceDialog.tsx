@@ -52,6 +52,7 @@ export function RequestAbsenceDialog({
 
   const selectedCfg = typeConfigs.find(c => c.absence_type === absenceType)
   const isPartial = selectedCfg?.is_partial ?? false
+  const requiresReason = !managerMode && selectedCfg?.parent_key === 'permission'
 
   const sortedTypeConfigs = useMemo(() => {
     if (!managerMode) return typeConfigs
@@ -71,7 +72,7 @@ export function RequestAbsenceDialog({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!absenceType) return
+    if (!absenceType || (requiresReason && !notes.trim())) return
     mutate(
       {
         employee_id: employeeId,
@@ -203,21 +204,37 @@ export function RequestAbsenceDialog({
 
           <div>
             <label className="text-sm font-medium mb-1 block">
-              {t('absences.form.notes', 'Notes (opcional)')}
+              {requiresReason
+                ? t('absences.form.reason_required', 'Motiu')
+                : t('absences.form.notes', 'Notes (opcional)')}
             </label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={2}
+              required={requiresReason}
+              aria-describedby={requiresReason ? 'absence-reason-help' : undefined}
               className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none"
             />
+            {requiresReason && (
+              <p id="absence-reason-help" className="mt-1 text-xs text-muted-foreground">
+                {t(
+                  'absences.form.reason_required_help',
+                  'Indica el motiu del permís per poder enviar la sol·licitud.',
+                )}
+              </p>
+            )}
           </div>
 
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="outline" onClick={onClose} size="sm">
               {t('absences.form.cancel', 'Cancel·lar')}
             </Button>
-            <Button type="submit" disabled={isPending || !absenceType} size="sm">
+            <Button
+              type="submit"
+              disabled={isPending || !absenceType || (requiresReason && !notes.trim())}
+              size="sm"
+            >
               {isPending
                 ? t('absences.form.submitting', 'Enviant...')
                 : managerMode

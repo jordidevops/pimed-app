@@ -13,6 +13,8 @@ import { OpenTasksWidget } from '../features/entity-timeline/components/OpenTask
 import { TenantActivityWidget } from '../features/entity-timeline/components/TenantActivityWidget'
 import { useTenantFeatures } from '../features/entity-timeline/api/useTenantFeatures'
 import { useMarkOperationsDashboardVisit } from '../hooks/useMarkOperationsDashboardVisit'
+import { useFieldServiceHome } from '@/features/field-service/hooks/useFieldServiceHome'
+import { FIELD_TODAY_PATH } from '@/features/field-service/utils/resolveFieldServiceHome'
 
 export function DashboardPage() {
   const { t, i18n } = useTranslation('common')
@@ -26,13 +28,23 @@ export function DashboardPage() {
   const isFieldService = useIsFieldService()
   const canViewOperations = activeRole === 'owner' || activeRole === 'manager'
   const { data: features } = useTenantFeatures()
+  const fsHome = useFieldServiceHome()
 
   useMarkOperationsDashboardVisit(user?.id, activeTenant?.id)
 
   const { data: notes = [], isLoading: notesLoading } = useNotes(user?.id, selectedTenantId, selectedSiteId)
 
   if (!tenantsLoading && isFieldService) {
-    return <Navigate to="/field/today" replace />
+    if (!fsHome.ready) {
+      return (
+        <div className="flex h-64 items-center justify-center" aria-busy="true">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
+        </div>
+      )
+    }
+    if (fsHome.path === FIELD_TODAY_PATH) {
+      return <Navigate to={FIELD_TODAY_PATH} replace />
+    }
   }
 
   const isMultiTenant = tenants.length > 1

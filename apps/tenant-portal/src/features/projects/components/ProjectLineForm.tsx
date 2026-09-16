@@ -7,6 +7,14 @@ import { useTenant } from '@/contexts/TenantContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getCatalogItems, type CatalogItem } from '@/features/catalog/api/catalogService'
+import {
+  DISCOUNT_CHIPS,
+  formatQuantityChip,
+  quantityChipsForUnit,
+  unitSelectOptions,
+} from '@/features/catalog/unitOptions'
+import { generateClientOpId } from '@/features/attendance/api/clientOpId'
+import { usePermission } from '@/hooks/usePermission'
 import type { Database } from '@/types/database.types'
 
 type ProjectLine = Database['api']['Views']['project_lines']['Row']
@@ -36,7 +44,6 @@ interface ProjectLineFormProps {
   onCancel: () => void
 }
 
-const UNIT_OPTIONS = ['u', 'h', 'm2', 'm', 'kg', 'visita', 'dia', 'm3'] as const
 const TAX_RATE_OPTIONS = [0, 4, 10, 21] as const
 
 // ─── Preview helpers ──────────────────────────────────────────────────────────
@@ -56,6 +63,7 @@ const moneyFmt = new Intl.NumberFormat('ca-ES', { minimumFractionDigits: 2, maxi
 export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectLineFormProps) {
   const { t } = useTranslation('projects')
   const { activeTenant } = useTenant()
+  const canEditPricing = usePermission('commercial.pricing.edit')
 
   const { data: catalogItems = [] } = useQuery<CatalogItem[]>({
     queryKey: ['catalog_items', activeTenant?.id],
@@ -96,6 +104,8 @@ export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectL
   })
 
   const watchedValues = watch()
+  const unitOptions = unitSelectOptions(watchedValues.unit)
+  const quantityChips = quantityChipsForUnit(watchedValues.unit)
   const subtotal = calcSubtotal(
     watchedValues.quantity ?? 0,
     watchedValues.unit_price ?? 0,
@@ -138,6 +148,7 @@ export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectL
       p_tax_rate: values.tax_rate,
       p_position: undefined as number | undefined,
       p_notes: values.notes ?? undefined,
+      p_client_op_id: line?.id ? undefined : generateClientOpId(),
     }
     const { error } = await supabase.rpc('upsert_project_line', params)
     if (error) throw error
@@ -212,6 +223,25 @@ export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectL
             {t('projects.lines.form.quantity_label', 'Quantitat')}
           </label>
           <Input type="number" step="0.01" min="0" {...register('quantity', { valueAsNumber: true })} />
+          {quantityChips.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {quantityChips.map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => setValue('quantity', q, { shouldDirty: true, shouldValidate: true })}
+                  className={`rounded-md border px-2 py-0.5 text-xs tabular-nums transition-colors ${
+                    watchedValues.quantity === q
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border text-muted-foreground hover:bg-accent'
+                  }`}
+                >
+                  {formatQuantityChip(q)}
+                  {watchedValues.unit ? ` ${watchedValues.unit}` : ''}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <label htmlFor="pf-unit" className="text-sm font-medium text-foreground block mb-1.5">
@@ -222,7 +252,7 @@ export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectL
             {...register('unit')}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            {UNIT_OPTIONS.map((u) => (
+            {unitOptions.map((u) => (
               <option key={u} value={u}>
                 {u}
               </option>
@@ -233,7 +263,21 @@ export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectL
           <label className="text-sm font-medium text-foreground block mb-1.5">
             {t('projects.lines.form.unit_price_label', 'Preu unitari')}
           </label>
-          <Input type="number" step="0.01" min="0" {...register('unit_price', { valueAsNumber: true })} />
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            disabled={!canEditPricing}
+            {...register('unit_price', { valueAsNumber: true })}
+          />
+          {!canEditPricing && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t(
+                'projects.lines.form.pricing_locked',
+                'Només l’oficina pot canviar preus, descompte i IVA.',
+              )}
+            </p>
+          )}
         </div>
       </div>
 
@@ -243,7 +287,32 @@ export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectL
           <label className="text-sm font-medium text-foreground block mb-1.5">
             {t('projects.lines.form.discount_label', 'Descompte (%)')}
           </label>
-          <Input type="number" step="0.01" min="0" max="100" {...register('discount_pct', { valueAsNumber: true })} />
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            max="100"
+            disabled={!canEditPricing}
+            {...register('discount_pct', { valueAsNumber: true })}
+          />
+          {canEditPricing && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {DISCOUNT_CHIPS.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setValue('discount_pct', d, { shouldDirty: true, shouldValidate: true })}
+                  className={`rounded-md border px-2 py-0.5 text-xs tabular-nums transition-colors ${
+                    watchedValues.discount_pct === d
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border text-muted-foreground hover:bg-accent'
+                  }`}
+                >
+                  {d}%
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <label htmlFor="pf-tax-rate" className="text-sm font-medium text-foreground block mb-1.5">
@@ -251,8 +320,9 @@ export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectL
           </label>
           <select
             id="pf-tax-rate"
+            disabled={!canEditPricing}
             {...register('tax_rate', { valueAsNumber: true })}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
           >
             {TAX_RATE_OPTIONS.map((rate) => (
               <option key={rate} value={rate}>

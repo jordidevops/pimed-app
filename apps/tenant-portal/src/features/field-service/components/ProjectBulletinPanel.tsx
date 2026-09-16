@@ -31,6 +31,7 @@ import { useToast } from '@/hooks/use-toast'
 import { usePermission } from '@/hooks/usePermission'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTenant } from '@/contexts/TenantContext'
+import { useProject } from '@/features/projects/api/useProject'
 import { useCustomerPortalEffective } from '@/features/portal-entitlements'
 import { getContact } from '@/features/contacts/api/contactsService'
 import type { ContactDeliveryChannel } from '@/features/contacts/api/contactsService'
@@ -181,6 +182,8 @@ export function ProjectBulletinPanel({
   const queryClient = useQueryClient()
   const { user } = useAuth()
   const { activeTenant } = useTenant()
+  const { data: project } = useProject(projectId)
+  const projectTitle = project?.name?.trim() || null
   const {
     canCreateShares,
     isSuccess: portalEntitlementsLoaded,
@@ -457,6 +460,7 @@ export function ProjectBulletinPanel({
             showTasks: effectiveFlags.showTasks,
             showMaterials: effectiveFlags.showMaterials,
             existingProjection,
+            projectTitle,
           })
         : undefined
     return {
@@ -665,6 +669,17 @@ export function ProjectBulletinPanel({
     const withTenant: Record<string, unknown> = { ...opts.projection }
     if (!withTenant.tenant && activeTenant?.name) {
       withTenant.tenant = { name: activeTenant.name }
+    }
+    const prevIntervention =
+      withTenant.intervention && typeof withTenant.intervention === 'object'
+        ? (withTenant.intervention as Record<string, unknown>)
+        : {}
+    if (projectTitle && !String(prevIntervention.title ?? '').trim()) {
+      withTenant.intervention = {
+        ...prevIntervention,
+        project_id: prevIntervention.project_id ?? projectId,
+        title: projectTitle,
+      }
     }
     if (
       opts.kind !== 'published' &&
@@ -1507,6 +1522,7 @@ export function ProjectBulletinPanel({
                     : draft?.locale) || bulletinDefaultLocale
                 }
                 tenantNameFallback={activeTenant?.name}
+                documentTitle={projectTitle}
                 contentDigest={previewDigest}
                 media={previewMedia}
                 previewKind={previewKind}
@@ -1594,6 +1610,7 @@ export function ProjectBulletinPanel({
                   : draft?.locale) || bulletinDefaultLocale
               }
               tenantNameFallback={activeTenant?.name}
+              documentTitle={projectTitle}
               contentDigest={previewDigest}
               media={previewMedia}
               previewKind={previewKind}

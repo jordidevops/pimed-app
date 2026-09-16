@@ -4,6 +4,18 @@
     "nav": "Fitxatge",
     "tab_punch": "Fitxatge",
     "tab_record": "Historial",
+    "self_service": {
+      "nav": "Horari personal",
+      "punch": "Fitxar",
+      "calendar": "Calendari",
+      "absences": "Absències"
+    },
+    "today_card": {
+      "today_shift": "Jornada d'avui",
+      "next_shift": "Pròxima jornada",
+      "no_schedule": "Sense jornada planificada",
+      "open_attendance": "Horari"
+    },
     "punch": {
       "hours_link": "Com es calculen les meves hores?",
       "in": "Entrar",
@@ -12,6 +24,7 @@
       "status_in": "Dins",
       "status_out": "Fora",
       "status_working": "Treballant",
+      "worked": "Treballat",
       "status_pause": "En pausa",
       "status_remote": "Teletreball",
       "status_unknown": "Desconegut",
@@ -182,6 +195,7 @@
       "status_offline": "Sense connexió",
       "pending_count": "{{count}} fitxatge pendent",
       "pending_count_plural": "{{count}} fitxatges pendents",
+      "pending_short": "{{count}} pendents",
       "syncing": "Sincronitzant…",
       "last_sync": "Última sincronització: {{time}}"
     },
@@ -626,6 +640,7 @@
     "errors": {
       "no_employee": "No s'ha trobat cap registre d'empleat associat al teu compte",
       "no_tenant": "Selecciona una organització per fitxar",
+      "no_punch_permission": "El teu perfil no té permís per utilitzar el control horari.",
       "load_failed": "Error en carregar les dades d'assistència"
     },
     "calendar": {
@@ -679,7 +694,12 @@
       },
       "request_absence": "Sol·licitar absència",
       "my_absences_title": "Les meves absències",
-      "empty_absences": "Cap absència per aquest mes"
+      "empty_absences": "Cap absència per aquest mes",
+      "summary_planned": "Planificat",
+      "summary_worked": "Treballat",
+      "vacation_balance": "Vacances disponibles",
+      "vacation_used_total": "{{used}} utilitzats de {{total}}",
+      "days": "dies"
     },
     "absences": {
       "title": "Absències",
@@ -693,6 +713,28 @@
       "request_title": "Nova sol·licitud d'absència",
       "request_success": "Sol·licitud enviada correctament",
       "request_error": "Error en enviar la sol·licitud",
+      "personal_title": "Les meves absències",
+      "personal_help": "Consulta l'estat de les sol·licituds o envia'n una de nova.",
+      "personal_empty": "Encara no tens cap sol·licitud.",
+      "new_request": "Nova",
+      "no_request_permission": "No tens permís per sol·licitar absències.",
+      "withdraw": "Retirar sol·licitud",
+      "withdraw_success": "Sol·licitud retirada",
+      "withdraw_error": "No s'ha pogut retirar la sol·licitud",
+      "withdraw_confirm_title": "Retirar aquesta sol·licitud?",
+      "withdraw_confirm_help": "L'estat passarà a cancel·lada i el gestor ja no l'haurà d'aprovar.",
+      "withdraw_reason": "Motiu (opcional)",
+      "withdraw_confirm": "Retirar",
+      "keep_request": "Mantenir",
+      "showing_count": "Mostrant {{shown}} de {{total}}",
+      "previous_page": "Pàgina anterior",
+      "next_page": "Pàgina següent",
+      "revoke": "Revocar",
+      "revoke_title": "Revocar l'aprovació",
+      "revoke_reason": "Motiu",
+      "revoke_confirm": "Revocar",
+      "revoke_success": "Aprovació revocada",
+      "revoke_error": "No s'ha pogut revocar l'absència",
       "approve_success": "Absència aprovada",
       "reject_success": "Absència rebutjada",
       "approve_error": "Error en processar la sol·licitud",
@@ -736,6 +778,7 @@
         "approved": "Aprovada",
         "rejected": "Rebutjada",
         "cancelled": "Cancel·lada",
+        "revoked": "Revocada",
         "active": "IT activa",
         "closed": "IT tancada"
       },
@@ -761,6 +804,8 @@
         "start_date": "Inici",
         "end_date": "Fi",
         "notes": "Notes (opcional)",
+        "reason_required": "Motiu",
+        "reason_required_help": "Indica el motiu del permís per poder enviar la sol·licitud.",
         "cancel": "Cancel·lar",
         "submit": "Sol·licitar",
         "submitting": "Enviant..."

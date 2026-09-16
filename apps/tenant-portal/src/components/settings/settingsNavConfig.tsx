@@ -18,6 +18,7 @@ import {
   MapPin,
   Newspaper,
   Scale,
+  PanelLeft,
 } from 'lucide-react'
 import type { TenantTimelineFeatures } from '@/features/entity-timeline/api/tenantFeaturesService'
 
@@ -78,6 +79,14 @@ export function buildSettingsNavItems({
       labelKey: 'tabs.config',
       labelDefault: 'Configuració',
       icon: Settings,
+      group: 'general',
+      show: true,
+    },
+    {
+      to: '/app/sidebar',
+      labelKey: 'tabs.sidebar',
+      labelDefault: 'Menú lateral',
+      icon: PanelLeft,
       group: 'general',
       show: true,
     },

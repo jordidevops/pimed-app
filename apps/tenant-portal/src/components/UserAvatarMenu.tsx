@@ -80,6 +80,13 @@ export function UserAvatarMenu({
             >
               {t('nav.profile', 'Perfil')}
             </Link>
+            <Link
+              to="/app/sidebar"
+              onClick={() => setOpen(false)}
+              className="block px-4 py-2 text-sm text-foreground hover:bg-accent transition"
+            >
+              {t('nav.customize_sidebar', 'Personalitzar menú')}
+            </Link>
           </div>
 
           <div className="border-t border-border py-1">

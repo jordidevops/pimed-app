@@ -1,7 +1,20 @@
 {
   "contacts": {
     "detail": {
-      "tab_portal_access": "Portal"
+      "tab_portal_access": "Portal",
+      "tab_quotes": "Quotes",
+      "commercial_title": "Quotes and delivery notes",
+      "commercial_help": "Client commercial status without opening each document.",
+      "commercial_see_all": "See all",
+      "commercial_empty": "No quotes or delivery notes for this client yet.",
+      "commercial_more": "And {{count}} more…",
+      "commercial_open_order": "Open order",
+      "commercial_pending_response": "Awaiting response",
+      "commercial_pending_approval": "Pending approval",
+      "commercial_pending_payment": "Payment pending",
+      "commercial_count_response": "{{count}} awaiting response",
+      "commercial_count_approval": "{{count}} pending approval",
+      "commercial_count_payment": "{{count}} payment pending"
     },
     "errors": {
       "display_name_required": "Name is required",

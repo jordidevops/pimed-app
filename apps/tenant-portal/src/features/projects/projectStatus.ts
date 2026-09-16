@@ -34,7 +34,7 @@ export const PROJECT_STATUS_FALLBACK_LABELS: Record<ProjectStatus, string> = {
 
 /** UI labels for field_service (same CHECK values; no SQL change). */
 export const FIELD_SERVICE_STATUS_LABELS: Record<ProjectStatus, string> = {
-  draft: 'Pressupost',
+  draft: 'Esborrany',
   in_progress: 'En curs',
   active: 'En curs',
   on_hold: 'En espera',

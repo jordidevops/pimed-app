@@ -15,6 +15,8 @@ type Props = {
   projection: Record<string, unknown>
   locale: string
   tenantNameFallback?: string
+  /** OS / project title shown as the main heading when projection lacks intervention.title */
+  documentTitle?: string | null
   contentDigest?: string
   media?: BulletinPreviewMediaItem[]
   /**
@@ -193,6 +195,7 @@ export function BulletinClientPreview({
   projection,
   locale,
   tenantNameFallback,
+  documentTitle,
   contentDigest,
   media = [],
   previewKind = null,
@@ -210,7 +213,19 @@ export function BulletinClientPreview({
     projection.tenant && typeof projection.tenant === 'object'
       ? String((projection.tenant as Record<string, unknown>).name ?? '')
       : ''
-  const title = tenantName || tenantNameFallback || t('bulletin.preview_fallback_title', 'Intervenció')
+  const intervention =
+    projection.intervention && typeof projection.intervention === 'object'
+      ? (projection.intervention as Record<string, unknown>)
+      : null
+  const bulletinTitle =
+    (typeof intervention?.title === 'string' && intervention.title.trim()) ||
+    (typeof documentTitle === 'string' && documentTitle.trim()) ||
+    ''
+  const title =
+    bulletinTitle ||
+    tenantName ||
+    tenantNameFallback ||
+    t('bulletin.preview_fallback_title', 'Intervenció')
   const items = checklistItems(projection)
   const tasks = taskItems(projection)
   const materials = materialItems(projection)
@@ -285,6 +300,9 @@ export function BulletinClientPreview({
         <header className="border-b border-[var(--bp-line)] pb-6">
           <p className="bp-sans text-xs uppercase tracking-[0.18em] text-[var(--bp-muted)]">
             {t('bulletin.preview_kicker', 'Butlletí d’intervenció')}
+            {(tenantName || tenantNameFallback) && bulletinTitle
+              ? ` · ${tenantName || tenantNameFallback}`
+              : ''}
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>
           <p className="bp-sans mt-2 text-xs text-[var(--bp-muted)]">

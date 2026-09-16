@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu'
 import { compressImage } from '../utils/imageOptimizer'
+import { translateAuthError } from '../features/auth/utils/translateAuthError'
 
 function InfoItem({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
@@ -253,7 +254,7 @@ function ChangePasswordSection({ user }: { user: User }) {
     const { error: updateError } = await supabase.auth.updateUser({ password: newPwd })
     setPending(false)
     if (updateError) {
-      setError(updateError.message)
+      setError(translateAuthError(updateError, t))
       return
     }
 

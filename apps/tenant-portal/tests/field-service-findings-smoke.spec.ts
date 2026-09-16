@@ -13,7 +13,7 @@ async function pinVoltTenant(page: Page) {
     sessionStorage.setItem('selectedTenantId', id)
   }, VOLT_TENANT_ID)
 
-  await page.goto('/dashboard')
+  await page.goto('/field/today')
   await expect(page).toHaveURL(/\/field\/today/, { timeout: 25_000 })
 
   const tenantSelector = page.getByLabel('Selecciona organització')

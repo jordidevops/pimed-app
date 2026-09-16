@@ -7,6 +7,7 @@ import { loginSchema, type LoginFormValues } from '../schemas/auth.schema'
 import { useSignIn } from '../api/useSignIn'
 import { useAuthSettings } from '../api/useAuthSettings'
 import { supabase } from '../../../lib/supabase'
+import { translateAuthError } from '../utils/translateAuthError'
 
 type View = 'login' | 'forgot' | 'forgot-otp' | 'forgot-update' | 'magic' | 'magic-sent'
 
@@ -61,7 +62,11 @@ export function LoginForm() {
   const { mutateAsync: signIn, isPending, error: signInError } = useSignIn()
 
   const onSubmit = async (data: LoginFormValues) => {
-    await signIn(data)
+    try {
+      await signIn(data)
+    } catch {
+      // React Query already keeps signInError for the translated alert.
+    }
   }
 
   const handleGoogleLogin = async () => {
@@ -96,7 +101,7 @@ export function LoginForm() {
     })
     setMagicPending(false)
     if (error) {
-      setMagicError(error.message)
+      setMagicError(translateAuthError(error, t))
       return
     }
     setView('magic-sent')
@@ -115,7 +120,7 @@ export function LoginForm() {
     const { error } = await sendResetEmail(email)
     setForgotPending(false)
     if (error) {
-      setForgotError(error.message)
+      setForgotError(translateAuthError(error, t))
       return
     }
     setView('forgot-otp')
@@ -138,7 +143,7 @@ export function LoginForm() {
     })
     setOtpPending(false)
     if (error) {
-      setOtpError(error.message)
+      setOtpError(translateAuthError(error, t))
       return
     }
     setView('forgot-update')
@@ -166,7 +171,7 @@ export function LoginForm() {
     const { error } = await supabase.auth.updateUser({ password: newPassword })
     setUpdatePending(false)
     if (error) {
-      setUpdateError(error.message)
+      setUpdateError(translateAuthError(error, t))
       return
     }
     navigate('/dashboard', { replace: true })
@@ -497,7 +502,7 @@ export function LoginForm() {
 
           {signInError && (
             <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm dark:bg-red-950/50 dark:border-red-800 dark:text-red-400">
-              {signInError.message}
+              {translateAuthError(signInError, t)}
             </div>
           )}
 

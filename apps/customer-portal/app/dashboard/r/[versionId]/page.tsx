@@ -75,6 +75,7 @@ export default async function DashboardReportPage({ params }: Params) {
         actorType="grant"
         mediaManifest={result.media_manifest}
         reportVersionId={versionId}
+        title={typeof result.title === 'string' ? result.title : undefined}
         uiLocale={uiLocale}
         allowClientLocaleChange={allowClientLocaleChange}
         supportedLocales={supported}

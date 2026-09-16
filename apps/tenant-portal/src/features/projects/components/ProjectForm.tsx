@@ -21,6 +21,11 @@ import { useUpdateProject } from '../api/useUpdateProject'
 import type { Project } from '../api/projectsService'
 import { useDepartments } from '@/features/departments/api/useDepartments'
 import { getContacts, getContactSites } from '@/features/contacts/api/contactsService'
+import {
+  applyPricingTemplate,
+  listPricingTemplateItems,
+  listPricingTemplates,
+} from '@/features/commercial/api/commercialFlowService'
 import { cn } from '@/lib/utils'
 
 const projectSchema = z.object({
@@ -257,9 +262,40 @@ export function ProjectForm({
           p_planned_start: values.planned_start || undefined,
           p_planned_end: values.planned_end || undefined,
         })
+
+        if (isFieldService && id) {
+          try {
+            const templates = await listPricingTemplates()
+            const def =
+              templates.find((x) => x.is_default) ??
+              templates.find((x) => /visita\s*est[aà]ndard/i.test(x.name)) ??
+              null
+            if (def) {
+              const items = await listPricingTemplateItems(def.id)
+              const quantities: Record<string, number> = {}
+              for (const item of items) {
+                quantities[item.id] = Number(item.default_quantity ?? 1)
+              }
+              await applyPricingTemplate({
+                projectId: id,
+                templateId: def.id,
+                quantities,
+              })
+            }
+          } catch (applyErr) {
+            console.warn('[ProjectForm] default pricing template apply failed', applyErr)
+            toast({
+              description: t(
+                'projects.toast.template_apply_skipped',
+                'Ordre creada; no s’ha pogut aplicar el servei habitual per defecte.',
+              ),
+            })
+          }
+        }
+
         toast({ description: t('projects.toast.created', 'Projecte creat') })
         onClose()
-        navigate(isFieldService ? `/field/orders/${id}` : `/projects/${id}`)
+        navigate(isFieldService ? `/field/orders/${id}?tab=prepare` : `/projects/${id}`)
       }
     } catch (err) {
       const msg = getSubmitErrorMessage(err)

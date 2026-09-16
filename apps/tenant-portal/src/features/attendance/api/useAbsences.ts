@@ -11,6 +11,8 @@ import {
   listAbsenceTypeConfigs,
   registerIT,
   closeIT,
+  cancelMyAbsence,
+  revokeAbsence,
 } from './shiftsService'
 
 // ─── My Absences ──────────────────────────────────────────────────────────────
@@ -51,6 +53,50 @@ export function useRequestAbsence() {
     onError: (err: Error) => {
       toast({
         title: t('absences.request_error', 'Error en enviar la sol·licitud'),
+        description: err.message,
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
+export function useCancelMyAbsence() {
+  const { t } = useTranslation('attendance')
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ absenceId, reason }: { absenceId: string; reason?: string }) =>
+      cancelMyAbsence(absenceId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.all })
+      toast({ title: t('absences.withdraw_success', 'Sol·licitud retirada') })
+    },
+    onError: (err: Error) => {
+      toast({
+        title: t('absences.withdraw_error', "No s'ha pogut retirar la sol·licitud"),
+        description: err.message,
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
+export function useRevokeAbsence() {
+  const { t } = useTranslation('attendance')
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ absenceId, reason }: { absenceId: string; reason: string }) =>
+      revokeAbsence(absenceId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: attendanceKeys.all })
+      toast({ title: t('absences.revoke_success', 'Aprovació revocada') })
+    },
+    onError: (err: Error) => {
+      toast({
+        title: t('absences.revoke_error', "No s'ha pogut revocar l'absència"),
         description: err.message,
         variant: 'destructive',
       })

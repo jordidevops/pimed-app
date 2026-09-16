@@ -118,8 +118,8 @@ export async function getFolders(
     // Root: aplica filtre de scope
     query = query.is('parent_id', null)
     if (scopeMode === 'global') {
-      // /documents: només carpetes globals (sense scope d'entitat)
-      query = query.is('entity_type', null)
+      // /documents: carpetes globals + arrels de client (PDF comercials)
+      query = query.or('entity_type.is.null,entity_type.eq.contact')
     } else if (scopeMode === 'embedded' && entityType) {
       // Mòdul embedded: carpetes shared del mòdul (entity_id IS NULL) +
       // carpetes específiques d'aquest registre (entity_id = entityId)
@@ -150,6 +150,24 @@ export interface CreateFolderParams {
   site_id?: string | null
   entity_type?: string | null
   entity_id?: string | null
+}
+
+/** Walk parent_id up to the tenant root. Commercial trees are two levels. */
+export async function getFolderPath(folderId: string): Promise<Folder[]> {
+  const path: Folder[] = []
+  let currentId: string | null = folderId
+  for (let i = 0; i < 8 && currentId; i++) {
+    const { data, error } = await supabase
+      .from('document_folders')
+      .select('*')
+      .eq('id', currentId)
+      .maybeSingle()
+    if (error) throw error
+    if (!data) break
+    path.unshift(data)
+    currentId = data.parent_id
+  }
+  return path
 }
 
 export async function createFolder(params: CreateFolderParams): Promise<Folder> {

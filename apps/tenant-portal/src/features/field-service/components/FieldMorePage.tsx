@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CalendarClock, ChevronRight, ClipboardList, Clock, ListChecks, ListTree, Package, RefreshCw, Settings, Users } from 'lucide-react'
+import { CalendarClock, ChevronRight, ClipboardList, ListChecks, ListTree, RefreshCw } from 'lucide-react'
 import { useSectorLabel } from '@/hooks/useSectorLabel'
-import { useMyEmployee } from '@/features/attendance/api/useMyEmployee'
 import { useTenant } from '@/contexts/TenantContext'
 import { useFieldDeviceSync } from '../hooks/useFieldDeviceSync'
 import {
@@ -13,13 +12,20 @@ import {
 } from '../api/fieldMediaQueue'
 import { useEffectiveSettings, useTenantSettingsMutation } from '@/hooks/useSettings'
 import { parseFieldMediaCompression } from '../api/fieldMediaCompression'
+import {
+  commercialSettingsPatchWithThreshold,
+  parseDeviationApprovalThresholdEur,
+} from '@/features/commercial/utils/deviationApprovalThreshold'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { useSidebarNav } from '@/features/sidebar-nav'
+import type { NavItemId } from '@/features/sidebar-nav/navCatalog'
+
+const QUICK_LINK_IDS: NavItemId[] = ['contacts', 'quotes', 'catalog', 'files', 'settings']
 
 export function FieldMorePage() {
   const { t } = useTranslation('field-service')
-  const contactLabel = useSectorLabel('contact', t('more.clients', 'Clients'))
   const projectLabel = useSectorLabel('project', t('more.orders', 'Ordre de servei'))
-  const { data: myEmployee } = useMyEmployee()
   const { activeTenant, activeRole } = useTenant()
   const sync = useFieldDeviceSync(activeTenant?.id ?? null, { enableDrain: false })
   const [uploadMode, setUploadMode] = useState<FieldMediaUploadMode>(() =>
@@ -29,51 +35,60 @@ export function FieldMorePage() {
   const tenantSettingsMut = useTenantSettingsMutation()
   const compression = parseFieldMediaCompression(effective)
   const canManage = activeRole === 'owner' || activeRole === 'manager'
+  const { launcherGroups } = useSidebarNav()
+  const deviationThreshold = parseDeviationApprovalThresholdEur(effective)
+  const [thresholdDraft, setThresholdDraft] = useState<string | null>(null)
+  const thresholdInput =
+    thresholdDraft ?? String(deviationThreshold)
 
-  const links = [
-    ...(myEmployee
-      ? [{ to: '/attendance', key: 'attendance', icon: Clock, label: t('more.attendance', 'Fitxatge') }]
-      : []),
-    { to: '/contacts', key: 'clients', icon: Users, label: contactLabel },
-    { to: '/catalog', key: 'catalog', icon: Package, label: t('more.catalog', 'Catàleg') },
-    {
-      to: '/field/checklist-templates',
-      key: 'checklist_templates',
-      icon: ListChecks,
-      label: t('more.checklist_templates', 'Plantilles de checklist'),
-    },
-    {
-      to: '/field/checklist-points',
-      key: 'checklist_points',
-      icon: ListTree,
-      label: t('more.checklist_points', 'Punts de revisió'),
-    },
-    {
-      to: '/field/response-sets',
-      key: 'response_sets',
-      icon: ListChecks,
-      label: t('more.response_sets', 'Conjunts de respostes'),
-    },
-    {
-      to: '/field/maintenance-plans',
-      key: 'maintenance_plans',
-      icon: CalendarClock,
-      label: t('more.maintenance_plans', 'Plans de manteniment'),
-    },
-    { to: '/settings', key: 'settings', icon: Settings, label: t('more.settings', 'Configuració') },
-    {
-      to: '/projects',
-      key: 'office_projects',
-      icon: ClipboardList,
-      label: t('more.office_projects', 'Vista oficina'),
-    },
-  ]
+  const quickLinks = QUICK_LINK_IDS.map((id) =>
+    launcherGroups.flatMap((group) => group.items).find((item) => item.id === id),
+  ).filter((item): item is NonNullable<typeof item> => Boolean(item?.to))
+
+  const fieldTools = canManage
+    ? [
+        {
+          to: '/field/checklist-templates',
+          key: 'checklist_templates',
+          icon: ListChecks,
+          label: t('more.checklist_templates', 'Plantilles de checklist'),
+        },
+        {
+          to: '/field/checklist-points',
+          key: 'checklist_points',
+          icon: ListTree,
+          label: t('more.checklist_points', 'Punts de revisió'),
+        },
+        {
+          to: '/field/response-sets',
+          key: 'response_sets',
+          icon: ListChecks,
+          label: t('more.response_sets', 'Conjunts de respostes'),
+        },
+        {
+          to: '/field/maintenance-plans',
+          key: 'maintenance_plans',
+          icon: CalendarClock,
+          label: t('more.maintenance_plans', 'Plans de manteniment'),
+        },
+        {
+          to: '/projects',
+          key: 'office_projects',
+          icon: ClipboardList,
+          label: t('more.office_projects', 'Vista oficina'),
+        },
+      ]
+    : []
 
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 py-6 pb-24">
       <div>
         <h1 className="text-2xl font-bold">{t('more.title', 'Més')}</h1>
       </div>
+
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        {t('more.field_tools_title', 'Eines de camp')}
+      </h2>
 
       {(sync.pendingTotal > 0 || sync.failedTotal > 0) && (
         <div className="space-y-2 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-800 dark:bg-amber-950/40">
@@ -107,6 +122,18 @@ export function FieldMorePage() {
                 onClick={() => void sync.discardMediaFailed()}
               >
                 {t('sync.discard_failed', 'Descartar fitxers fallits')}
+              </Button>
+            )}
+            {sync.checklistFailed > 0 && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  void sync.retryChecklistFailed().then(() => sync.drainAll())
+                }}
+              >
+                {t('sync.retry_checklist_failed', 'Reintentar checklist fallida')}
               </Button>
             )}
           </div>
@@ -165,20 +192,92 @@ export function FieldMorePage() {
         )}
       </div>
 
-      <ul className="divide-y divide-border rounded-2xl border border-border bg-card overflow-hidden">
-        {links.map(({ to, key, icon: Icon, label }) => (
-          <li key={key}>
-            <Link
-              to={to}
-              className="flex min-h-12 items-center gap-3 px-4 py-3 hover:bg-accent/40 transition-colors"
+      {canManage && (
+        <div className="space-y-3 rounded-2xl border border-border bg-card p-4 text-sm">
+          <p className="font-medium">
+            {t('more.commercial_title', 'Comercial')}
+          </p>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">
+              {t(
+                'more.deviation_threshold',
+                'Llindar d’aprovació d’ampliacions (€)',
+              )}
+            </span>
+            <Input
+              type="number"
+              min="0"
+              step="1"
+              className="h-10"
+              value={thresholdInput}
+              disabled={tenantSettingsMut.isPending}
+              onChange={(e) => setThresholdDraft(e.target.value)}
+              onBlur={() => {
+                const parsed = Number(thresholdDraft ?? deviationThreshold)
+                const next = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0
+                setThresholdDraft(null)
+                if (next === deviationThreshold) return
+                void tenantSettingsMut.mutateAsync(
+                  commercialSettingsPatchWithThreshold(effective?.commercial, next),
+                )
+              }}
+              aria-describedby="deviation-threshold-help"
+            />
+            <span
+              id="deviation-threshold-help"
+              className="text-xs text-muted-foreground"
             >
-              <Icon className="h-5 w-5 text-muted-foreground" />
-              <span className="flex-1 font-medium">{label}</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Link>
-          </li>
-        ))}
-      </ul>
+              {t(
+                'more.deviation_threshold_help',
+                'Si el sobrecost supera aquest import, el tècnic només pot proposar l’ampliació i l’oficina l’ha d’aprovar. 0 = sense cerimònia per a qui pot editar preus.',
+              )}
+            </span>
+          </label>
+        </div>
+      )}
+
+      {fieldTools.length > 0 && (
+        <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+          {fieldTools.map(({ to, key, icon: Icon, label }) => (
+            <li key={key}>
+              <Link
+                to={to}
+                className="flex min-h-12 items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/40"
+              >
+                <Icon className="h-5 w-5 text-muted-foreground" />
+                <span className="flex-1 font-medium">{label}</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <section className="space-y-3 pt-2">
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            {t('more.quick_access_title', 'Accessos ràpids')}
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t('more.quick_access_help', 'Mòduls generals útils mentre treballes al camp.')}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {quickLinks.map((item) => {
+            const Icon = item.icon
+            return (
+              <Link
+                key={item.id}
+                to={item.to!}
+                className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border bg-card p-3 text-center transition-colors hover:bg-accent/40"
+              >
+                <Icon className="h-7 w-7 text-primary" aria-hidden />
+                <span className="text-sm font-medium">{item.label}</span>
+              </Link>
+            )
+          })}
+        </div>
+      </section>
     </div>
   )
 }

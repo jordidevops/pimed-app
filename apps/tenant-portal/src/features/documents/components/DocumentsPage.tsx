@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import { FolderOpen, FileText, ChevronRight, Plus, Home, Search, AlertCircle, Clock, FilePlus2, Tag, FolderPlus, ClipboardList, ArrowUpDown, Filter, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,6 +27,7 @@ import { useDocumentVersionSubmissionsBatch } from '../../signing/api/useDocumen
 import { useShareLinkCountsBatch } from '../api/useShareLinkCountsBatch'
 import { useSigningConfig } from '../../signing/api/useSigningConfig'
 import type { Folder } from '../api/documentsService'
+import { getFolderPath } from '../api/documentsService'
 
 interface BreadcrumbItem {
   id: string | null
@@ -66,12 +68,14 @@ function tagColorClass(color?: string | null): string {
 export function DocumentsPage({ entityFilter, entityLabel, entityEmail }: DocumentsPageProps = {}) {
   const { t } = useTranslation('documents')
   const { toast } = useToast()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { activeTenant, activeRole, selectedSiteId, activeSiteRole } = useTenant()
   const canWrite =
     activeRole === 'owner' ||
     activeRole === 'manager' ||
     (!!selectedSiteId && (activeSiteRole === 'owner' || activeSiteRole === 'manager'))
   const isEmbedded = !!entityFilter
+  const folderParam = isEmbedded ? null : searchParams.get('folder')
 
   const { data: signingConfig } = useSigningConfig(activeTenant?.id ?? undefined)
 
@@ -80,6 +84,32 @@ export function DocumentsPage({ entityFilter, entityLabel, entityEmail }: Docume
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([
     { id: null, name: t('page.root', 'Inici') },
   ])
+
+  useEffect(() => {
+    if (isEmbedded) return
+    let cancelled = false
+    if (!folderParam) {
+      setCurrentFolderId(null)
+      setBreadcrumbs([{ id: null, name: t('page.root', 'Inici') }])
+      return
+    }
+    void getFolderPath(folderParam).then((path) => {
+      if (cancelled || path.length === 0) return
+      setCurrentFolderId(folderParam)
+      setBreadcrumbs([
+        { id: null, name: t('page.root', 'Inici') },
+        ...path.map((folder) => ({ id: folder.id!, name: folder.name ?? '' })),
+      ])
+    }).catch(() => {
+      if (!cancelled) {
+        setCurrentFolderId(null)
+        setBreadcrumbs([{ id: null, name: t('page.root', 'Inici') }])
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [folderParam, isEmbedded, t])
 
   // ─── Cerca ────────────────────────────────────────────────────────────────
   const [searchTerm, setSearchTerm] = useState('')
@@ -215,17 +245,33 @@ export function DocumentsPage({ entityFilter, entityLabel, entityEmail }: Docume
   const { data: shareLinkCounts = {} } = useShareLinkCountsBatch(allDocIds)
 
   // ─── Folder navigation ────────────────────────────────────────────────────
+  function setFolderInUrl(folderId: string | null) {
+    if (isEmbedded) return
+    const next = new URLSearchParams(searchParams)
+    if (folderId) next.set('folder', folderId)
+    else next.delete('folder')
+    setSearchParams(next, { replace: true })
+  }
+
   function enterFolder(folder: Folder) {
-    setCurrentFolderId(folder.id!)
-    setBreadcrumbs((prev) => [...prev, { id: folder.id!, name: folder.name ?? '' }])
     setSearchTerm('')
+    if (isEmbedded) {
+      setCurrentFolderId(folder.id!)
+      setBreadcrumbs((prev) => [...prev, { id: folder.id!, name: folder.name ?? '' }])
+      return
+    }
+    setFolderInUrl(folder.id!)
   }
 
   function navigateTo(index: number) {
     const crumb = breadcrumbs[index]
-    setBreadcrumbs(breadcrumbs.slice(0, index + 1))
-    setCurrentFolderId(crumb.id)
     setSearchTerm('')
+    if (isEmbedded) {
+      setBreadcrumbs(breadcrumbs.slice(0, index + 1))
+      setCurrentFolderId(crumb.id)
+      return
+    }
+    setFolderInUrl(crumb.id)
   }
 
   // ─── Cerca + expiry client-side ──────────────────────────────────────────

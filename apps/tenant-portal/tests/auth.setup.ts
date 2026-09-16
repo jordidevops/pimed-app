@@ -3,8 +3,17 @@ import { mkdir } from 'node:fs/promises'
 import { AUTH_STATE_PATH, E2E_USERS, EHR_FIXTURES } from './e2e-users'
 
 setup('authenticate seed users and persist storage state', async ({ browser, baseURL }) => {
-  setup.setTimeout(120_000)
-  const users = [E2E_USERS.alice, E2E_USERS.bob, E2E_USERS.carol, E2E_USERS.charlie, E2E_USERS.dave]
+  setup.setTimeout(210_000)
+  const users = [
+    E2E_USERS.alice,
+    E2E_USERS.bob,
+    E2E_USERS.carol,
+    E2E_USERS.charlie,
+    E2E_USERS.dave,
+    E2E_USERS.gina,
+    E2E_USERS.hector,
+    E2E_USERS.ines,
+  ]
 
   // Ensure auth directory exists in clean environments (first run, fresh CI).
   await mkdir('playwright/.auth', { recursive: true })

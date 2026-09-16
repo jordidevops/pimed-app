@@ -15,6 +15,8 @@ import {
   type FieldMediaNode,
 } from '../api/fieldMediaService'
 import { getProjectMaterials } from '../api/materialsService'
+import { useProjectFieldOps } from '../hooks/useProjectFieldOps'
+import { Badge } from '@/components/ui/badge'
 import {
   isRunItemAnswered,
   runProgress,
@@ -297,16 +299,19 @@ export function CloseOutAttachmentsPreview({ projectId }: { projectId: string })
 
 export function CloseOutMaterialsPreview({ projectId }: { projectId: string }) {
   const { t } = useTranslation('field-service')
+  const { activeTenant } = useTenant()
+  const tenantId = activeTenant?.id
+  const localOps = useProjectFieldOps(tenantId, projectId)
   const { data: materials = [], isLoading } = useQuery({
-    queryKey: ['project_materials', projectId],
-    queryFn: () => getProjectMaterials(projectId),
+    queryKey: ['project_materials', projectId, tenantId],
+    queryFn: () => getProjectMaterials(projectId, tenantId),
     enabled: !!projectId,
   })
 
   if (isLoading) {
     return <div className="h-12 animate-pulse rounded-lg bg-accent/40" />
   }
-  if (materials.length === 0) {
+  if (materials.length === 0 && localOps.materials.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
         {t('materials.empty', 'Cap material registrat')}
@@ -326,6 +331,21 @@ export function CloseOutMaterialsPreview({ projectId }: { projectId: string }) {
             {item.quantity}
             {item.unit ? ` ${item.unit}` : ''}
           </span>
+        </li>
+      ))}
+      {localOps.materials.map(({ op, payload }) => (
+        <li
+          key={op.id}
+          className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-amber-500/50 px-3 py-2 text-sm"
+        >
+          <span className="min-w-0 truncate font-medium">{payload.name}</span>
+          <span className="shrink-0 text-muted-foreground">
+            {payload.quantity}
+            {payload.unit ? ` ${payload.unit}` : ''}
+          </span>
+          <Badge variant="secondary">
+            {t('closeout.offline.pending_sync', 'Pendent de sincronitzar')}
+          </Badge>
         </li>
       ))}
     </ul>

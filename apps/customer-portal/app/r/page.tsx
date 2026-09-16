@@ -68,6 +68,7 @@ export default async function ReaderPage({
             actorType="staff"
             mediaManifest={result.media_manifest}
             reportVersionId={result.report_version_id ?? versionId}
+            title={typeof result.title === 'string' ? result.title : undefined}
             uiLocale={uiLocale}
             allowClientLocaleChange={false}
             supportedLocales={supported}
@@ -118,6 +119,7 @@ export default async function ReaderPage({
         contentDigest={result.content_digest}
         actorType="share"
         mediaManifest={result.media_manifest}
+        title={typeof result.title === 'string' ? result.title : undefined}
         uiLocale={uiLocale}
         allowClientLocaleChange={allowClientLocaleChange}
         supportedLocales={supported}

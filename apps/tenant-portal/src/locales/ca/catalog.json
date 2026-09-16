@@ -3,7 +3,8 @@
     "title": "Catàleg",
     "tabs": {
       "services": "Serveis",
-      "products": "Productes"
+      "products": "Productes",
+      "packs": "Serveis habituals"
     },
     "new_item": "Nou ítem",
     "search_placeholder": "Cerca per nom...",
@@ -22,6 +23,40 @@
       "edit": "Editar",
       "deactivate": "Desactivar",
       "deactivate_confirm": "Confirmes que vols desactivar aquest ítem?"
+    },
+    "packs": {
+      "new": "Nou servei habitual",
+      "empty": "Encara no hi ha serveis habituals",
+      "lines": "Línies",
+      "default": "Per defecte",
+      "yes": "Sí",
+      "load_failed": "Error en carregar els serveis habituals",
+      "load_items_failed": "No s'han pogut carregar les línies",
+      "form_create": "Nou servei habitual",
+      "form_edit": "Editar servei habitual",
+      "form_help": "Un pack de línies del catàleg (p. ex. Visita estàndard) per aplicar-lo ràpidament a una OS. Pots vincular-hi checklists de visita.",
+      "is_default": "Servei per defecte a les OS noves",
+      "checklists_title": "Checklists de visita",
+      "checklists_help": "En aplicar aquest servei a una OS, també s’hi afegeixen aquestes checklists.",
+      "checklists_empty": "No hi ha checklists publicades al tenant.",
+      "checklist_default": "Defecte",
+      "items_title": "Línies del pack",
+      "add_item": "Afegir línia",
+      "remove_item": "Treure línia",
+      "pick_catalog": "Selecciona del catàleg…",
+      "qty": "Quantitat",
+      "discount": "Dto. %",
+      "prompt_qty": "Demanar quantitat",
+      "prompt_label": "Etiqueta del prompt",
+      "prompt_label_ph": "p. ex. Km d’anada i tornada",
+      "items_required": "Afegeix almenys una línia del catàleg",
+      "saved": "Servei habitual desat",
+      "save": "Desar",
+      "saving": "Desant…",
+      "save_failed": "No s'ha pogut desar el servei habitual",
+      "deactivate_confirm": "Confirmes que vols desactivar aquest servei habitual?",
+      "deactivated": "Servei habitual desactivat",
+      "deactivate_failed": "No s'ha pogut desactivar"
     },
     "form": {
       "title_create": "Nou ítem de catàleg",
@@ -48,7 +83,8 @@
       "kg": "Kg",
       "visita": "Visita",
       "dia": "Dia",
-      "m3": "m³"
+      "m3": "m³",
+      "km": "Km"
     },
     "errors": {
       "name_required": "El nom és obligatori",

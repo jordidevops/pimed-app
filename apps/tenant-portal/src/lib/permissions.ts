@@ -117,6 +117,12 @@ export type PermissionKey =
   | 'field_service.reports.revoke'
   | 'field_service.reports.preview_as_customer'
   | 'contacts.portal.manage'
+  // Flux comercial (CF-1 / CF-13)
+  | 'commercial.pricing.edit'
+  // Control horari i absències
+  | 'attendance.punch_own'
+  | 'attendance.approve'
+  | 'absences.request'
 
 /** Totes les claus com a array (útil per validació runtime) */
 export const ALL_PERMISSION_KEYS: PermissionKey[] = [
@@ -144,6 +150,8 @@ export const ALL_PERMISSION_KEYS: PermissionKey[] = [
   'field_service.reports.share', 'field_service.reports.revoke',
   'field_service.reports.preview_as_customer',
   'contacts.portal.manage',
+  'commercial.pricing.edit',
+  'attendance.punch_own', 'attendance.approve', 'absences.request',
 ]
 
 // ---------------------------------------------------------------------------
@@ -231,6 +239,8 @@ export const BASE_ROLE_PERMISSIONS: Record<Exclude<Role, 'owner'>, PermissionKey
     'field_service.reports.share',
     'field_service.reports.preview_as_customer',
     'contacts.portal.manage',
+    'attendance.punch_own',
+    'absences.request',
   ],
   manager: [
     'storage.delete',
@@ -273,6 +283,8 @@ export const BASE_ROLE_PERMISSIONS: Record<Exclude<Role, 'owner'>, PermissionKey
     'field_service.reports.revoke',
     'field_service.reports.preview_as_customer',
     'contacts.portal.manage',
+    'commercial.pricing.edit',
+    'attendance.approve',
   ],
 }
 

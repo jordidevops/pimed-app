@@ -7,6 +7,7 @@ import { useTenant } from '@/contexts/TenantContext'
  * Accessible via la ruta /onboarding.
  * Fora de l'AppLayout: no té sidebar ni capçalera de l'app.
  * L'AppLayout redirigeix aquí automàticament si el tenant no té sector_profile_id.
+ * Els owners amb sector ja configurat també hi poden tornar per canviar-lo.
  */
 export function OnboardingPage() {
   const { activeTenant, tenantsLoading } = useTenant()
@@ -15,10 +16,7 @@ export function OnboardingPage() {
     return null
   }
 
-  const canAccessOnboarding =
-    activeTenant !== null &&
-    activeTenant.role === 'owner' &&
-    activeTenant.sector_profile_id === null
+  const canAccessOnboarding = activeTenant !== null && activeTenant.role === 'owner'
 
   if (!canAccessOnboarding) {
     return <Navigate to="/dashboard" replace />

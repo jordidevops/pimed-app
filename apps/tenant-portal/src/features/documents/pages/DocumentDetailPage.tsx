@@ -23,7 +23,8 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTenant } from '@/contexts/TenantContext'
 import { useDocument } from '../api/useDocument'
-import { getDocumentAuditTrailUrl } from '../api/documentsService'
+import { getDocumentAuditTrailUrl, getFolderPath } from '../api/documentsService'
+import { isCommercialDmsArtifact } from '../utils/commercialDmsArtifact'
 import { useDocumentVersions } from '../api/useDocumentVersions'
 import { useGetDocumentUrl } from '../api/useGetDocumentUrl'
 import { useUserProfiles } from '../api/useUserProfiles'
@@ -37,6 +38,12 @@ import { DocumentUploadModal } from '../components/DocumentUploadModal'
 import { DocumentTagsEditor } from '../components/DocumentTagsEditor'
 import { DocumentShareModal } from '../components/DocumentShareModal'
 import { EntityTimeline } from '@/features/entity-timeline'
+import { useIsFieldService } from '@/hooks/useSectorLabel'
+import {
+  commercialDocumentOrderPath,
+  getCommercialDocumentLinkInfo,
+} from '@/features/commercial/api/commercialFlowService'
+import { docTypeLabel } from '@/features/commercial/utils/commercialDocumentModel'
 import { useDocumentSigningHistory } from '../../signing/api/useDocumentSigningHistory'
 import { useSigningConfig } from '../../signing/api/useSigningConfig'
 import { DocumentOrchestrator, DocxPreviewModal } from '../../signing'
@@ -154,6 +161,7 @@ export function DocumentDetailPage() {
   const { t }     = useTranslation('documents')
   const { toast } = useToast()
   const { user }  = useAuth()
+  const isFieldService = useIsFieldService()
   const { activeTenant, selectedTenantId, tenantScopeReady, activeRole, selectedSiteId, activeSiteRole } = useTenant()
   const tenantId = selectedTenantId ?? activeTenant?.id ?? undefined
 
@@ -168,6 +176,19 @@ export function DocumentDetailPage() {
   const { data: signingConfig }                        = useSigningConfig(tenantId)
   const { data: userProfiles = [] }                    = useUserProfiles()
   const { data: allDocuments = [] }                    = useDocuments({ allFolders: true })
+  const { data: folderPath = [] } = useQuery({
+    queryKey: ['document-folder-path', doc?.folder_id ?? ''],
+    queryFn: () => getFolderPath(doc!.folder_id!),
+    enabled: !!doc?.folder_id,
+    staleTime: 60_000,
+  })
+  const isCommercialArtifact = isCommercialDmsArtifact(doc)
+  const { data: commercialLink } = useQuery({
+    queryKey: ['commercial_document_link', doc?.entity_id ?? ''],
+    queryFn: () => getCommercialDocumentLinkInfo(doc!.entity_id!),
+    enabled: isCommercialArtifact && !!doc?.entity_id,
+    staleTime: 60_000,
+  })
 
   // ─── Derived: distinct categories for datalist ─────────────────────────────
   const distinctCategories = [...new Set(allDocuments.map(d => d.category).filter((c): c is string => !!c))].sort()
@@ -230,8 +251,10 @@ export function DocumentDetailPage() {
   const isSignable = !isExternal && !!doc?.version_id && canWrite && isSignableMimeType(doc?.mime_type)
   const canPreview = isImage || isPdf || isExternal || isHtml || isDocx
   const hasMultipleVersions = (doc?.version_number ?? 0) > 1
-  const canDeleteLatest = canWrite || doc?.version_created_by === user?.id
-  const canDeleteAll    = canWrite || doc?.created_by === user?.id
+  const canDeleteLatest =
+    !isCommercialArtifact && (canWrite || doc?.version_created_by === user?.id)
+  const canDeleteAll =
+    !isCommercialArtifact && (canWrite || doc?.created_by === user?.id)
   const historyCount = history?.length ?? 0
   const showSigningTab = isSignable || historyCount > 0
 
@@ -544,8 +567,28 @@ export function DocumentDetailPage() {
   const isExpired  = expiresAt ? new Date(expiresAt) < new Date() : false
   const emptyValue = t('detail.emptyValue', '—')
   const title      = doc.title ?? t('detail.untitled', 'Sense títol')
-  const entityHref = doc.entity_type && doc.entity_id
-    ? entityLinkFor(doc.entity_type, doc.entity_id)
+  const folderHref =
+    folderPath.length > 0 && folderPath[folderPath.length - 1]?.id
+      ? `/documents?folder=${folderPath[folderPath.length - 1]!.id}`
+      : '/documents'
+  const folderLabel = folderPath.map((folder) => folder.name).filter(Boolean).join(' / ')
+  const entityHref =
+    !isCommercialArtifact && doc.entity_type && doc.entity_id
+      ? entityLinkFor(doc.entity_type, doc.entity_id)
+      : null
+  const commercialQuoteHref = commercialLink
+    ? `/quotes?view=${commercialLink.id}`
+    : null
+  const commercialOrderHref =
+    commercialLink?.project_id
+      ? commercialDocumentOrderPath(
+          isFieldService ? '/field/orders' : '/projects',
+          commercialLink.project_id,
+          commercialLink.doc_type,
+        )
+      : null
+  const commercialLinkLabel = commercialLink
+    ? `${docTypeLabel(commercialLink.doc_type)}${commercialLink.doc_number ? ` ${commercialLink.doc_number}` : ''}`
     : null
   const hasActiveSigning =
     !!activeSubmission?.id &&
@@ -563,7 +606,7 @@ export function DocumentDetailPage() {
           variant="ghost"
           size="sm"
           className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground -ml-2 lg:hidden"
-          onClick={() => navigate('/documents')}
+          onClick={() => navigate(folderHref)}
         >
           <ArrowLeft className="h-4 w-4" />
           {t('detail.backToDocuments', 'Tornar a Documents')}
@@ -574,7 +617,7 @@ export function DocumentDetailPage() {
             variant="ghost"
             size="icon"
             className="absolute -left-11 top-0.5 hidden h-8 w-8 text-muted-foreground hover:text-foreground lg:inline-flex"
-            onClick={() => navigate('/documents')}
+            onClick={() => navigate(folderHref)}
             aria-label={t('detail.backToDocuments', 'Tornar a Documents')}
           >
             <ArrowLeft className="h-4 w-4" />
@@ -586,6 +629,39 @@ export function DocumentDetailPage() {
               </span>
               <h1 className="text-lg font-semibold truncate">{title}</h1>
             </div>
+          {folderLabel ? (
+            <p className="mt-1 text-xs text-muted-foreground truncate">
+              {t('detail.folder_path', 'Carpeta')}:{' '}
+              <Link
+                to={folderHref}
+                className="font-medium text-primary underline-offset-2 hover:underline"
+              >
+                {folderLabel}
+              </Link>
+            </p>
+          ) : null}
+          {commercialQuoteHref ? (
+            <p className="mt-1 text-xs text-muted-foreground truncate">
+              {t('detail.linked_commercial', 'Document comercial')}:{' '}
+              <Link
+                to={commercialQuoteHref}
+                className="font-medium text-primary underline-offset-2 hover:underline"
+              >
+                {commercialLinkLabel ?? t('detail.open_quote', 'Obrir pressupost')}
+              </Link>
+              {commercialOrderHref ? (
+                <>
+                  {' · '}
+                  <Link
+                    to={commercialOrderHref}
+                    className="font-medium text-primary underline-offset-2 hover:underline"
+                  >
+                    {t('detail.open_order', 'Obrir ordre')}
+                  </Link>
+                </>
+              ) : null}
+            </p>
+          ) : null}
           {entityHref && (
             <p className="mt-1 text-xs text-muted-foreground truncate">
               {t('detail.linked_entity', 'Vinculat a')}:{' '}
@@ -716,7 +792,7 @@ export function DocumentDetailPage() {
               )}
             </Button>
           )}
-          {(canDeleteLatest || canDeleteAll) && doc.id && (
+          {(canWrite || canDeleteLatest || canDeleteAll) && doc.id && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" title={t('row.deleteMenu', "Opcions d'eliminació")}>
@@ -730,7 +806,7 @@ export function DocumentDetailPage() {
                       <ArchiveX className="mr-2 h-4 w-4" />
                       {t('archived.archive', 'Arxivar')}
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
+                    {(canDeleteLatest || canDeleteAll) && <DropdownMenuSeparator />}
                   </>
                 )}
                 {canDeleteLatest && (

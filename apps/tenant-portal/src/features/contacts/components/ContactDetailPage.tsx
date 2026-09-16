@@ -27,6 +27,7 @@ import { ContactSitesList } from './ContactSitesList'
 import { ContactRelationshipsPanel } from './ContactRelationshipsPanel'
 import { ContactDeliveryChannelsPanel } from './ContactDeliveryChannelsPanel'
 import { ContactPortalAccessPanel } from './ContactPortalAccessPanel'
+import { ContactCommercialHistory } from './ContactCommercialHistory'
 import { EntityTimeline } from '@/features/entity-timeline'
 import { getProjectsByClientId } from '@/features/projects/api/projectsService'
 import {
@@ -63,7 +64,15 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
   )
 }
 
-const CONTACT_TABS = ['contact', 'sites', 'projects', 'activity', 'comms', 'portal_access'] as const
+const CONTACT_TABS = [
+  'contact',
+  'quotes',
+  'sites',
+  'projects',
+  'activity',
+  'comms',
+  'portal_access',
+] as const
 type ContactTab = (typeof CONTACT_TABS)[number]
 
 function isContactTab(value: string | null): value is ContactTab {
@@ -278,9 +287,12 @@ export function ContactDetailPage() {
       )}
 
       <Tabs value={activeTab} onValueChange={setTab} className="space-y-4">
-        <TabsList className="w-full justify-start">
+        <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="contact">
             {t('contacts.detail.tab_contact', 'Contacte')}
+          </TabsTrigger>
+          <TabsTrigger value="quotes">
+            {t('contacts.detail.tab_quotes', 'Pressupostos')}
           </TabsTrigger>
           <TabsTrigger value="sites">
             {t('contacts.detail.tab_sites', "Adreces d'intervenció")}
@@ -353,6 +365,13 @@ export function ContactDetailPage() {
 
           <ContactDeliveryChannelsPanel contactId={contact.id!} />
 
+          <ContactCommercialHistory
+            clientId={contact.id!}
+            mode="summary"
+            projectDetailBase={projectDetailBase}
+            onSeeAll={() => setTab('quotes')}
+          />
+
           <section className="rounded-2xl border border-border bg-card p-5 space-y-3">
             <h2 className="text-sm font-semibold text-foreground">
               {t('contacts.detail.additional_info', 'Informació addicional')}
@@ -377,6 +396,14 @@ export function ContactDetailPage() {
               value={formattedDate}
             />
           </section>
+        </TabsContent>
+
+        <TabsContent value="quotes" className="space-y-4">
+          <ContactCommercialHistory
+            clientId={contact.id!}
+            mode="full"
+            projectDetailBase={projectDetailBase}
+          />
         </TabsContent>
 
         <TabsContent value="sites" className="space-y-4">

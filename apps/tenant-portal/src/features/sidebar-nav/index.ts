@@ -1,5 +1,6 @@
 export {
   pickSidebarLayout,
+  mergeMissingDefaultNavItems,
   resolveSidebarNav,
   resolveLauncherNav,
   listAvailableCatalogEntries,

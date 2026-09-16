@@ -1,6 +1,18 @@
 # API Rest
 
+> **Estat:** pla a nivell de prompts d'ideació, **cap fase dissenyada ni implementada**.
+> **Relacionat:** [`docs/plans/mcp_server/`](../mcp_server/README.md) (pla d'enginyeria complet per al MCP Server, també 0% implementat).
 
+## Consideracions estratègiques (2026-09-16)
+
+1. **Maduresa relativa.** El MCP Server ja té un pla d'enginyeria complet (threat model, DDL, fases MCP-0…12, criteris Go/No-Go) tot i que 0% implementat. Aquest document d'API/Webhooks és encara a nivell de prompts d'ideació, sense DDL ni fases concretes.
+2. **No duplicar infraestructura de seguretat.** API keys hashed, aïllament per `tenant_id`/RLS, rate limiting en capes, kill switch i `audit_logs` s'han de dissenyar **una sola vegada** i reutilitzar-se tant per al MCP com per a l'API REST. No construir dues piles d'auth independents.
+3. **Ordre de prioritat recomanat.** Primer el MCP Server (tools read-only, epic MCP-7), reutilitzant-lo després com a base per a una capa REST prima per a integracions ERP/BI/scripts. Motiu: el perfil objectiu (administratius/programadors de PIME fent *vibe coding* amb agents IA) treu més valor immediat d'un connector MCP que d'una API que exigeix escriure client HTTP.
+4. **No és un bloquejador de producció ara mateix.** El roadmap actual ([`platform-roadmap-prioritat-2026.md`](../platform-roadmap-prioritat-2026.md)) marca Employees, Public Portal i Time Attendance com a bloquejadors funcionals previs. Obrir un canal d'accés extern abans que el *core* de dades estigui tancat arrisca a trencar contractes d'API contínuament.
+5. **Seguretat i estabilitat encara per demostrar.** Ni l'API ni el MCP estan implementats; cap dels dos es pot considerar "segur i estable" fins que es completin les fases de disseny (threat model, RLS, rate limit, sandbox) i es passi per un canary/Go-No-Go, tal com ja preveu el pla MCP a [`04-acceptance-and-gates.md`](../mcp_server/04-acceptance-and-gates.md).
+6. **Quan es reprengui aquest pla**, el prompt següent ja demana explícitament reutilitzar la infraestructura del MCP Server (claus API, RLS, rate limit, audit) en lloc de dissenyar-la de nou.
+
+---
 
 Aquí tens la proposta de prompt detallat per generar el pla d'implementació de l'API B2B. Manté el mateix rigor tècnic que l'anterior i posa un èmfasi especial en la seguretat multi-tenant i l'alineació d'aquesta API amb el futur de la IA.
 
@@ -50,7 +62,12 @@ Cicle de Vida de l'Entorn Sandbox: Dissenya els mecanismes necessaris (endpoints
 
 Visibilitat a la UI: Proposa com el frontend actual hauria de gestionar aquest "Shadow Tenant" (ex: un interruptor global de "Mode Prova" a la capçalera de l'app) per permetre als administradors visualitzar l'estat de les seves integracions de prova.
 
-Si us plau, retorna el pla organitzat en fases (Fase 1: Seguretat i API Keys, Fase 2: Core i Aïllament SQL, Fase 3: Estandardització i Endpoints Base, Fase 4: Sinergia IA/OpenAPI), incloent recomanacions d'esquemes SQL per a la taula de claus API i pseudocodi o TypeScript genèric per a l'estructura del middleware.
+6. Reutilització de la Infraestructura del MCP Server (No-Duplicació)
+Ja tenim (o estem dissenyant en paral·lel) un servidor MCP amb autenticació OAuth 2.1 per a usuaris i API keys hashed per a integracions S2S (`mcp_live_...` / `mcp_test_...`), aïllament multi-tenant via RLS, rate limiting en 3 capes (WAF/edge, store distribuït, quotes per tenant a BD) i `audit_logs` de cicle de vida. Documenta a `docs/plans/mcp_server/`.
+
+Proposa explícitament com aquesta API REST B2B pot **reutilitzar la mateixa taula de claus, el mateix middleware de resolució de tenant i el mateix motor de rate limiting/kill switch** en lloc de crear una segona pila d'autenticació i seguretat en paral·lel. Indica quines parts són genuïnament noves (rutes REST, contracte d'errors HTTP, OpenAPI) i quines s'han d'importar tal qual del MCP.
+
+Si us plau, retorna el pla organitzat en fases (Fase 0: Alineació i reutilització amb la infraestructura MCP existent, Fase 1: Seguretat i API Keys, Fase 2: Core i Aïllament SQL, Fase 3: Estandardització i Endpoints Base, Fase 4: Sinergia IA/OpenAPI, Fase 5: Sandbox i DX), incloent recomanacions d'esquemes SQL per a la taula de claus API i pseudocodi o TypeScript genèric per a l'estructura del middleware.
 
 
 

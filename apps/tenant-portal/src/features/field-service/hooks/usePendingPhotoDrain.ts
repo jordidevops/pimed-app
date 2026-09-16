@@ -5,8 +5,12 @@ import { drainPendingPhotos } from '../api/uploadQueuedPhoto'
 
 const DRAIN_INTERVAL_MS = 30_000
 
-export function usePendingPhotoDrain(tenantId: string | null) {
+export function usePendingPhotoDrain(
+  tenantId: string | null,
+  options?: { autoDrain?: boolean },
+) {
   const isOnline = useOnlineStatus()
+  const autoDrain = options?.autoDrain ?? true
   const [pendingCount, setPendingCount] = useState(0)
   const [isDraining, setIsDraining] = useState(false)
 
@@ -34,13 +38,13 @@ export function usePendingPhotoDrain(tenantId: string | null) {
   }, [refresh])
 
   useEffect(() => {
-    if (!tenantId || !isOnline) return
+    if (!autoDrain || !tenantId || !isOnline) return
     void drainNow()
     const id = window.setInterval(() => {
       void drainNow()
     }, DRAIN_INTERVAL_MS)
     return () => window.clearInterval(id)
-  }, [tenantId, isOnline, drainNow])
+  }, [autoDrain, tenantId, isOnline, drainNow])
 
   return { pendingCount, isDraining, refresh, drainNow }
 }

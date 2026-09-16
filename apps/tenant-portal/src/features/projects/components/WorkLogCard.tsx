@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useWorkLog } from '../api/useWorkLog'
 import { useProjectWorkLogSummary } from '../api/useProjectWorkLogSummary'
 import { useFieldSync } from '@/hooks/useFieldSync'
+import { requestFieldDeviceSync } from '@/features/field-service/utils/fieldDeviceSyncEvents'
 import { useTenant } from '@/contexts/TenantContext'
 import { formatElapsedSeconds } from '@/lib/dateLocal'
 
@@ -67,7 +68,7 @@ export function WorkLogCard({ projectId, locked = false }: WorkLogCardProps) {
   const { t } = useTranslation(['projects', 'field-service'])
   const { toast } = useToast()
   const { activeTenant } = useTenant()
-  const sync = useFieldSync(activeTenant?.id ?? null)
+  const sync = useFieldSync(activeTenant?.id ?? null, { autoDrain: false })
   const {
     openLog,
     openLogInOtherProject,
@@ -150,7 +151,7 @@ export function WorkLogCard({ projectId, locked = false }: WorkLogCardProps) {
       retryTimeoutRef.current = setTimeout(() => setIsRetrying(false), 35_000)
 
       await sync.retryQuarantined()
-      await sync.drainNow()
+      await requestFieldDeviceSync()
     } catch (err) {
       setIsRetrying(false)
       const msg = getErrorMessage(err)

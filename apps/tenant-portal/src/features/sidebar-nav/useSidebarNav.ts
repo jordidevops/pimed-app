@@ -8,7 +8,8 @@ import { useEffectiveSettings, useMemberSettingsMutation, useTenantSettingsMutat
 import { usePermission } from '@/hooks/usePermission'
 import { useMyEmployee } from '@/features/attendance/api/useMyEmployee'
 import { useTenantFeatures } from '@/features/entity-timeline/api/useTenantFeatures'
-import { useIsFieldService, useSectorLabel } from '@/hooks/useSectorLabel'
+import { useIsFieldService, useSectorContactListLabel, useSectorLabel } from '@/hooks/useSectorLabel'
+import { useFieldServiceHome } from '@/features/field-service/hooks/useFieldServiceHome'
 import {
   SIDEBAR_NAV_TENANT_KEY,
   SIDEBAR_NAV_USER_KEY,
@@ -33,19 +34,29 @@ export function useNavGateContext(): { ctx: NavGateContext; gatesLoading: boolea
   const isManager = activeRole === 'owner' || activeRole === 'manager'
   const { data: myEmployee, isLoading: myEmployeeLoading } = useMyEmployee()
   const hasMyEmployee = !myEmployeeLoading && !!myEmployee
+  const canPunchOwn = usePermission('attendance.punch_own', myEmployee?.site_id ?? null)
+  const canUseAttendance = hasMyEmployee && canPunchOwn
   const { data: features, isLoading: featuresLoading } = useTenantFeatures()
   const canViewRecruitment = usePermission('recruitment.view')
   const showRecruitment = Boolean(features?.recruitment_enabled) && canViewRecruitment
   const isFieldService = useIsFieldService()
+  const { path: homePath, ready: homeReady } = useFieldServiceHome()
 
   const ctx = useMemo(
-    () => ({ isManager, hasMyEmployee, showRecruitment, isFieldService }),
-    [isManager, hasMyEmployee, showRecruitment, isFieldService],
+    () => ({
+      isManager,
+      hasMyEmployee,
+      canUseAttendance,
+      showRecruitment,
+      isFieldService,
+      homePath,
+    }),
+    [isManager, hasMyEmployee, canUseAttendance, showRecruitment, isFieldService, homePath],
   )
 
   return {
     ctx,
-    gatesLoading: myEmployeeLoading || featuresLoading,
+    gatesLoading: myEmployeeLoading || featuresLoading || !homeReady,
   }
 }
 
@@ -57,7 +68,7 @@ export function useSidebarNav() {
   const { ctx, gatesLoading } = useNavGateContext()
   const canEditTenant = usePermission('settings.manage', null)
 
-  const contactLabel = useSectorLabel('contact', t('nav.contacts', 'Contactes'))
+  const contactLabel = useSectorContactListLabel()
   const projectLabel = useSectorLabel('project', t('nav.projects', 'Projectes'))
   const labels = useMemo(
     () => ({

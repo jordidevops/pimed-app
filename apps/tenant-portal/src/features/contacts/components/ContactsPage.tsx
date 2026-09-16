@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, Search, Users } from 'lucide-react'
 import { useTenant } from '@/contexts/TenantContext'
+import { useIsFieldService, useSectorContactListLabel } from '@/hooks/useSectorLabel'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollableTabBar } from '@/components/ui/scrollable-tab-bar'
@@ -22,6 +23,8 @@ type ContactsPageTab = 'list' | 'portal_hub'
 
 export function ContactsPage() {
   const { t } = useTranslation('contacts')
+  const contactListLabel = useSectorContactListLabel()
+  const isFieldService = useIsFieldService()
   const { activeTenant, tenants, tenantsLoading } = useTenant()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -118,7 +121,9 @@ export function ContactsPage() {
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-5">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">
-          {t('contacts.title', 'Contactes')}
+          {isFieldService
+            ? contactListLabel
+            : t('contacts.title', 'Contactes')}
         </h1>
         {activeTab === 'list' && (
           <Button onClick={() => setFormOpen(true)}>

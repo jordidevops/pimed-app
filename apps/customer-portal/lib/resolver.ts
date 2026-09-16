@@ -81,6 +81,7 @@ function parseResolverJson(
       json.tenant_profile && typeof json.tenant_profile === 'object'
         ? (json.tenant_profile as ResolveOk['tenant_profile'])
         : undefined,
+    title: typeof json.title === 'string' ? json.title : undefined,
   }
 }
 

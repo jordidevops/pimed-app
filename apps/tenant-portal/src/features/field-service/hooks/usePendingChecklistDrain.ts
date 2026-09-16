@@ -36,7 +36,7 @@ function answerParamsFromPendingRow(row: PendingChecklistAnswerRow): Parameters<
 }
 
 async function drainPendingChecklistAnswers(tenantId: string): Promise<number> {
-  const pending = await listPendingChecklistAnswers(tenantId)
+  const pending = await listPendingChecklistAnswers(tenantId, { includeFailed: false })
   for (const row of pending) {
     try {
       await answerRunItem(answerParamsFromPendingRow(row))
@@ -46,11 +46,15 @@ async function drainPendingChecklistAnswers(tenantId: string): Promise<number> {
       await markChecklistAnswerFailed(row.id, msg)
     }
   }
-  return (await listPendingChecklistAnswers(tenantId)).length
+  return (await listPendingChecklistAnswers(tenantId, { includeFailed: false })).length
 }
 
-export function usePendingChecklistDrain(tenantId: string | null) {
+export function usePendingChecklistDrain(
+  tenantId: string | null,
+  options?: { autoDrain?: boolean },
+) {
   const isOnline = useOnlineStatus()
+  const autoDrain = options?.autoDrain ?? true
   const [pendingCount, setPendingCount] = useState(0)
   const [isDraining, setIsDraining] = useState(false)
 
@@ -78,13 +82,13 @@ export function usePendingChecklistDrain(tenantId: string | null) {
   }, [refresh])
 
   useEffect(() => {
-    if (!tenantId || !isOnline) return
+    if (!autoDrain || !tenantId || !isOnline) return
     void drainNow()
     const id = window.setInterval(() => {
       void drainNow()
     }, DRAIN_INTERVAL_MS)
     return () => window.clearInterval(id)
-  }, [tenantId, isOnline, drainNow])
+  }, [autoDrain, tenantId, isOnline, drainNow])
 
   return { pendingCount, isDraining, refresh, drainNow }
 }

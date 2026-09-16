@@ -235,6 +235,23 @@ export const PUNCH_TYPE_I18N_KEY: Record<ExtendedPunchType, string> = {
   break_end: 'punch.break_end',
 }
 
+export function punchHeroColorClass(type: ExtendedPunchType): string {
+  switch (type) {
+    case 'in':
+      return 'bg-emerald-600 hover:bg-emerald-700 text-white'
+    case 'out':
+    case 'day_end':
+      return 'bg-slate-600 hover:bg-slate-700 text-white'
+    case 'day_start':
+      return 'bg-sky-600 hover:bg-sky-700 text-white'
+    case 'travel_start':
+    case 'travel_end':
+      return 'bg-violet-600 hover:bg-violet-700 text-white'
+    default:
+      return 'bg-primary hover:bg-primary/90 text-primary-foreground'
+  }
+}
+
 export const PUNCH_TYPE_DEFAULT_LABEL: Record<ExtendedPunchType, string> = {
   in: 'Entrar',
   out: 'Sortir',

@@ -518,6 +518,27 @@ export async function requestAbsence(params: {
   return data
 }
 
+export async function cancelMyAbsence(absenceId: string, reason?: string) {
+  const { data, error } = await supabase.rpc(
+    'cancel_my_absence' as never,
+    {
+      p_absence_id: absenceId,
+      p_reason: reason?.trim() || null,
+    } as never,
+  )
+  if (error) throw error
+  return data
+}
+
+export async function revokeAbsence(absenceId: string, reason: string) {
+  const { data, error } = await supabase.rpc(
+    'revoke_absence' as never,
+    { p_absence_id: absenceId, p_reason: reason } as never,
+  )
+  if (error) throw error
+  return data
+}
+
 export async function approveAbsence(
   absenceId: string,
   newStatus: 'approved' | 'rejected' | 'cancelled',

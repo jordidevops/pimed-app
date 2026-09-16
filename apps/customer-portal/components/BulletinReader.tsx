@@ -19,6 +19,8 @@ type Props = {
   mediaManifest?: unknown
   /** Required for grant media downloads (scoped by report version). */
   reportVersionId?: string
+  /** OS / intervention title (same as list); falls back to projection.intervention.title */
+  title?: string | null
   uiLocale?: PlatformLocale | string
   allowClientLocaleChange?: boolean
   supportedLocales?: string[]
@@ -209,6 +211,7 @@ export function BulletinReader({
   actorType,
   mediaManifest,
   reportVersionId,
+  title,
   uiLocale,
   allowClientLocaleChange,
   supportedLocales,
@@ -228,6 +231,16 @@ export function BulletinReader({
     (projection.tenant && typeof projection.tenant === 'object'
       ? String((projection.tenant as Record<string, unknown>).name ?? '')
       : '')
+  const intervention =
+    projection.intervention && typeof projection.intervention === 'object'
+      ? (projection.intervention as Record<string, unknown>)
+      : null
+  const bulletinTitle =
+    (typeof intervention?.title === 'string' && intervention.title.trim()) ||
+    (typeof title === 'string' && title.trim()) ||
+    ''
+  const heading =
+    bulletinTitle || tenantName || t('fallback_title', 'Intervenció')
   const items = checklistItems(projection)
   const tasks = taskItems(projection)
   const materials = materialItems(projection)
@@ -265,9 +278,10 @@ export function BulletinReader({
           <div>
             <p className="sans text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
               {t('eyebrow', "Butlletí d'intervenció")}
+              {tenantName && bulletinTitle ? ` · ${tenantName}` : ''}
             </p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-              {tenantName || t('fallback_title', 'Intervenció')}
+              {heading}
             </h1>
             {contentDigest && (
               <p className="sans mt-2 text-xs text-[var(--muted)]">

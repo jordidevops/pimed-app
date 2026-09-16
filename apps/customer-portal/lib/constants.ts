@@ -63,6 +63,8 @@ export type ResolveOk = {
   content_locale?: string | null
   access_activity?: AccessActivity | null
   tenant_profile?: TenantPublicProfile | null
+  /** Same title shown in the bulletin list (OS / project name). */
+  title?: string
 }
 
 export type ResolveFail = {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { Spinner } from '../components/ui/Spinner'
+import { translateAuthError } from '../features/auth/utils/translateAuthError'
 
 type Phase = 'loading' | 'form' | 'error'
 
@@ -35,7 +36,7 @@ export function ResetPasswordPage() {
     const params = new URLSearchParams(hash)
     const hashError = params.get('error_description') ?? params.get('error')
     if (hashError) {
-      setErrorMsg(hashError.replace(/\+/g, ' '))
+      setErrorMsg(translateAuthError(hashError.replace(/\+/g, ' '), t))
       setPhase('error')
       return
     }
@@ -61,7 +62,7 @@ export function ResetPasswordPage() {
       clearTimeout(timeout)
       subscription.unsubscribe()
     }
-  }, [navigate])
+  }, [navigate, t])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -81,7 +82,7 @@ export function ResetPasswordPage() {
     setSaving(false)
 
     if (error) {
-      setFormError(error.message)
+      setFormError(translateAuthError(error, t))
       return
     }
 

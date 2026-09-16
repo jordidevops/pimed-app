@@ -431,6 +431,7 @@ export function buildBulletinProjection(params: {
   showTasks: boolean
   showMaterials: boolean
   existingProjection?: Record<string, unknown> | null
+  projectTitle?: string | null
 }): Json {
   const selectedChecklist = new Set(params.selection.checklist_run_item_ids)
   const selectedTasks = new Set(params.selection.task_ids)
@@ -465,6 +466,9 @@ export function buildBulletinProjection(params: {
         : {}),
       project_id: params.projectId,
       generated_at: new Date().toISOString(),
+      ...(params.projectTitle?.trim()
+        ? { title: params.projectTitle.trim() }
+        : {}),
     },
     checklist_items,
     tasks,

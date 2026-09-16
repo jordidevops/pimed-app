@@ -5,7 +5,12 @@ import {
   type NavGate,
   type NavItemId,
 } from './navCatalog'
-import { buildDefaultNavLayout, DEFAULT_GROUP_LABEL_KEYS, PINNED_SECTION_ID } from './defaultNavLayout'
+import {
+  buildDefaultNavLayout,
+  DEFAULT_GROUP_IDS,
+  DEFAULT_GROUP_LABEL_KEYS,
+  PINNED_SECTION_ID,
+} from './defaultNavLayout'
 import {
   parseSidebarNav,
   type SidebarNavItemV1,
@@ -15,8 +20,11 @@ import {
 export interface NavGateContext {
   isManager: boolean
   hasMyEmployee: boolean
+  canUseAttendance: boolean
   showRecruitment: boolean
   isFieldService: boolean
+  /** Resolved landing path for this session (viewport + role + preference). */
+  homePath: string
 }
 
 export interface ResolvedNavItem {
@@ -57,6 +65,8 @@ export function passesGate(gate: NavGate, ctx: NavGateContext): boolean {
       return true
     case 'hasMyEmployee':
       return ctx.hasMyEmployee
+    case 'canUseAttendance':
+      return ctx.canUseAttendance
     case 'isManager':
       return ctx.isManager
     case 'showRecruitment':
@@ -65,6 +75,12 @@ export function passesGate(gate: NavGate, ctx: NavGateContext): boolean {
       return ctx.isFieldService
     case 'notFieldService':
       return !ctx.isFieldService
+    case 'isOffice':
+      return !ctx.isFieldService || ctx.isManager
+    case 'showFieldTodayNav':
+      return ctx.isFieldService && ctx.homePath !== '/field/today'
+    case 'showOfficeDashboardNav':
+      return ctx.isFieldService && ctx.isManager && ctx.homePath === '/field/today'
     default:
       return false
   }
@@ -83,7 +99,7 @@ export function resolveItemLabel(
     case 'sector_project':
       return labels.projectLabel
     case 'home':
-      return ctx.isFieldService
+      return ctx.homePath === '/field/today'
         ? labels.t('nav.field_today', 'Avui')
         : labels.t('nav.dashboard', 'Inici')
     case 'theme':
@@ -97,7 +113,7 @@ export function resolveItemLabel(
 export function resolveItemTo(entry: NavCatalogEntry, ctx: NavGateContext): string | undefined {
   if (entry.kind === 'theme') return undefined
   if (entry.id === 'home') {
-    return ctx.isFieldService ? '/field/today' : '/dashboard'
+    return ctx.homePath
   }
   return entry.to
 }
@@ -106,23 +122,103 @@ export function resolveItemMatch(
   entry: NavCatalogEntry,
   ctx: NavGateContext,
 ): ((path: string) => boolean) | undefined {
-  if (entry.id === 'home' && ctx.isFieldService) {
+  if (entry.id === 'home' && ctx.homePath === '/field/today') {
     return (path: string) =>
       path === '/field' || path === '/field/' || path.startsWith('/field/today')
   }
   return entry.match
 }
 
-/** Pick layout: user ?? tenant ?? platform default. */
+/** Pick layout: user ?? tenant ?? platform default.
+ * Custom layouts get missing platform-default items merged in (e.g. new CF-15 quotes).
+ */
 export function pickSidebarLayout(
   userRaw: unknown,
   tenantRaw: unknown,
 ): { layout: SidebarNavV1; source: 'user' | 'tenant' | 'platform' } {
   const user = parseSidebarNav(userRaw)
-  if (user) return { layout: user, source: 'user' }
+  if (user) {
+    return { layout: mergeMissingDefaultNavItems(user), source: 'user' }
+  }
   const tenant = parseSidebarNav(tenantRaw)
-  if (tenant) return { layout: tenant, source: 'tenant' }
+  if (tenant) {
+    return { layout: mergeMissingDefaultNavItems(tenant), source: 'tenant' }
+  }
   return { layout: buildDefaultNavLayout(), source: 'platform' }
+}
+
+/**
+ * Insert catalog items that exist in the platform default but are absent from a
+ * saved user/tenant layout, preserving relative order within each default group.
+ */
+export function mergeMissingDefaultNavItems(layout: SidebarNavV1): SidebarNavV1 {
+  const platform = buildDefaultNavLayout()
+  const present = new Set<string>()
+  for (const item of layout.pinned.items) present.add(item.id)
+  for (const group of layout.groups) {
+    for (const item of group.items) present.add(item.id)
+  }
+
+  const groups = layout.groups.map((g) => ({
+    ...g,
+    items: [...g.items],
+  }))
+
+  for (const defGroup of platform.groups) {
+    const missing = defGroup.items.filter((item) => !present.has(item.id))
+    if (missing.length === 0) continue
+
+    let target = groups.find((g) => g.id === defGroup.id)
+    if (!target) {
+      target = { id: defGroup.id, label: defGroup.label, items: [] }
+      groups.push(target)
+    }
+
+    for (const miss of missing) {
+      const defIndex = defGroup.items.findIndex((i) => i.id === miss.id)
+      let insertAt = defIndex === 0 ? 0 : target.items.length
+      for (let i = defIndex - 1; i >= 0; i--) {
+        const prevId = defGroup.items[i]?.id
+        const idx = target.items.findIndex((it) => it.id === prevId)
+        if (idx >= 0) {
+          insertAt = idx + 1
+          break
+        }
+      }
+      target.items.splice(insertAt, 0, { id: miss.id })
+      present.add(miss.id)
+    }
+  }
+
+  return pinItemFirstInGroup(
+    {
+      version: 2,
+      pinned: layout.pinned,
+      groups,
+    },
+    DEFAULT_GROUP_IDS.operations,
+    'field_today',
+  )
+}
+
+/** Keep Avui as the first Operativa item even in saved user/tenant layouts. */
+function pinItemFirstInGroup(
+  layout: SidebarNavV1,
+  groupId: string,
+  itemId: NavItemId,
+): SidebarNavV1 {
+  return {
+    ...layout,
+    groups: layout.groups.map((g) => {
+      if (g.id !== groupId) return g
+      const idx = g.items.findIndex((i) => i.id === itemId)
+      if (idx <= 0) return g
+      const next = [...g.items]
+      const [item] = next.splice(idx, 1)
+      next.unshift(item)
+      return { ...g, items: next }
+    }),
+  }
 }
 
 function resolveGroupLabel(

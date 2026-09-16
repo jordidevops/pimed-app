@@ -4,6 +4,7 @@ import { log } from "../_shared/observability/structured-logger.ts";
 import { sha256Bytes, bytesToPostgresHex } from "../_shared/employee-portal/crypto.ts";
 import { requireCustomerPortalBffAuth } from "../_shared/customer-portal/internal-auth.ts";
 import { pickLocalePayload } from "../_shared/customer-portal/locale-payload.ts";
+import { enrichResolveWithBulletinTitle } from "../_shared/customer-portal/bulletin-title.ts";
 
 const FEATURE = "resolve-customer-report-share";
 const HEX_64_RE = /^[0-9a-f]{64}$/;
@@ -108,22 +109,24 @@ Deno.serve(async (req: Request) => {
         });
       }
 
+      const enriched = await enrichResolveWithBulletinTitle(admin, row);
       return jsonResponse(200, {
         actor_type: "staff",
-        staff_user_id: row.staff_user_id,
-        expires_at: row.expires_at,
-        locale: row.locale,
-        content_digest: row.content_digest,
-        projection: row.projection,
-        media_manifest: row.media_manifest,
-        bulletins: row.bulletins,
-        access_activity: row.access_activity,
-        scope_mode: row.scope_mode,
-        client_account_contact_id: row.client_account_contact_id,
-        requires_report_version_id: row.requires_report_version_id,
-        report_version_id: row.report_version_id,
-        tenant_id: row.tenant_id,
-        ...pickLocalePayload(row),
+        staff_user_id: enriched.staff_user_id,
+        expires_at: enriched.expires_at,
+        locale: enriched.locale,
+        content_digest: enriched.content_digest,
+        projection: enriched.projection,
+        media_manifest: enriched.media_manifest,
+        bulletins: enriched.bulletins,
+        access_activity: enriched.access_activity,
+        scope_mode: enriched.scope_mode,
+        client_account_contact_id: enriched.client_account_contact_id,
+        requires_report_version_id: enriched.requires_report_version_id,
+        report_version_id: enriched.report_version_id,
+        tenant_id: enriched.tenant_id,
+        title: enriched.title,
+        ...pickLocalePayload(enriched),
       });
     }
 
@@ -154,16 +157,18 @@ Deno.serve(async (req: Request) => {
         return denied();
       }
 
+      const enriched = await enrichResolveWithBulletinTitle(admin, row);
       return jsonResponse(200, {
-        session_token: row.session_secret,
-        expires_at: row.expires_at,
-        locale: row.locale,
-        content_digest: row.content_digest,
-        projection: row.projection,
-        media_manifest: row.media_manifest,
-        tenant_id: row.tenant_id,
-        client_account_contact_id: row.client_account_contact_id,
-        ...pickLocalePayload(row),
+        session_token: enriched.session_secret,
+        expires_at: enriched.expires_at,
+        locale: enriched.locale,
+        content_digest: enriched.content_digest,
+        projection: enriched.projection,
+        media_manifest: enriched.media_manifest,
+        tenant_id: enriched.tenant_id,
+        client_account_contact_id: enriched.client_account_contact_id,
+        title: enriched.title,
+        ...pickLocalePayload(enriched),
       });
     }
 
@@ -191,14 +196,16 @@ Deno.serve(async (req: Request) => {
         return denied();
       }
 
+      const enriched = await enrichResolveWithBulletinTitle(admin, row);
       return jsonResponse(200, {
-        locale: row.locale,
-        content_digest: row.content_digest,
-        projection: row.projection,
-        media_manifest: row.media_manifest,
-        tenant_id: row.tenant_id,
-        client_account_contact_id: row.client_account_contact_id,
-        ...pickLocalePayload(row),
+        locale: enriched.locale,
+        content_digest: enriched.content_digest,
+        projection: enriched.projection,
+        media_manifest: enriched.media_manifest,
+        tenant_id: enriched.tenant_id,
+        client_account_contact_id: enriched.client_account_contact_id,
+        title: enriched.title,
+        ...pickLocalePayload(enriched),
       });
     }
 

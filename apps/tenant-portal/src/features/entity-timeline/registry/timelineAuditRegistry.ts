@@ -270,6 +270,36 @@ export function formatAuditMessage(
       return prefix + t('activity:audit.CLIENT_REPORT_STAFF_SESSION_CREATED', {
         defaultValue: 'ha obert el portal del client (suport)',
       })
+    case 'PROJECT_COMMERCIAL_ISSUED':
+      return prefix + t('activity:audit.PROJECT_COMMERCIAL_ISSUED', {
+        doc_number: messageVars.doc_number ?? '—',
+        defaultValue: 'ha emès {{doc_number}}',
+      })
+    case 'PROJECT_COMMERCIAL_SENT':
+      return prefix + t('activity:audit.PROJECT_COMMERCIAL_SENT', {
+        doc_number: messageVars.doc_number ?? '—',
+        defaultValue: 'ha enviat el document {{doc_number}}',
+      })
+    case 'PROJECT_COMMERCIAL_ACCEPTED':
+      return prefix + t('activity:audit.PROJECT_COMMERCIAL_ACCEPTED', {
+        doc_number: messageVars.doc_number ?? '—',
+        defaultValue: 'ha registrat l’acceptació de {{doc_number}}',
+      })
+    case 'PROJECT_COMMERCIAL_REJECTED':
+      return prefix + t('activity:audit.PROJECT_COMMERCIAL_REJECTED', {
+        doc_number: messageVars.doc_number ?? '—',
+        defaultValue: 'ha registrat el refús de {{doc_number}}',
+      })
+    case 'PROJECT_COMMERCIAL_CANCELLED':
+      return prefix + t('activity:audit.PROJECT_COMMERCIAL_CANCELLED', {
+        doc_number: messageVars.doc_number ?? '—',
+        defaultValue: 'ha descartat {{doc_number}}',
+      })
+    case 'PROJECT_COMMERCIAL_SUPERSEDED':
+      return prefix + t('activity:audit.PROJECT_COMMERCIAL_SUPERSEDED', {
+        doc_number: messageVars.doc_number ?? '—',
+        defaultValue: 'ha substituït {{doc_number}}',
+      })
     default:
       return prefix + t('activity:audit.GENERIC', {
         action: stripEntityActionPrefix(action),

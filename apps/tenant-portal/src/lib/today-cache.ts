@@ -61,11 +61,26 @@ export interface PendingChecklistAnswerRow {
   last_error?: string
 }
 
+export interface FieldProjectSnapshot {
+  /** `${tenantId}:${projectId}` */
+  id: string
+  tenant_id: string
+  project_id: string
+  project?: unknown
+  lines?: unknown[]
+  materials?: unknown[]
+  work_logs?: unknown[]
+  checklist_runs?: unknown[]
+  closeout_blockers?: unknown[]
+  cached_at: string
+}
+
 class FieldTodayDatabase extends Dexie {
   today_cache!: Table<TodayCacheRow, string>
   pending_photos!: Table<PendingPhotoRow, string>
   pending_checklist_answers!: Table<PendingChecklistAnswerRow, string>
   pending_field_media!: Table<PendingFieldMediaRow, string>
+  project_snapshots!: Table<FieldProjectSnapshot, string>
 
   constructor() {
     super('field_today_v1')
@@ -105,10 +120,68 @@ class FieldTodayDatabase extends Dexie {
         }
         await tx.table('pending_photos').clear()
       })
+    this.version(4).stores({
+      today_cache: 'id, tenant_id, day',
+      pending_photos: 'id, tenant_id, project_id, status, created_at',
+      pending_checklist_answers: 'id, tenant_id, project_id, item_id, status, created_at',
+      pending_field_media: 'id, tenant_id, project_id, status, created_at, purpose',
+      project_snapshots: 'id, tenant_id, project_id, cached_at',
+    })
   }
 }
 
 const db = new FieldTodayDatabase()
+
+export async function patchFieldProjectSnapshot(
+  tenantId: string,
+  projectId: string,
+  patch: Partial<
+    Pick<
+      FieldProjectSnapshot,
+      | 'project'
+      | 'lines'
+      | 'materials'
+      | 'work_logs'
+      | 'checklist_runs'
+      | 'closeout_blockers'
+    >
+  >,
+): Promise<void> {
+  const id = `${tenantId}:${projectId}`
+  await db.transaction('rw', db.project_snapshots, async () => {
+    const existing = await db.project_snapshots.get(id)
+    await db.project_snapshots.put({
+      id,
+      tenant_id: tenantId,
+      project_id: projectId,
+      ...existing,
+      ...patch,
+      cached_at: new Date().toISOString(),
+    })
+  })
+}
+
+export async function getFieldProjectSnapshot(
+  tenantId: string,
+  projectId: string,
+): Promise<FieldProjectSnapshot | null> {
+  return (await db.project_snapshots.get(`${tenantId}:${projectId}`)) ?? null
+}
+
+export async function purgeOldFieldProjectSnapshots(
+  tenantId: string,
+  olderThanIso: string,
+): Promise<number> {
+  const rows = await db.project_snapshots
+    .where('tenant_id')
+    .equals(tenantId)
+    .filter((row) => row.cached_at < olderThanIso)
+    .toArray()
+  if (rows.length > 0) {
+    await db.project_snapshots.bulkDelete(rows.map((row) => row.id))
+  }
+  return rows.length
+}
 
 export async function saveTodayCache(
   tenantId: string,
@@ -251,11 +324,13 @@ export async function enqueuePendingChecklistAnswer(
 
 export async function listPendingChecklistAnswers(
   tenantId: string,
+  options?: { includeFailed?: boolean },
 ): Promise<PendingChecklistAnswerRow[]> {
+  const includeFailed = options?.includeFailed ?? true
   return db.pending_checklist_answers
     .where('tenant_id')
     .equals(tenantId)
-    .filter((r) => r.status === 'pending' || r.status === 'failed')
+    .filter((r) => r.status === 'pending' || (includeFailed && r.status === 'failed'))
     .sortBy('created_at')
 }
 
@@ -273,4 +348,16 @@ export async function removePendingChecklistAnswer(id: string): Promise<void> {
 
 export async function markChecklistAnswerFailed(id: string, msg: string): Promise<void> {
   await db.pending_checklist_answers.update(id, { status: 'failed', last_error: msg })
+}
+
+export async function resetFailedChecklistAnswersToPending(tenantId: string): Promise<number> {
+  const failed = await db.pending_checklist_answers
+    .where('tenant_id')
+    .equals(tenantId)
+    .filter((r) => r.status === 'failed')
+    .toArray()
+  for (const row of failed) {
+    await db.pending_checklist_answers.update(row.id, { status: 'pending', last_error: undefined })
+  }
+  return failed.length
 }

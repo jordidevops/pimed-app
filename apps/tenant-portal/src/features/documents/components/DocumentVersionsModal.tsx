@@ -24,6 +24,7 @@ interface DocumentVersionsModalProps {
   documentTitle: string | null
   tenantId: string
   canWrite: boolean
+  allowDelete?: boolean
 }
 
 function formatBytes(bytes: number | null | undefined): string {
@@ -66,6 +67,7 @@ export function DocumentVersionsModal({
   documentTitle,
   tenantId,
   canWrite,
+  allowDelete = true,
 }: DocumentVersionsModalProps) {
   const { t } = useTranslation('documents')
   const { toast } = useToast()
@@ -92,6 +94,7 @@ export function DocumentVersionsModal({
 
   const latestVersion = versions[0]
   const canDeleteLatestVersion =
+    allowDelete &&
     versions.length > 1 &&
     (canWrite || latestVersion?.created_by === user?.id)
 

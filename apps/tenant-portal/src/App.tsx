@@ -62,6 +62,7 @@ import { SkillCatalogPage } from './features/employee-skills'
 import { DocumentsPage, ArchivedDocumentsPage, DocumentDetailPage, DocumentsStoragePage } from './features/documents'
 import { TemplatesPage, TemplateDetailPage, SigningCenterPage, SigningSubmissionDetail } from './features/signing'
 import { ProjectsPage, ProjectDetailPage } from './features/projects'
+import { QuotesPage } from './features/commercial/components/QuotesPage'
 import {
   FieldServiceLayout,
   TodayPage,
@@ -80,7 +81,7 @@ import {
   EmployeeContentEditorPage,
   PublicContentEditorPage,
 } from './features/tenant-content'
-import { PunchPage, MyRecordPage, CalendarPage, AbsencesPage, ShiftsPage, ControlHorariLayout, LegacyControlHorariRedirect, TaulerPage, FitxatgesPage, PlanificacioPage, PlanningLayout, SchedulePlannerPage, ShiftOpeningsPage, ShiftSwapsPage } from './features/attendance'
+import { AttendanceLayout, PunchPage, MyRecordPage, CalendarPage, AbsencesPage, PersonalAbsencesPage, ShiftsPage, ControlHorariLayout, LegacyControlHorariRedirect, TaulerPage, FitxatgesPage, PlanificacioPage, PlanningLayout, SchedulePlannerPage, ShiftOpeningsPage, ShiftSwapsPage } from './features/attendance'
 import { ATTENDANCE_MGMT_BASE } from './features/attendance/attendanceMgmtRoutes'
 import { ChatPage } from './features/ai-chat/pages/ChatPage'
 import { ChatSharedPage } from './features/ai-chat/pages/ChatSharedPage'
@@ -90,6 +91,8 @@ import { SidebarEditorPage } from './pages/SidebarEditorPage'
 import { Toaster } from './components/ui/toaster'
 import { TooltipProvider } from './components/ui/tooltip'
 import { SentryScopeSync } from './lib/observability'
+import { FieldSyncCoordinator } from './features/field-service/components/FieldSyncCoordinator'
+import { AttendanceSyncCoordinator } from './features/attendance/hooks/useAttendanceSync'
 
 /**
  * Handles the root path. If Supabase redirects an auth error to the site root
@@ -124,7 +127,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
     <AuthProvider>
     <TenantProvider>
+      <AttendanceSyncCoordinator>
       <SentryScopeSync />
+      <FieldSyncCoordinator />
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
@@ -171,6 +176,7 @@ export default function App() {
           <Route path="/files" element={<FilesPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/contacts/:id" element={<ContactDetailPage />} />
+          <Route path="/quotes" element={<QuotesPage />} />
           <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/departments" element={<DepartmentsPage />} />
           <Route path="/locations" element={<LocationsPage />} />
@@ -217,11 +223,13 @@ export default function App() {
           <Route path="/employee-portal/content" element={<EmployeeContentListPage />} />
           <Route path="/employee-portal/content/new" element={<EmployeeContentEditorPage />} />
           <Route path="/employee-portal/content/:id/edit" element={<EmployeeContentEditorPage />} />
-          <Route path="/attendance" element={<PunchPage />} />
-          <Route path="/attendance/record" element={<MyRecordPage />} />
-          <Route path="/attendance/calendar" element={<CalendarPage />} />
-          <Route path="/attendance/absences" element={<AbsencesPage />} />
-          <Route path="/attendance/shifts" element={<ShiftsPage />} />
+          <Route path="/attendance" element={<AttendanceLayout />}>
+            <Route index element={<PunchPage />} />
+            <Route path="record" element={<MyRecordPage />} />
+            <Route path="calendar" element={<CalendarPage />} />
+            <Route path="absences" element={<PersonalAbsencesPage />} />
+            <Route path="shifts" element={<ShiftsPage />} />
+          </Route>
           <Route path="/attendances" element={<Navigate to={`${ATTENDANCE_MGMT_BASE}/records`} replace />} />
           <Route path="/control-horari/*" element={<LegacyControlHorariRedirect />} />
           <Route path={ATTENDANCE_MGMT_BASE} element={<ControlHorariLayout />}>
@@ -277,6 +285,7 @@ export default function App() {
         <Route path="/" element={<RootRedirect />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+      </AttendanceSyncCoordinator>
     </TenantProvider>
     </AuthProvider>
     </QueryClientProvider>

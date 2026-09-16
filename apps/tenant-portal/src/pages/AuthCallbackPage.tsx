@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { Spinner } from '../components/ui/Spinner'
+import { translateAuthError } from '../features/auth/utils/translateAuthError'
 
 /**
  * Handles the OAuth callback redirect (PKCE flow).
@@ -10,6 +12,7 @@ import { Spinner } from '../components/ui/Spinner'
  * If the URL hash contains an error (expired or already-used link), shows an error state.
  */
 export function AuthCallbackPage() {
+  const { t } = useTranslation('auth')
   const navigate = useNavigate()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
@@ -20,7 +23,7 @@ export function AuthCallbackPage() {
     const params = new URLSearchParams(hash)
     const hashError = params.get('error_description') ?? params.get('error')
     if (hashError) {
-      setErrorMsg(hashError.replace(/\+/g, ' '))
+      setErrorMsg(translateAuthError(hashError.replace(/\+/g, ' '), t))
       return
     }
 
@@ -56,7 +59,7 @@ export function AuthCallbackPage() {
       clearTimeout(timeout)
       subscription.unsubscribe()
     }
-  }, [navigate])
+  }, [navigate, t])
 
   if (errorMsg) {
     return (
@@ -65,13 +68,13 @@ export function AuthCallbackPage() {
           <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-500 text-2xl mx-auto">
             ⚠
           </div>
-          <h1 className="text-base font-semibold text-foreground">Enllaç no vàlid</h1>
+          <h1 className="text-base font-semibold text-foreground">{t('resetPasswordPage.invalidLink', 'Enllaç no vàlid')}</h1>
           <p className="text-sm text-muted-foreground">{errorMsg}</p>
           <a
             href="/login"
             className="block w-full py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition"
           >
-            Anar al login
+            {t('resetPasswordPage.goToLogin', 'Anar al login')}
           </a>
         </div>
       </div>

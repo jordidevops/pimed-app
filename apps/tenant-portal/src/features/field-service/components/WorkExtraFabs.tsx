@@ -6,6 +6,8 @@ import { getTasks } from '@/features/projects/api/tasksService'
 import { tasksKeys } from '@/features/projects/api/tasksKeys'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
+import { useTenant } from '@/contexts/TenantContext'
+import { useProjectFieldOps } from '../hooks/useProjectFieldOps'
 
 export type WorkExtraSection = 'photos' | 'attachments' | 'materials' | 'tasks'
 
@@ -29,10 +31,13 @@ const ITEMS: {
 
 export function WorkExtraFabs({ projectId, active, onChange }: WorkExtraFabsProps) {
   const { t } = useTranslation('field-service')
+  const { activeTenant } = useTenant()
+  const tenantId = activeTenant?.id
+  const localOps = useProjectFieldOps(tenantId, projectId)
 
   const { data: materials = [] } = useQuery({
-    queryKey: ['project_materials', projectId],
-    queryFn: () => getProjectMaterials(projectId),
+    queryKey: ['project_materials', projectId, tenantId],
+    queryFn: () => getProjectMaterials(projectId, tenantId),
     enabled: !!projectId,
   })
 
@@ -85,7 +90,9 @@ export function WorkExtraFabs({ projectId, active, onChange }: WorkExtraFabsProp
   const badges: Record<WorkExtraSection, number | null> = {
     photos: photoCount > 0 ? photoCount : null,
     attachments: attachmentCount > 0 ? attachmentCount : null,
-    materials: materials.length > 0 ? materials.length : null,
+    materials: materials.length + localOps.materials.length > 0
+      ? materials.length + localOps.materials.length
+      : null,
     tasks: openTasks > 0 ? openTasks : null,
   }
 

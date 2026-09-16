@@ -55,29 +55,19 @@ export function ThemeCustomizer({
   className,
   label,
   showIcon = true,
+  contentOnly = false,
 }: {
   className?: string
   label?: string
   showIcon?: boolean
+  contentOnly?: boolean
 }) {
   const { t } = useTranslation('common')
   const { theme, setTheme, colorPresetId, setColorPresetId, radiusId, setRadiusId } = useTheme()
   const displayLabel = label ?? t('theme.customizer_label', 'Aparença')
 
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-            className={cn('tp-nav-item', className)}
-          aria-label={displayLabel}
-        >
-          {showIcon ? <PaletteIcon /> : <span className="inline-block h-5 w-5 shrink-0" aria-hidden />}
-          <span>{displayLabel}</span>
-        </button>
-      </PopoverTrigger>
-
-      <PopoverContent className="w-64 space-y-4" align="start" side="top">
+  const controls = (
+    <>
         {/* Mode */}
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
@@ -157,6 +147,28 @@ export function ThemeCustomizer({
             ))}
           </div>
         </div>
+    </>
+  )
+
+  if (contentOnly) {
+    return <div className={cn('space-y-4', className)}>{controls}</div>
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn('tp-nav-item', className)}
+          aria-label={displayLabel}
+        >
+          {showIcon ? <PaletteIcon /> : <span className="inline-block h-5 w-5 shrink-0" aria-hidden />}
+          <span>{displayLabel}</span>
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent className="w-64 space-y-4" align="start" side="top">
+        {controls}
       </PopoverContent>
     </Popover>
   )

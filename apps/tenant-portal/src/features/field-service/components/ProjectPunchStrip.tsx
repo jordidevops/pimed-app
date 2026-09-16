@@ -12,14 +12,20 @@ interface ProjectPunchStripProps {
   className?: string
   /** When true, start punch is blocked (visit closed / on_hold / cancelled). */
   locked?: boolean
+  /** Surface the operational next step instead of a second footer CTA. */
+  startMode?: 'start' | 'resume' | null
 }
 
-export function ProjectPunchStrip({ projectId, className, locked = false }: ProjectPunchStripProps) {
+export function ProjectPunchStrip({
+  projectId,
+  className,
+  locked = false,
+  startMode = null,
+}: ProjectPunchStripProps) {
   const { t } = useTranslation(['projects', 'field-service'])
   const { toast } = useToast()
   const summary = useProjectWorkLogSummary(projectId)
   const {
-    openLog,
     openLogInOtherProject,
     isCheckingOpenLogInOtherProject,
     isStarting,
@@ -72,30 +78,58 @@ export function ProjectPunchStrip({ projectId, className, locked = false }: Proj
   const displayTime = isOpen ? summary.sessionSeconds : summary.totalSeconds
   const timeLabel = isOpen
     ? t('field-service:detail.punch_elapsed', 'Temps en curs')
-    : t('field-service:detail.punch_total', 'Temps treballat')
+    : startMode && !locked
+      ? startMode === 'resume'
+        ? t('field-service:detail.primary_resume_work', 'Reprendre feina')
+        : t('field-service:detail.primary_start_work', 'Iniciar feina')
+      : t('field-service:detail.punch_total', 'Temps treballat')
+  const timeHint =
+    !isOpen && startMode && !locked
+      ? t(
+          'field-service:detail.punch_start_hint',
+          'Prem per iniciar el fitxatge i capturar la ubicació.',
+        )
+      : null
 
   return (
     <div
       className={cn(
         'mb-4 flex items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm',
+        startMode && !isOpen && !locked && 'border-green-600/40 bg-green-50/50 dark:bg-green-950/20',
         className,
       )}
     >
       {!isOpen ? (
         <Button
           type="button"
-          size="icon"
-          className="h-14 w-14 shrink-0 rounded-full bg-green-600 text-white hover:bg-green-700 shadow-md"
+          size={startMode ? 'default' : 'icon'}
+          className={cn(
+            'h-14 shrink-0 bg-green-600 text-white hover:bg-green-700 shadow-md',
+            startMode ? 'rounded-xl gap-2 px-4' : 'w-14 rounded-full',
+          )}
           onClick={onStart}
           disabled={locked || busy || isCheckingOpenLogInOtherProject || blockedElsewhere}
-          aria-label={t('field-service:fab.start', 'Iniciar visita')}
+          aria-label={
+            startMode === 'resume'
+              ? t('field-service:detail.primary_resume_work', 'Reprendre feina')
+              : startMode === 'start'
+                ? t('field-service:detail.primary_start_work', 'Iniciar feina')
+              : t('field-service:fab.start', 'Iniciar visita')
+          }
           title={
             locked
               ? t('field-service:punch.blocked_closed', 'La visita està tancada; no es pot fitxar.')
               : undefined
           }
         >
-          {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <Play className="h-6 w-6 ml-0.5" />}
+          {busy ? (
+            <Loader2 className="h-6 w-6 animate-spin" />
+          ) : (
+            <>
+              <Play className="h-5 w-5" />
+              {startMode ? <span>{timeLabel}</span> : null}
+            </>
+          )}
         </Button>
       ) : (
         <Button
@@ -115,7 +149,14 @@ export function ProjectPunchStrip({ projectId, className, locked = false }: Proj
         <p className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
           {formatElapsedSeconds(displayTime)}
         </p>
-        <p className="text-sm text-muted-foreground">{timeLabel}</p>
+        <p className={cn('text-sm', startMode && !isOpen && !locked ? 'font-medium text-foreground' : 'text-muted-foreground')}>
+          {startMode && !isOpen && !locked
+            ? t('field-service:detail.punch_total', 'Temps treballat')
+            : timeLabel}
+        </p>
+        {timeHint && (
+          <p className="mt-1 text-xs text-muted-foreground">{timeHint}</p>
+        )}
         {locked && !isOpen && (
           <p className="mt-1 text-xs text-muted-foreground">
             {t('field-service:punch.blocked_closed', 'La visita està tancada; no es pot fitxar.')}

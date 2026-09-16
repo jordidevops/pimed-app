@@ -23,6 +23,7 @@ import { useArchiveDocument } from '../api/useArchiveDocument'
 import { useFolders } from '../api/useFolders'
 import { DocumentUploadModal } from './DocumentUploadModal'
 import { DocumentVersionsModal } from './DocumentVersionsModal'
+import { isCommercialDmsArtifact } from '../utils/commercialDmsArtifact'
 import { DocumentTagsEditor } from './DocumentTagsEditor'
 import { DocumentOrchestrator, DocxPreviewModal } from '../../signing'
 import { SIGNING_STATUS_CLASSES } from '../../signing/signingStatusColors'
@@ -197,8 +198,10 @@ export function DocumentRow({ document: doc, canWrite, onShare, activeShareLinkC
   )
 
   // Permisos de supressió (client-side, validació definitiva al backend)
-  const canDeleteLatest = canWrite || doc.version_created_by === user?.id
-  const canDeleteAll    = canWrite || doc.created_by === user?.id
+  const canDeleteLatest =
+    !isCommercialDmsArtifact(doc) && (canWrite || doc.version_created_by === user?.id)
+  const canDeleteAll =
+    !isCommercialDmsArtifact(doc) && (canWrite || doc.created_by === user?.id)
   const hasMultipleVersions = (doc.version_number ?? 0) > 1
 
   async function handleHtmlPreview() {
@@ -552,7 +555,7 @@ export function DocumentRow({ document: doc, canWrite, onShare, activeShareLinkC
               )}
             </Button>
           )}
-          {(canDeleteLatest || canDeleteAll) && doc.id && (
+          {(canWrite || canDeleteLatest || canDeleteAll) && doc.id && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -624,6 +627,7 @@ export function DocumentRow({ document: doc, canWrite, onShare, activeShareLinkC
           documentTitle={doc.title}
           tenantId={doc.tenant_id ?? ''}
           canWrite={canWrite}
+          allowDelete={!isCommercialDmsArtifact(doc)}
         />
       )}
 

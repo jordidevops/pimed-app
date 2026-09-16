@@ -1,4 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   getPendingOps,
   markOpSynced,
@@ -10,6 +20,8 @@ import {
 } from '../db/attendanceDb'
 import { syncTimePunches } from '../api/attendanceService'
 import { chunkOps, isSyncSuccessStatus } from '../api/syncBatch'
+import { useAttendanceAccess } from './useAttendanceAccess'
+import { attendanceKeys } from '../api/attendanceKeys'
 
 const SYNC_INTERVAL_MS = 30_000 // 30 segons
 const MAX_ATTEMPTS = 5 // Intents màxims abans de quarantined
@@ -28,7 +40,11 @@ export interface AttendanceSyncState {
  * EX-05.1: drena per lots via `api.sync_time_punches` (no un a un).
  * `client_op_id` és estable: el de l'outbox, sense regenerar en retry.
  */
-export function useAttendanceSync(employeeId: string, tenantId: string, onPunchSynced?: () => void) {
+function useAttendanceSyncWorker(
+  employeeId: string,
+  tenantId: string,
+  onPunchSynced?: () => void,
+) {
   const [state, setState] = useState<AttendanceSyncState>({
     isOnline: navigator.onLine,
     isSyncing: false,
@@ -164,4 +180,42 @@ export function useAttendanceSync(employeeId: string, tenantId: string, onPunchS
   }
 
   return { ...state, drain, refreshCounts }
+}
+
+const AttendanceSyncContext = createContext<
+  (AttendanceSyncState & {
+    drain: () => Promise<void>
+    refreshCounts: () => Promise<void>
+  }) | null
+>(null)
+
+/**
+ * Owns the only attendance outbox drainage loop for the authenticated app.
+ * Pages and widgets observe this state instead of creating competing intervals.
+ */
+export function AttendanceSyncCoordinator({ children }: { children: ReactNode }) {
+  const access = useAttendanceAccess()
+  const queryClient = useQueryClient()
+  const employeeId = access.employee?.id ?? ''
+  const tenantId = access.tenant?.id ?? ''
+
+  const invalidateAttendance = useCallback(() => {
+    if (!employeeId) return
+    queryClient.invalidateQueries({ queryKey: attendanceKeys.todayPunches(employeeId) })
+    queryClient.invalidateQueries({ queryKey: attendanceKeys.todayEntries(employeeId) })
+    queryClient.invalidateQueries({ queryKey: ['attendance', 'my-punches', employeeId] })
+    queryClient.invalidateQueries({ queryKey: ['attendance', 'my-entries', employeeId] })
+  }, [employeeId, queryClient])
+
+  const state = useAttendanceSyncWorker(employeeId, tenantId, invalidateAttendance)
+
+  return createElement(AttendanceSyncContext.Provider, { value: state }, children)
+}
+
+export function useAttendanceSync() {
+  const value = useContext(AttendanceSyncContext)
+  if (!value) {
+    throw new Error('useAttendanceSync must be used within AttendanceSyncCoordinator')
+  }
+  return value
 }

@@ -243,6 +243,7 @@ export function BulletinStandalonePreviewPage() {
           (typeof previewJson.locale === 'string' ? previewJson.locale : draft?.locale) || locale
         }
         tenantNameFallback={activeTenant?.name}
+        documentTitle={project?.name}
         contentDigest={previewDigest}
         media={previewMedia}
         draftBanner={false}

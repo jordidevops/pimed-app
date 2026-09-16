@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useTenant } from '@/contexts/TenantContext'
 
 export type SectorLabelKey = 'project' | 'contact' | string
@@ -19,4 +20,16 @@ export function useSectorLabel(key: SectorLabelKey, fallback: string): string {
 export function useIsFieldService(): boolean {
   const { activeTenant } = useTenant()
   return activeTenant?.archetype === 'field_service'
+}
+
+/** List/nav label for `/contacts`: plural in field service ("Clients"), singular sector override otherwise. */
+export function useSectorContactListLabel(): string {
+  const { t } = useTranslation('common')
+  const { t: tField } = useTranslation('field-service')
+  const isFieldService = useIsFieldService()
+  const pluralOverride = useSectorLabel('contacts', '')
+  const singular = useSectorLabel('contact', t('nav.contacts', 'Contactes'))
+  if (pluralOverride) return pluralOverride
+  if (isFieldService) return tField('more.clients', t('nav.clients', 'Clients'))
+  return singular
 }

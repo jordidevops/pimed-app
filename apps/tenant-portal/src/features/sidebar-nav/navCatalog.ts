@@ -20,10 +20,13 @@ import {
   Folder,
   Settings,
   Palette,
+  Sun,
 } from 'lucide-react'
 
 export type NavItemId =
   | 'home'
+  | 'field_today'
+  | 'office_dashboard'
   | 'attendance'
   | 'attendance_calendar'
   | 'ai_chat'
@@ -38,6 +41,7 @@ export type NavItemId =
   | 'locations'
   | 'catalog'
   | 'contacts'
+  | 'quotes'
   | 'field_orders'
   | 'projects'
   | 'documents'
@@ -50,10 +54,14 @@ export type NavItemId =
 export type NavGate =
   | 'always'
   | 'hasMyEmployee'
+  | 'canUseAttendance'
   | 'isManager'
   | 'showRecruitment'
   | 'isFieldService'
   | 'notFieldService'
+  | 'isOffice'
+  | 'showFieldTodayNav'
+  | 'showOfficeDashboardNav'
 
 export type NavLabelKind = 'i18n' | 'sector_contact' | 'sector_project' | 'home' | 'theme'
 
@@ -82,12 +90,33 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     kind: 'link',
   },
   {
+    id: 'field_today',
+    labelKey: 'nav.field_today',
+    labelFallback: 'Avui',
+    labelKind: 'i18n',
+    icon: Sun,
+    gate: 'showFieldTodayNav',
+    to: '/field/today',
+    kind: 'link',
+    match: (path) => path === '/field' || path === '/field/' || path.startsWith('/field/today'),
+  },
+  {
+    id: 'office_dashboard',
+    labelKey: 'nav.dashboard',
+    labelFallback: 'Inici',
+    labelKind: 'i18n',
+    icon: LayoutGrid,
+    gate: 'showOfficeDashboardNav',
+    to: '/dashboard',
+    kind: 'link',
+  },
+  {
     id: 'attendance',
     labelKey: 'nav.attendance',
-    labelFallback: 'Fitxatge',
+    labelFallback: 'Horari',
     labelKind: 'i18n',
     icon: Clock,
-    gate: 'hasMyEmployee',
+    gate: 'canUseAttendance',
     to: '/attendance',
     kind: 'link',
   },
@@ -97,7 +126,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     labelFallback: 'Calendari',
     labelKind: 'i18n',
     icon: CalendarDays,
-    gate: 'hasMyEmployee',
+    gate: 'canUseAttendance',
     to: '/attendance/calendar',
     kind: 'link',
   },
@@ -117,7 +146,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     labelFallback: 'Empleats',
     labelKind: 'i18n',
     icon: UserCheck,
-    gate: 'always',
+    gate: 'isOffice',
     to: '/employees',
     kind: 'link',
   },
@@ -137,7 +166,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     labelFallback: 'Organigrama',
     labelKind: 'i18n',
     icon: GitBranch,
-    gate: 'always',
+    gate: 'isOffice',
     to: '/employees/organization',
     kind: 'link',
   },
@@ -188,7 +217,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     labelFallback: 'Departaments',
     labelKind: 'i18n',
     icon: Building2,
-    gate: 'always',
+    gate: 'isOffice',
     to: '/departments',
     kind: 'link',
   },
@@ -198,7 +227,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     labelFallback: 'Ubicacions',
     labelKind: 'i18n',
     icon: MapPin,
-    gate: 'always',
+    gate: 'isOffice',
     to: '/locations',
     kind: 'link',
   },
@@ -208,7 +237,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     labelFallback: 'Catàleg',
     labelKind: 'i18n',
     icon: Package,
-    gate: 'always',
+    gate: 'isOffice',
     to: '/catalog',
     kind: 'link',
   },
@@ -220,6 +249,16 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     icon: Users,
     gate: 'always',
     to: '/contacts',
+    kind: 'link',
+  },
+  {
+    id: 'quotes',
+    labelKey: 'nav.quotes',
+    labelFallback: 'Pressupostos',
+    labelKind: 'i18n',
+    icon: FileText,
+    gate: 'isOffice',
+    to: '/quotes',
     kind: 'link',
   },
   {
@@ -249,7 +288,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     labelFallback: 'Documents',
     labelKind: 'i18n',
     icon: FileText,
-    gate: 'always',
+    gate: 'isOffice',
     to: '/documents',
     kind: 'link',
   },
@@ -259,7 +298,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     labelFallback: 'Fitxers',
     labelKind: 'i18n',
     icon: Folder,
-    gate: 'always',
+    gate: 'isOffice',
     to: '/files',
     kind: 'link',
   },
@@ -289,7 +328,7 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     labelFallback: 'Configuració',
     labelKind: 'i18n',
     icon: Settings,
-    gate: 'always',
+    gate: 'isOffice',
     to: '/settings',
     kind: 'link',
   },

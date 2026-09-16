@@ -2,6 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useWorkLog } from './useWorkLog'
+import { useTenant } from '@/contexts/TenantContext'
+import { useProjectFieldOps } from '@/features/field-service/hooks/useProjectFieldOps'
+import type { WorklogStartPayload, WorklogStopPayload } from '@/lib/field-ops-db'
+import {
+  getFieldProjectSnapshot,
+  patchFieldProjectSnapshot,
+} from '@/lib/today-cache'
+import { workLogRowSeconds } from '@/features/field-service/utils/workLogDuration'
 
 export type WorkLogInterval = {
   check_in: string | null
@@ -13,6 +21,8 @@ export type WorkLogInterval = {
 }
 
 type WorkLogRow = {
+  id?: string | null
+  client_op_id?: string | null
   project_id?: string | null
   check_in: string | null
   check_out: string | null
@@ -20,20 +30,9 @@ type WorkLogRow = {
   status: string | null
 }
 
-function rowSeconds(row: WorkLogRow, nowMs = Date.now()): number {
-  if (row.duration_minutes != null && row.check_out) {
-    return Math.max(0, row.duration_minutes * 60)
-  }
-  if (row.check_in && row.check_out) {
-    return Math.max(0, Math.floor((new Date(row.check_out).getTime() - new Date(row.check_in).getTime()) / 1000))
-  }
-  if (row.check_in && !row.check_out) {
-    return Math.max(0, Math.floor((nowMs - new Date(row.check_in).getTime()) / 1000))
-  }
-  return 0
-}
-
 export function useProjectWorkLogSummary(projectId: string | null) {
+  const { activeTenant } = useTenant()
+  const localOps = useProjectFieldOps(activeTenant?.id, projectId)
   const { openLog, isLoading: openLoading } = useWorkLog(projectId)
   const [liveSeconds, setLiveSeconds] = useState(0)
 
@@ -45,12 +44,24 @@ export function useProjectWorkLogSummary(projectId: string | null) {
     queryFn: async (): Promise<WorkLogRow[]> => {
       const { data, error } = await supabase
         .from('work_logs')
-        .select('check_in, check_out, duration_minutes, status')
+        .select('id, client_op_id, check_in, check_out, duration_minutes, status')
         .eq('project_id', projectId!)
         .order('check_in', { ascending: false })
 
-      if (error) throw error
-      return (data ?? []) as WorkLogRow[]
+      if (error) {
+        if (activeTenant?.id) {
+          const snapshot = await getFieldProjectSnapshot(activeTenant.id, projectId!)
+          if (snapshot?.work_logs) return snapshot.work_logs as WorkLogRow[]
+        }
+        throw error
+      }
+      const rows = (data ?? []) as WorkLogRow[]
+      if (activeTenant?.id) {
+        await patchFieldProjectSnapshot(activeTenant.id, projectId!, {
+          work_logs: rows,
+        })
+      }
+      return rows
     },
   })
 
@@ -70,12 +81,43 @@ export function useProjectWorkLogSummary(projectId: string | null) {
   }, [openCheckIn, isOpen])
 
   const intervals = useMemo((): WorkLogInterval[] => {
-    const rows = logsQuery.data ?? []
+    const stops = localOps.ops
+      .filter((op) => op.kind === 'worklog.stop')
+      .map((op) => op.payload as WorklogStopPayload)
+    const rows: WorkLogRow[] = (logsQuery.data ?? []).map((row) => {
+      const stop = stops.find(
+        (payload) =>
+          payload.work_log_id === row.id ||
+          (row.client_op_id && payload.client_op_id === row.client_op_id),
+      )
+      return stop
+        ? {
+            ...row,
+            check_out: stop.occurred_at,
+            status: 'closed_local',
+            duration_minutes: null,
+          }
+        : row
+    })
+    const serverClientIds = new Set(rows.map((row) => row.client_op_id).filter(Boolean))
+    for (const op of localOps.ops) {
+      if (op.kind !== 'worklog.start' || serverClientIds.has(op.id)) continue
+      const start = op.payload as WorklogStartPayload
+      const stop = stops.find((payload) => payload.client_op_id === op.id)
+      rows.push({
+        id: op.id,
+        client_op_id: op.id,
+        check_in: start.occurred_at,
+        check_out: stop?.occurred_at ?? null,
+        duration_minutes: null,
+        status: stop ? 'closed_local' : 'open_local',
+      })
+    }
     return rows.map((row) => {
       const open = !row.check_out
       const seconds = open
         ? (isOpen ? liveSeconds : 0)
-        : rowSeconds(row)
+        : workLogRowSeconds(row)
       return {
         check_in: row.check_in,
         check_out: row.check_out,
@@ -85,7 +127,7 @@ export function useProjectWorkLogSummary(projectId: string | null) {
         isOpen: open,
       }
     })
-  }, [logsQuery.data, isOpen, liveSeconds])
+  }, [logsQuery.data, localOps.ops, isOpen, liveSeconds])
 
   const closedSeconds = useMemo(() => {
     return intervals.reduce((acc, row) => (row.isOpen ? acc : acc + row.seconds), 0)
@@ -148,7 +190,7 @@ export function useProjectsWorkLogTotals(
       if (!pid) continue
       const open = !row.check_out
       if (open) continue
-      map.set(pid, (map.get(pid) ?? 0) + rowSeconds(row))
+      map.set(pid, (map.get(pid) ?? 0) + workLogRowSeconds(row))
     }
     if (activeOpen?.projectId) {
       map.set(

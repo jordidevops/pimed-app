@@ -26,7 +26,10 @@ export function buildDefaultNavLayout(): SidebarNavV1 {
         id: DEFAULT_GROUP_IDS.operations,
         label: 'Operativa',
         items: [
+          { id: 'field_today' },
+          { id: 'office_dashboard' },
           { id: 'contacts' },
+          { id: 'quotes' },
           { id: 'field_orders' },
           { id: 'projects' },
           { id: 'documents' },

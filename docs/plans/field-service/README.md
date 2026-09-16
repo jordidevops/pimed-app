@@ -71,6 +71,7 @@ flowchart TB
 | [odoo/estudi-prioritat-moduls-odoo-per-verticals.md](../odoo/estudi-prioritat-moduls-odoo-per-verticals.md) | Prioritat #1 |
 | [projects/plan-millora-projectes.md](../projects/plan-millora-projectes.md) | Projects = substrat, no producte FSM |
 | [prompts/projectes/plan.md](../../../prompts/projectes/plan.md) | Pla d’implementació Projects / work_logs |
+| [commercial-flow/](../commercial-flow/) | Capa comercial: pressupost, import autoritzat, ampliació, albarà i cobrament |
 | [expenses/](../expenses/) | Despeses camp (`line_first`) |
 | [checkin/plan-effective-work-time.md](../checkin/plan-effective-work-time.md) | Itinerant ≠ centre fix; `field_punch` |
 | [offline-app/offline_plan.md](../offline-app/offline_plan.md) | Pla antic `tech-portal` — V1 = shell dins tenant-portal |

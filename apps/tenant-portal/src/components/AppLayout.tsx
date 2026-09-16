@@ -9,6 +9,7 @@ import { NotificationBell } from '@/features/notifications/components/Notificati
 import { useIsFieldService } from '@/hooks/useSectorLabel'
 import { useSidebarNav, PINNED_MAX_HEIGHT_CLASS, type ResolvedNavItem } from '@/features/sidebar-nav'
 import { cn } from '@/lib/utils'
+import { FieldBottomNav } from '@/features/field-service/components/FieldBottomNav'
 
 function TenantSelector() {
   const { t } = useTranslation('common')
@@ -159,7 +160,12 @@ export function AppLayout() {
   }
 
   const navItemIdle = 'tp-nav-item'
-  const showFieldBottomNav = isFieldService && location.pathname.startsWith('/field')
+  const showFieldBottomNav =
+    isFieldService &&
+    (location.pathname.startsWith('/field') ||
+      location.pathname === '/attendance' ||
+      location.pathname.startsWith('/attendance/') ||
+      location.pathname === '/dashboard')
 
   const brandLink = (
     <Link
@@ -285,10 +291,16 @@ export function AppLayout() {
           </div>
         </header>
 
-        <main className="flex-1 min-h-0 overflow-y-auto">
+        <main
+          className={cn(
+            'flex-1 min-h-0 overflow-y-auto',
+            showFieldBottomNav && 'pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0',
+          )}
+        >
           <Outlet />
         </main>
       </div>
+      {showFieldBottomNav && <FieldBottomNav />}
     </div>
   )
 }

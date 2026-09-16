@@ -21,6 +21,11 @@ import { initObservability, captureException } from "../_shared/observability/sy
 import { log } from "../_shared/observability/structured-logger.ts";
 import { createOperationLogService } from "../_shared/observability/operation-log-service.ts";
 import { isInfrastructureBug } from "../_shared/observability/helpers.ts";
+import {
+  commercialJobIds,
+  isCommercialPdfJob,
+  persistCommercialRenderedPdf,
+} from "../_shared/persist-commercial-pdf.ts";
 
 const FEATURE = "process-gotenberg-callback";
 const GOTENBERG_SLOW_MS = 30_000;
@@ -210,8 +215,24 @@ Deno.serve(async (req: Request) => {
 
     let resultDocumentId: string | null = null;
     let resultVersionId: string | null  = null;
+    const jobAsRecord = job as Record<string, unknown>;
 
-    if (job.source_type === "document_existing" && job.result_document_id) {
+    if (isCommercialPdfJob(jobAsRecord)) {
+      const ids = commercialJobIds(jobAsRecord);
+      const persisted = await persistCommercialRenderedPdf({
+        admin: db,
+        tenantId,
+        commercialDocumentId: ids.commercialDocumentId,
+        title: String(job.document_title ?? "document"),
+        createdBy: (job.created_by as string | null) ?? null,
+        clientOpId: ids.clientOpId,
+        pdfJobId: jobId,
+        pdfBytes,
+        existingPath: pdfPath,
+      });
+      resultDocumentId = persisted.documentId;
+      resultVersionId = persisted.versionId;
+    } else if (job.source_type === "document_existing" && job.result_document_id) {
       const { data: verData, error: verErr } = await db.rpc("add_document_version_internal", {
         p_document_id:      job.result_document_id,
         p_file_path_or_url: pdfPath,

@@ -11,7 +11,7 @@ import { DocumentsSubNav } from './DocumentsSubNav'
 import { useArchivedDocuments } from '../api/useArchivedDocuments'
 import { useUnarchiveDocument } from '../api/useUnarchiveDocument'
 import { useDeleteDocumentAll } from '../api/useDeleteDocumentAll'
-import type { ArchivedDocument } from '../api/documentsService'
+import { isCommercialDmsArtifact } from '../utils/commercialDmsArtifact'
 
 function formatDateTime(iso: string | null): string | null {
   if (!iso) return null
@@ -78,6 +78,7 @@ function ArchivedDocumentRow({ doc, canWrite, onUnarchive, onDelete }: ArchivedD
           >
             <RotateCcw className="h-4 w-4" />
           </Button>
+          {!isCommercialDmsArtifact(doc) && (
           <Button
             variant="ghost"
             size="sm"
@@ -87,6 +88,7 @@ function ArchivedDocumentRow({ doc, canWrite, onUnarchive, onDelete }: ArchivedD
           >
             <Trash2 className="h-4 w-4" />
           </Button>
+          )}
         </div>
       )}
     </div>

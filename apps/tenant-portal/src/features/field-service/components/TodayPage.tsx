@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { MapPin, ChevronRight, Loader2, Pause, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -17,8 +18,17 @@ import { FieldStatsRow } from './FieldStatsRow'
 import { useFieldSync } from '@/hooks/useFieldSync'
 import { useTenant } from '@/contexts/TenantContext'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
-import { countPendingPhotos } from '@/lib/today-cache'
+import {
+  countPendingPhotos,
+  listPendingChecklistAnswers,
+  listPendingFieldMedia,
+} from '@/lib/today-cache'
 import type { ProjectListItem } from '@/features/projects/api/projectsService'
+import { PaymentPendingChip } from '@/features/commercial/components/PaymentPendingChip'
+import { getProjectsPaymentPending } from '@/features/commercial/api/commercialFlowService'
+import { getFieldOpsAdapter } from '@/lib/field-ops-db'
+import { projectFieldProjection, type LocalCloseOutState } from '../hooks/useProjectFieldOps'
+import { TodayAttendanceCard } from './TodayAttendanceCard'
 
 function formatTime(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -55,7 +65,10 @@ export function TodayPage() {
   const { toast } = useToast()
   const { activeTenant } = useTenant()
   const isOnline = useOnlineStatus()
-  const sync = useFieldSync(activeTenant?.id ?? null)
+  const sync = useFieldSync(activeTenant?.id ?? null, { autoDrain: false })
+  const [localProjectState, setLocalProjectState] = useState<
+    Record<string, { closeState: LocalCloseOutState; pendingCount: number }>
+  >({})
   const [photoPending, setPhotoPending] = useState(0)
   const [visitDialogOpen, setVisitDialogOpen] = useState(false)
   const [visitOrderId, setVisitOrderId] = useState<string | null>(null)
@@ -63,6 +76,16 @@ export function TodayPage() {
   const orders = data?.items ?? []
   const fromCache = Boolean((data as { fromCache?: boolean } | undefined)?.fromCache)
   const pendingTotal = sync.pendingCount + photoPending
+  const orderIds = useMemo(
+    () => orders.map((o) => o.id).filter((id): id is string => !!id),
+    [orders],
+  )
+  const { data: paymentPendingMap = {} } = useQuery({
+    queryKey: ['payment_pending', 'today', orderIds.join(',')],
+    queryFn: () => getProjectsPaymentPending(orderIds),
+    enabled: orderIds.length > 0,
+    staleTime: 30_000,
+  })
 
   const { openLogInOtherProject, isCheckingOpenLogInOtherProject } = useWorkLog(null)
   const activeProjectId = openLogInOtherProject?.project_id ?? null
@@ -89,6 +112,52 @@ export function TodayPage() {
     const id = window.setInterval(refresh, 15_000)
     return () => window.clearInterval(id)
   }, [activeTenant?.id, sync.pendingCount])
+
+  useEffect(() => {
+    if (!activeTenant?.id) {
+      setLocalProjectState({})
+      return
+    }
+    const refresh = async () => {
+      const [{ adapter }, checklistRows, mediaRows] = await Promise.all([
+        getFieldOpsAdapter(),
+        listPendingChecklistAnswers(activeTenant.id),
+        listPendingFieldMedia(activeTenant.id),
+      ])
+      const entries = await Promise.all(
+        orderIds.map(async (projectId) => {
+          const ops = await adapter.listProjectOps(activeTenant.id, projectId, [
+            'pending',
+            'syncing',
+            'rejected',
+            'quarantined',
+          ])
+          const projection = projectFieldProjection(ops)
+          const hasExternalFailure =
+            checklistRows.some(
+              (row) => row.project_id === projectId && row.status === 'failed',
+            ) ||
+            mediaRows.some(
+              (row) => row.project_id === projectId && row.status === 'failed',
+            )
+          return [
+            projectId,
+            {
+              closeState:
+                projection.closeOp && hasExternalFailure
+                  ? 'action_required' as const
+                  : projection.closeState,
+              pendingCount: ops.filter((op) => op.status !== 'synced').length,
+            },
+          ] as const
+        }),
+      )
+      setLocalProjectState(Object.fromEntries(entries))
+    }
+    void refresh()
+    window.addEventListener('fieldop:changed', refresh)
+    return () => window.removeEventListener('fieldop:changed', refresh)
+  }, [activeTenant?.id, orderIds])
 
   function openStartVisit(order: ProjectListItem, e?: React.MouseEvent) {
     e?.preventDefault()
@@ -148,6 +217,7 @@ export function TodayPage() {
         )}
       </div>
 
+      <TodayAttendanceCard />
       <FieldStatsRow />
       <FieldOnboardingCard show={orders.length === 0} />
 
@@ -167,10 +237,18 @@ export function TodayPage() {
           {orders.map((order) => {
             const address = siteLine(order)
             const isActive = !!order.id && order.id === activeProjectId
+            const storedLocalState = order.id ? localProjectState[order.id] : undefined
+            const localState =
+              order.status === 'completed' || order.status === 'on_hold' || order.status === 'cancelled'
+                ? storedLocalState
+                  ? { ...storedLocalState, closeState: 'none' as const }
+                  : undefined
+                : storedLocalState
             const canStart =
               !activeProjectId
               && order.status !== 'completed'
               && order.status !== 'cancelled'
+              && localState?.closeState === 'none'
             return (
               <li key={order.id} className="flex items-stretch gap-2">
                 <Link
@@ -185,7 +263,19 @@ export function TodayPage() {
                       <span className="font-semibold text-foreground truncate">
                         {order.name}
                       </span>
-                      {isActive ? (
+                      {localState?.closeState && localState.closeState !== 'none' ? (
+                        <Badge variant={localState.closeState === 'action_required' ? 'destructive' : 'secondary'}>
+                          {localState.closeState === 'action_required'
+                            ? t('field-service:closeout.offline.action_required', 'Cal revisar')
+                            : localState.closeState === 'synced'
+                              ? t(
+                                  'field-service:closeout.offline.synced',
+                                  'Feina tancada · albarà pendent d’emetre',
+                                )
+                            : t('field-service:closeout.offline.pending_sync', 'Pendent de sincronitzar')}
+                          {localState.pendingCount > 0 ? ` · ${localState.pendingCount}` : ''}
+                        </Badge>
+                      ) : isActive ? (
                         <Badge className="bg-green-600 hover:bg-green-600 text-white">
                           {t('field-service:today.working', 'Treballant')}
                           {activeCheckIn ? ` · ${formatElapsedSeconds(elapsedSeconds)}` : ''}
@@ -193,6 +283,16 @@ export function TodayPage() {
                       ) : (
                         <Badge variant={getProjectStatusVariant(order.status)}>
                           {getProjectStatusLabel(t, order.status, { fieldService: true })}
+                        </Badge>
+                      )}
+                      <PaymentPendingChip
+                        pending={!!(order.id && paymentPendingMap[order.id])}
+                      />
+                      {!!localState?.pendingCount && localState.closeState === 'none' && (
+                        <Badge variant="outline">
+                          {t('field-service:today.pending_ops', '{{count}} pendents', {
+                            count: localState.pendingCount,
+                          })}
                         </Badge>
                       )}
                     </div>

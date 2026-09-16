@@ -1,8 +1,23 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, Link, useSearchParams, useLocation, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Pencil, ClipboardList, Wifi, WifiOff, RefreshCw, MapPin, ExternalLink, CheckCircle2, Trash2, FileSignature } from 'lucide-react'
+import {
+  ArrowLeft,
+  Pencil,
+  ClipboardList,
+  Wifi,
+  WifiOff,
+  RefreshCw,
+  MapPin,
+  ExternalLink,
+  CheckCircle2,
+  Trash2,
+  FileSignature,
+  MoreVertical,
+  History,
+  AlertTriangle,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -13,6 +28,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useToast } from '@/hooks/use-toast'
 import { useProject } from '../api/useProject'
 import { projectsKeys } from '../api/projectsKeys'
@@ -21,6 +42,7 @@ import { ProjectForm } from './ProjectForm'
 import { TaskList } from './TaskList'
 import { ProjectLinesSection } from './ProjectLinesSection'
 import { WorkLogCard } from './WorkLogCard'
+import { useProjectWorkLogSummary } from '../api/useProjectWorkLogSummary'
 import { useTenant } from '@/contexts/TenantContext'
 import { useFieldSync, enqueueFieldOp } from '@/hooks/useFieldSync'
 import { EntityTimeline } from '@/features/entity-timeline'
@@ -36,9 +58,31 @@ import {
   ClosedVisitWorkReview,
   ProjectPunchStrip,
   WorkExtraFabs,
-  ProjectBulletinPanel,
   type WorkExtraSection,
 } from '@/features/field-service'
+import { OrderPhaseStepper } from '@/features/field-service/components/OrderPhaseStepper'
+import { OrderPrimaryActionBar } from '@/features/field-service/components/OrderPrimaryActionBar'
+import { DeliverPhaseView } from '@/features/field-service/components/DeliverPhaseView'
+import {
+  deriveOrderWorkflow,
+  resolveOrderTab,
+  tabToSearchParam,
+  type OrderPhaseTab,
+  type OrderPrimaryAction,
+} from '@/features/field-service/utils/deriveOrderWorkflow'
+import { ProjectCommercialPanel } from '@/features/commercial/components/ProjectCommercialPanel'
+import { PaymentPendingChip } from '@/features/commercial/components/PaymentPendingChip'
+import { ReissueQuoteDialog } from '@/features/commercial/components/ReissueQuoteDialog'
+import { useProjectFieldOps } from '@/features/field-service/hooks/useProjectFieldOps'
+import { requestFieldDeviceSync } from '@/features/field-service/utils/fieldDeviceSyncEvents'
+import {
+  issueCommercialDocument,
+  listPaymentsForDocuments,
+  listProjectCommercialDocuments,
+  projectHasQuoteWaiver,
+  reissueCommercialQuote,
+} from '@/features/commercial/api/commercialFlowService'
+import { supabase } from '@/lib/supabase'
 import { DeleteProjectDialog } from './DeleteProjectDialog'
 import {
   getProjectStatusClass,
@@ -59,6 +103,12 @@ export function ProjectDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [workExtra, setWorkExtra] = useState<WorkExtraSection | null>(null)
   const [workEditing, setWorkEditing] = useState(false)
+  const [receiptHandled, setReceiptHandled] = useState(false)
+  const [forceViewDocId, setForceViewDocId] = useState<string | null>(null)
+  const [forceCollectDocId, setForceCollectDocId] = useState<string | null>(null)
+  const [forceReceiptPaymentId, setForceReceiptPaymentId] = useState<string | null>(null)
+  const [primaryBusy, setPrimaryBusy] = useState(false)
+  const [reissueQuoteOpen, setReissueQuoteOpen] = useState(false)
   const { activeTenant, activeRole, selectedTenantId, tenantScopeReady } = useTenant()
   const canEditVisitIntent =
     activeRole === 'owner' || activeRole === 'manager' || activeRole === 'member'
@@ -67,27 +117,152 @@ export function ProjectDetailPage() {
   const isFieldService = useIsFieldService()
   const onFieldRoute = location.pathname.startsWith('/field/')
   const listPath = isFieldService ? '/field/orders' : '/projects'
-  const sync = useFieldSync(activeTenant?.id ?? null)
+  const sync = useFieldSync(activeTenant?.id ?? null, { autoDrain: false })
+  const localOps = useProjectFieldOps(activeTenant?.id, id)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
   const { data: project, isLoading, error } = useProject(id ?? '')
+  const workLogSummary = useProjectWorkLogSummary(project?.id ?? null)
 
-  const activeTab =
-    tabParam === 'punch' ||
-    tabParam === 'activity' ||
-    tabParam === 'budget' ||
-    tabParam === 'work' ||
-    tabParam === 'bulletin'
-      ? tabParam
-      : highlightCommentId
-        ? 'activity'
-        : 'work'
+  const { data: commercialDocs = [] } = useQuery({
+    queryKey: ['commercial_documents', project?.id],
+    queryFn: () => listProjectCommercialDocuments(project!.id!),
+    enabled: isFieldService && !!project?.id && tenantScopeReady,
+  })
+
+  const commercialDocIds = useMemo(() => commercialDocs.map((d) => d.id), [commercialDocs])
+
+  const { data: commercialPayments = [] } = useQuery({
+    queryKey: ['commercial_payments', project?.id, commercialDocIds.join(',')],
+    queryFn: () => listPaymentsForDocuments(commercialDocIds),
+    enabled: isFieldService && !!project?.id && commercialDocIds.length > 0,
+  })
+
+  const { data: hasWaiver = false } = useQuery({
+    queryKey: ['quote_waivers', project?.id],
+    queryFn: () => projectHasQuoteWaiver(project!.id!),
+    enabled: isFieldService && !!project?.id && tenantScopeReady,
+  })
+
+  const { data: linesCount = 0 } = useQuery({
+    queryKey: ['project_lines_count', project?.id],
+    queryFn: async () => {
+      const { count, error: countError } = await supabase
+        .from('project_lines')
+        .select('*', { count: 'exact', head: true })
+        .eq('project_id', project!.id!)
+      if (countError) throw countError
+      return count ?? 0
+    },
+    enabled: isFieldService && !!project?.id && tenantScopeReady,
+  })
+
+  const status = project?.status ?? ''
+  const reportPublishedAt = project?.client_report_published_at ?? null
+  const workLocked = Boolean(reportPublishedAt)
+  const serverVisitClosed =
+    status === 'completed' || status === 'cancelled' || status === 'on_hold'
+  const visitClosedForPublish = status === 'completed' || status === 'on_hold'
+  const localCloseState = serverVisitClosed ? 'none' : localOps.closeState
+  const punchLocked = serverVisitClosed || localCloseState !== 'none'
+  const visitClosed = punchLocked
+  const fieldWorkLocked = workLocked || localCloseState !== 'none'
+
+  const workflow = useMemo(
+    () =>
+      deriveOrderWorkflow({
+        status,
+        visitClosed: visitClosedForPublish,
+        localCloseState,
+        reportPublished: !!reportPublishedAt,
+        documents: commercialDocs,
+        payments: commercialPayments,
+        hasWaiver,
+        totalWorkSeconds: workLogSummary.totalSeconds,
+        hasOpenWorkLog: workLogSummary.isOpen,
+        receiptHandled,
+      }),
+    [
+      status,
+      visitClosedForPublish,
+      localCloseState,
+      reportPublishedAt,
+      commercialDocs,
+      commercialPayments,
+      hasWaiver,
+      workLogSummary.totalSeconds,
+      workLogSummary.isOpen,
+      receiptHandled,
+    ],
+  )
+
+  const activeTab: OrderPhaseTab | 'activity' | 'punch' = (() => {
+    if (!isFieldService) {
+      if (
+        tabParam === 'punch' ||
+        tabParam === 'activity' ||
+        tabParam === 'budget' ||
+        tabParam === 'work'
+      ) {
+        if (tabParam === 'budget') return 'prepare'
+        if (tabParam === 'work') return 'do'
+        return tabParam
+      }
+      return highlightCommentId ? 'activity' : 'do'
+    }
+    return resolveOrderTab(
+      tabParam,
+      highlightCommentId ? 'activity' : workflow.suggestedTab,
+    )
+  })()
+
+  // Canonicalize legacy links and persist the first suggested phase. Once a
+  // user clicks a phase, the explicit URL value always wins over the workflow.
+  useEffect(() => {
+    if (!isFieldService || !project?.id) return
+    const desired = tabToSearchParam(
+      resolveOrderTab(
+        tabParam,
+        highlightCommentId ? 'activity' : workflow.suggestedTab,
+      ),
+    )
+    const current = searchParams.get('tab')
+    if (desired === current) return
+    const params = new URLSearchParams(searchParams)
+    params.set('tab', desired)
+    setSearchParams(params, { replace: true })
+  }, [
+    isFieldService,
+    project?.id,
+    tabParam,
+    highlightCommentId,
+    workflow.suggestedTab,
+    searchParams,
+    setSearchParams,
+  ])
 
   function setTab(next: string) {
     const params = new URLSearchParams(searchParams)
-    if (next === 'work') params.delete('tab')
-    else params.set('tab', next)
+    if (!isFieldService) {
+      const legacy =
+        next === 'prepare' ? 'budget' : next === 'do' ? 'work' : next
+      if (legacy === 'work') params.delete('tab')
+      else params.set('tab', legacy)
+      setSearchParams(params, { replace: true })
+      return
+    }
+    const resolved = resolveOrderTab(next, 'do')
+    const param = tabToSearchParam(resolved)
+    params.set('tab', param)
+    setSearchParams(params, { replace: true })
+  }
+
+  function clearForceView() {
+    setForceViewDocId(null)
+    if (!searchParams.get('doc')) return
+    const params = new URLSearchParams(searchParams)
+    params.delete('doc')
     setSearchParams(params, { replace: true })
   }
 
@@ -113,13 +288,30 @@ export function ProjectDetailPage() {
   useEffect(() => {
     setWorkExtra(null)
     setWorkEditing(false)
+    setReceiptHandled(false)
+    setForceViewDocId(searchParams.get('doc'))
+    setForceCollectDocId(null)
+    setForceReceiptPaymentId(null)
+    setReissueQuoteOpen(false)
   }, [id])
+
+  useEffect(() => {
+    const docId = searchParams.get('doc')
+    if (docId) setForceViewDocId(docId)
+  }, [searchParams])
 
   useEffect(() => {
     if (!highlightCommentId) return
     const section = document.getElementById('project-activity')
     section?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [highlightCommentId, project?.id, activeTab])
+
+  useEffect(() => {
+    if (tabParam !== 'bulletin' || activeTab !== 'deliver') return
+    const section = document.getElementById('work-report')
+    section?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    section?.focus({ preventScroll: true })
+  }, [tabParam, activeTab, project?.id])
 
   if (onFieldRoute && !isFieldService) {
     return <Navigate to={id ? `/projects/${id}` : '/projects'} replace />
@@ -147,6 +339,8 @@ export function ProjectDetailPage() {
     )
   }
 
+  const projectId = project.id!
+
   const TYPE_LABELS: Record<string, string> = {
     internal: t('projects.type.internal', 'Intern'),
     work_order: t('projects.type.work_order', 'Ordre de treball'),
@@ -159,20 +353,218 @@ export function ProjectDetailPage() {
   const mapsQuery = encodeURIComponent(siteAddress || contactSite?.name || '')
   const mapsUrl = mapsQuery ? `https://maps.google.com/?q=${mapsQuery}` : null
 
-  const status = project.status ?? ''
-  const reportPublishedAt = project.client_report_published_at ?? null
-  const workLocked = Boolean(reportPublishedAt)
-  const punchLocked = status === 'completed' || status === 'cancelled' || status === 'on_hold'
-  // Publish is only allowed for completed | on_hold (SQL). Cancelled is closed for edits but not publishable.
-  const visitClosedForPublish = status === 'completed' || status === 'on_hold'
-  const visitClosed = punchLocked
-  const showClosedWorkReview = isFieldService && visitClosed && (workLocked || !workEditing)
-  const bulletinTabOpen = activeTab === 'bulletin'
+  const showClosedWorkReview =
+    isFieldService && visitClosed && (fieldWorkLocked || !workEditing)
+  const deliverTabOpen = activeTab === 'deliver'
   const canShowPublish =
     isFieldService &&
     canPublishReport &&
     !workLocked &&
     (status === 'completed' || status === 'on_hold')
+
+  const moneyFmt = new Intl.NumberFormat('ca-ES', { style: 'currency', currency: 'EUR' })
+  const prepareMicro = workflow.authorized
+    ? t('field-service:detail.phase_prepare_done', 'Autoritzat')
+    : linesCount > 0
+      ? t('field-service:detail.phase_prepare_lines', '{{count}} línies', { count: linesCount })
+      : t('field-service:detail.phase_prepare_empty', 'Sense preus')
+  const doMicro = workflow.doDone
+    ? t('field-service:detail.phase_do_done', 'Tancada')
+    : t('field-service:detail.phase_do_open', 'En curs')
+  const deliverMicro = workflow.paymentPending
+    ? t('field-service:detail.phase_deliver_pending', 'Pendent de cobrar')
+    : workflow.deliverDone
+      ? t('field-service:detail.phase_deliver_paid', 'Cobrat')
+      : workflow.hasDelivery
+        ? t('field-service:detail.phase_deliver_issued', 'Albarà emès')
+        : t('field-service:detail.phase_deliver_empty', 'Pendent')
+  const pendingAmendment =
+    commercialDocs.find(
+      (document) =>
+        document.doc_type === 'quote_amendment' &&
+        document.status === 'issued' &&
+        (!document.valid_until ||
+          new Date(document.valid_until).getTime() >= Date.now()),
+    ) ?? null
+
+  const showPrimaryBar =
+    isFieldService &&
+    workflow.primaryAction !== 'done' &&
+    workflow.primaryAction !== 'start_work' &&
+    workflow.primaryAction !== 'resume_work'
+
+  async function handlePrimaryAction(
+    action: Exclude<
+      OrderPrimaryAction,
+      'done' | 'start_work' | 'resume_work'
+    >,
+  ) {
+    switch (action) {
+      case 'create_quote':
+        setTab('prepare')
+        if (!workflow.reissueFromQuoteId) {
+          toast({
+            variant: 'destructive',
+            description: t(
+              'projects.commercial.reissue_missing',
+              'No s’ha trobat el pressupost que cal substituir.',
+            ),
+          })
+          return
+        }
+        if (linesCount === 0) {
+          toast({
+            variant: 'destructive',
+            description: t(
+              'field-service:detail.primary_need_lines',
+              'Afegeix línies al full de preus abans d’emetre el pressupost.',
+            ),
+          })
+          return
+        }
+        setReissueQuoteOpen(true)
+        return
+      case 'show_quote': {
+        setTab('prepare')
+        if (workflow.activeQuoteId) {
+          setForceViewDocId(workflow.activeQuoteId)
+          return
+        }
+        if (linesCount === 0) {
+          toast({
+            variant: 'destructive',
+            description: t(
+              'field-service:detail.primary_need_lines',
+              'Afegeix línies al full de preus abans d’emetre el pressupost.',
+            ),
+          })
+          return
+        }
+        setPrimaryBusy(true)
+        try {
+          const docId = await issueCommercialDocument({
+            projectId,
+            docType: 'quote',
+          })
+          await queryClient.invalidateQueries({ queryKey: ['commercial_documents', projectId] })
+          setForceViewDocId(docId)
+          toast({ title: t('projects.commercial.quote_issued', 'Pressupost emès') })
+        } catch (err) {
+          toast({
+            variant: 'destructive',
+            title: t('projects.commercial.error', 'Error comercial'),
+            description: err instanceof Error ? err.message : undefined,
+          })
+        } finally {
+          setPrimaryBusy(false)
+        }
+        return
+      }
+      case 'review_close':
+        setTab('do')
+        setCloseOutOpen(true)
+        return
+      case 'sync_pending':
+        if (navigator.onLine) {
+          await requestFieldDeviceSync()
+        } else {
+          toast({
+            description: t(
+              'field-service:closeout.offline.closed_locally',
+              'Tancada en aquest dispositiu · pendent de sincronitzar',
+            ),
+          })
+        }
+        return
+      case 'review_sync_error':
+        setTab('do')
+        toast({
+          variant: 'destructive',
+          title: t(
+            'field-service:closeout.offline.action_required',
+            'Tancament no sincronitzat · cal revisar',
+          ),
+          description: localOps.closeError ?? undefined,
+        })
+        return
+      case 'show_delivery': {
+        setTab('deliver')
+        if (workflow.latestDeliveryId) {
+          setForceViewDocId(workflow.latestDeliveryId)
+          return
+        }
+        if (linesCount === 0) {
+          toast({
+            variant: 'destructive',
+            description: t(
+              'field-service:detail.primary_need_lines',
+              'Afegeix línies al full de preus abans d’emetre l’albarà.',
+            ),
+          })
+          return
+        }
+        setPrimaryBusy(true)
+        try {
+          const docId = await issueCommercialDocument({
+            projectId,
+            docType: 'delivery_note',
+            showPrices: true,
+          })
+          await queryClient.invalidateQueries({ queryKey: ['commercial_documents', projectId] })
+          setForceViewDocId(docId)
+          toast({ title: t('projects.commercial.delivery_issued', 'Albarà emès') })
+        } catch (err) {
+          toast({
+            variant: 'destructive',
+            title: t('projects.commercial.error', 'Error comercial'),
+            description: err instanceof Error ? err.message : undefined,
+          })
+        } finally {
+          setPrimaryBusy(false)
+        }
+        return
+      }
+      case 'collect':
+        setTab('deliver')
+        if (workflow.latestDeliveryId) setForceCollectDocId(workflow.latestDeliveryId)
+        return
+      case 'send_receipt':
+        setTab('deliver')
+        if (workflow.latestPaymentId) {
+          setForceReceiptPaymentId(workflow.latestPaymentId)
+        }
+        return
+    }
+  }
+
+  async function confirmQuoteReissue() {
+    if (!workflow.reissueFromQuoteId) return
+    setPrimaryBusy(true)
+    try {
+      const docId = await reissueCommercialQuote({
+        previousDocumentId: workflow.reissueFromQuoteId,
+      })
+      await queryClient.invalidateQueries({
+        queryKey: ['commercial_documents', projectId],
+      })
+      setReissueQuoteOpen(false)
+      setForceViewDocId(docId)
+      toast({
+        title: t(
+          'projects.commercial.reissue_created',
+          'Nou pressupost creat',
+        ),
+      })
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: t('projects.commercial.error', 'Error comercial'),
+        description: err instanceof Error ? err.message : undefined,
+      })
+    } finally {
+      setPrimaryBusy(false)
+    }
+  }
 
   const syncPanel = (sync.pendingCount > 0 || !sync.isOnline || sync.isSyncing) && (
     <section className="rounded-xl border border-border bg-muted/30 p-4 space-y-2">
@@ -199,8 +591,127 @@ export function ProjectDetailPage() {
     </section>
   )
 
+  const workPhaseContent = (
+    <>
+      {isFieldService && serverVisitClosed && !workLocked && (
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            size="sm"
+            variant={workEditing ? 'secondary' : 'outline'}
+            className="gap-1.5"
+            aria-pressed={workEditing}
+            onClick={() => setWorkEditing((prev) => !prev)}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            {workEditing
+              ? t('field-service:closeout.back_to_review', 'Tornar a la revisió')
+              : t('field-service:closeout.edit', 'Editar')}
+          </Button>
+        </div>
+      )}
+      {isFieldService && showClosedWorkReview && (
+        <ClosedVisitWorkReview
+          projectId={project.id!}
+          notesHtml={project.work_notes_html}
+        />
+      )}
+      {isFieldService && !showClosedWorkReview && (
+        <>
+          <section id="work-checklist" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
+            <VisitChecklistSection
+              projectId={project.id!}
+              projectType={project.type}
+              siteId={project.site_id}
+              readOnly={fieldWorkLocked}
+            />
+          </section>
+          <section id="work-notes" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
+            <WorkNotesSection
+              projectId={project.id!}
+              initialHtml={project.work_notes_html}
+              readOnly={fieldWorkLocked}
+            />
+          </section>
+          <WorkExtraFabs
+            projectId={project.id!}
+            active={workExtra}
+            onChange={setWorkExtra}
+          />
+          {workExtra === 'photos' && (
+            <section id="work-photos" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
+              <ProjectPhotosSection
+                projectId={project.id!}
+                projectName={project.name ?? undefined}
+                readOnly={fieldWorkLocked}
+              />
+            </section>
+          )}
+          {workExtra === 'attachments' && (
+            <section id="work-attachments" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
+              <ProjectAttachmentsSection
+                projectId={project.id!}
+                projectName={project.name ?? undefined}
+                readOnly={fieldWorkLocked}
+              />
+            </section>
+          )}
+          {workExtra === 'materials' && (
+            <section id="work-materials" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
+              <ProjectMaterialsSection projectId={project.id!} readOnly={fieldWorkLocked} />
+            </section>
+          )}
+          {workExtra === 'tasks' && (
+            <section id="work-tasks" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
+              <h3 className="text-sm font-semibold mb-3">
+                {t('field-service:detail.additional_work', 'Treball addicional')}
+              </h3>
+              <TaskList projectId={project.id!} readOnly={fieldWorkLocked} />
+            </section>
+          )}
+        </>
+      )}
+      {isFieldService && (
+        <section className="rounded-xl border border-border p-4 sm:p-5 space-y-3">
+          <h3 className="text-sm font-semibold">
+            {t('field-service:detail.tab_punch', 'Fitxar')}
+          </h3>
+          <WorkLogCard projectId={project.id!} locked={punchLocked} />
+          {syncPanel}
+        </section>
+      )}
+      {!isFieldService && (
+        <section id="work-tasks" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
+          <TaskList projectId={project.id!} readOnly={workLocked} />
+        </section>
+      )}
+      {isFieldService && !visitClosed && workflow.primaryAction !== 'review_close' && (
+        <Button className="w-full sm:w-auto gap-1.5" onClick={() => setCloseOutOpen(true)}>
+          <CheckCircle2 className="h-4 w-4" />
+          {t('field-service:detail.close_out', 'Tancar visita')}
+        </Button>
+      )}
+    </>
+  )
+
+  const activityContent = (
+    <section
+      id="project-activity"
+      className="rounded-xl border border-border p-4 sm:p-5"
+    >
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
+        {t('projects.detail.activity_title', 'Activitat')}
+      </h2>
+      <EntityTimeline
+        entityType="project"
+        entityId={project.id!}
+        siteId={project.site_id}
+      />
+    </section>
+  )
+
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
+    <div className="mx-auto max-w-5xl p-4 pb-24 sm:p-6 sm:pb-24">
       <Link
         to={listPath}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
@@ -211,7 +722,6 @@ export function ProjectDetailPage() {
           : t('projects.detail.back', 'Tornar als projectes')}
       </Link>
 
-      {/* Header compacte: no ocupa tot l'ample a mòbil */}
       <div className="flex flex-col gap-4 mb-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 max-w-xl space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
@@ -227,6 +737,9 @@ export function ProjectDetailPage() {
               >
                 {getProjectStatusLabel(t, project.status, { fieldService: isFieldService })}
               </Badge>
+            )}
+            {isFieldService && (
+              <PaymentPendingChip pending={workflow.paymentPending} />
             )}
             {isFieldService && (
               <Select
@@ -351,24 +864,14 @@ export function ProjectDetailPage() {
           )}
         </div>
         <div className="flex shrink-0 gap-2 self-start flex-wrap">
-          {isFieldService && !visitClosed && (
-            <Button
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setCloseOutOpen(true)}
-            >
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              {t('field-service:detail.close_out', 'Tancar visita')}
-            </Button>
-          )}
           {canShowPublish && (
             <Button
               size="sm"
-              variant={bulletinTabOpen ? 'outline' : 'secondary'}
-              className={`gap-1.5${bulletinTabOpen ? ' text-muted-foreground opacity-60' : ''}`}
-              disabled={bulletinTabOpen}
-              aria-current={bulletinTabOpen ? 'page' : undefined}
-              onClick={() => setTab('bulletin')}
+              variant={deliverTabOpen ? 'outline' : 'secondary'}
+              className={`gap-1.5${deliverTabOpen ? ' text-muted-foreground opacity-60' : ''}`}
+              disabled={deliverTabOpen}
+              aria-current={deliverTabOpen ? 'page' : undefined}
+              onClick={() => setTab('deliver')}
             >
               <FileSignature className="h-3.5 w-3.5" />
               {t('field-service:bulletin.open_tab', 'Obrir butlletí')}
@@ -377,38 +880,123 @@ export function ProjectDetailPage() {
           {isFieldService && workLocked && (
             <Button
               size="sm"
-              variant={bulletinTabOpen ? 'outline' : 'secondary'}
-              className={`gap-1.5${bulletinTabOpen ? ' text-muted-foreground opacity-60' : ''}`}
-              disabled={bulletinTabOpen}
-              aria-current={bulletinTabOpen ? 'page' : undefined}
-              onClick={() => setTab('bulletin')}
+              variant={deliverTabOpen ? 'outline' : 'secondary'}
+              className={`gap-1.5${deliverTabOpen ? ' text-muted-foreground opacity-60' : ''}`}
+              disabled={deliverTabOpen}
+              aria-current={deliverTabOpen ? 'page' : undefined}
+              onClick={() => setTab('deliver')}
             >
               <FileSignature className="h-3.5 w-3.5" />
               {t('field-service:bulletin.open_tab', 'Obrir butlletí')}
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setEditOpen(true)}
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            {t('projects.detail.edit', 'Editar')}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-destructive hover:text-destructive"
-            onClick={() => setDeleteOpen(true)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            {t('projects.list.delete_confirm', 'Eliminar')}
-          </Button>
+          {isFieldService ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <MoreVertical className="h-3.5 w-3.5" />
+                  {t('field-service:detail.more', 'Més')}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setTab('activity')}>
+                  <History className="h-4 w-4 mr-2" />
+                  {t('field-service:detail.tab_activity', 'Activitat')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  {t('projects.detail.edit', 'Editar')}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {t('projects.list.delete_confirm', 'Eliminar')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setEditOpen(true)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                {t('projects.detail.edit', 'Editar')}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-destructive hover:text-destructive"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {t('projects.list.delete_confirm', 'Eliminar')}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      {isFieldService && visitClosed && !workLocked && (
+      {isFieldService && localCloseState !== 'none' && (
+        <div
+          className={`mb-4 rounded-xl border px-4 py-3 text-sm ${
+            localCloseState === 'action_required'
+              ? 'border-destructive/40 bg-destructive/5 text-destructive'
+              : 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100'
+          }`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="font-medium">
+                {localCloseState === 'action_required'
+                  ? t(
+                      'field-service:closeout.offline.action_required',
+                      'Tancament no sincronitzat · cal revisar',
+                    )
+                  : localCloseState === 'synced'
+                    ? t(
+                        'field-service:closeout.offline.synced',
+                        'Feina tancada · albarà pendent d’emetre',
+                      )
+                  : t(
+                      'field-service:closeout.offline.closed_locally',
+                      'Tancada en aquest dispositiu · pendent de sincronitzar',
+                    )}
+              </p>
+              {localOps.closeError && (
+                <p className="mt-1 text-xs">{localOps.closeError}</p>
+              )}
+              {localOps.pendingCount > 0 && (
+                <p className="mt-1 text-xs">
+                  {t(
+                    'field-service:closeout.offline.pending_operations',
+                    '{{count}} operacions pendents en aquest dispositiu',
+                    { count: localOps.pendingCount },
+                  )}
+                </p>
+              )}
+            </div>
+            {localCloseState !== 'synced' &&
+              localOps.closeOp?.status !== 'syncing' &&
+              localOps.closeOp && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void localOps.removeLocalOp(localOps.closeOp!.id)}
+              >
+                {t('field-service:closeout.offline.reopen_local', 'Reobrir tancament local')}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {isFieldService && visitClosedForPublish && !workLocked && (
         <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100 space-y-2">
           <p>
             {t(
@@ -419,11 +1007,11 @@ export function ProjectDetailPage() {
           {canShowPublish && (
             <Button
               size="sm"
-              className={`gap-1.5${bulletinTabOpen ? ' opacity-60' : ''}`}
-              variant={bulletinTabOpen ? 'outline' : 'default'}
-              disabled={bulletinTabOpen}
-              aria-current={bulletinTabOpen ? 'page' : undefined}
-              onClick={() => setTab('bulletin')}
+              className={`gap-1.5${deliverTabOpen ? ' opacity-60' : ''}`}
+              variant={deliverTabOpen ? 'outline' : 'default'}
+              disabled={deliverTabOpen}
+              aria-current={deliverTabOpen ? 'page' : undefined}
+              onClick={() => setTab('deliver')}
             >
               <FileSignature className="h-3.5 w-3.5" />
               {t('field-service:bulletin.open_tab', 'Obrir butlletí')}
@@ -442,10 +1030,10 @@ export function ProjectDetailPage() {
           <Button
             size="sm"
             variant="outline"
-            className={bulletinTabOpen ? 'text-muted-foreground opacity-60' : undefined}
-            disabled={bulletinTabOpen}
-            aria-current={bulletinTabOpen ? 'page' : undefined}
-            onClick={() => setTab('bulletin')}
+            className={deliverTabOpen ? 'text-muted-foreground opacity-60' : undefined}
+            disabled={deliverTabOpen}
+            aria-current={deliverTabOpen ? 'page' : undefined}
+            onClick={() => setTab('deliver')}
           >
             {t('field-service:bulletin.open_tab', 'Obrir butlletí')}
           </Button>
@@ -453,10 +1041,57 @@ export function ProjectDetailPage() {
       )}
 
       {isFieldService && project.id && (
-        <ProjectPunchStrip projectId={project.id} locked={punchLocked} />
+        <ProjectPunchStrip
+          projectId={project.id}
+          locked={punchLocked}
+          startMode={
+            workflow.primaryAction === 'start_work'
+              ? 'start'
+              : workflow.primaryAction === 'resume_work'
+                ? 'resume'
+                : null
+          }
+        />
       )}
 
-      <Tabs value={activeTab} onValueChange={setTab} className="space-y-4">
+      {isFieldService && workflow.anomalies.length > 0 && (
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm dark:border-amber-800 dark:bg-amber-950/30">
+          <div className="flex min-w-0 items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+            <p>
+              {workflow.anomalies.includes('advanced_without_authorization')
+                ? t(
+                    'field-service:detail.workflow_auth_warning',
+                    'La feina ja ha avançat, però l’autorització històrica és incompleta. No es modifica l’estat d’entrega.',
+                  )
+                : workflow.anomalies.includes('draft_with_recorded_work')
+                  ? t(
+                      'field-service:detail.workflow_draft_work_warning',
+                      'Hi ha temps registrat tot i que l’ordre encara figura com a esborrany.',
+                    )
+                  : t(
+                      'field-service:detail.workflow_delivery_warning',
+                      'L’ordre figura com a completada però encara no té albarà.',
+                    )}
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="shrink-0"
+            onClick={() => setTab('activity')}
+          >
+            {t('field-service:detail.view_history', 'Veure historial')}
+          </Button>
+        </div>
+      )}
+
+      <Tabs
+        value={activeTab === 'activity' ? 'activity' : activeTab}
+        onValueChange={setTab}
+        className="space-y-4"
+      >
         <div
           className={
             isFieldService
@@ -464,168 +1099,113 @@ export function ProjectDetailPage() {
               : 'space-y-2'
           }
         >
-          {isFieldService && (
-            <h2 className="truncate px-0.5 text-base font-semibold leading-tight text-foreground sm:text-lg">
-              {project.name}
-            </h2>
-          )}
-          <TabsList className="w-full justify-start">
-            <TabsTrigger value="work">
-              {t('field-service:detail.tab_work', 'Feina')}
-            </TabsTrigger>
-            {isFieldService && (
-              <TabsTrigger value="bulletin">
-                {t('field-service:detail.tab_bulletin', 'Butlletí')}
+          {isFieldService ? (
+            <OrderPhaseStepper
+              prepareDone={workflow.prepareDone}
+              doDone={workflow.doDone}
+              deliverDone={workflow.deliverDone}
+              prepareMicro={prepareMicro}
+              doMicro={doMicro}
+              deliverMicro={
+                workflow.deliverDone && workflow.deliveryTotalCents > 0
+                  ? moneyFmt.format(workflow.deliveryTotalCents / 100)
+                  : deliverMicro
+              }
+            />
+          ) : (
+            <TabsList className="w-full justify-start">
+              <TabsTrigger value="do">
+                {t('field-service:detail.tab_work', 'Feina')}
               </TabsTrigger>
-            )}
-            <TabsTrigger value="punch">
-              {t('field-service:detail.tab_punch', 'Fitxar')}
-            </TabsTrigger>
-            <TabsTrigger value="activity">
-              {t('field-service:detail.tab_activity', 'Activitat')}
-            </TabsTrigger>
-            <TabsTrigger value="budget">
-              {t('field-service:detail.tab_budget', 'Pressupost')}
-            </TabsTrigger>
-          </TabsList>
+              <TabsTrigger value="punch">
+                {t('field-service:detail.tab_punch', 'Fitxar')}
+              </TabsTrigger>
+              <TabsTrigger value="activity">
+                {t('field-service:detail.tab_activity', 'Activitat')}
+              </TabsTrigger>
+              <TabsTrigger value="prepare">
+                {t('field-service:detail.tab_budget', 'Imports')}
+              </TabsTrigger>
+            </TabsList>
+          )}
+          {showPrimaryBar && (
+            <OrderPrimaryActionBar
+              action={workflow.primaryAction}
+              busy={primaryBusy}
+              onAction={(action) => {
+                void handlePrimaryAction(action)
+              }}
+            />
+          )}
         </div>
 
-        <TabsContent value="work" className="space-y-4">
-          {isFieldService && visitClosed && !workLocked && (
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                size="sm"
-                variant={workEditing ? 'secondary' : 'outline'}
-                className="gap-1.5"
-                aria-pressed={workEditing}
-                onClick={() => setWorkEditing((prev) => !prev)}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                {workEditing
-                  ? t('field-service:closeout.back_to_review', 'Tornar a la revisió')
-                  : t('field-service:closeout.edit', 'Editar')}
-              </Button>
-            </div>
-          )}
-          {isFieldService && showClosedWorkReview && (
-            <ClosedVisitWorkReview
-              projectId={project.id!}
-              notesHtml={project.work_notes_html}
-            />
-          )}
-          {isFieldService && !showClosedWorkReview && (
-            <>
-              <section id="work-checklist" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
-                <VisitChecklistSection
-                  projectId={project.id!}
-                  projectType={project.type}
-                  siteId={project.site_id}
-                  readOnly={workLocked}
-                />
-              </section>
-              <section id="work-notes" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
-                <WorkNotesSection
-                  projectId={project.id!}
-                  initialHtml={project.work_notes_html}
-                  readOnly={workLocked}
-                />
-              </section>
-              <WorkExtraFabs
-                projectId={project.id!}
-                active={workExtra}
-                onChange={setWorkExtra}
-              />
-              {workExtra === 'photos' && (
-                <section id="work-photos" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
-                  <ProjectPhotosSection
-                    projectId={project.id!}
-                    projectName={project.name ?? undefined}
-                    readOnly={workLocked}
-                  />
-                </section>
-              )}
-              {workExtra === 'attachments' && (
-                <section id="work-attachments" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
-                  <ProjectAttachmentsSection
-                    projectId={project.id!}
-                    projectName={project.name ?? undefined}
-                    readOnly={workLocked}
-                  />
-                </section>
-              )}
-              {workExtra === 'materials' && (
-                <section id="work-materials" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
-                  <ProjectMaterialsSection projectId={project.id!} readOnly={workLocked} />
-                </section>
-              )}
-              {workExtra === 'tasks' && (
-                <section id="work-tasks" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
-                  <h3 className="text-sm font-semibold mb-3">
-                    {t('field-service:detail.additional_work', 'Treball addicional')}
-                  </h3>
-                  <TaskList projectId={project.id!} readOnly={workLocked} />
-                </section>
-              )}
-            </>
-          )}
-          {!isFieldService && (
-            <section id="work-tasks" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
-              <TaskList projectId={project.id!} readOnly={workLocked} />
-            </section>
-          )}
-          {isFieldService && !visitClosed && (
-            <Button className="w-full sm:w-auto gap-1.5" onClick={() => setCloseOutOpen(true)}>
-              <CheckCircle2 className="h-4 w-4" />
-              {t('field-service:detail.close_out', 'Tancar visita')}
-            </Button>
-          )}
-        </TabsContent>
-
-        {isFieldService && (
-          <TabsContent value="bulletin" className="space-y-4">
-            <section className="rounded-xl border border-border p-4 sm:p-5">
-              <ProjectBulletinPanel
-                projectId={project.id!}
-                clientId={project.client_id}
-                siteId={project.site_id}
-                visitClosed={visitClosedForPublish}
-                workLocked={workLocked}
-                publishedAt={reportPublishedAt}
-              />
-            </section>
-          </TabsContent>
-        )}
-
-        <TabsContent value="punch" className="space-y-4">
-          <WorkLogCard projectId={project.id!} locked={punchLocked} />
-          {syncPanel}
-        </TabsContent>
-
-        <TabsContent value="activity" className="space-y-4">
-          <section
-            id="project-activity"
-            className="rounded-xl border border-border p-4 sm:p-5"
-          >
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
-              {t('projects.detail.activity_title', 'Activitat')}
-            </h2>
-            <EntityTimeline
-              entityType="project"
-              entityId={project.id!}
-              siteId={project.site_id}
-            />
-          </section>
-        </TabsContent>
-
-        <TabsContent value="budget" className="space-y-4">
+        <TabsContent value="prepare" className="space-y-4">
           <section className="rounded-xl border border-border p-4 sm:p-5">
             <ProjectLinesSection projectId={project.id!} />
           </section>
+          {isFieldService && (
+            <ProjectCommercialPanel
+              projectId={project.id!}
+              hasLines={linesCount > 0}
+              section="authorize"
+              forceViewDocId={forceViewDocId}
+              onForceViewHandled={clearForceView}
+            />
+          )}
         </TabsContent>
+
+        <TabsContent value="do" className="space-y-4">
+          {workPhaseContent}
+        </TabsContent>
+
+        {isFieldService && (
+          <TabsContent value="deliver" className="space-y-4">
+            <DeliverPhaseView
+              projectId={project.id!}
+              clientId={project.client_id}
+              siteId={project.site_id}
+              hasLines={linesCount > 0}
+              visitClosed={visitClosedForPublish}
+              workLocked={workLocked}
+              publishedAt={reportPublishedAt}
+              openReportByDefault={tabParam === 'bulletin'}
+              complete={workflow.deliverDone}
+              latestDeliveryId={workflow.latestDeliveryId}
+              pendingAmendment={pendingAmendment}
+              forceViewDocId={forceViewDocId}
+              forceCollectDocId={forceCollectDocId}
+              forceReceiptPaymentId={forceReceiptPaymentId}
+              onViewDocument={setForceViewDocId}
+              onOpenActivity={() => setTab('activity')}
+              onForceViewHandled={clearForceView}
+              onForceCollectHandled={() => setForceCollectDocId(null)}
+              onForceReceiptHandled={() => {
+                setForceReceiptPaymentId(null)
+                setReceiptHandled(true)
+              }}
+            />
+          </TabsContent>
+        )}
+
+        {/* Legacy aliases kept for deep links when not field-service */}
+        {!isFieldService && (
+          <TabsContent value="punch" className="space-y-4">
+            <WorkLogCard projectId={project.id!} locked={punchLocked} />
+            {syncPanel}
+          </TabsContent>
+        )}
+
+        {isFieldService ? (
+          activeTab === 'activity' ? (
+            <div className="space-y-4">{activityContent}</div>
+          ) : null
+        ) : (
+          <TabsContent value="activity" className="space-y-4">
+            {activityContent}
+          </TabsContent>
+        )}
       </Tabs>
 
-      {/* Panell de sincronització offline — només visible en mode DEV */}
       {import.meta.env.DEV && (
         <section className="mt-6 rounded-xl border border-dashed border-amber-400 bg-amber-50 dark:bg-amber-950/20 p-5 space-y-3">
           <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
@@ -686,6 +1266,15 @@ export function ProjectDetailPage() {
           onOpenChange={setCloseOutOpen}
         />
       )}
+
+      <ReissueQuoteDialog
+        open={reissueQuoteOpen}
+        busy={primaryBusy}
+        onOpenChange={setReissueQuoteOpen}
+        onConfirm={() => {
+          void confirmQuoteReissue()
+        }}
+      />
 
       <DeleteProjectDialog
         projectId={project.id}

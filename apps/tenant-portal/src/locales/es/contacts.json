@@ -1,7 +1,20 @@
 {
   "contacts": {
     "detail": {
-      "tab_portal_access": "Portal"
+      "tab_portal_access": "Portal",
+      "tab_quotes": "Presupuestos",
+      "commercial_title": "Presupuestos y albaranes",
+      "commercial_help": "Estado comercial del cliente sin abrir cada documento.",
+      "commercial_see_all": "Ver todos",
+      "commercial_empty": "Todavía no hay presupuestos ni albaranes para este cliente.",
+      "commercial_more": "Y {{count}} más…",
+      "commercial_open_order": "Abrir orden",
+      "commercial_pending_response": "Pendiente de respuesta",
+      "commercial_pending_approval": "Pendiente de aprobación",
+      "commercial_pending_payment": "Pendiente de cobro",
+      "commercial_count_response": "{{count}} pendientes de respuesta",
+      "commercial_count_approval": "{{count}} pendientes de aprobación",
+      "commercial_count_payment": "{{count}} pendientes de cobro"
     },
     "errors": {
       "display_name_required": "El nombre es obligatorio",

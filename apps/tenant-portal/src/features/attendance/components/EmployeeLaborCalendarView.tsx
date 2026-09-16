@@ -17,7 +17,10 @@ import {
   type TenantDayType,
 } from '../api/useLaborCalendar'
 import type { WorkInterval } from '../api/workIntervals'
+import { formatWorkDuration } from '../api/workIntervals'
 import { useMyAbsences } from '../api/useAbsences'
+import { useMyEntries } from '../api/useMyRecord'
+import { useVacationEntitlement } from '../api/useVacationEntitlement'
 import type { EmployeeAbsence } from '../api/shiftsService'
 import { ScheduleFilterBar, useScheduleFilters } from './ScheduleFilterBar'
 import { RequestAbsenceDialog } from './RequestAbsenceDialog'
@@ -52,6 +55,7 @@ const ABSENCE_STATUS_RING: Record<string, string> = {
   requested: 'ring-2 ring-inset ring-dashed ring-violet-400',
   rejected: 'ring-1 ring-inset ring-red-300 opacity-60',
   cancelled: 'opacity-50',
+  revoked: 'opacity-50',
 }
 
 export interface EmployeeLaborCalendarViewProps {
@@ -84,7 +88,9 @@ export function EmployeeLaborCalendarView({
 
   const currentYear = new Date().getFullYear()
   const [year, setYear] = useState(currentYear)
-  const [view, setView] = useState<'year' | 'month'>('year')
+  const [view, setView] = useState<'year' | 'month'>(() =>
+    typeof window !== 'undefined' && window.innerWidth < 768 ? 'month' : 'year',
+  )
   const [month, setMonth] = useState(new Date().getMonth())
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [dragAnchor, setDragAnchor] = useState<string | null>(null)
@@ -118,6 +124,11 @@ export function EmployeeLaborCalendarView({
 
   const yearFrom = `${year}-01-01`
   const yearTo = `${year}-12-31`
+  const { data: actualEntries = [] } = useMyEntries(employeeId, yearFrom, yearTo)
+  const { data: vacationEntitlement } = useVacationEntitlement(
+    absenceRequestMode ? employeeId : null,
+    year,
+  )
   const { data: absences = [] } = useMyAbsences(
     absenceRequestMode ? employeeId : null,
     yearFrom,
@@ -220,6 +231,15 @@ export function EmployeeLaborCalendarView({
   const yearStats = useMemo(() => computePeriodStats(dayMap, allDatesInYear(year)), [dayMap, year])
   const monthStats = useMemo(() => computePeriodStats(dayMap, allDatesInMonth(year, month)), [dayMap, year, month])
   const viewStats = view === 'year' ? yearStats : monthStats
+  const actualMinutes = useMemo(() => {
+    return actualEntries
+      .filter((entry) => {
+        if (view === 'year') return true
+        const prefix = `${year}-${String(month + 1).padStart(2, '0')}-`
+        return entry.work_date?.startsWith(prefix)
+      })
+      .reduce((sum, entry) => sum + Number(entry.net_minutes ?? 0), 0)
+  }, [actualEntries, month, view, year])
   const monthLabel = monthNames[month] ?? String(month + 1)
 
   const selectionStart = selectedDates[0] ?? ''
@@ -331,6 +351,44 @@ export function EmployeeLaborCalendarView({
             </div>
           </div>
         </div>
+
+        {absenceRequestMode && (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="rounded-xl border bg-card p-3">
+              <p className="text-[11px] text-muted-foreground">
+                {t('calendar.summary_planned', 'Planificat')}
+              </p>
+              <p className="mt-1 font-semibold tabular-nums">
+                {formatWorkDuration(viewStats.totalMinutes)}
+              </p>
+            </div>
+            <div className="rounded-xl border bg-card p-3">
+              <p className="text-[11px] text-muted-foreground">
+                {t('calendar.summary_worked', 'Treballat')}
+              </p>
+              <p className="mt-1 font-semibold tabular-nums">
+                {formatWorkDuration(actualMinutes)}
+              </p>
+            </div>
+            <div className="col-span-2 rounded-xl border bg-card p-3 sm:col-span-1">
+              <p className="text-[11px] text-muted-foreground">
+                {t('calendar.vacation_balance', 'Vacances disponibles')}
+              </p>
+              <p className="mt-1 font-semibold tabular-nums">
+                {vacationEntitlement?.days_remaining ?? 0}{' '}
+                {t('calendar.days', 'dies')}
+              </p>
+              {vacationEntitlement?.found && (
+                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                  {t('calendar.vacation_used_total', '{{used}} utilitzats de {{total}}', {
+                    used: vacationEntitlement.days_used,
+                    total: vacationEntitlement.days_allocated,
+                  })}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         <ScheduleFilterBar
           scheduleIndex={sf.scheduleIndex}
