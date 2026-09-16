@@ -53,7 +53,8 @@ A `render-commercial-document/index.ts`:
    - `context = buildCommercialTemplateContext(...)`
    - `html = await renderLiquid(locale.html_content, context)`
    - **Ometre** `buildCommercialDocumentHtml` i `renderTemplateBlocks` (el cos ja inclou capçalera/peu).
-   - Continuar amb el mateix camí de Gotenberg/`persistCommercialRenderedPdf` que ja existeix.
+   - **Cridar `injectHtmlSignatureMarkers(html)`** (`_shared/signing-field-map.ts`, reutilitzat tal qual del motor DMS) abans de Gotenberg, per convertir qualsevol `<signature-field>` de la plantilla en la caixa visible + token `[FIRMA:role]` que després permet estampar la firma. Veure [`07-signing-integration.md`](./07-signing-integration.md).
+   - Continuar amb el mateix camí de Gotenberg/`persistCommercialRenderedPdf` que ja existeix. **El PDF resultant és el «PDF base»**: si la plantilla té camps de signatura, encara no està firmat.
 3. **Si no hi ha resultat:** comportament actual, sense cap canvi (fallback).
 4. **Fase 2 (QT-6), si `template_type='docx'`:** descarregar bytes del bucket `document-templates`, `renderDocx(bytes, context)`, pujar el resultat com a intermedi, i crear el `document_pdf_jobs` amb `p_template_type: 'docx'` (el CHECK ja ho permet des de CF-18) en lloc de `'html'`. **Tasca d'investigació prèvia obligatòria:** localitzar el worker que ja converteix DOCX→PDF per a altres mòduls (RRHH/legal) i confirmar que és reutilitzable sense canvis per a `source_type='commercial_document'`.
 
@@ -71,3 +72,4 @@ A `render-commercial-document/index.ts`:
 | Aïllament | Una plantilla del tenant A mai resol per al tenant B, ni amb `is_platform_default=false` ni manipulant `tenant_id` |
 | Validació legal | Activar una plantilla sense bucle de línies o sense `total` falla sense `p_acknowledge_legal_gaps`; amb el flag, s'activa i queda auditat |
 | Immutabilitat | `full_body_template_id` es fixa en emetre i no canvia si es desactiva la plantilla després |
+| Marcadors de signatura | Una plantilla amb `<signature-field role="client_accept">` produeix un PDF base amb la caixa i el token `[FIRMA:client_accept]` detectable, sense cap firma estampada encara (veure [`07-signing-integration.md`](./07-signing-integration.md), QT-9) |

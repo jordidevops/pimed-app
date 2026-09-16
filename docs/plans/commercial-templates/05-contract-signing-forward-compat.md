@@ -40,3 +40,15 @@ El contracte de context definit a [`01-context-and-legal-content.md`](./01-conte
 - Retenció i validesa legal del contracte generat (probablement més estricta que la del pressupost).
 
 Aquestes preguntes **no es responen en aquest pla**; queden aquí perquè quan arribi el moment, l'epic corresponent no hagi de redescobrir per què el contracte de variables es va dissenyar genèric.
+
+## 6. El contracte futur ja hereta un pipeline de firma provat
+
+Amb QT-8/QT-9/QT-10 ([`06-phases-and-backlog.md`](./06-phases-and-backlog.md) § Fase 3, [`07-signing-integration.md`](./07-signing-integration.md)), els pressupostos i albarans passen a firmar-se amb el mateix motor natiu del DMS (`sign-document-router action=sign_native`, camps `<signature-field>`, Submission Hub). Això vol dir que quan s'obri l'epic del contracte, **no cal dissenyar cap flux de firma nou**: n'hi haurà prou amb afegir `category='contract'` i reutilitzar exactament el mateix pipeline ja demostrat amb pressupostos/albarans.
+
+## 7. Nota: facturació fiscal futura (fora d'abast, no dissenyat)
+
+`commercial-flow` ja deixa explícit que la **factura fiscal pròpia no es genera dins l'aplicació** (viu a l'ERP extern — Holded/Quipu, veure CF-17). Si en el futur es decideix generar factures pròpies, aquest pla ja ho deixa raonablement encaixat sense haver-ho dissenyat ara:
+
+- Seguiria el mateix patró que el contracte (§1-3): no és un `commercial_documents` nou, sinó un document DMS separat generat a partir d'un albarà o pressupost ja tancat.
+- El mateix contracte de variables (`tenant`/`document`/`seller`/`buyer`/`lines`/`totals`) ja té tot el que una factura necessita mostrar; només caldria una categoria `category='invoice'` de plantilla i, probablement, camps fiscals addicionals (sèrie, data de meritació) que avui no es dissenyen.
+- **No s'obre cap epic ni es reserva cap nom de categoria per a això ara** — es documenta únicament perquè quan es plantegi, no calgui redescobrir que el contracte de variables ja ho suporta en un 90%.

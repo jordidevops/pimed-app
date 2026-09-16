@@ -23,12 +23,24 @@
 | **QT-6** | Seed + renderitzat DOCX | Estendre `generate-docx-seed.mjs` (helpers `linesTable`/`totalsBlock`/`acceptRejectBlock`), branca DOCX a `render-commercial-document`, validar/reutilitzar pipeline docx→pdf existent | Fase 1 tancada |
 | **QT-7** | Frontend DOCX | Confirmar que la pujada/clonació de plantilles DOCX ja existent a `/documents/templates` funciona sense canvis per a `category='quote'`/`'delivery_note'` | QT-6 |
 
+## Fase 3 — Signatura nativa (veure [`07-signing-integration.md`](./07-signing-integration.md))
+
+| Epic | Nom | Contingut | Depèn de |
+|------|-----|-----------|----------|
+| **QT-8** | Autoria de camps de signatura | Afegir `<signature-field>`/tags DOCX (`client_accept`/`client_reject`/`client_delivery`) a les 6 plantilles seed de QT-3 | QT-3 |
+| **QT-9** | Pipeline de firma | `render-commercial-document` crida `injectHtmlSignatureMarkers`/`injectDocxSignatureMarkers`; nou flux d'acceptació/refús/lliurament via `sign-document-router action=sign_native` (presencial i remot), substituint el JSON `signature:{method:'staff_ui'}` actual | QT-2, QT-8 |
+| **QT-10** | Submission Hub | Documents comercials firmats visibles al Centre de signatures existent (`signing_submissions` amb `signing_provider='native'`), alineat amb `docs/plans/signing/pla_alineacio_firmes_docuseal_native.plan.md` | QT-9 — **verificar l'estat d'aquell pla abans d'obrir** (pot no estar implementat encara) |
+
+**Fase 3 és independent de la Fase 2 (DOCX)**: es pot fer QT-8/9/10 abans, després o en paral·lel a QT-6/7 segons prioritat de l'usuari.
+
 ## Fora d'abast (aquest pla sencer)
 
 - Implementació del contracte signat post-acceptació — només disseny a [`05-contract-signing-forward-compat.md`](./05-contract-signing-forward-compat.md).
+- Generació de factures fiscals pròpies — només nota a [`05-contract-signing-forward-compat.md`](./05-contract-signing-forward-compat.md) § 7.
 - Enforçament numèric de validesa mínima sectorial (p.ex. 12 dies hàbils RD 1457/1986) — només text informatiu a la clàusula.
 - Canvis de comportament de `buildCommercialDocumentHtml` per a tenants sense plantilla pròpia.
 - Ampliar l'albarà a plantilles diferenciades per arquetip (només la genèrica a la fase 1).
+- Crear/modificar res del pla `docs/plans/signing/pla_alineacio_firmes_docuseal_native.plan.md` — QT-10 només en depèn, no el reobre.
 
 ## Gates
 
@@ -50,3 +62,6 @@ El contracte de variables ha d'estar acordat i documentat (no en curs de canvi) 
 - **QT-3**: les 6 plantilles (5+1) tenen `sample_values` que produeixen una previsualització completa (sense camps buits ni "undefined").
 - **QT-4**: un owner/manager pot triar, canviar i tornar a "cap" la plantilla activa des de Settings; totes les strings noves compleixen la Regla d'Or i18n.
 - **QT-5**: suite SQL a `supabase/tests/` amb els casos de la taula de `02-rendering-architecture.md` §5, totes verdes.
+- **QT-8**: les 6 plantilles seed inclouen els camps de signatura correctes (`client_accept`/`client_reject` a pressupost, `client_delivery` a albarà) i passen `validate_commercial_template_locale` sense reconeixement explícit.
+- **QT-9**: acceptar/refusar un pressupost o signar un albarà crea una `document_signing_session`/`signing_submission` real amb evidència (IP, UA, imatge de signatura), no un JSON `staff_ui`; el flux remot reutilitza `/sign/:token` sense regressió del cas actual (WhatsApp/correu de CF-11).
+- **QT-10**: un document comercial firmat apareix al Centre de signatures amb el mateix badge/auditoria que un document DMS firmat amb DocuSeal.

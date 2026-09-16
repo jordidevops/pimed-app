@@ -2,6 +2,7 @@
 
 > **Pla:** [`README.md`](./README.md) · **Llegir primer:** [`00-agent-instructions-and-guardrails.md`](./00-agent-instructions-and-guardrails.md)
 > **Avís:** el contingut de clàusules d'aquest document **no és assessorament jurídic**. Ha de revisar-se per comunitat autònoma i sector abans d'activar-se en producció, tal com ja adverteix [`commercial-flow/01-legal-requirements.md`](../commercial-flow/01-legal-requirements.md).
+> **Signatura:** els blocs d'acceptació/refús i de conformitat ja no són text pla — usen la sintaxi real de camps de signatura del motor DMS existent (`<signature-field>` / `{{...;type=signature;role=...}}`). Veure [`07-signing-integration.md`](./07-signing-integration.md) per al disseny complet.
 
 ## 1. Contracte de variables (context unificat)
 
@@ -96,10 +97,10 @@ Extret de [`commercial-flow/01-legal-requirements.md`](../commercial-flow/01-leg
 | Import amb impostos | `totals.subtotal`, `totals.tax_breakdown`, `totals.total` |
 | Terminis | `document.issued_at` i text lliure de l'autor |
 | Validesa | `document.valid_until` |
-| Data i signatura del responsable | text lliure + espai de signatura |
-| Resposta (acceptar/refusar) amb **espais de mida igual** | dues columnes simètriques, cadascuna amb línia de signatura i data — **responsabilitat visual de qui edita la plantilla**; QT-0 només valida la presència textual dels dos blocs, no la simetria visual |
+| Data i signatura del responsable | text lliure + camp de signatura (`role` de l'emissor/operari) — veure [`07-signing-integration.md`](./07-signing-integration.md) |
+| Resposta (acceptar/refusar) amb **espais de mida igual** | dos camps de signatura natius (`role="client_accept"` / `role="client_reject"`), mateixa mida per disseny — veure [`07-signing-integration.md`](./07-signing-integration.md) |
 
-La funció de validació (`data.validate_commercial_template_locale`, veure [`02-rendering-architecture.md`](./02-rendering-architecture.md)) comprova la **presència** d'aquests marcadors com a mínim: bucle de línies, `totals.total`/`total`, `document.doc_number`/`doc_number`, `document.valid_until`/`valid_until`, un marcador de desglossament d'impostos, i dos marcadors d'acceptació/refús. No pot validar disseny visual ni exactitud del text legal — això és responsabilitat humana.
+La funció de validació (`data.validate_commercial_template_locale`, veure [`02-rendering-architecture.md`](./02-rendering-architecture.md)) comprova la **presència** d'aquests marcadors com a mínim: bucle de línies, `totals.total`/`total`, `document.doc_number`/`doc_number`, `document.valid_until`/`valid_until`, un marcador de desglossament d'impostos, i els **dos camps de signatura** `client_accept`/`client_reject` (o `client_delivery` per a l'albarà). No pot validar disseny visual (mida idèntica) ni exactitud del text legal — això és responsabilitat humana.
 
 ## 3. Plantilla "Pressupost genèric" (ca) — contingut de referència
 
@@ -112,9 +113,12 @@ Estructura recomanada, de dalt a baix:
 5. **Desglossament d'IVA i total** (`totals.*`).
 6. **Condicions generals** (text fix, editable pel tenant):
    > "Aquest pressupost té una validesa de 30 dies des de la data d'emissió, llevat que s'indiqui altrament. Els preus inclouen l'IVA aplicable. Qualsevol concepte no inclòs en aquest pressupost que aparegui durant l'execució del servei serà objecte d'una ampliació de pressupost, que haurà de ser acceptada abans de la seva execució i cobrament, d'acord amb la normativa de protecció de les persones consumidores. Per a qualsevol controvèrsia, les parts se sotmeten als jutjats i tribunals que correspongui per llei."
-7. **Bloc d'acceptació/refús** (espais visuals idèntics):
-   > `[ ] Accepto aquest pressupost` — Signatura: __________________ Data: __________
-   > `[ ] Refuso aquest pressupost` — Signatura: __________________ Data: __________
+7. **Bloc d'acceptació/refús** (camps de signatura natius, mateixa mida — veure [`07-signing-integration.md`](./07-signing-integration.md)):
+   ```html
+   <signature-field name="Accepto" role="client_accept" style="width:220px;height:70px;display:inline-block;"></signature-field>
+   <signature-field name="Refuso"  role="client_reject" style="width:220px;height:70px;display:inline-block;"></signature-field>
+   ```
+   Equivalent DOCX (Docxtemplater/DocuSeal tags): `{{Accepto;type=signature;role=client_accept}}` / `{{Refuso;type=signature;role=client_reject}}`.
 8. **Avís de protecció de dades**:
    > "Les dades facilitades es tracten amb la finalitat de gestionar aquest pressupost i, si escau, la relació contractual derivada. Es conserven durant un mínim de sis mesos des de la no-acceptació o des de la fi del servei. Podeu exercir els vostres drets d'accés, rectificació i supressió dirigint-vos a {{ tenant.email }}."
 9. **Peu**: "Document generat per {{ tenant.name }}."
@@ -134,9 +138,16 @@ Estructura recomanada, de dalt a baix:
 1. Capçalera: "Albarà núm. {{ document.doc_number }}", referència al pressupost origen (`document.parent_doc_number`) si n'hi ha.
 2. Bloc emissor/client (igual que el pressupost).
 3. Taula de línies — preus **només si** `document.show_prices` és cert.
-4. Espai de conformitat de lliurament (no és acceptar/refusar; és un reconeixement de servei rebut):
-   > Signatura de conformitat: __________________ Data: __________
+4. Espai de conformitat de lliurament (no és acceptar/refusar; és un reconeixement de servei rebut), camp de signatura natiu:
+   ```html
+   <signature-field name="Conformitat" role="client_delivery" style="width:220px;height:70px;display:inline-block;"></signature-field>
+   ```
+   Equivalent DOCX: `{{Conformitat;type=signature;role=client_delivery}}`. Veure [`07-signing-integration.md`](./07-signing-integration.md) per al flux complet de firma.
 5. Peu: "Aquest document no és una factura fiscal."
+
+## 5. Traducció es
+
+Totes dues plantilles (pressupost i albarà) es sembren també en castellà amb la mateixa estructura i camps, traduint únicament el text fix (etiquetes, condicions, avisos). Els noms de camps del context i els `role` de signatura no es tradueixen.
 
 ## 5. Traducció es
 

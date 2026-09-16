@@ -29,6 +29,9 @@
 | — | *Gate Fase 1 → Fase 2* | ❌ | Veure `06-phases-and-backlog.md` |
 | 6 | **QT-6** Seed + renderitzat DOCX | ❌ | Fase 2 |
 | 7 | **QT-7** Frontend DOCX | ❌ | Fase 2 |
+| 8 | **QT-8** Autoria de camps de signatura | ❌ | Fase 3, depèn de QT-3; independent de QT-6/7 |
+| 9 | **QT-9** Pipeline de firma nativa | ❌ | Depèn de QT-2, QT-8 |
+| 10 | **QT-10** Submission Hub | ❌ | Depèn de QT-9; verificar estat de `signing/pla_alineacio_firmes_docuseal_native.plan.md` abans d'obrir |
 
 ## Registre de treball
 
