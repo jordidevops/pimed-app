@@ -121,8 +121,13 @@
       "rollout_hint": "Percentatge de tenants (0–100) quan el flag està habilitat i no hi ha override. 100 = tots.",
       "save_rollout": "Desar rollout"
     },
+    "pdf": {
+      "title": "PDF",
+      "description": "Configura el servei Gotenberg i els perfils de generació PDF."
+    },
     "signing": {
-      "title": "Plantilles Documentals de Plataforma",
+      "title": "Configuració de Signatures Digitals",
+      "description": "Activa o desactiva la signatura digital per a tots els tenants i configura la firma pròpia.",
       "flag": {
         "title": "Activació global de Firmes",
         "hint": "Controla si el mòdul de firmes digitals és accessible per als tenants. Els overrides per tenant (a la fitxa del tenant → tab Firmes) sempre tenen prioritat sobre aquest valor global.",
@@ -135,7 +140,26 @@
         "save_rollout": "Desar rollout",
         "saved": "Desat ✓"
       },
-      "description": "Gestiona les plantilles DOCX/HTML de plataforma disponibles per a tots els tenants. Els tenants poden clonar-les i personalitzar-les.",
+      "native": {
+        "title": "Firma Pròpia",
+        "description": "Configuració del mòdul de signatura nativa (presencial i remota).",
+        "enable_label": "Activar firma nativa",
+        "enable_hint": "Permet als tenants usar signatures pròpies (presencials i remotes).",
+        "pdf_required": "No es pot activar la firma pròpia si la generació PDF no està activa.",
+        "pdf_required_hint": "Activeu primer «Activar generació PDF» a la configuració PDF.",
+        "pdf_settings_link": "Anar a PDF",
+        "evidence_mode_label": "Mode d'evidències (PDF signat)",
+        "evidence_detached": "Separat (recomanat) — signatura a l'etiqueta; auditoria en PDF apart",
+        "evidence_embedded": "Incrustat — pàgina d'evidències al final del document",
+        "evidence_both": "Ambdós — overlay a l'etiqueta i pàgina d'evidències",
+        "evidence_hint": "Amb separat, el PDF firmat queda net (com DocuSeal) i el certificat d'auditoria es genera per separat.",
+        "token_days_label": "Validesa del token de firma (dies)",
+        "legal_footer_label": "Text legal al peu de la pàgina de signatura pública",
+        "legal_footer_placeholder": "En signar aquest document...",
+        "save": "Guardar configuració",
+        "toast_success": "Configuració de Firma Pròpia guardada",
+        "toast_error": "Error guardant configuració"
+      },
       "templates": {
         "section_title": "Plantilles documentals de plataforma",
         "section_desc": "Plantilles DOCX/HTML de plataforma visibles per tots els tenants. Els tenants poden clonar-les per personalitzar-les.",

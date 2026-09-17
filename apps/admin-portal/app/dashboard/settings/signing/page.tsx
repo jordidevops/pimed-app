@@ -1,10 +1,15 @@
 import { SigningGlobalFlagCard } from '@/components/dashboard/settings/SigningGlobalFlagCard'
+import { AdminNativeSigningSettings } from '@/components/dashboard/settings/AdminNativeSigningSettings'
+import { getPdfConverterSettings } from '@/app/admin/actions/pdf-settings'
 import { prisma } from '@/lib/prisma'
 import { getT } from '@/lib/i18n/server'
 
 export default async function SigningSettingsPage() {
   const t = getT('settings')
-  const signingFlag = await prisma.feature_flags.findUnique({ where: { key: 'tenant_signing_enabled' } })
+  const [signingFlag, pdfSettings] = await Promise.all([
+    prisma.feature_flags.findUnique({ where: { key: 'tenant_signing_enabled' } }),
+    getPdfConverterSettings(),
+  ])
 
   return (
     <div className="space-y-10">
@@ -15,7 +20,7 @@ export default async function SigningSettingsPage() {
         <p className="text-gray-500 mt-1 text-sm">
           {t(
             'settings.signing.description',
-            'Activa o desactiva la signatura digital per a tots els tenants i gestiona el percentatge de desplegament.',
+            'Activa o desactiva la signatura digital per a tots els tenants i configura la firma pròpia.',
           )}
         </p>
       </div>
@@ -24,6 +29,16 @@ export default async function SigningSettingsPage() {
         isEnabled={signingFlag?.is_enabled ?? false}
         rolloutPercentage={signingFlag?.rollout_percentage ?? 0}
       />
+
+      <div className="max-w-3xl">
+        <AdminNativeSigningSettings
+          pdfEnabled={pdfSettings.pdf_enabled}
+          nativeSigningEnabled={pdfSettings.native_signing_enabled}
+          nativeEvidenceMode={pdfSettings.native_evidence_mode}
+          remoteSigningTokenDays={pdfSettings.remote_signing_token_days}
+          legalFooterText={pdfSettings.legal_footer_text}
+        />
+      </div>
     </div>
   )
 }

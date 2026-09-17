@@ -46,7 +46,7 @@ Decisions tancades: fallback intacte, categories `quote`/`delivery_note` noves i
 |------|-----|-------|-------|
 | QT-8 | Autoria de camps de signatura | ❌ | Depèn de QT-3 |
 | QT-9 | Pipeline de firma nativa | ❌ | Depèn de QT-2, QT-8 |
-| QT-10 | Submission Hub | ❌ | Depèn de QT-9; verificar estat del pla de signatures abans d'obrir |
+| QT-10 | Submission Hub | ❌ | Depèn de QT-9; pla extern ja implementat (verificat 2026-09-17: `signing_provider`/`native_group_id` a `20260615000008_native_signing_submission_hub.sql`), no bloqueja |
 
 ## Changelog
 
@@ -54,3 +54,4 @@ Decisions tancades: fallback intacte, categories `quote`/`delivery_note` noves i
 |------|-------|
 | 2026-09-16 | Creat paquet documental (README, guardrails per a agents IA, contracte de context i clàusules, arquitectura de renderitzat, repositori de plantilles, frontend, forward-compat de contracte, fases, EXECUTION, STATUS). Decisions: fallback intacte, categories noves mútuament excloents, HTML→DOCX en dues fases, contracte només disseny. |
 | 2026-09-16 | Afegida Fase 3 (QT-8/9/10): integració amb el motor de firma nativa del DMS ja existent (`sign-document-router`, `signing-field-map.ts`, Submission Hub). Nou fitxer `07-signing-integration.md`. Nota forward-compat sobre facturació fiscal futura afegida a doc 05. |
+| 2026-09-17 | Verificat al codi: el Submission Hub (`pla_alineacio_firmes_docuseal_native.plan.md`) **ja està implementat**, no és una proposta pendent. QT-10 deixa de tenir aquest bloqueig extern. |

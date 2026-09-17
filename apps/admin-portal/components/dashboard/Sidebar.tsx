@@ -111,7 +111,7 @@ export function Sidebar() {
     },
     {
       href: '/dashboard/settings/pdf',
-      label: t('common.nav.pdf', 'PDF & Firma'),
+      label: t('common.nav.pdf', 'PDF'),
       exact: false,
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

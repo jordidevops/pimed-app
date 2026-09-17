@@ -29,7 +29,7 @@
 |------|-----|-----------|----------|
 | **QT-8** | Autoria de camps de signatura | Afegir `<signature-field>`/tags DOCX (`client_accept`/`client_reject`/`client_delivery`) a les 6 plantilles seed de QT-3 | QT-3 |
 | **QT-9** | Pipeline de firma | `render-commercial-document` crida `injectHtmlSignatureMarkers`/`injectDocxSignatureMarkers`; nou flux d'acceptació/refús/lliurament via `sign-document-router action=sign_native` (presencial i remot), substituint el JSON `signature:{method:'staff_ui'}` actual | QT-2, QT-8 |
-| **QT-10** | Submission Hub | Documents comercials firmats visibles al Centre de signatures existent (`signing_submissions` amb `signing_provider='native'`), alineat amb `docs/plans/signing/pla_alineacio_firmes_docuseal_native.plan.md` | QT-9 — **verificar l'estat d'aquell pla abans d'obrir** (pot no estar implementat encara) |
+| **QT-10** | Submission Hub | Documents comercials firmats visibles al Centre de signatures existent (`signing_submissions` amb `signing_provider='native'`), alineat amb `docs/plans/signing/pla_alineacio_firmes_docuseal_native.plan.md` | QT-9 — **ja implementat al codi (verificat 2026-09-17), no bloqueja** |
 
 **Fase 3 és independent de la Fase 2 (DOCX)**: es pot fer QT-8/9/10 abans, després o en paral·lel a QT-6/7 segons prioritat de l'usuari.
 

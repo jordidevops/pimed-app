@@ -31,7 +31,7 @@
 | 7 | **QT-7** Frontend DOCX | ❌ | Fase 2 |
 | 8 | **QT-8** Autoria de camps de signatura | ❌ | Fase 3, depèn de QT-3; independent de QT-6/7 |
 | 9 | **QT-9** Pipeline de firma nativa | ❌ | Depèn de QT-2, QT-8 |
-| 10 | **QT-10** Submission Hub | ❌ | Depèn de QT-9; verificar estat de `signing/pla_alineacio_firmes_docuseal_native.plan.md` abans d'obrir |
+| 10 | **QT-10** Submission Hub | ❌ | Depèn de QT-9; el pla extern ja està implementat (verificat 2026-09-17), no bloqueja |
 
 ## Registre de treball
 

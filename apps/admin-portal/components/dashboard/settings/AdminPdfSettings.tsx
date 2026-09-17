@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -41,16 +42,12 @@ import {
 
 const schema = z.object({
   pdf_enabled:               z.boolean(),
-  native_signing_enabled:    z.boolean(),
-  native_evidence_mode:      z.enum(['detached', 'embedded', 'both']),
   gotenberg_url:             z.string().url('URL invàlida (ha de ser http:// o https://)'),
   gotenberg_auth_type:       z.enum(['none', 'bearer', 'cf_service_token']),
   gotenberg_auth_secret_ref: z.string().nullable().optional(),
   paper_size:                z.enum(['A4', 'A3', 'Letter']),
   sync_html_max_kb:          z.coerce.number().int().min(100).max(5000),
   timeout_ms:                z.coerce.number().int().min(5000).max(300000),
-  remote_signing_token_days: z.coerce.number().int().min(1).max(30),
-  legal_footer_text:         z.string().max(500),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -110,40 +107,31 @@ export function AdminPdfSettings({ initialSettings }: Props) {
     resolver: zodResolver(schema),
     defaultValues: {
       pdf_enabled:               initialSettings.pdf_enabled,
-      native_signing_enabled:    initialSettings.native_signing_enabled,
-      native_evidence_mode:      initialSettings.native_evidence_mode,
       gotenberg_url:             initialSettings.gotenberg_url,
       gotenberg_auth_type:       initialSettings.gotenberg_auth_type,
       gotenberg_auth_secret_ref: initialSettings.gotenberg_auth_secret_ref ?? '',
       paper_size:                initialSettings.paper_size,
       sync_html_max_kb:          initialSettings.sync_html_max_kb,
       timeout_ms:                initialSettings.timeout_ms,
-      remote_signing_token_days: initialSettings.remote_signing_token_days,
-      legal_footer_text:         initialSettings.legal_footer_text,
     },
   })
 
-  const pdfEnabled            = watch('pdf_enabled')
-  const nativeSigningEnabled  = watch('native_signing_enabled')
-  const evidenceMode          = watch('native_evidence_mode')
-  const authType              = watch('gotenberg_auth_type')
-  const gotenbergUrl          = watch('gotenberg_url')
+  const pdfEnabled   = watch('pdf_enabled')
+  const authType     = watch('gotenberg_auth_type')
+  const gotenbergUrl = watch('gotenberg_url')
 
   function onSubmit(values: FormValues) {
     startTransition(async () => {
       try {
         await updatePdfConverterSettings({
           pdf_enabled:               values.pdf_enabled,
-          native_signing_enabled:    values.native_signing_enabled,
-          native_evidence_mode:      values.native_evidence_mode,
           gotenberg_url:             values.gotenberg_url,
           gotenberg_auth_type:       values.gotenberg_auth_type,
           gotenberg_auth_secret_ref: values.gotenberg_auth_secret_ref || null,
           paper_size:                values.paper_size,
           sync_html_max_kb:          values.sync_html_max_kb,
           timeout_ms:                values.timeout_ms,
-          remote_signing_token_days: values.remote_signing_token_days,
-          legal_footer_text:         values.legal_footer_text,
+          ...(values.pdf_enabled ? {} : { native_signing_enabled: false }),
         })
         toast.success('Configuració PDF guardada correctament')
       } catch (err) {
@@ -349,92 +337,7 @@ export function AdminPdfSettings({ initialSettings }: Props) {
         </CardContent>
       </Card>
 
-      {/* ── Secció 4: Firma Pròpia ───────────────────────────────────────────── */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Firma Pròpia</CardTitle>
-          <CardDescription>
-            Configuració del mòdul de signatura nativa (presencial i remota).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">Activar firma nativa</p>
-              <p className="text-xs text-gray-500">
-                Permet als tenants usar signatures pròpies (presencials i remotes).
-              </p>
-            </div>
-            <Switch
-              checked={nativeSigningEnabled}
-              onCheckedChange={(v) => setValue('native_signing_enabled', v)}
-              disabled={!pdfEnabled}
-            />
-          </div>
-
-          <Separator />
-
-          <div className="space-y-2">
-            <Label>Mode d&apos;evidències (PDF signat)</Label>
-            <Select
-              value={evidenceMode}
-              onValueChange={(v) => setValue('native_evidence_mode', v as FormValues['native_evidence_mode'])}
-              disabled={!nativeSigningEnabled}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="detached">
-                  Separat (recomanat) — signatura a l&apos;etiqueta; auditoria en PDF apart
-                </SelectItem>
-                <SelectItem value="embedded">
-                  Incrustat — pàgina d&apos;evidències al final del document
-                </SelectItem>
-                <SelectItem value="both">
-                  Ambdós — overlay a l&apos;etiqueta i pàgina d&apos;evidències
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-gray-500">
-              Amb <strong>separat</strong>, el PDF firmat queda net (com DocuSeal) i el certificat
-              d&apos;auditoria es genera per separat.
-            </p>
-          </div>
-
-          <Separator />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Validesa del token de firma (dies)</Label>
-              <Input
-                {...register('remote_signing_token_days')}
-                type="number"
-                min={1}
-                max={30}
-              />
-              {errors.remote_signing_token_days && (
-                <p className="text-sm text-red-600">{errors.remote_signing_token_days.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Text legal al peu de la pàgina de signatura pública</Label>
-            <textarea
-              {...register('legal_footer_text')}
-              rows={3}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              placeholder="En signar aquest document..."
-            />
-            {errors.legal_footer_text && (
-              <p className="text-sm text-red-600">{errors.legal_footer_text.message}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── Secció 5: Controls de sistema ───────────────────────────────────── */}
+      {/* ── Secció 4: Controls de sistema ───────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle>Controls de sistema</CardTitle>
@@ -445,17 +348,28 @@ export function AdminPdfSettings({ initialSettings }: Props) {
               <p className="text-sm font-medium">Activar generació PDF</p>
               <p className="text-xs text-gray-500">
                 Si desactivat, tot funciona en format natiu (HTML/DOCX). Jobs pendents
-                passen a <code>skipped</code>.
+                passen a <code>skipped</code>. La Firma Pròpia també es desactiva.
               </p>
             </div>
             <Switch
               checked={pdfEnabled}
-              onCheckedChange={(v) => {
-                setValue('pdf_enabled', v)
-                if (!v) setValue('native_signing_enabled', false)
-              }}
+              onCheckedChange={(v) => setValue('pdf_enabled', v)}
             />
           </div>
+
+          {!pdfEnabled && (
+            <div className="rounded-md border bg-amber-50 border-amber-200 p-3 flex gap-2 text-sm text-amber-800">
+              <Info className="w-4 h-4 shrink-0 mt-0.5" />
+              <div>
+                La firma pròpia no es pot activar mentre la generació PDF estigui desactivada.
+                Configura-la a{' '}
+                <Link href="/dashboard/settings/signing" className="font-medium underline underline-offset-2">
+                  Signing
+                </Link>
+                {' '}un cop el PDF torni a estar actiu.
+              </div>
+            </div>
+          )}
 
           <Separator />
 

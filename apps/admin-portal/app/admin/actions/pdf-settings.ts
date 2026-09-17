@@ -147,6 +147,20 @@ export async function updatePdfConverterSettings(
     }
   }
 
+  if (safePatch.pdf_enabled === false) {
+    safePatch.native_signing_enabled = false
+  }
+
+  if (safePatch.native_signing_enabled === true) {
+    const current = await getPdfConverterSettings()
+    const pdfEnabled = safePatch.pdf_enabled ?? current.pdf_enabled
+    if (!pdfEnabled) {
+      throw new Error(
+        'No es pot activar la firma pròpia sense la generació PDF activa.',
+      )
+    }
+  }
+
   await prisma.$executeRaw`
     INSERT INTO data.system_settings (module, settings, updated_by)
     VALUES ('pdf_converter', ${JSON.stringify(safePatch)}::jsonb, ${user.id}::uuid)
@@ -157,6 +171,7 @@ export async function updatePdfConverterSettings(
   `
 
   revalidatePath('/dashboard/settings/pdf')
+  revalidatePath('/dashboard/settings/signing')
 }
 
 // ---------------------------------------------------------------------------
