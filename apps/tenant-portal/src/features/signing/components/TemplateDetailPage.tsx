@@ -19,6 +19,11 @@ import { DocxPreviewModal } from './DocxPreviewModal'
 import { DocumentOrchestrator } from './DocumentOrchestrator'
 import { BlockMappingSection } from './BlockMappingSection'
 import { buildPreviewHtml } from '../utils/previewBlocks'
+import {
+  isFullBodyTemplateCategory,
+  templateCategoryLabel,
+  templateKindLabel,
+} from '../utils/templateCategories'
 import type { DocumentTemplateLocaleDetail, VariableDef, SigningRolesSchema } from '../api/signingService'
 
 function getLanguageName(code: string): string {
@@ -36,7 +41,7 @@ function mimeShort(mime: string | null | undefined): string {
   return part?.toUpperCase() ?? ''
 }
 
-function buildHtmlPreview(htmlContent: string, sampleValues: Record<string, string> | null, blockMapping?: Record<string, string> | null, blocks?: Array<{ id?: string | null; block_type?: string | null; format?: string | null; content?: string | null }> | null): string {
+function buildHtmlPreview(htmlContent: string, sampleValues: Record<string, unknown> | null, blockMapping?: Record<string, string> | null, blocks?: Array<{ id?: string | null; block_type?: string | null; format?: string | null; content?: string | null }> | null): string {
   return buildPreviewHtml(htmlContent, sampleValues ?? {}, { blockMapping, blocks, tenant: { name: 'Tenant de prova', logo_url: null } })
 }
 
@@ -139,11 +144,15 @@ export function TemplateDetailPage() {
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {template?.category && (
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-              {template.category}
+          {isFullBodyTemplateCategory(template?.category) ? (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-teal-100 text-teal-800">
+              {templateKindLabel(t, template?.category)}
             </span>
-          )}
+          ) : template?.category ? (
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+              {templateCategoryLabel(t, template.category)}
+            </span>
+          ) : null}
           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded uppercase ${isPlatform ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`}>
             {isPlatform ? t('template.platform_badge', 'Sistema') : t('template.own_badge', 'Pròpia')}
           </span>
@@ -154,7 +163,7 @@ export function TemplateDetailPage() {
       </div>
 
       {/* Blocs de contingut */}
-      {isOwn && (
+      {isOwn && !isFullBodyTemplateCategory(template?.category) && (
         <BlockMappingSection
           templateId={id!}
           tenantId={tenantId}
@@ -182,6 +191,7 @@ export function TemplateDetailPage() {
                   kind: 'upsert_locale',
                   templateId: id!,
                   templateType: (template?.template_type as 'docx' | 'html') ?? 'docx',
+                  category: template?.category ?? null,
                   defaultBlockMapping: template?.default_block_mapping as Record<string, string> | null | undefined,
                 }}
               />
@@ -238,6 +248,7 @@ export function TemplateDetailPage() {
                       kind: 'upsert_locale',
                       templateId: id!,
                       templateType: (template?.template_type as 'docx' | 'html') ?? 'docx',
+                      category: template?.category ?? null,
                       existing: { ...loc, pdf_fields_schema: null },
                       defaultBlockMapping: template?.default_block_mapping as Record<string, string> | null | undefined,
                     }}
@@ -298,7 +309,7 @@ export function TemplateDetailPage() {
                       <div className="rounded-lg border overflow-hidden bg-white">
                         <iframe
                           title={`preview-${loc.id}`}
-                          srcDoc={buildHtmlPreview(loc.html_content, loc.sample_values as Record<string, string> | null, template?.default_block_mapping as Record<string, string> | null | undefined, contentBlocks)}
+                          srcDoc={buildHtmlPreview(loc.html_content, loc.sample_values as Record<string, unknown> | null, template?.default_block_mapping as Record<string, string> | null | undefined, contentBlocks)}
                           sandbox="allow-same-origin"
                           className="w-full h-80 border-none block"
                         />
@@ -392,6 +403,7 @@ export function TemplateDetailPage() {
                     kind: 'upsert_locale',
                     templateId: id!,
                     templateType: (template?.template_type as 'docx' | 'html') ?? 'docx',
+                    category: template?.category ?? null,
                     defaultBlockMapping: template?.default_block_mapping as Record<string, string> | null | undefined,
                   }}
                 />
@@ -448,6 +460,11 @@ export function TemplateDetailPage() {
           onClose={() => setPreviewLocale(null)}
           storagePath={previewLocale.storage_path ?? ''}
           fileName={`${getLanguageName(previewLocale.locale ?? '')} — ${template?.name ?? ''}`}
+          previewValues={
+            isFullBodyTemplateCategory(template?.category)
+              ? ((previewLocale.sample_values as Record<string, unknown> | null) ?? null)
+              : null
+          }
         />
       )}
     </div>

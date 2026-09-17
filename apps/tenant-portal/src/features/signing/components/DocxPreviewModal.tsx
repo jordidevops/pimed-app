@@ -4,6 +4,7 @@ import { renderAsync } from 'docx-preview'
 import PizZip from 'pizzip'
 import Docxtemplater from 'docxtemplater'
 import { supabase } from '@/lib/supabase'
+import { dottedPathParser } from '../utils/docxTemplateIo'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
@@ -54,6 +55,7 @@ function renderDocxWithValues(blob: Blob, previewValues?: Record<string, unknown
         delimiters: { start: '[[', end: ']]' },
         paragraphLoop: true,
         linebreaks: true,
+        parser: dottedPathParser,
         // Si no hi ha valor, mantenim el placeholder i evitem "undefined".
         nullGetter: (part: { raw?: string } | undefined) => {
           const raw = part?.raw?.trim()
@@ -145,9 +147,10 @@ interface DocxPreviewModalProps {
   storagePath: string
   fileName?:   string
   bucket?:     string
+  previewValues?: Record<string, unknown> | null
 }
 
-export function DocxPreviewModal({ open, onClose, storagePath, fileName, bucket = 'document-templates' }: DocxPreviewModalProps) {
+export function DocxPreviewModal({ open, onClose, storagePath, fileName, bucket = 'document-templates', previewValues }: DocxPreviewModalProps) {
   const { t }        = useTranslation('signing')
   const containerRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(true)
@@ -170,9 +173,10 @@ export function DocxPreviewModal({ open, onClose, storagePath, fileName, bucket 
         const res = await fetch(urlData.signedUrl)
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const blob = await res.blob()
+        const previewBlob = await renderDocxWithValues(blob, previewValues)
 
         if (!cancelled && containerRef.current) {
-          await renderAsync(blob, containerRef.current, containerRef.current, {
+          await renderAsync(previewBlob, containerRef.current, containerRef.current, {
             ignoreFonts: false,
             breakPages:  true,
             useBase64URL: true,
@@ -186,7 +190,7 @@ export function DocxPreviewModal({ open, onClose, storagePath, fileName, bucket 
     })()
 
     return () => { cancelled = true }
-  }, [open, storagePath, bucket])
+  }, [open, storagePath, bucket, previewValues])
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose() }}>

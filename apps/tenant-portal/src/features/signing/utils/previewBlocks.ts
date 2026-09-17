@@ -28,6 +28,14 @@ function sanitizeHtml(html: string): string {
     .replace(/\b(href|src)\s*=\s*javascript:[^\s>]+/gi, '$1="#"')
 }
 
+function looksLikeFullHtmlDocument(html: string): boolean {
+  return /^\s*(<!doctype html|<html[\s>])/i.test(html)
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
 export function buildPreviewHtml(
   html: string,
   values: Record<string, unknown>,
@@ -44,8 +52,17 @@ export function buildPreviewHtml(
     ...values,
   }
 
+  if (isPlainObject(values.globals)) {
+    ctx.globals = {
+      ...(ctx.globals as Record<string, unknown>),
+      ...values.globals,
+    }
+  }
+
   if (options.tenant && typeof options.tenant === 'object') {
-    ctx.tenant = options.tenant
+    ctx.tenant = isPlainObject(ctx.tenant)
+      ? { ...options.tenant, ...ctx.tenant }
+      : options.tenant
   }
 
   const mappingEntries = Object.entries(options.blockMapping ?? {})
@@ -87,6 +104,9 @@ export function buildPreviewHtml(
   }
 
   const safeHtml = sanitizeHtml(renderedHtml)
+  if (looksLikeFullHtmlDocument(html) || looksLikeFullHtmlDocument(safeHtml)) {
+    return safeHtml
+  }
 
   return `<!DOCTYPE html><html lang="ca"><head><meta charset="UTF-8"><style>body{font-family:system-ui,sans-serif;font-size:14px;line-height:1.6;color:#111;padding:24px 32px;max-width:860px;margin:0 auto}h1,h2,h3{margin-top:1.2em}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:6px 10px}</style></head><body>${safeHtml}</body></html>`
 }

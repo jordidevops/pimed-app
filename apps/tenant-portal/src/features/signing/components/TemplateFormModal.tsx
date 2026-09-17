@@ -27,6 +27,20 @@ import { copyLocaleData } from '../utils/aiTemplate'
 import { supabase } from '@/lib/supabase'
 import { ROLE_CATALOG } from '../constants/roleCatalog'
 import { getLiquidTemplateSyntaxError, hasLegacyTemplateBlocks } from '@/lib/liquidTemplateValidation'
+import {
+  DOCUMENT_TEMPLATE_CATEGORY_OPTIONS,
+  isFullBodyTemplateCategory,
+  templateCategoryLabel,
+} from '../utils/templateCategories'
+import { commercialRequiredTokens } from '../utils/commercialTemplateContract'
+import { parseCommercialTemplateLegalGaps } from '@/features/commercial/utils/rpcError'
+import {
+  extractDocxDocumentXml,
+  extractDocxSigningRoles,
+  extractDocxVariableKeys,
+  searchableDocxPlainText,
+  skipDocxSchemaVarMismatch,
+} from '../utils/docxTemplateIo'
 
 // ─── Entity field suggestions by entity_type ─────────────────────────────────
 
@@ -38,88 +52,6 @@ const ENTITY_FIELDS: Record<string, string[]> = {
   asset:    ['name', 'serial_number', 'model'],
   tenant:   ['name', 'tax_id'],
   person:   ['full_name', 'email'],
-}
-
-// ─── DOCX variable scanner (no external deps) ────────────────────────────────
-
-async function extractDocxXml(file: Blob): Promise<string> {
-  const buffer = await file.arrayBuffer()
-  const bytes  = new Uint8Array(buffer)
-  const view   = new DataView(buffer)
-
-  // Find EOCD: PK\x05\x06 — search backwards from end
-  let eocdOff = -1
-  for (let i = bytes.length - 22; i >= 0; i--) {
-    if (bytes[i] === 0x50 && bytes[i+1] === 0x4b && bytes[i+2] === 0x05 && bytes[i+3] === 0x06) {
-      eocdOff = i
-      break
-    }
-  }
-  if (eocdOff === -1) throw new Error('Not a valid ZIP')
-
-  const cdOffset = view.getUint32(eocdOff + 16, true)
-  const cdSize   = view.getUint32(eocdOff + 12, true)
-  const dec      = new TextDecoder()
-
-  let off = cdOffset
-  while (off < cdOffset + cdSize) {
-    if (view.getUint32(off, false) !== 0x504b0102) break
-    const compression = view.getUint16(off + 10, true)
-    const compSize    = view.getUint32(off + 20, true)
-    const nameLen     = view.getUint16(off + 28, true)
-    const extraLen    = view.getUint16(off + 30, true)
-    const commentLen  = view.getUint16(off + 32, true)
-    const localOff    = view.getUint32(off + 42, true)
-    const name        = dec.decode(bytes.slice(off + 46, off + 46 + nameLen))
-
-    if (name === 'word/document.xml') {
-      const lNameLen  = view.getUint16(localOff + 26, true)
-      const lExtraLen = view.getUint16(localOff + 28, true)
-      const dataStart = localOff + 30 + lNameLen + lExtraLen
-      const compressed = bytes.slice(dataStart, dataStart + compSize)
-
-      if (compression === 0) return dec.decode(compressed)
-
-      if (compression === 8) {
-        const ds     = new DecompressionStream('deflate-raw')
-        const writer = ds.writable.getWriter()
-        void writer.write(compressed)
-        void writer.close()
-        const reader = ds.readable.getReader()
-        const chunks: Uint8Array[] = []
-        for (;;) {
-          const { done, value } = await reader.read()
-          if (done) break
-          chunks.push(value)
-        }
-        const total  = chunks.reduce((a, c) => a + c.length, 0)
-        const result = new Uint8Array(total)
-        let cursor   = 0
-        for (const c of chunks) { result.set(c, cursor); cursor += c.length }
-        return dec.decode(result)
-      }
-    }
-    off += 46 + nameLen + extraLen + commentLen
-  }
-  throw new Error('word/document.xml not found')
-}
-
-function extractDocxVariableKeys(xml: string): string[] {
-  // Strip XML tags so [[key]] split across runs is joined
-  const plain = xml.replace(/<[^>]+>/g, '')
-  // [[key]] → Docxtemplater variable (excluding loop markers [[#...]] and [[/...]])
-  // Acceptem '-' per compatibilitat (ex: [[data-inici]]), a més de '_' i '.'
-  const keys = [...plain.matchAll(/\[\[([\w.-]+)\]\]/g)]
-    .map(m => m[1])
-    .filter(k => !k.startsWith('#') && !k.startsWith('/'))
-  return [...new Set(keys)]
-}
-
-function extractDocxSigningRoles(xml: string): string[] {
-  // {{FieldName;role=RoleName;type=...}} → DocuSeal interactive field with role assignment (signing/fillable)
-  const plain   = xml.replace(/<[^>]+>/g, '')
-  const matches = [...plain.matchAll(/\{\{[^}]*?;role=["']?([^;"'\}\s]+)["']?/gi)]
-  return [...new Set(matches.map(m => m[1].trim()))]
 }
 
 function extractHtmlVariableKeys(html: string): string[] {
@@ -159,6 +91,7 @@ type ModalMode =
       kind: 'upsert_locale'
       templateId: string
       templateType: 'docx' | 'html'
+      category?: string | null
       existing?: DocumentTemplateLocale
       defaultBlockMapping?: Record<string, string> | null
     }
@@ -271,6 +204,7 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
   // No les netegem quan l'usuari fa "Importar com a variables/rols", perquè la validació DOCX les necessita.
   const [docxScannedVarKeys, setDocxScannedVarKeys] = useState<string[]>([])
   const [docxScannedRoleKeys, setDocxScannedRoleKeys] = useState<string[]>([])
+  const [docxSearchableContent, setDocxSearchableContent] = useState('')
   const [scanning, setScanning]       = useState(false)
   const [htmlLoading, setHtmlLoading] = useState(false)
   const [aiWizardOpen, setAiWizardOpen] = useState(false)
@@ -283,6 +217,8 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
   const { data: contentBlocks = [] } = useContentBlocks(tenantId || undefined)
 
   const isHtmlLocaleEdit = mode.kind === 'upsert_locale' && mode.templateType === 'html'
+  const localeCategory = mode.kind === 'upsert_locale' ? mode.category : category
+  const isQuoteOrDelivery = isFullBodyTemplateCategory(localeCategory)
   const previewVariablesSchema = useMemo(() => buildSchema(varRows), [varRows])
   const previewRolesSchema = useMemo(() => buildRolesSchema(roleRows), [roleRows])
 
@@ -331,6 +267,7 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
     setDetectedRoles([])
     setDocxScannedVarKeys([])
     setDocxScannedRoleKeys([])
+    setDocxSearchableContent('')
     setShowRoleHelp(false)
     setHtmlPreviewOpen(false)
     setAiWizardOpen(false)
@@ -445,11 +382,12 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
           }
 
           if (blob) {
-            const xml = await extractDocxXml(blob)
+            const xml = await extractDocxDocumentXml(blob)
             const keys = extractDocxVariableKeys(xml)
             const roles = extractDocxSigningRoles(xml)
             setDocxScannedVarKeys(keys)
             setDocxScannedRoleKeys(roles)
+            setDocxSearchableContent(searchableDocxPlainText(xml))
           }
         } catch {
           // Si no podem escanejar, preferim no bloquejar el save (a diferència de HTML).
@@ -469,7 +407,7 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
       const schemaVarSet = new Set(schemaVarKeys)
       const schemaRoleSet = new Set(schemaRoleKeys)
 
-      if (docxVarKeys.length > 0) {
+      if (docxVarKeys.length > 0 && !skipDocxSchemaVarMismatch(localeCategory)) {
         const missingInSchema = docxVarKeys.filter(k => !schemaVarSet.has(k))
         if (missingInSchema.length > 0) {
           toast({
@@ -498,7 +436,7 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
       }
 
       // Avis (no bloquejant) quan hi ha schema però no apareix al DOCX escanejat.
-      if (docxVarKeys.length > 0 && schemaVarKeys.length > 0) {
+      if (docxVarKeys.length > 0 && schemaVarKeys.length > 0 && !skipDocxSchemaVarMismatch(localeCategory)) {
         const unusedInDocx = schemaVarKeys.filter(k => !docxVarKeys.includes(k))
         if (unusedInDocx.length > 0) {
           toast({
@@ -546,21 +484,57 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
     }
 
     try {
+      let searchableContent = docxSearchableContent
+      if (!isHtml && !searchableContent && (file || mode.existing?.storage_path)) {
+        try {
+          let blob: Blob | null = file
+          if (!blob && mode.existing?.storage_path) {
+            const { data: urlData, error: urlErr } = await supabase.storage
+              .from('document-templates')
+              .createSignedUrl(mode.existing.storage_path, 120)
+            if (urlErr || !urlData) throw new Error(urlErr?.message ?? 'No s\'ha pogut obtenir URL del DOCX')
+            const res = await fetch(urlData.signedUrl)
+            if (!res.ok) throw new Error(`HTTP ${res.status}`)
+            blob = await res.blob()
+          }
+          if (blob) searchableContent = searchableDocxPlainText(await extractDocxDocumentXml(blob))
+        } catch {
+          searchableContent = ''
+        }
+      }
+
+      if (!isHtml && isQuoteOrDelivery && !searchableContent) {
+        toast({
+          variant: 'destructive',
+          description: t('locale.docxExtractError', 'No s\'ha pogut llegir el DOCX per validar els marcadors obligatoris.'),
+        })
+        return
+      }
+
       await upsertLocale.mutateAsync({
         tenantId,
         templateId:          mode.templateId,
         locale:              locale.trim(),
         file:                isHtml ? undefined : (file ?? undefined),
         htmlContent:         isHtml ? htmlContent : undefined,
+        docxSearchableContent: isHtml ? undefined : (searchableContent || undefined),
         variablesSchema:     buildSchema(varRows),
         signingRolesSchema:  Object.keys(buildRolesSchema(roleRows)).length > 0 ? buildRolesSchema(roleRows) : null,
-        sampleValues:        null,
+        sampleValues:        (mode.existing?.sample_values as Record<string, unknown> | null) ?? null,
         existingId:          mode.existing?.id ?? undefined,
         existingStoragePath: !isHtml ? (mode.existing?.storage_path ?? undefined) : undefined,
       })
       toast({ description: t('locale.saved', 'Locale desat correctament') })
       onClose()
     } catch (err) {
+      const gaps = parseCommercialTemplateLegalGaps(err)
+      if (gaps && gaps.length > 0) {
+        toast({
+          variant: 'destructive',
+          description: `${t('locale.legalGaps', 'Falten marcadors obligatoris per activar aquesta plantilla:')} ${gaps.join(', ')}`,
+        })
+        return
+      }
       toast({ variant: 'destructive', description: err instanceof Error ? err.message : t('locale.saveError', 'Error en desar el locale') })
     }
   }
@@ -572,12 +546,14 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
     setDetectedRoles([])
     setDocxScannedVarKeys([])
     setDocxScannedRoleKeys([])
+    setDocxSearchableContent('')
     if (f && f.name.toLowerCase().endsWith('.docx')) {
       setScanning(true)
       try {
-        const xml      = await extractDocxXml(f)
+        const xml      = await extractDocxDocumentXml(f)
         const keys     = extractDocxVariableKeys(xml)
         const roles    = extractDocxSigningRoles(xml)
+        setDocxSearchableContent(searchableDocxPlainText(xml))
         if (keys.length > 0) {
           setDetected(keys)
           setDocxScannedVarKeys(keys)
@@ -661,11 +637,29 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">{t('form.categoryLabel', 'Categoria')}</label>
-                <Input
+                <select
                   value={category}
                   onChange={e => setCategory(e.target.value)}
-                  placeholder={t('form.categoryPlaceholder', 'Categoria...')}
-                />
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                >
+                  <option value="">{t('form.categoryNone', 'Sense categoria')}</option>
+                  {DOCUMENT_TEMPLATE_CATEGORY_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>
+                      {t(opt.key, opt.fallback)}
+                    </option>
+                  ))}
+                  {category && !DOCUMENT_TEMPLATE_CATEGORY_OPTIONS.some(opt => opt.value === category) && (
+                    <option value={category}>{templateCategoryLabel(t, category)}</option>
+                  )}
+                </select>
+                {isQuoteOrDelivery && (
+                  <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                    {t(
+                      'form.quoteDeliveryHint',
+                      "S'usarà com a format del mòdul Pressupostos o Albarans. Si no n'hi ha cap de pròpia, el sistema usa el format per defecte (no editable).",
+                    )}
+                  </p>
+                )}
               </div>
               {/* Tipus de plantilla */}
               <div className="space-y-1.5">
@@ -694,6 +688,14 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
                     <span className="text-xs text-muted-foreground">{t('form.typeHtmlHint', '(editor visual en línia)')}</span>
                   </label>
                 </div>
+                {isQuoteOrDelivery && (
+                  <p className="text-xs text-muted-foreground">
+                    {t(
+                      'form.docxAllowedHint',
+                      'Podeu crear la plantilla en HTML (editor visual) o DOCX (Word amb [[variables]]). El tipus no es pot canviar després.',
+                    )}
+                  </p>
+                )}
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
                   {t('form.typeImmutableWarning', 'Atenció: el tipus no es pot canviar un cop creada la plantilla.')}
                 </p>
@@ -796,6 +798,7 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
                 onClose={() => setAiWizardOpen(false)}
                 targetLocale={locale}
                 templateType={mode.templateType}
+                category={mode.category}
                 siblingLocales={siblingLocales}
                 existingSnapshot={
                   (htmlContent.trim() || varRows.length > 0 || roleRows.length > 0)
@@ -815,6 +818,21 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">{t('locale.file', 'Fitxer DOCX')}</label>
                   <p className="text-xs text-muted-foreground">{t('locale.fileHint', 'Format DOCX amb variables [[clau]] i camps de signatura {{Camp;role=Rol;type=signature}}.')}</p>
+                  {mode.kind === 'upsert_locale' && isFullBodyTemplateCategory(localeCategory) && (
+                    <div className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 space-y-1">
+                      <p>
+                        {t(
+                          'locale.requiredTokensHint',
+                          "El contingut ha d'incloure aquests marcadors (text exacte) per poder-se usar a Pressupostos/Albarans:",
+                        )}
+                      </p>
+                      <ul className="list-disc pl-4 font-mono">
+                        {commercialRequiredTokens(localeCategory, 'docx').map((token) => (
+                          <li key={token.id}>{token.example}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   <input
                     title={t('locale.file', 'Fitxer DOCX')}
                     ref={fileRef}
@@ -865,6 +883,11 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
                         fileBlob={file ?? null}
                         storagePath={!file ? (mode.existing?.storage_path ?? null) : null}
                         bucket="document-templates"
+                        previewValues={
+                          isQuoteOrDelivery
+                            ? ((mode.existing?.sample_values as Record<string, unknown> | null) ?? null)
+                            : null
+                        }
                         className="p-2"
                       />
                     </div>
@@ -903,6 +926,21 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">{t('locale.htmlContent', 'Contingut HTML')}</label>
                   <p className="text-xs text-muted-foreground">{t('locale.htmlHint', 'Editor visual. Usa els botons per inserir variables {{clau}} i camps de signatura.')}</p>
+                  {mode.kind === 'upsert_locale' && isFullBodyTemplateCategory(localeCategory) && (
+                    <div className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 space-y-1">
+                      <p>
+                        {t(
+                          'locale.requiredTokensHint',
+                          "El contingut ha d'incloure aquests marcadors (text exacte) per poder-se usar a Pressupostos/Albarans:",
+                        )}
+                      </p>
+                      <ul className="list-disc pl-4 font-mono">
+                        {commercialRequiredTokens(localeCategory, mode.templateType).map((token) => (
+                          <li key={token.id}>{token.example}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   {htmlLoading ? (
                     <p className="text-xs text-muted-foreground animate-pulse">{t('locale.htmlLoading', 'Carregant contingut...')}</p>
                   ) : (
@@ -1132,6 +1170,7 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
                       tenant={activeTenant ? { name: activeTenant.name, logo_url: activeTenant.logo_url } : null}
                       blockMapping={mode.defaultBlockMapping}
                       blocks={contentBlocks}
+                      sampleValues={(mode.existing?.sample_values as Record<string, unknown> | null) ?? null}
                     />
                   )}
                 </div>

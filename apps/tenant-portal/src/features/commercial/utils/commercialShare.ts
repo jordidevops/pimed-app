@@ -46,7 +46,7 @@ export async function tryNativeCommercialShare(
   const pdfFile = pdfUrl
     ? await commercialDocumentPdfFile(pdfUrl, commercialFilename(doc, 'pdf'))
     : null
-  const file = pdfFile ?? commercialDocumentHtmlFile(doc)
+  const file = pdfFile ?? (await commercialDocumentHtmlFile(doc))
   try {
     const withFiles = { title, text, files: [file] }
     if (navigator.canShare?.(withFiles)) {

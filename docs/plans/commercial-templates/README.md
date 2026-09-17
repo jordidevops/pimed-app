@@ -1,6 +1,6 @@
 # Plantilles pròpies de pressupost/albarà (DOCX+HTML) + repositori sectorial
 
-> **Estat:** pla documental creat, **cap fase implementada** — veure [`STATUS.md`](./STATUS.md) (2026-09-16)
+> **Estat:** QT-7 tancat 2026-09-17 — veure [`STATUS.md`](./STATUS.md). Següent: **QT-8** (sessió nova).
 > **Ordre d'implementació:** [`EXECUTION.md`](./EXECUTION.md)
 > **Instruccions obligatòries per a agents IA:** [`00-agent-instructions-and-guardrails.md`](./00-agent-instructions-and-guardrails.md) — **llegir abans de tocar cap fitxer**
 > **Depèn de:** [Commercial flow](../commercial-flow/README.md) (CF-18 Render amb plantilles, ja implementat), el motor de plantilles DMS existent (`data.document_templates` + `document_template_locales`), [Signing](../signing/plan-sistema-firma-propi.md) (per al forward-compat de contracte)
@@ -53,6 +53,8 @@ flowchart TD
 | **QT-D7** | Activar una plantilla `quote`/`delivery_note` sense contingut legal mínim exigeix reconeixement explícit auditat | El contingut mínim legal (01-legal-requirements.md del pla comercial) no es pot perdre silenciosament |
 | **QT-D8** | El contracte de variables (`tenant`/`document`/`seller`/`buyer`/`lines`/`totals`) es dissenya genèric, no acoblat a "quote" | Ha de poder-se reutilitzar tal qual per al futur contracte (doc 05) |
 | **QT-D9** | Pressupostos i albarans incorporen firma real reutilitzant el motor natiu del DMS ja existent (`sign-document-router`, `signing-field-map.ts`, `SignaturePad`, `/sign/:token`) — **no es crea cap mecanisme de firma nou** | El backend de firma nativa ja és funcional i el repo ja té una direcció de Submission Hub decidida ([`signing/pla_alineacio_firmes_docuseal_native.plan.md`](../signing/pla_alineacio_firmes_docuseal_native.plan.md)) |
+| **QT-D10** | El contracte de variables i els tokens de `validate_commercial_template_locale` queden **congelats** a [`01-context-and-legal-content.md`](./01-context-and-legal-content.md) §1 i §2.1 (QT-0, 2026-09-17) | QT-1 no pot inventar tokens ni camps; qualsevol ampliació es documenta aquí abans de tocar SQL |
+| **QT-D11** | Dates ISO intactes; `*_display` és presentació (patró del tenant, zona `ca`/`es` = Europe/Madrid) i **no** entra a §2.1 | El PDF no pot mostrar timestamptz cru; les plantilles seed/clons usen `issued_at_display` / `valid_until_display` |
 
 ## Fora d'abast d'aquest pla
 

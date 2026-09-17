@@ -36,6 +36,7 @@ import { documentsKeys } from '@/features/documents/api/documentsKeys'
 import { getDocumentUrl } from '@/features/documents/api/documentsService'
 import { buildPreviewHtml } from '../utils/previewBlocks'
 import { nativeSignerRoleLabel } from '../utils/signerRoleLabel'
+import { templateCategoryLabel } from '../utils/templateCategories'
 import { RoleAssignmentFields } from './RoleAssignmentFields'
 import {
   type RoleAssignment,
@@ -1719,7 +1720,7 @@ export function DocumentOrchestrator({ open, onClose, onDocumentCreated, onGener
                       onClick={() => setTemplateCategoryFilter(templateCategoryFilter === cat ? null : cat)}
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${templateCategoryFilter === cat ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
                     >
-                      {cat}
+                      {templateCategoryLabel(t, cat)}
                     </button>
                   ))}
                   {distinctTemplateCategories.length > visibleCategoryCount && (
@@ -1785,7 +1786,7 @@ export function DocumentOrchestrator({ open, onClose, onDocumentCreated, onGener
                               )}
                               {tmpl.category && (
                                 <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium shrink-0">
-                                  {tmpl.category}
+                                  {templateCategoryLabel(t, tmpl.category)}
                                 </span>
                               )}
                             </div>

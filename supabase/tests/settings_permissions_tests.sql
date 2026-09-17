@@ -16,6 +16,9 @@
 --   T12 get_tenant_role_permissions accessible per membre site-only
 --   T13 update_tenant_role_permissions és owner-only
 --   T14 update_tenant_role_permissions valida claus de permís
+--   T15 get_role_permissions('member') NO inclou commercial.pricing.edit per defecte
+--   T16 owner pot desar personalització de member amb commercial.pricing.edit
+--   T17 get_role_permissions('member', custom) retorna commercial.pricing.edit
 -- =============================================================================
 
 BEGIN;
@@ -542,6 +545,124 @@ BEGIN
     INSERT INTO test_results VALUES ('T14 role permissions invalid key validation', 'PASS', v_message);
   ELSE
     INSERT INTO test_results VALUES ('T14 role permissions invalid key validation', 'FAIL', format('Expected invalid key error, got denied=%s message=%s', v_denied, COALESCE(v_message, '<null>')));
+  END IF;
+END $$;
+
+-- -----------------------------------------------------------------------------
+-- T15: member per defecte NO té commercial.pricing.edit; manager sí
+-- -----------------------------------------------------------------------------
+DO $$
+DECLARE
+  v_member_perms  text[];
+  v_manager_perms text[];
+BEGIN
+  v_member_perms  := data.get_role_permissions('member', NULL);
+  v_manager_perms := data.get_role_permissions('manager', NULL);
+
+  IF NOT ('commercial.pricing.edit' = ANY (v_member_perms))
+     AND ('commercial.pricing.edit' = ANY (v_manager_perms))
+  THEN
+    INSERT INTO test_results VALUES (
+      'T15 member default excludes commercial.pricing.edit',
+      'PASS',
+      'member without; manager with'
+    );
+  ELSE
+    INSERT INTO test_results VALUES (
+      'T15 member default excludes commercial.pricing.edit',
+      'FAIL',
+      format(
+        'member has=%s manager has=%s',
+        'commercial.pricing.edit' = ANY (v_member_perms),
+        'commercial.pricing.edit' = ANY (v_manager_perms)
+      )
+    );
+  END IF;
+END $$;
+
+-- -----------------------------------------------------------------------------
+-- T16: owner pot desar personalització de member amb commercial.pricing.edit
+-- -----------------------------------------------------------------------------
+DO $$
+DECLARE
+  v_ok      boolean := false;
+  v_message text;
+BEGIN
+  PERFORM set_config('request.jwt.claim.sub', '20000000-0000-0000-0000-000000000002', true);
+  PERFORM set_config(
+    'request.jwt.claim',
+    '{"sub":"20000000-0000-0000-0000-000000000002","app_metadata":{"user_tenants":{"10000000-0000-0000-0000-000000000001":{"global_role":"owner","sites":{}}}}}',
+    true
+  );
+
+  BEGIN
+    PERFORM api.update_tenant_role_permissions(
+      jsonb_build_object(
+        'member', jsonb_build_array(
+          'storage.upload',
+          'calendar.edit',
+          'email.send',
+          'invoices.edit',
+          'ai.use',
+          'employees.directory.view',
+          'employees.view',
+          'assets.view',
+          'recruitment.view',
+          'field_service.reports.publish',
+          'field_service.reports.regenerate',
+          'field_service.reports.share',
+          'field_service.reports.preview_as_customer',
+          'contacts.portal.manage',
+          'attendance.punch_own',
+          'absences.request',
+          'commercial.pricing.edit'
+        )
+      ),
+      '10000000-0000-0000-0000-000000000001'::uuid
+    );
+    v_ok := true;
+  EXCEPTION
+    WHEN OTHERS THEN
+      GET STACKED DIAGNOSTICS v_message = MESSAGE_TEXT;
+  END;
+
+  IF v_ok AND COALESCE(v_message, '') NOT LIKE 'Invalid permission key%' THEN
+    INSERT INTO test_results VALUES (
+      'T16 owner can grant commercial.pricing.edit to member',
+      'PASS',
+      'saved member customization'
+    );
+  ELSE
+    INSERT INTO test_results VALUES (
+      'T16 owner can grant commercial.pricing.edit to member',
+      'FAIL',
+      format('ok=%s message=%s', v_ok, COALESCE(v_message, '<null>'))
+    );
+  END IF;
+END $$;
+
+-- -----------------------------------------------------------------------------
+-- T17: get_role_permissions('member', custom) retorna commercial.pricing.edit
+-- -----------------------------------------------------------------------------
+DO $$
+DECLARE
+  v_custom jsonb := '{"member": ["commercial.pricing.edit"]}'::jsonb;
+  v_perms  text[];
+BEGIN
+  v_perms := data.get_role_permissions('member', v_custom);
+
+  IF 'commercial.pricing.edit' = ANY (v_perms) THEN
+    INSERT INTO test_results VALUES (
+      'T17 custom member metadata returns commercial.pricing.edit',
+      'PASS',
+      'custom member array applied'
+    );
+  ELSE
+    INSERT INTO test_results VALUES (
+      'T17 custom member metadata returns commercial.pricing.edit',
+      'FAIL',
+      format('perms=%s', array_to_string(v_perms, ','))
+    );
   END IF;
 END $$;
 

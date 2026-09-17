@@ -42,6 +42,7 @@ export type NavItemId =
   | 'catalog'
   | 'contacts'
   | 'quotes'
+  | 'maintenance_plans'
   | 'field_orders'
   | 'projects'
   | 'documents'
@@ -58,6 +59,7 @@ export type NavGate =
   | 'isManager'
   | 'showRecruitment'
   | 'isFieldService'
+  | 'isFieldManager'
   | 'notFieldService'
   | 'isOffice'
   | 'showFieldTodayNav'
@@ -260,6 +262,17 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     gate: 'isOffice',
     to: '/quotes',
     kind: 'link',
+  },
+  {
+    id: 'maintenance_plans',
+    labelKey: 'nav.maintenance_plans',
+    labelFallback: 'Plans de manteniment',
+    labelKind: 'i18n',
+    icon: CalendarDays,
+    gate: 'isFieldManager',
+    to: '/field/maintenance-plans',
+    kind: 'link',
+    match: (path) => path.startsWith('/field/maintenance-plans'),
   },
   {
     id: 'field_orders',

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import {
   acceptCommercialDocument,
@@ -23,6 +24,7 @@ import {
   downloadCommercialDocumentPdfFromUrl,
   printCommercialDocument,
 } from '../utils/commercialDocumentPrint'
+import { buildIssuedCommercialHtml } from '../utils/buildIssuedCommercialHtml'
 import { usePermission } from '@/hooks/usePermission'
 import { CommercialDocumentStatusBadges } from './CommercialDocumentStatusBadge'
 import { useCommercialPdf } from '../hooks/useCommercialPdf'
@@ -48,6 +50,7 @@ export function CommercialDocumentView({
   const [doc, setDoc] = useState<CommercialDocumentDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null)
   const pdf = useCommercialPdf({
     documentId,
     tenantId: doc?.tenant_id ?? null,
@@ -82,6 +85,20 @@ export function CommercialDocumentView({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per open/documentId
   }, [documentId, open])
+
+  useEffect(() => {
+    if (!open || !doc) {
+      setPreviewHtml(null)
+      return
+    }
+    let cancelled = false
+    void buildIssuedCommercialHtml(doc).then((html) => {
+      if (!cancelled) setPreviewHtml(html)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [open, doc])
 
   if (!open) return null
 
@@ -135,9 +152,6 @@ export function CommercialDocumentView({
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
       <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            {t('projects.commercial.view_mode', 'Mode client')}
-          </p>
           <h2 className="text-lg font-semibold truncate text-foreground">
             {doc
               ? `${docTypeLabel(doc.doc_type)} ${doc.doc_number ?? ''}`.trim()
@@ -183,15 +197,13 @@ export function CommercialDocumentView({
               size="sm"
               variant="outline"
               onClick={() => {
-                try {
-                  printCommercialDocument(doc)
-                } catch (err) {
+                void printCommercialDocument(doc).catch((err: unknown) => {
                   toast({
                     variant: 'destructive',
                     title: t('projects.commercial.share_failed', 'Enviament fallit · Reintentar'),
                     description: err instanceof Error ? err.message : undefined,
                   })
-                }
+                })
               }}
             >
               {t('projects.commercial.share_print', 'Imprimir HTML')}
@@ -203,13 +215,28 @@ export function CommercialDocumentView({
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5 max-w-3xl w-full mx-auto">
-        {loading || !doc ? (
+      {loading || !doc ? (
+        <div className="flex-1 overflow-y-auto px-4 py-5 max-w-3xl w-full mx-auto">
           <p className="text-sm text-muted-foreground">
             {t('projects.commercial.share_loading', 'Carregant…')}
           </p>
-        ) : (
-          <>
+        </div>
+      ) : (
+        <Tabs defaultValue="summary" className="flex-1 min-h-0 flex flex-col">
+          <div className="border-b border-border px-4">
+            <TabsList>
+              <TabsTrigger value="summary">
+                {t('projects.commercial.view_tab_summary', 'Resum')}
+              </TabsTrigger>
+              <TabsTrigger value="document">
+                {t('projects.commercial.view_tab_document', 'Document')}
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          <TabsContent
+            value="summary"
+            className="flex-1 overflow-y-auto mt-0 px-4 py-5 space-y-5 max-w-3xl w-full mx-auto"
+          >
             <section
               className={`rounded-xl border px-4 py-3 ${
                 effectiveStatus === 'rejected' ||
@@ -351,9 +378,22 @@ export function CommercialDocumentView({
             {doc.terms_text ? (
               <p className="text-xs text-muted-foreground whitespace-pre-wrap">{doc.terms_text}</p>
             ) : null}
-          </>
-        )}
-      </div>
+          </TabsContent>
+          <TabsContent value="document" className="flex-1 min-h-0 mt-0 flex flex-col">
+            {previewHtml ? (
+              <iframe
+                title={t('projects.commercial.view_tab_document', 'Document')}
+                srcDoc={previewHtml}
+                className="w-full flex-1 min-h-[32rem] border-0 bg-white"
+              />
+            ) : (
+              <p className="px-4 py-5 text-sm text-muted-foreground">
+                {t('projects.commercial.share_loading', 'Carregant…')}
+              </p>
+            )}
+          </TabsContent>
+        </Tabs>
+      )}
 
       {showOfficePending ? (
         <footer className="border-t border-border p-4 max-w-3xl w-full mx-auto">

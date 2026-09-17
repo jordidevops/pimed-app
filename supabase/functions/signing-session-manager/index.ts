@@ -1,5 +1,5 @@
 import { corsHeaders } from '../_shared/cors.ts'
-import { createAdminClient, createUserClient } from '../_shared/supabase.ts'
+import { createAdminClient, createAdminDataClient, createUserClient } from '../_shared/supabase.ts'
 import { deleteStagingPdf } from '../_shared/native-signing-staging.ts'
 import { kickPdfQueueWorker } from '../_shared/kick-pdf-queue.ts'
 import { initObservability, captureException } from '../_shared/observability/system-error-tracker.ts'
@@ -236,7 +236,7 @@ async function cleanupNativeSubmission(
     submission.native_group_id ?? null,
   )
 
-  await adminClient
+  const { error: stagingErr } = await adminClient
     .from('signing_submissions')
     .update({
       staging_storage_path: null,
@@ -245,11 +245,34 @@ async function cleanupNativeSubmission(
     .eq('id', submission.id)
     .eq('tenant_id', submission.tenant_id)
 
+  if (stagingErr) {
+    log('warn', FEATURE, 'staging path clear failed', { extra: { error: stagingErr.message } })
+  }
+
   await deleteStagingPdf(adminClient, submission.staging_storage_path)
 }
 
-async function insertAuditLogFireAndForget(
+async function appendCancelledSigningEvent(
   adminClient: ReturnType<typeof createAdminClient>,
+  submissionId: string,
+  statusBefore: string | null,
+  reason: string,
+): Promise<void> {
+  const { error } = await adminClient.rpc('append_signing_event', {
+    p_submission_id:    submissionId,
+    p_event_type:       'session_cancelled',
+    p_event_source:     'signing-session-manager',
+    p_status_before:    statusBefore,
+    p_status_after:     'cancelled',
+    p_payload:          { reason },
+  })
+
+  if (error) {
+    log('warn', FEATURE, 'append_signing_event failed', { extra: { error: error.message } })
+  }
+}
+
+async function insertAuditLogFireAndForget(
   tenantId: string,
   userId: string | null,
   action: string,
@@ -257,7 +280,7 @@ async function insertAuditLogFireAndForget(
   payload: Record<string, unknown>,
 ): Promise<void> {
   try {
-    const { error } = await adminClient
+    const { error } = await createAdminDataClient()
       .from('audit_logs')
       .insert({
         tenant_id: tenantId,
@@ -355,8 +378,8 @@ Deno.serve(async (req: Request) => {
     if (body.action === 'cancel_local') {
       await cleanupNativeSubmission(adminClient, submission)
       await updateSubmissionCancelled(adminClient, submission.id, submission.tenant_id, 'cancelled_by_user')
+      await appendCancelledSigningEvent(adminClient, submission.id, submission.status, 'cancelled_by_user')
       void insertAuditLogFireAndForget(
-        adminClient,
         submission.tenant_id,
         user.id,
         'SIGNING_SESSION_CANCELLED',
@@ -454,10 +477,11 @@ Deno.serve(async (req: Request) => {
     }
 
     await cleanupNativeSubmission(adminClient, submission)
-    await updateSubmissionCancelled(adminClient, submission.id, submission.tenant_id, remoteDeleted ? 'cancelled_remote_deleted' : 'cancelled_remote_missing')
+    const cancelReason = remoteDeleted ? 'cancelled_remote_deleted' : 'cancelled_remote_missing'
+    await updateSubmissionCancelled(adminClient, submission.id, submission.tenant_id, cancelReason)
+    await appendCancelledSigningEvent(adminClient, submission.id, submission.status, cancelReason)
 
     void insertAuditLogFireAndForget(
-      adminClient,
       submission.tenant_id,
       user.id,
       'SIGNING_SESSION_REMOTE_DELETED',

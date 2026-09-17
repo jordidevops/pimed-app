@@ -18,6 +18,28 @@ import Docxtemplater   from "npm:docxtemplater@3";
 const MAX_DOCX_BYTES = 20 * 1024 * 1024; // 20 MB
 
 /**
+ * Default Docxtemplater parser does not split dotted tags (`document.doc_number`
+ * looks up the `document` object and prints nothing). QT-6 probe:
+ * `scripts/docx-nested-paths-probe.mjs`. Flat keys (`full_name`) still work.
+ */
+export function dottedPathParser(tag: string): {
+  get: (scope: unknown) => unknown;
+} {
+  const keys = tag === "." ? [] : String(tag).split(".");
+  return {
+    get(scope: unknown) {
+      if (tag === ".") return scope;
+      let current: unknown = scope;
+      for (const key of keys) {
+        if (current == null || typeof current !== "object") return undefined;
+        current = (current as Record<string, unknown>)[key];
+      }
+      return current;
+    },
+  };
+}
+
+/**
  * Renderitza un fitxer DOCX (Uint8Array) substituint les variables [[key]]
  * amb els valors del context. Retorna el DOCX renderitzat com a Uint8Array.
  *
@@ -48,6 +70,7 @@ export function renderDocx(
     delimiters:    { start: "[[", end: "]]" },
     paragraphLoop: true,
     linebreaks:    true,
+    parser:        dottedPathParser,
     // Si el valor no existeix, no escrivim "undefined" al document final.
     // Mantenim el placeholder original per facilitar debugging i retrocompatibilitat.
     nullGetter: (part: { raw?: string } | undefined) => {

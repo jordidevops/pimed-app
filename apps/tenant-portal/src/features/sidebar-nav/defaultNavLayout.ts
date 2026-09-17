@@ -31,6 +31,7 @@ export function buildDefaultNavLayout(): SidebarNavV1 {
           { id: 'contacts' },
           { id: 'quotes' },
           { id: 'field_orders' },
+          { id: 'maintenance_plans' },
           { id: 'projects' },
           { id: 'documents' },
           { id: 'files' },

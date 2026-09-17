@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
+import { usePermission } from '@/hooks/usePermission'
 import {
+  DISCOUNT_CHIPS,
   formatQuantityChip,
   quantityChipsForUnit,
 } from '@/features/catalog/unitOptions'
@@ -16,6 +18,10 @@ import {
   listPricingTemplates,
   type PricingTemplate,
 } from '../api/commercialFlowService'
+import {
+  isCommercialPricingPermissionDenied,
+  rpcErrorMessage,
+} from '../utils/rpcError'
 
 interface ApplyPricingTemplateDialogProps {
   projectId: string
@@ -36,6 +42,7 @@ export function ApplyPricingTemplateDialog({
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { activeTenant } = useTenant()
+  const canEditPricing = usePermission('commercial.pricing.edit')
   const [templateId, setTemplateId] = useState(initialTemplateId ?? '')
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [discountPct, setDiscountPct] = useState(0)
@@ -83,9 +90,13 @@ export function ApplyPricingTemplateDialog({
       next[item.id] = Number(item.default_quantity ?? 1)
     }
     setQuantities(next)
+    if (!canEditPricing) {
+      setDiscountPct(0)
+      return
+    }
     const firstDisc = items.find((i) => (i.default_discount_pct ?? 0) > 0)
     setDiscountPct(Number(firstDisc?.default_discount_pct ?? 0))
-  }, [items])
+  }, [items, canEditPricing])
 
   if (!open) return null
 
@@ -97,7 +108,9 @@ export function ApplyPricingTemplateDialog({
         projectId,
         templateId,
         quantities,
-        discountPct: discountPct || null,
+        // Without commercial.pricing.edit the RPC rejects any non-zero override.
+        // null keeps template default_discount_pct (allowed); 0 is an explicit office override.
+        discountPct: canEditPricing ? discountPct : null,
       })
       await queryClient.invalidateQueries({ queryKey: ['project_lines', projectId] })
       await queryClient.invalidateQueries({ queryKey: ['checklist_runs', projectId] })
@@ -111,7 +124,12 @@ export function ApplyPricingTemplateDialog({
       toast({
         variant: 'destructive',
         title: t('projects.lines.template_apply_failed', "No s'ha pogut aplicar el servei"),
-        description: err instanceof Error ? err.message : undefined,
+        description: isCommercialPricingPermissionDenied(err)
+          ? t(
+              'projects.lines.template_apply_pricing_denied',
+              'Només l’oficina pot aplicar un descompte. Deixa’l a 0 % o demana permís comercial.',
+            )
+          : rpcErrorMessage(err) || undefined,
       })
     } finally {
       setSubmitting(false)
@@ -220,9 +238,35 @@ export function ApplyPricingTemplateDialog({
           max="100"
           step="1"
           value={discountPct}
+          disabled={!canEditPricing}
           onChange={(e) => setDiscountPct(Number(e.target.value))}
-          className="mb-4"
+          className="mb-1"
         />
+        {canEditPricing ? (
+          <div className="mb-4 mt-1.5 flex flex-wrap gap-1">
+            {DISCOUNT_CHIPS.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setDiscountPct(d)}
+                className={`rounded-md border px-2 py-0.5 text-xs tabular-nums ${
+                  discountPct === d
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground'
+                }`}
+              >
+                {d}%
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="mb-4 mt-1 text-xs text-muted-foreground">
+            {t(
+              'projects.lines.form.pricing_locked',
+              'Només l’oficina pot canviar preus, descompte i IVA.',
+            )}
+          </p>
+        )}
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>

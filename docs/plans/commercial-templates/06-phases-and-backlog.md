@@ -28,8 +28,8 @@
 | Epic | Nom | Contingut | Depèn de |
 |------|-----|-----------|----------|
 | **QT-8** | Autoria de camps de signatura | Afegir `<signature-field>`/tags DOCX (`client_accept`/`client_reject`/`client_delivery`) a les 6 plantilles seed de QT-3 | QT-3 |
-| **QT-9** | Pipeline de firma | `render-commercial-document` crida `injectHtmlSignatureMarkers`/`injectDocxSignatureMarkers`; nou flux d'acceptació/refús/lliurament via `sign-document-router action=sign_native` (presencial i remot), substituint el JSON `signature:{method:'staff_ui'}` actual | QT-2, QT-8 |
-| **QT-10** | Submission Hub | Documents comercials firmats visibles al Centre de signatures existent (`signing_submissions` amb `signing_provider='native'`), alineat amb `docs/plans/signing/pla_alineacio_firmes_docuseal_native.plan.md` | QT-9 — **ja implementat al codi (verificat 2026-09-17), no bloqueja** |
+| **QT-9** | Pipeline de firma | `render-commercial-document` crida `injectHtmlSignatureMarkers`/`injectDocxSignatureMarkers`; nou flux d'acceptació/refús/lliurament via `sign-document-router action=sign_native` (presencial i remot), substituint el JSON `signature:{method:'staff_ui'}` actual | QT-2, QT-8, **i la Fase 4 de `signing/pla_alineacio_firmes_docuseal_native.plan.md` (estampat a la posició de l'etiqueta), que a data 2026-09-17 encara té el checklist sense marcar — verificar/completar abans de donar QT-9 per fet** |
+| **QT-10** | Submission Hub | Documents comercials firmats visibles al Centre de signatures existent (`signing_submissions` amb `signing_provider='native'`), alineat amb `docs/plans/signing/pla_alineacio_firmes_docuseal_native.plan.md` | QT-9 — la part de backend/Centre (Fase 1+3 d'aquell pla) ja està feta (verificat 2026-09-17), no bloqueja |
 
 **Fase 3 és independent de la Fase 2 (DOCX)**: es pot fer QT-8/9/10 abans, després o en paral·lel a QT-6/7 segons prioritat de l'usuari.
 
@@ -45,7 +45,7 @@
 ## Gates
 
 ### Gate QT-0 → QT-1
-El contracte de variables ha d'estar acordat i documentat (no en curs de canvi) abans d'escriure cap migració que en depengui.
+El contracte de variables ha d'estar acordat i documentat (no en curs de canvi) abans d'escriure cap migració que en depengui. **Tancat 2026-09-17:** [`01-context-and-legal-content.md`](./01-context-and-legal-content.md) §1 + §2.1 congelats. QT-1 pot obrir-se.
 
 ### Gate Fase 1 → Fase 2 (QT-6)
 | Ítem | Requisit |
@@ -57,6 +57,7 @@ El contracte de variables ha d'estar acordat i documentat (no en curs de canvi) 
 
 ## Acceptació detallada per epic
 
+- **QT-0**: contracte de §1 i tokens de §2.1 a [`01`](./01-context-and-legal-content.md) marcats congelats; mapeig §1.3 verificat contra `commercial_documents` / snapshots / `commercial-document-html.ts`; cap migració; `validate_commercial_template_locale` especificat a [`02`](./02-rendering-architecture.md) §2 punt 4 sense tokens extra.
 - **QT-1**: numeració/resolver sense canvis per a tenants sense plantilla pròpia; aïllament multi-tenant provat; activar sense contingut legal mínim falla sense `p_acknowledge_legal_gaps`.
 - **QT-2**: render HTML+PDF idèntic al fallback quan no hi ha plantilla; render amb plantilla de tenant inclou tots els camps del contracte de context sense error de sintaxi Liquid.
 - **QT-3**: les 6 plantilles (5+1) tenen `sample_values` que produeixen una previsualització completa (sense camps buits ni "undefined").

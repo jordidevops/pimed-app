@@ -41,6 +41,10 @@ const PERMISSION_GROUPS: { key: string; permissions: PermissionKey[] }[] = [
     key: 'settings',
     permissions: ['settings.view', 'settings.manage', 'permissions.manage'],
   },
+  {
+    key: 'commercial',
+    permissions: ['commercial.pricing.edit'],
+  },
 ]
 
 const EDITABLE_ROLES: EditableRole[] = ['viewer', 'member', 'manager']
@@ -339,7 +343,10 @@ function PermissionsMatrix({ data }: { data: { effective: Record<string, string[
                   colSpan={5}
                   className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                 >
-                  {t(`permissions.groups.${group.key}`, group.key)}
+                  {t(
+                    `permissions.groups.${group.key}`,
+                    group.key === 'commercial' ? 'Comercial' : group.key,
+                  )}
                 </td>
               </tr>
               {/* Files de permisos del grup */}
@@ -375,7 +382,12 @@ function PermissionRow({
   return (
     <tr className="border-t border-border/50 hover:bg-muted/10 transition-colors">
       <td className="px-4 py-2.5 text-muted-foreground">
-        {t(`permissions.permission_labels.${permKey}`, permKey)}
+        {t(
+          `permissions.permission_labels.${permKey}`,
+          permKey === 'commercial.pricing.edit'
+            ? 'Editar preus, descompte i IVA'
+            : permKey,
+        )}
       </td>
       {(['viewer', 'member', 'manager', 'owner'] as const).map((role) => (
         <td key={role} className="px-4 py-2.5 text-center">
@@ -443,7 +455,12 @@ function RoleBaseEditor({
               className="h-3.5 w-3.5 rounded"
             />
             <span className="text-foreground">
-              {t(`permissions.permission_labels.${perm}`, perm)}
+              {t(
+                `permissions.permission_labels.${perm}`,
+                perm === 'commercial.pricing.edit'
+                  ? 'Editar preus, descompte i IVA'
+                  : perm,
+              )}
             </span>
           </label>
         ))}

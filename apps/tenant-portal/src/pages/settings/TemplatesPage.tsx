@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SigningRoleDefaultsSection } from './SigningRoleDefaultsSection'
 import { ContentBlocksSection } from './ContentBlocksSection'
+import { CommercialDocumentTemplatesSection, CommercialDeviationThresholdSection } from '@/features/commercial/components/CommercialDocumentTemplatesSection'
 
 export function TemplatesPage() {
   const { t } = useTranslation('settings')
@@ -17,8 +18,11 @@ export function TemplatesPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="roles">
+      <Tabs defaultValue="commercial">
         <TabsList>
+          <TabsTrigger value="commercial">
+            {t('templates.tabCommercial', 'Comercial')}
+          </TabsTrigger>
           <TabsTrigger value="roles">
             {t('templates.tabRoles', 'Rols per defecte')}
           </TabsTrigger>
@@ -26,6 +30,10 @@ export function TemplatesPage() {
             {t('templates.tabBlocks', 'Blocs de contingut')}
           </TabsTrigger>
         </TabsList>
+        <TabsContent value="commercial" className="mt-4 space-y-4">
+          <CommercialDocumentTemplatesSection />
+          <CommercialDeviationThresholdSection />
+        </TabsContent>
         <TabsContent value="roles" className="mt-4">
           <SigningRoleDefaultsSection />
         </TabsContent>

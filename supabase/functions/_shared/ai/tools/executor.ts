@@ -204,6 +204,7 @@ export async function runToolLoop(params: {
     messages,
     buildToolsSystemAppendix(tools, {
       hasImages: params.ctx.metadata?.hasAttachments === true,
+      entityContext: (params.ctx.metadata?.entityContext as Record<string, unknown> | undefined) ?? null,
     }),
   );
   const loopMessages = [...messages];

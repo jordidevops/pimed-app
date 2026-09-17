@@ -32,6 +32,7 @@ import {
   type SignerCountOption,
 } from '../utils/aiTemplate'
 import { ROLE_CATALOG } from '../constants/roleCatalog'
+import { isFullBodyTemplateCategory } from '../utils/templateCategories'
 
 export interface TemplateAiWizardResult {
   htmlContent: string
@@ -44,6 +45,7 @@ interface TemplateAiWizardProps {
   onClose: () => void
   targetLocale: string
   templateType: 'html' | 'docx'
+  category?: string | null
   siblingLocales?: DocumentTemplateLocaleDetail[]
   existingSnapshot?: LocaleOverwriteSnapshot | null
   blockMapping?: Record<string, string> | null
@@ -67,6 +69,7 @@ export function TemplateAiWizard({
   onClose,
   targetLocale,
   templateType,
+  category,
   siblingLocales = [],
   existingSnapshot = null,
   blockMapping,
@@ -117,23 +120,40 @@ export function TemplateAiWizard({
   const prompt = useMemo(() => buildAiTemplatePrompt({
     targetLocale,
     templateType,
+    category,
     useCaseHint: useCase,
     siblingLocales: siblingSnapshots,
     contentBlocksActive,
     tenantRoleDefaults,
     siteId: selectedSiteId,
     userConfig: promptConfig,
-  }), [targetLocale, templateType, useCase, siblingSnapshots, contentBlocksActive, tenantRoleDefaults, selectedSiteId, promptConfig])
+  }), [targetLocale, templateType, category, useCase, siblingSnapshots, contentBlocksActive, tenantRoleDefaults, selectedSiteId, promptConfig])
 
   useEffect(() => {
     if (!open) return
+    if (isFullBodyTemplateCategory(category)) {
+      setPromptConfig({
+        ...DEFAULT_AI_PROMPT_CONFIG,
+        signerCount: category === 'delivery_note' ? 'one' : 'two',
+        roleKeys: [],
+        preferPathBasedIdentity: false,
+        includeSignatureFields: true,
+        internalDocumentOnly: false,
+      })
+      setUseCase(
+        category === 'delivery_note'
+          ? 'Albarà de lliurament (format del mòdul Albarans)'
+          : 'Pressupost comercial (format del mòdul Pressupostos)',
+      )
+      return
+    }
     const configuredKeys = [...new Set(
       tenantRoleDefaults.map(d => d.role_key).filter((k): k is string => !!k),
     )]
     if (configuredKeys.length > 0) {
       setPromptConfig(prev => ({ ...prev, roleKeys: configuredKeys.slice(0, 6) }))
     }
-  }, [open, tenantRoleDefaults])
+  }, [open, tenantRoleDefaults, category])
 
   function toggleRoleKey(key: string) {
     setPromptConfig(prev => ({

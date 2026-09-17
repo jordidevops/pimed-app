@@ -201,13 +201,132 @@ export async function applyPricingTemplate(params: {
     p_discount_pct: params.discountPct ?? null,
     p_client_op_id: clientOpId,
   } as never)
-  if (error) throw error
+  if (error) throw new Error(error.message)
   return (data ?? { status: 'unknown' }) as {
     status: string
     line_ids?: string[]
     application_id?: string
     checklist_run_ids?: string[]
   }
+}
+
+export type PricingJobSearchRow = {
+  id: string
+  name: string
+  status: string
+  client_id: string | null
+  client_display_name: string
+  site_id: string | null
+  updated_at: string
+  created_at: string
+  line_count: number
+  subtotal: number
+  same_client: boolean
+}
+
+export type PriceSheetSkippedLine = {
+  name?: string
+  reason?: string
+  detail?: string
+}
+
+export type PriceSheetWriteResult = {
+  status: string
+  mode?: string
+  copied?: number
+  inserted?: number
+  line_ids?: string[]
+  skipped?: PriceSheetSkippedLine[]
+  checklist_run_ids?: string[]
+  quote_warning?: { quote_issued?: boolean; message?: string }
+}
+
+export type CreatePackFromProjectResult = {
+  template_id: string
+  item_count: number
+  skipped?: PriceSheetSkippedLine[]
+  created_catalog_ids?: string[]
+  checklist_template_ids?: string[]
+}
+
+export async function searchJobsForPricing(params: {
+  query?: string
+  clientId?: string | null
+  excludeProjectId: string
+  completedOnly?: boolean
+  limit?: number
+}): Promise<PricingJobSearchRow[]> {
+  const { data, error } = await supabase.rpc('search_jobs_for_pricing', {
+    p_query: params.query || undefined,
+    p_client_id: params.clientId || undefined,
+    p_exclude_project_id: params.excludeProjectId,
+    p_completed_only: params.completedOnly ?? false,
+    p_limit: params.limit ?? 30,
+  })
+  if (error) throw new Error(error.message)
+  return (data ?? []) as PricingJobSearchRow[]
+}
+
+export async function copyProjectLines(params: {
+  sourceProjectId: string
+  targetProjectId: string
+  mode: 'append' | 'replace'
+  clientOpId?: string
+}): Promise<PriceSheetWriteResult> {
+  const { data, error } = await supabase.rpc('copy_project_lines', {
+    p_source_project_id: params.sourceProjectId,
+    p_target_project_id: params.targetProjectId,
+    p_mode: params.mode,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  })
+  if (error) throw new Error(error.message)
+  return (data ?? { status: 'unknown' }) as PriceSheetWriteResult
+}
+
+export async function createPricingTemplateFromProject(params: {
+  projectId: string
+  name: string
+  category?: string | null
+  unmatchedMode?: 'skip' | 'create_catalog'
+}): Promise<CreatePackFromProjectResult> {
+  const { data, error } = await supabase.rpc('create_pricing_template_from_project', {
+    p_project_id: params.projectId,
+    p_name: params.name,
+    p_category: params.category ?? undefined,
+    p_unmatched_mode: params.unmatchedMode ?? 'skip',
+  })
+  if (error) throw new Error(error.message)
+  return data as CreatePackFromProjectResult
+}
+
+export type PriceSheetLineInput = {
+  catalog_item_id?: string | null
+  kind?: string
+  name?: string
+  description?: string | null
+  unit?: string
+  quantity: number
+  unit_price?: number
+  discount_pct?: number
+  tax_rate?: number
+}
+
+export async function applyPriceSheet(params: {
+  projectId: string
+  lines: PriceSheetLineInput[]
+  mode: 'append' | 'replace'
+  checklistTemplateId?: string | null
+  clientOpId?: string
+}): Promise<PriceSheetWriteResult> {
+  const { data, error } = await supabase.rpc('apply_price_sheet', {
+    p_project_id: params.projectId,
+    p_lines: params.lines,
+    p_mode: params.mode,
+    p_checklist_template_id: params.checklistTemplateId ?? undefined,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  })
+  if (error) throw new Error(error.message)
+  return (data ?? { status: 'unknown' }) as PriceSheetWriteResult
 }
 
 export async function listPricingTemplateChecklists(
@@ -574,6 +693,7 @@ export async function getCommercialDocumentDetail(
     rendered_document_id: (row.rendered_document_id as string | null | undefined) ?? null,
     pdf_job_id: (row.pdf_job_id as string | null | undefined) ?? null,
     document_template_id: (row.document_template_id as string | null | undefined) ?? null,
+    full_body_template_id: (row.full_body_template_id as string | null | undefined) ?? null,
     lines: (lines ?? []) as CommercialDocumentLine[],
     events: (events ?? []) as CommercialDocumentDetail['events'],
   }
@@ -669,4 +789,49 @@ export async function getCommercialPdfJobStatus(params: {
     result_document_id: (row.result_document_id as string | null | undefined) ?? null,
     last_error_message: (row.last_error_message as string | null | undefined) ?? null,
   }
+}
+
+export async function getCommercialFullBodyLocale(params: {
+  tenantId: string
+  templateId: string
+  locale: string
+}): Promise<{ template_type: string; html_content: string | null; storage_path: string | null } | null> {
+  const { data, error } = await supabase.rpc('get_commercial_full_body_locale' as never, {
+    p_tenant_id: params.tenantId,
+    p_template_id: params.templateId,
+    p_locale: params.locale,
+  } as never)
+  if (error) throw error
+  if (data == null) return null
+  const row = data as {
+    template_type?: string
+    html_content?: string | null
+    storage_path?: string | null
+  }
+  if (!row.template_type) return null
+  return {
+    template_type: row.template_type,
+    html_content: typeof row.html_content === 'string' ? row.html_content : null,
+    storage_path: typeof row.storage_path === 'string' ? row.storage_path : null,
+  }
+}
+
+export async function getCommercialDisplayFormats(tenantId: string): Promise<{
+  dateFormat: string
+  timeFormat: string
+}> {
+  const { data, error } = await supabase.rpc('get_commercial_display_formats' as never, {
+    p_tenant_id: tenantId,
+  } as never)
+  if (error) throw error
+  const row = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>
+  const dateFormat =
+    typeof row.date_format === 'string' && row.date_format.trim()
+      ? row.date_format.trim()
+      : 'dd/MM/yyyy'
+  const timeFormat =
+    typeof row.time_format === 'string' && row.time_format.trim()
+      ? row.time_format.trim()
+      : 'HH:mm'
+  return { dateFormat, timeFormat }
 }

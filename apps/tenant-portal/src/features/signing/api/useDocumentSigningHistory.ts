@@ -49,7 +49,8 @@ export function useDocumentSigningHistory(documentId: string | undefined, tenant
       if (error) throw error
       return (data ?? []) as unknown as DocumentSigningHistoryItem[]
     },
-    enabled: !!documentId && !!tenantId,
+    enabled: !!documentId && !!tenantId &&
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(documentId),
     staleTime: 30_000,
   })
 }

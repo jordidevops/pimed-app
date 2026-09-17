@@ -271,9 +271,7 @@ export function CommercialDocumentShareSheet({
                 variant="outline"
                 disabled={!!busyChannel}
                 onClick={() =>
-                  void runChannel('print', () => {
-                    printCommercialDocument(doc)
-                  })
+                  void runChannel('print', () => printCommercialDocument(doc))
                 }
               >
                 {t('projects.commercial.share_print', 'Imprimir HTML')}
@@ -283,9 +281,7 @@ export function CommercialDocumentShareSheet({
                 variant="outline"
                 disabled={!!busyChannel}
                 onClick={() =>
-                  void runChannel('download', () => {
-                    downloadCommercialDocumentHtml(doc)
-                  })
+                  void runChannel('download', () => downloadCommercialDocumentHtml(doc))
                 }
               >
                 {t('projects.commercial.share_download', 'Descarregar HTML')}

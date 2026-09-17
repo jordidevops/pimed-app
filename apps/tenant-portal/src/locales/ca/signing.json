@@ -10,12 +10,30 @@
     "prepareDoc": "Generar document",
     "signingNotActive": "La signatura digital no està activa per a aquesta organització"
   },
+  "templates": {
+    "category": {
+      "quote": "Pressupost",
+      "delivery_note": "Albarà",
+      "commercial": "Comercial",
+      "operations": "Operacions",
+      "hr": "RRHH",
+      "attendance": "Control horari",
+      "safety": "PRL",
+      "legal": "Legal",
+      "signing": "Firma"
+    },
+    "kind": {
+      "quote": "Plantilla de pressupost",
+      "delivery_note": "Plantilla d'albarà"
+    }
+  },
   "template": {
     "category": "Categoria",
     "locales": "Idiomes",
     "clone": "Clonar per personalitzar",
     "cloning": "Clonant...",
     "cloned": "Plantilla clonada correctament",
+    "clonedWithLocales": "Plantilla clonada. {{n}} locale(s) copiats.",
     "cloneError": "Error en clonar la plantilla",
     "delete": "Eliminar plantilla",
     "deleteConfirm": "Vols eliminar aquesta plantilla? S'eliminaran tots els locales associats.",
@@ -84,6 +102,9 @@
     "saving": "Desant...",
     "saved": "Idioma desat correctament",
     "saveError": "Error en desar l'idioma",
+    "legalGaps": "Falten marcadors obligatoris per activar aquesta plantilla:",
+    "requiredTokensHint": "El contingut ha d'incloure aquests marcadors (text exacte) per poder-se usar a Pressupostos/Albarans:",
+    "docxExtractError": "No s'ha pogut llegir el DOCX per validar els marcadors obligatoris.",
     "deleteLocale": "Eliminar idioma",
     "deleteLocaleConfirm": "Vols eliminar aquest idioma?",
     "deleted": "Idioma eliminat",
@@ -115,10 +136,14 @@
     "descriptionPlaceholder": "Descripció opcional...",
     "categoryLabel": "Categoria",
     "categoryPlaceholder": "Categoria...",
+    "categoryNone": "Sense categoria",
     "typeLabel": "Tipus de plantilla",
     "typeDocxHint": "(fitxer Word amb variables)",
     "typeHtmlHint": "(editor visual en línia)",
     "typeImmutableWarning": "Atenció: el tipus no es pot canviar un cop creada la plantilla.",
+    "quoteDeliveryHint": "S'usarà com a format del mòdul Pressupostos o Albarans. Si no n'hi ha cap de pròpia, el sistema usa el format per defecte (no editable).",
+    "htmlRequiredHint": "En aquesta fase les plantilles de pressupost i albarà han de ser HTML. El DOCX arribarà més endavant.",
+    "docxAllowedHint": "Podeu crear la plantilla en HTML (editor visual) o DOCX (Word amb [[variables]]). El tipus no es pot canviar després.",
     "create": "Crear plantilla",
     "creating": "Creant...",
     "created": "Plantilla creada",
@@ -273,6 +298,11 @@
     "title": "Detall de signatura",
     "back": "Tornar",
     "notFound": "Submissió no trobada.",
+    "breadcrumbCenter": "Centre de firmes",
+    "breadcrumbDocument": "Document",
+    "eventType": {
+      "session_cancelled": "Sessió cancel·lada"
+    },
     "sourceType": "Origen",
     "sourceDocument": "Document",
     "created": "Creat",
@@ -309,6 +339,13 @@
     "markedReviewed": "Submissió marcada com a revisada",
     "markReviewedError": "Error en marcar com a revisada",
     "reviewedBadge": "Revisada",
+    "statusReason": {
+      "cancelled_by_user": "Cancel·lada per un usuari.",
+      "cancelled_remote_deleted": "Cancel·lada i eliminada també a DocuSeal.",
+      "cancelled_remote_missing": "Cancel·lada localment. No s'ha trobat la submissió a DocuSeal.",
+      "generate_only_snapshot": "Còpia de només generació, sense flux de firma.",
+      "generic": "Motiu de l'estat no especificat"
+    },
     "reviewedAt": "Revisada el",
     "webhook": "webhook",
     "signers": "Signants",

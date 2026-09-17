@@ -52,7 +52,7 @@ export function ChatPage() {
   const { t } = useTranslation('chat')
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { activeTenant, activeRole } = useTenant()
+  const { activeTenant, activeRole, activeSite } = useTenant()
   const tenantId = activeTenant?.id ?? null
 
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
@@ -256,6 +256,7 @@ export function ChatPage() {
       model: modelSelection.model,
       presetId: input.presetId,
       regenerate: input.regenerate,
+      siteId: activeSite?.id ?? null,
       stream: true,
       streamHandlers: {
         onMeta: ({ conversationId, regenerated }) => {
@@ -674,6 +675,8 @@ export function ChatPage() {
           onApplyProposal={async (token) => {
             try {
               const res = await applyMutation.mutateAsync(token)
+              void queryClient.invalidateQueries({ queryKey: ['project_lines'] })
+              void queryClient.invalidateQueries({ queryKey: ['checklist_runs'] })
               if (res.status === 'already_applied') {
                 toast({ description: t('proposalAlreadyApplied', 'Ja s\'ha aplicat aquesta proposta.') })
               } else {

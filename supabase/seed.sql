@@ -1285,9 +1285,13 @@ VALUES
 ON CONFLICT DO NOTHING;
 
 -- ─── B4/B5. Plantilles de documents ─────────────────────────────────────────
--- Les plantilles de plataforma (HTML + DOCX) viuen a la migració
--- 20260617000001_seed_extra_document_templates.sql (producció).
--- Els fitxers DOCX es pugen amb: cd scripts && node generate-docx-seed.mjs
+-- Les plantilles de plataforma (HTML + DOCX) viuen a les migracions:
+--   20260617000001_seed_extra_document_templates.sql  (RRHH/legal/… HTML+DOCX)
+--   20261164000001_commercial_templates_seed_html.sql (pressupost/albarà HTML)
+--   20261168000001_commercial_templates_seed_docx.sql (pressupost/albarà DOCX)
+-- Els fitxers DOCX (RRHH i comercials) es pugen amb:
+--   cd scripts && node generate-docx-seed.mjs
+-- Com i quan: scripts/README.md. db reset no puja binaris a Storage.
 
 -- ─── B4b. Plantilles documentals demo (Acme Corp, 008-014) ─────────────────
 -- No són plantilles de plataforma; requereix tenant i perfils creats abans (B1-B3).

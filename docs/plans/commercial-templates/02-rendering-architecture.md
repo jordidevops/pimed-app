@@ -29,10 +29,13 @@ Nova migració, p.ex. `supabase/migrations/2026XXXXXXXXXX_commercial_templates_f
 
 3. **Estendre el trigger** `data.trg_commercial_documents_assign_render_meta()` perquè també poblí `full_body_template_id` amb el resolver nou, sense canviar el que ja fa amb `document_template_id`/logo.
 
-4. **Funció de validació legal** `data.validate_commercial_template_locale(p_content text, p_mime_type text, p_doc_type text) RETURNS text[]`:
-   - Cerca de tokens obligatoris (veure llista a `01-context-and-legal-content.md` §2) segons `p_mime_type` (`{{ }}`/`{% %}` per HTML, `[[ ]]` per DOCX).
-   - Retorna l'array de tokens absents (buit = tot correcte).
+4. **Funció de validació legal** `data.validate_commercial_template_locale(p_content text, p_mime_type text, p_doc_type text) RETURNS text[]` — **especificació congelada a QT-0**, detall a [`01-context-and-legal-content.md`](./01-context-and-legal-content.md) §2.1:
+   - Cerca de **subcadenes** (no AST). Set de tokens segons `p_doc_type` (`quote`/`quote_amendment` vs `delivery_note`) i `p_mime_type` (`text/html` vs DOCX).
+   - Retorna `text[]` amb els **id** de requisits absents (`lines_loop`, `totals.total`, …), en l'ordre de la taula §2.1; `{}` = vàlid.
+   - `p_mime_type` desconegut o `NULL` → `{}`. `p_doc_type` invàlid → `RAISE EXCEPTION 'invalid_doc_type'`.
+   - **No** llegeix Storage; `p_content` és el text que ja té l'RPC (`html_content` en HTML).
    - **No bloqueja el desar en esborrany** (`is_active=false`); **sí bloqueja l'activació** (`is_active=true`) llevat que es passi un reconeixement explícit (veure punt 5).
+   - QT-1 **no afegeix** tokens ni parseig més enllà de §2.1.
 
 5. **Estendre `api.upsert_document_template_locale`** (no trencar la signatura existent: afegir paràmetre nou amb `DEFAULT`):
    - Nou paràmetre `p_acknowledge_legal_gaps boolean DEFAULT false`.
@@ -43,7 +46,7 @@ Nova migració, p.ex. `supabase/migrations/2026XXXXXXXXXX_commercial_templates_f
 
 Nou fitxer compartit `supabase/functions/_shared/commercial-document-context.ts`:
 
-- `buildCommercialTemplateContext(doc, lines, tenantName, logoUrl): Record<string, unknown>` — construeix l'objecte descrit a `01-context-and-legal-content.md` a partir de les dades ja disponibles a `render-commercial-document/index.ts` (no calen noves consultes a BD més enllà de les que ja hi ha).
+- `buildCommercialTemplateContext(doc, lines, tenant, logoUrl): Record<string, unknown>` — construeix l'objecte de [`01-context-and-legal-content.md`](./01-context-and-legal-content.md) §1 amb el mapeig de §1.3. Consultes extra permeses: ampliar el `SELECT` de `tenants` (com `context-builder.ts`) i **una** lectura de `parent_doc_number`. Cap altra.
 - Reutilitzable pel frontend de previsualització (mateix format, mateixos noms de camp).
 
 A `render-commercial-document/index.ts`:

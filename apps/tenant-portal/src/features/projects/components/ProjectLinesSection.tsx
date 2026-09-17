@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
+import { useTenant } from '@/contexts/TenantContext'
 import { ProjectLineForm } from './ProjectLineForm'
 import { ApplyPricingTemplateDialog } from '@/features/commercial/components/ApplyPricingTemplateDialog'
+import { CopyFromJobDialog } from '@/features/commercial/components/CopyFromJobDialog'
+import { SaveAsHabitDialog } from '@/features/commercial/components/SaveAsHabitDialog'
 import {
   cancelCommercialDocument,
   listProjectCommercialDocuments,
@@ -38,10 +40,14 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
   const { t } = useTranslation('projects')
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { activeRole } = useTenant()
+  const canSaveHabit = activeRole === 'owner' || activeRole === 'manager'
 
   const [addingLine, setAddingLine] = useState(false)
   const [editLine, setEditLine] = useState<ProjectLine | null>(null)
   const [templateOpen, setTemplateOpen] = useState(false)
+  const [copyOpen, setCopyOpen] = useState(false)
+  const [habitOpen, setHabitOpen] = useState(false)
   const [quoteBusy, setQuoteBusy] = useState(false)
 
   const {
@@ -129,6 +135,14 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
         </div>
         {!addingLine && !editLine && (
           <div className="flex shrink-0 flex-col sm:flex-row gap-2">
+            <Button size="sm" variant="outline" onClick={() => setCopyOpen(true)}>
+              {t('projects.lines.copy_from_job', "Copiar d'una feina")}
+            </Button>
+            {canSaveHabit && lines.length > 0 ? (
+              <Button size="sm" variant="outline" onClick={() => setHabitOpen(true)}>
+                {t('projects.lines.save_as_habit', 'Desar com a servei habitual')}
+              </Button>
+            ) : null}
             <Button size="sm" variant="outline" onClick={() => setTemplateOpen(true)}>
               {t('projects.lines.apply_template', 'Servei habitual')}
             </Button>
@@ -145,6 +159,18 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
         open={templateOpen}
         onClose={() => setTemplateOpen(false)}
         onApplied={handleLineSaved}
+      />
+      <CopyFromJobDialog
+        projectId={projectId}
+        currentLineCount={lines.length}
+        open={copyOpen}
+        onClose={() => setCopyOpen(false)}
+        onCopied={handleLineSaved}
+      />
+      <SaveAsHabitDialog
+        projectId={projectId}
+        open={habitOpen}
+        onClose={() => setHabitOpen(false)}
       />
 
       {issuedQuoteDiverges && latestQuote ? (

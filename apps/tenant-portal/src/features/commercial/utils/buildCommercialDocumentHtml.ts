@@ -4,10 +4,16 @@ import {
   partyDisplayName,
   taxTotalFromBreakdown,
 } from './commercialDocumentModel'
+import {
+  formatCommercialDisplayDate,
+  formatCommercialDisplayDateTime,
+} from './commercialDocumentContext'
 
 export type CommercialHtmlOptions = {
   documentHeaderHtml?: string
   documentFooterHtml?: string
+  dateFormat?: string | null
+  timeFormat?: string | null
 }
 
 type HtmlLabels = {
@@ -291,12 +297,13 @@ export function buildCommercialDocumentHtml(
       </section>`
     : ''
 
-  const issued = doc.issued_at
-    ? new Date(doc.issued_at).toLocaleString(intlLocale(locale))
-    : '—'
-  const validUntil = doc.valid_until
-    ? new Date(doc.valid_until).toLocaleDateString(intlLocale(locale))
-    : null
+  const issued = formatCommercialDisplayDateTime(
+    doc.issued_at,
+    locale,
+    options.dateFormat,
+    options.timeFormat,
+  ) ?? '—'
+  const validUntil = formatCommercialDisplayDate(doc.valid_until, locale, options.dateFormat)
 
   const logoHtml = logoUrl
     ? `<img class="logo" src="${escapeHtml(logoUrl)}" alt="" />`

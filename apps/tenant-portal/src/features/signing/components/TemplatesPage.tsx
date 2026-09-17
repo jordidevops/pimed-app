@@ -18,6 +18,12 @@ import {
 import { TemplateFormModal } from './TemplateFormModal'
 import { DocumentsSubNav } from '@/features/documents/components/DocumentsSubNav'
 import type { DocumentTemplateWithLocales } from '../api/signingService'
+import {
+  isFullBodyTemplateCategory,
+  templateCategoryLabel,
+  templateKindLabel,
+} from '../utils/templateCategories'
+import { parseCommercialTemplateLegalGaps } from '@/features/commercial/utils/rpcError'
 
 // ─── Template card ─────────────────────────────────────────────────────────────
 
@@ -77,9 +83,15 @@ function TemplateCard({
             )}
           </div>
         </div>
-        {template.category && (
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">{template.category}</span>
-        )}
+          {isFullBodyTemplateCategory(template.category) ? (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-teal-100 text-teal-800">
+              {templateKindLabel(t, template.category)}
+            </span>
+          ) : template.category ? (
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+              {templateCategoryLabel(t, template.category)}
+            </span>
+          ) : null}
         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded uppercase ${isPlatform ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`}>
           {isPlatform ? t('template.platform_badge', 'Sistema') : t('template.own_badge', 'Pròpia')}
         </span>
@@ -198,10 +210,18 @@ export function TemplatesPage() {
     try {
       const { copiedLocales } = await cloneMutation.mutateAsync(tmpl)
       const desc = copiedLocales > 0
-        ? t('template.clonedWithLocales', 'Plantilla clonada. {{n}} locale(s) copiats (cal pujar el fitxer a cada un).', { n: copiedLocales })
+        ? t('template.clonedWithLocales', 'Plantilla clonada. {{n}} locale(s) copiats.', { n: copiedLocales })
         : t('template.cloned', 'Plantilla clonada correctament')
       toast({ description: desc })
     } catch (err) {
+      const gaps = parseCommercialTemplateLegalGaps(err)
+      if (gaps && gaps.length > 0) {
+        toast({
+          variant: 'destructive',
+          description: `${t('locale.legalGaps', 'Falten marcadors obligatoris per activar aquesta plantilla:')} ${gaps.join(', ')}`,
+        })
+        return
+      }
       toast({ variant: 'destructive', description: err instanceof Error ? err.message : t('template.cloneError', 'Error en clonar la plantilla') })
     }
   }
@@ -318,7 +338,7 @@ export function TemplatesPage() {
                       : 'bg-background text-muted-foreground border-border hover:border-foreground/40'
                   }`}
                 >
-                  {cat}
+                  {templateCategoryLabel(t, cat)}
                 </button>
               ))}
             </>

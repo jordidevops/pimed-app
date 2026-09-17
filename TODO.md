@@ -38,6 +38,15 @@ Plantilles
 - Clonar una plantilla que copiï al storage del tenant el docx
 - Si el feature flag de signar està desactivat no ha de sortir l'opció o estar desactivada.
 
+Plantilles comercials (`docs/plans/commercial-templates/`) — pendent un cop tanquem aquest pla
+
+- **Fase 4 de `docs/plans/signing/pla_alineacio_firmes_docuseal_native.plan.md`** (mode d'evidències `native_evidence_mode` + Admin UI, extracció de `signing_field_map` en generar el PDF signable, branca `detached`/`embedded`/`both` a `stamp-pdf-signatures`, fallback `buildDefaultSignatureFields`): a data 2026-09-17 el propi pla la marca sense fer. Bloqueja QT-9 (pipeline de firma) del pla de plantilles comercials — no cal completar-la abans de QT-0…QT-8, però sí abans d'obrir QT-9.
+- Fase 2 del pla de plantilles comercials (DOCX): estendre `scripts/generate-docx-seed.mjs`, validar/reutilitzar el pipeline docx→pdf per a documents comercials (QT-6/QT-7).
+- Implementació del contracte signat post-acceptació de pressupost — només dissenyat a `05-contract-signing-forward-compat.md`, sense epic obert.
+- Facturació fiscal pròpia — només nota forward-compat a `05-contract-signing-forward-compat.md` § 7, sense dissenyar.
+- Verificar durant QT-2/QT-6 si Docxtemplater resol camins amb punt (`[[tenant.name]]`) o cal aplanar claus al context.
+- Verificar durant QT-9 si `sign-document-router` amb `source_type='document_existing'` localitza els tokens `[FIRMA:role]` en un PDF que no prové d'un `document_template_locales` (generat per `render-commercial-document`).
+
 Per validar manualment: obre un projecte amb site_id no nul → activa "Offline" a DevTools Network → clic "Simular check-in" → comprova la consola de Dexie (Application > IndexedDB) → desactiva offline → l'op passa a synced i apareix server_id guardat.
 
 

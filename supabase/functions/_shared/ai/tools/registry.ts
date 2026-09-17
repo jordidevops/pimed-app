@@ -13,6 +13,11 @@ import { queryTemplateLocaleTool } from "./query-template-locale.ts";
 import { openDocumentGeneratorTool } from "./open-document-generator.ts";
 import { proposeCreateContactTool } from "./propose-create-contact.ts";
 import { proposeExtractStructuredDataTool } from "./propose-extract-structured-data.ts";
+import { queryCatalogItemsTool } from "./query-catalog-items.ts";
+import { queryPastJobsTool } from "./query-past-jobs.ts";
+import { queryProjectPriceSheetTool } from "./query-project-price-sheet.ts";
+import { queryChecklistTemplatesTool } from "./query-checklist-templates.ts";
+import { proposePriceSheetTool } from "./propose-price-sheet.ts";
 import { hasToolPermission } from "./permissions.ts";
 import type { ProviderToolSchema, ToolExecutionContext } from "./types.ts";
 import { z } from "zod";
@@ -32,6 +37,11 @@ const ALL_TOOLS: DefinedTool<z.ZodTypeAny>[] = [
   proposeCreateContactTool,
   proposeExtractStructuredDataTool,
   proposeCreateAlertTool,
+  queryCatalogItemsTool,
+  queryPastJobsTool,
+  queryProjectPriceSheetTool,
+  queryChecklistTemplatesTool,
+  proposePriceSheetTool,
 ];
 
 const CRON_ANALYTICS_TOOL_NAMES = new Set([

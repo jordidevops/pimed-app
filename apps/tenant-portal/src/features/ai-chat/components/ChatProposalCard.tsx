@@ -83,6 +83,25 @@ function formatPreview(proposal: AiChatProposal): string {
     }
     return lines.join('\n')
   }
+  if (proposal.toolName === 'propose_price_sheet') {
+    const lines: string[] = [
+      `OS: ${String(preview.projectId ?? '—')}`,
+      `Mode: ${String(preview.mode ?? 'append')}`,
+    ]
+    const sheetLines = preview.lines as Array<Record<string, unknown>> | undefined
+    if (sheetLines?.length) {
+      for (const line of sheetLines.slice(0, 8)) {
+        lines.push(
+          `· ${String(line.name ?? '—')} × ${String(line.quantity ?? 1)}`,
+        )
+      }
+      if (sheetLines.length > 8) lines.push(`… +${sheetLines.length - 8}`)
+    }
+    if (preview.checklistTemplateId) {
+      lines.push(`Checklist: ${String(preview.checklistTemplateId)}`)
+    }
+    return lines.join('\n')
+  }
   return JSON.stringify(preview, null, 2)
 }
 

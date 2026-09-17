@@ -18,6 +18,8 @@ interface TemplatePreviewPlaygroundProps {
   className?: string
   /** Només iframe renderitzat (p. ex. referència d'un altre idioma). */
   previewOnly?: boolean
+  /** Context niuat (p. ex. sample_values de plantilles quote/delivery_note). */
+  sampleValues?: Record<string, unknown> | null
 }
 
 function hasBlockDuplicationRisk(html: string, blockMapping?: Record<string, string> | null): boolean {
@@ -36,6 +38,7 @@ export function TemplatePreviewPlayground({
   blocks,
   className,
   previewOnly = false,
+  sampleValues,
 }: TemplatePreviewPlaygroundProps) {
   const { t } = useTranslation('signing')
   const [values, setValues] = useState<Record<string, string>>({})
@@ -73,14 +76,21 @@ export function TemplatePreviewPlayground({
   const { previewHtml, renderError } = useMemo(() => {
     if (!htmlContent.trim()) return { previewHtml: '', renderError: null as string | null }
     try {
-      const ctx = generateDummyPreviewValues(variablesSchema, rolesSchema)
+      const ctx: Record<string, unknown> = {
+        ...generateDummyPreviewValues(variablesSchema, rolesSchema),
+        ...(sampleValues ?? {}),
+      }
       for (const [k, v] of Object.entries(values)) {
         if (v !== '') ctx[k] = v
       }
-      const tenantCtx = tenant ?? (ctx.tenant as Record<string, unknown> | undefined)
+      const tenantFromSample = ctx.tenant
+      const tenantCtx =
+        tenantFromSample && typeof tenantFromSample === 'object'
+          ? tenantFromSample
+          : tenant ?? undefined
       return {
         previewHtml: buildPreviewHtml(htmlContent, ctx, {
-          tenant: tenantCtx,
+          tenant: tenantCtx as Record<string, unknown> | undefined,
           blockMapping,
           blocks,
         }),
@@ -90,7 +100,7 @@ export function TemplatePreviewPlayground({
       const msg = err instanceof Error ? err.message : String(err)
       return { previewHtml: '', renderError: msg }
     }
-  }, [htmlContent, values, variablesSchema, rolesSchema, tenant, blockMapping, blocks])
+  }, [htmlContent, values, variablesSchema, rolesSchema, tenant, blockMapping, blocks, sampleValues])
 
   function fillDummy() {
     const dummy = generateDummyPreviewValues(variablesSchema, rolesSchema)

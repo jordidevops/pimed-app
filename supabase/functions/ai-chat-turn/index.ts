@@ -54,6 +54,11 @@ type AiChatTurnBody = {
   content?: string;
   attachments?: AiChatAttachmentInput[];
   siteId?: string | null;
+  entityContext?: {
+    projectId?: string;
+    clientId?: string;
+    tab?: string;
+  } | null;
   provider?: AiProvider;
   model?: string;
   stream?: boolean;
@@ -107,6 +112,7 @@ function buildToolContext(
     conversationId: string;
     provider: AiProvider;
     hasAttachments: boolean;
+    entityContext?: AiChatTurnBody["entityContext"];
   },
 ): ToolExecutionContext {
   return {
@@ -118,7 +124,10 @@ function buildToolContext(
     conversationId: params.conversationId,
     feature: "chat",
     provider: params.provider,
-    metadata: { hasAttachments: params.hasAttachments },
+    metadata: {
+      hasAttachments: params.hasAttachments,
+      entityContext: params.entityContext ?? null,
+    },
   };
 }
 
@@ -241,6 +250,7 @@ async function prepareRegenerateChatTurn(
     conversationId: regeneratePrepared.conversationId,
     provider: config.provider,
     hasAttachments: regeneratePrepared.hasAttachments,
+    entityContext: body.entityContext ?? null,
   });
   const forceToolsOff = appendToolWarnings(
     chatWarnings,
@@ -447,6 +457,7 @@ async function prepareNewChatTurn(
     conversationId,
     provider: effectiveConfig.provider,
     hasAttachments,
+    entityContext: body.entityContext ?? null,
   });
   const forceToolsOff = appendToolWarnings(
     chatWarnings,

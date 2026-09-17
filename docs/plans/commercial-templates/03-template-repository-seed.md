@@ -34,16 +34,13 @@ Cada locale ha de portar `sample_values` amb dades fictícies coherents (client 
 
 ## 2. Fase 2 — DOCX (QT-6)
 
-Estendre `scripts/generate-docx-seed.mjs` (no reescriure'l):
+Implementat a `scripts/generate-commercial-docx-seed.mjs` (cridat també des de `generate-docx-seed.mjs`). **Com i quan pujar els binaris:** [`scripts/README.md`](../../../scripts/README.md). `db reset` crea els registres SQL; Storage s'ha d'omplir a part.
 
-- Afegir les mateixes 5+1 definicions de plantilla a l'array `TEMPLATES`, amb `template_type: 'docx'`, reutilitzant els helpers existents (`V()`, `B()`, `T()`, `dataRow()`, `infoTable()`, `SIGN_SECTION()`, `H1()`, `H2()`).
-- **Helpers nous a afegir** al script:
-  - `linesTable(columns)` → genera una `Table` amb una fila de capçalera fixa i una fila de plantilla Docxtemplater dins d'un bloc `[[#lines]] ... [[/lines]]` (concepte, quantitat, preu, descompte, import).
-  - `totalsBlock()` → paràgrafs amb `[[totals.subtotal]]`, bucle `[[#totals.tax_breakdown]] ... [[/totals.tax_breakdown]]`, `[[totals.total]]`.
-  - `acceptRejectBlock()` → dues columnes simètriques (mateixa amplada `WidthType.DXA`) amb caselles "Accepto"/"Refuso" + línia de signatura + data, per garantir la igualtat visual exigida pel requisit legal.
-- Reutilitzar els mateixos textos de clàusules definits a `01-context-and-legal-content.md` (no re-redactar-los).
-- IDs amb els prefixos `74xxxxxx-...`/`75xxxxxx-...` (DOCX) diferents dels HTML (`76`/`77`) per evitar col·lisions, seguint el patró ja existent al script (prefixos 72/73 per DOCX vs 70/71 per HTML dels documents de RRHH).
-- Executar amb `SUPABASE_SERVICE_ROLE_KEY` contra l'entorn local per pujar els DOCX generats al bucket `document-templates` i generar el SQL de seed corresponent (mateix flux que documenta la capçalera del script).
+- Helpers `linesTable` / `totalsBlock` / `acceptRejectBlock`; IDs prefix `74`/`75` (plantilles) i `748`/`749` (locales ca/es).
+- 5 quotes + 1 albarà × ca/es = 12 fitxers a `platform/docx/commercial/…` (bucket `document-templates`).
+- Migració: `20261168000001_commercial_templates_seed_docx.sql`. `html_content` és NULL (constraint DOCX).
+- La pujada necessita el JWT `service_role` (`eyJ…`), no el JWT secret. Els scripts el llegeixen de `supabase status` si cal.
+- Reutilitza els textos de clàusules de `01-context-and-legal-content.md` (punt de partida, no assessorament jurídic).
 
 ## 3. Manteniment
 

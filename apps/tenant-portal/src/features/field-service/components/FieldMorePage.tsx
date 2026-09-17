@@ -12,12 +12,7 @@ import {
 } from '../api/fieldMediaQueue'
 import { useEffectiveSettings, useTenantSettingsMutation } from '@/hooks/useSettings'
 import { parseFieldMediaCompression } from '../api/fieldMediaCompression'
-import {
-  commercialSettingsPatchWithThreshold,
-  parseDeviationApprovalThresholdEur,
-} from '@/features/commercial/utils/deviationApprovalThreshold'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { useSidebarNav } from '@/features/sidebar-nav'
 import type { NavItemId } from '@/features/sidebar-nav/navCatalog'
 
@@ -36,10 +31,6 @@ export function FieldMorePage() {
   const compression = parseFieldMediaCompression(effective)
   const canManage = activeRole === 'owner' || activeRole === 'manager'
   const { launcherGroups } = useSidebarNav()
-  const deviationThreshold = parseDeviationApprovalThresholdEur(effective)
-  const [thresholdDraft, setThresholdDraft] = useState<string | null>(null)
-  const thresholdInput =
-    thresholdDraft ?? String(deviationThreshold)
 
   const quickLinks = QUICK_LINK_IDS.map((id) =>
     launcherGroups.flatMap((group) => group.items).find((item) => item.id === id),
@@ -197,42 +188,19 @@ export function FieldMorePage() {
           <p className="font-medium">
             {t('more.commercial_title', 'Comercial')}
           </p>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">
-              {t(
-                'more.deviation_threshold',
-                'Llindar d’aprovació d’ampliacions (€)',
-              )}
-            </span>
-            <Input
-              type="number"
-              min="0"
-              step="1"
-              className="h-10"
-              value={thresholdInput}
-              disabled={tenantSettingsMut.isPending}
-              onChange={(e) => setThresholdDraft(e.target.value)}
-              onBlur={() => {
-                const parsed = Number(thresholdDraft ?? deviationThreshold)
-                const next = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0
-                setThresholdDraft(null)
-                if (next === deviationThreshold) return
-                void tenantSettingsMut.mutateAsync(
-                  commercialSettingsPatchWithThreshold(effective?.commercial, next),
-                )
-              }}
-              aria-describedby="deviation-threshold-help"
-            />
-            <span
-              id="deviation-threshold-help"
-              className="text-xs text-muted-foreground"
-            >
-              {t(
-                'more.deviation_threshold_help',
-                'Si el sobrecost supera aquest import, el tècnic només pot proposar l’ampliació i l’oficina l’ha d’aprovar. 0 = sense cerimònia per a qui pot editar preus.',
-              )}
-            </span>
-          </label>
+          <p className="text-xs text-muted-foreground">
+            {t(
+              'more.deviation_threshold_moved',
+              'El llindar d’aprovació d’ampliacions es configura a Configuració → Plantilles → Comercial.',
+            )}
+          </p>
+          <Link
+            to="/settings/templates"
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          >
+            {t('more.open_commercial_settings', 'Obrir configuració comercial')}
+            <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
       )}
 

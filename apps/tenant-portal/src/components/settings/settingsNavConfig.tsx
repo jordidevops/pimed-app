@@ -19,10 +19,12 @@ import {
   Newspaper,
   Scale,
   PanelLeft,
+  ListChecks,
+  ListTree,
 } from 'lucide-react'
 import type { TenantTimelineFeatures } from '@/features/entity-timeline/api/tenantFeaturesService'
 
-export type SettingsNavGroup = 'general' | 'org' | 'comms' | 'activity' | 'docs' | 'advanced'
+export type SettingsNavGroup = 'general' | 'org' | 'comms' | 'activity' | 'docs' | 'field' | 'advanced'
 
 export interface SettingsNavItem {
   to: string
@@ -51,6 +53,7 @@ const GROUP_ORDER: SettingsNavGroup[] = [
   'comms',
   'activity',
   'docs',
+  'field',
   'advanced',
 ]
 
@@ -60,6 +63,7 @@ const GROUP_LABELS: Record<SettingsNavGroup, { key: string; default: string }> =
   comms: { key: 'nav.group_comms', default: 'Comunicació' },
   activity: { key: 'nav.group_activity', default: 'Activitat' },
   docs: { key: 'nav.group_docs', default: 'Documents' },
+  field: { key: 'nav.group_field', default: 'Camp' },
   advanced: { key: 'nav.group_advanced', default: 'Avançat' },
 }
 
@@ -177,6 +181,30 @@ export function buildSettingsNavItems({
       labelDefault: 'Plantilles',
       icon: FileText,
       group: 'docs',
+      show: isManagerOrOwner,
+    },
+    {
+      to: '/field/checklist-templates',
+      labelKey: 'tabs.checklist_templates',
+      labelDefault: 'Plantilles de checklist',
+      icon: ListChecks,
+      group: 'field',
+      show: isManagerOrOwner,
+    },
+    {
+      to: '/field/checklist-points',
+      labelKey: 'tabs.checklist_points',
+      labelDefault: 'Punts de revisió',
+      icon: ListTree,
+      group: 'field',
+      show: isManagerOrOwner,
+    },
+    {
+      to: '/field/response-sets',
+      labelKey: 'tabs.response_sets',
+      labelDefault: 'Conjunts de respostes',
+      icon: ListChecks,
+      group: 'field',
       show: isManagerOrOwner,
     },
     {

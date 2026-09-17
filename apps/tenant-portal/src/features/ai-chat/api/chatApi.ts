@@ -118,6 +118,15 @@ function buildPreviewFromPayload(
       roleAssignments: payload.roleAssignments,
     }
   }
+  if (toolName === 'propose_price_sheet') {
+    return (payload.preview as Record<string, unknown>) ?? {
+      projectId: payload.projectId,
+      mode: payload.mode,
+      lineCount: Array.isArray(payload.lines) ? payload.lines.length : 0,
+      lines: payload.lines,
+      checklistTemplateId: payload.checklistTemplateId,
+    }
+  }
   return payload
 }
 
@@ -232,6 +241,12 @@ export type SendChatTurnInput = {
   stream?: boolean
   regenerate?: boolean
   presetId?: string | null
+  siteId?: string | null
+  entityContext?: {
+    projectId?: string
+    clientId?: string
+    tab?: string
+  } | null
 }
 
 export type SendChatTurnResult = {
@@ -417,6 +432,8 @@ export async function sendChatTurn(
         stream: true,
         regenerate: input.regenerate === true ? true : undefined,
         presetId: input.presetId ?? undefined,
+        siteId: input.siteId ?? undefined,
+        entityContext: input.entityContext ?? undefined,
       }),
     })
 
@@ -462,6 +479,8 @@ export async function sendChatTurn(
       model: input.model,
       regenerate: input.regenerate === true ? true : undefined,
       presetId: input.presetId ?? undefined,
+      siteId: input.siteId ?? undefined,
+      entityContext: input.entityContext ?? undefined,
     },
   })
 

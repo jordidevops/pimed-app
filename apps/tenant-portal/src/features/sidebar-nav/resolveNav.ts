@@ -73,6 +73,8 @@ export function passesGate(gate: NavGate, ctx: NavGateContext): boolean {
       return ctx.showRecruitment
     case 'isFieldService':
       return ctx.isFieldService
+    case 'isFieldManager':
+      return ctx.isFieldService && ctx.isManager
     case 'notFieldService':
       return !ctx.isFieldService
     case 'isOffice':

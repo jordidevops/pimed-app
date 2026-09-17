@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
   RefreshCw, ExternalLink, FileText, Copy, Check, Mail,
@@ -12,6 +13,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useSigningSubmission } from '../api/useSigningSubmission'
 import { useMarkReviewedMutation } from '../api/useMarkReviewedMutation'
 import { SIGNING_EVENTS_PAGE_SIZE, useSigningEvents } from '../api/useSigningEvents'
+import { signingKeys } from '../api/signingKeys'
 import { SIGNING_STATUS_CLASSES } from '../signingStatusColors'
 import { supabase } from '@/lib/supabase'
 import {
@@ -40,6 +42,7 @@ function StatusBadge({ status, label }: { status: SigningStatus; label: string }
 
 function EventIcon({ eventType, statusAfter }: { eventType: string | null; statusAfter: string | null }) {
   if (statusAfter === 'completed') return <CheckCircle2 className="h-4 w-4 text-green-600" />
+  if (statusAfter === 'cancelled') return <Trash2 className="h-4 w-4 text-gray-500" />
   if (statusAfter === 'declined' || statusAfter === 'error' || statusAfter === 'expired')
     return <XCircle className="h-4 w-4 text-red-500" />
   if (eventType?.includes('created') || eventType?.includes('init')) return <FileText className="h-4 w-4 text-indigo-500" />
@@ -54,6 +57,40 @@ function formatDateTime(iso: string | null): string {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit', second: '2-digit',
   })
+}
+
+const UUID_RE =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
+
+function isUuid(value: string | null | undefined): value is string {
+  return !!value && UUID_RE.test(value)
+}
+
+function formatSigningStatusReason(
+  reason: string,
+  t: (key: string, fallback: string) => string,
+): string {
+  switch (reason) {
+    case 'cancelled_by_user':
+      return t('detail.statusReason.cancelled_by_user', 'Cancel·lada per un usuari.')
+    case 'cancelled_remote_deleted':
+      return t(
+        'detail.statusReason.cancelled_remote_deleted',
+        'Cancel·lada i eliminada també a DocuSeal.',
+      )
+    case 'cancelled_remote_missing':
+      return t(
+        'detail.statusReason.cancelled_remote_missing',
+        'Cancel·lada localment. No s\'ha trobat la submissió a DocuSeal.',
+      )
+    case 'generate_only_snapshot':
+      return t(
+        'detail.statusReason.generate_only_snapshot',
+        'Còpia de només generació, sense flux de firma.',
+      )
+    default:
+      return t('detail.statusReason.generic', "Motiu de l'estat no especificat")
+  }
 }
 
 // ─── Signer status color ──────────────────────────────────────────────────────
@@ -79,6 +116,7 @@ export function SigningSubmissionDetail() {
   const navigate = useNavigate()
   const { t }    = useTranslation('signing')
   const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [eventsPage, setEventsPage] = useState(0)
   const [allEvents, setAllEvents] = useState<SigningEvent[]>([])
 
@@ -245,6 +283,8 @@ export function SigningSubmissionDetail() {
 
       if (action !== 'check') {
         void refetch()
+        void queryClient.invalidateQueries({ queryKey: signingKeys.events(submission.id) })
+        void queryClient.invalidateQueries({ queryKey: ['signing', 'submissions'] })
       }
     } catch (err) {
       toast({
@@ -268,15 +308,19 @@ export function SigningSubmissionDetail() {
               onClick={() => navigate('/documents/signing')}
               className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
             >
-              Centre de firmes
+              {t('detail.breadcrumbCenter', 'Centre de firmes')}
             </button>
-            <span>/</span>
-            <button
-              onClick={() => navigate(`/documents/${submission.source_document_id}`)}
-              className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
-            >
-              Document
-            </button>
+            {isUuid(submission.source_document_id) && (
+              <>
+                <span>/</span>
+                <button
+                  onClick={() => navigate(`/documents/${submission.source_document_id}`)}
+                  className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+                >
+                  {t('detail.breadcrumbDocument', 'Document')}
+                </button>
+              </>
+            )}
           </div>
           <div>
             <h1 className="text-lg font-semibold">{t('detail.title', 'Detall de signatura')}</h1>
@@ -308,7 +352,7 @@ export function SigningSubmissionDetail() {
               </Button>
             </>
           )}
-          {isTerminal && !submission.reviewed_at && (
+          {status === 'completed' && !submission.reviewed_at && (
             <Button
               variant="outline"
               size="sm"
@@ -335,7 +379,14 @@ export function SigningSubmissionDetail() {
                 : t('detail.markReviewed', 'Marcar com a revisada')}
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => refetch()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              void refetch()
+              void queryClient.invalidateQueries({ queryKey: signingKeys.events(submission.id) })
+            }}
+          >
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
             {t('center.refresh', 'Actualitzar')}
           </Button>
@@ -394,7 +445,9 @@ export function SigningSubmissionDetail() {
             </span>
           )}
           {submission.status_reason && (
-            <span className="text-sm text-muted-foreground">{submission.status_reason}</span>
+            <span className="text-sm text-muted-foreground">
+              {formatSigningStatusReason(submission.status_reason, t)}
+            </span>
           )}
         </div>
 
@@ -678,7 +731,9 @@ export function SigningSubmissionDetail() {
                   <div className="flex-1 pb-4 pt-1.5">
                     <div className="flex items-baseline justify-between gap-2 flex-wrap">
                       <span className="text-sm font-medium">
-                        {ev.event_type ?? t('detail.unknownEvent', 'Esdeveniment desconegut')}
+                        {ev.event_type
+                          ? t(`detail.eventType.${ev.event_type}`, ev.event_type)
+                          : t('detail.unknownEvent', 'Esdeveniment desconegut')}
                       </span>
                       <span className="text-xs text-muted-foreground tabular-nums">
                         {formatDateTime(ev.created_at)}

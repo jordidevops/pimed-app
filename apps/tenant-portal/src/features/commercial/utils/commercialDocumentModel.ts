@@ -68,6 +68,7 @@ export type CommercialDocumentDetail = {
   rendered_document_id?: string | null
   pdf_job_id?: string | null
   document_template_id?: string | null
+  full_body_template_id?: string | null
   lines: CommercialDocumentLine[]
   events: CommercialDocumentEvent[]
 }

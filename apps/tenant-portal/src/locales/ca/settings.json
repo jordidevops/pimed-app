@@ -37,7 +37,10 @@
       "customer_portal": "Portal de clients",
       "legal": "Legal",
       "operations": "Operacions",
-      "sidebar": "Menú lateral"
+      "sidebar": "Menú lateral",
+      "checklist_templates": "Plantilles de checklist",
+      "checklist_points": "Punts de revisió",
+      "response_sets": "Conjunts de respostes"
     },
     "nav": {
       "aria": "Seccions de configuració",
@@ -47,6 +50,7 @@
       "group_comms": "Comunicació",
       "group_activity": "Activitat",
       "group_docs": "Documents",
+      "group_field": "Camp",
       "group_advanced": "Avançat"
     },
     "activity": {
@@ -404,7 +408,32 @@
   },
   "templates": {
     "page_title": "Plantilles de documents",
-    "page_description": "Configura preferències de plantilles i rols per defecte per agilitzar la generació de documents."
+    "page_description": "Configura preferències de plantilles i rols per defecte per agilitzar la generació de documents.",
+    "tabRoles": "Rols per defecte",
+    "tabBlocks": "Blocs de contingut",
+    "tabCommercial": "Comercial",
+    "category": {
+      "quote": "Pressupost",
+      "delivery_note": "Albarà",
+      "commercial": "Comercial",
+      "operations": "Operacions",
+      "hr": "RRHH",
+      "attendance": "Control horari",
+      "safety": "PRL",
+      "legal": "Legal",
+      "signing": "Firma"
+    },
+    "commercial_title": "Plantilles comercials actives",
+    "commercial_help": "Si n’hi ha una d’activa, s’usa com a format del pressupost o l’albarà. Si no en configureu cap, el sistema usa el format per defecte (no editable).",
+    "commercial_none_help": "«Cap» deixa el selector sense preferència explícita: s’usa la plantilla pròpia més antiga d’aquesta categoria, o el format per defecte si no n’hi ha cap. Clona una plantilla de sistema a Documents → Plantilles abans de triar-la aquí.",
+    "commercial_quote": "Plantilla de pressupost activa",
+    "commercial_delivery": "Plantilla d'albarà activa",
+    "commercial_none": "Cap (usar format per defecte)",
+    "commercial_open_catalog": "Obrir catàleg de plantilles",
+    "commercial_saved": "Plantilles comercials desades",
+    "commercial_save_error": "No s’han pogut desar les plantilles comercials",
+    "commercial_type_html": "HTML",
+    "commercial_type_docx": "DOCX"
   },
   "permissions": {
     "page_title": "Permisos de rols",
@@ -422,7 +451,8 @@
       "invoices": "Facturació",
       "members": "Membres",
       "sites": "Locals",
-      "settings": "Configuració"
+      "settings": "Configuració",
+      "commercial": "Comercial"
     },
     "permission_labels": {
       "storage.view": "Veure fitxers",
@@ -447,7 +477,8 @@
       "settings.view": "Veure configuració",
       "settings.manage": "Editar configuració",
       "permissions.manage": "Gestionar permisos",
-      "employees.private.reveal": "Revelar IBAN / NSS (auditat)"
+      "employees.private.reveal": "Revelar IBAN / NSS (auditat)",
+      "commercial.pricing.edit": "Editar preus, descompte i IVA"
     },
     "matrix": {
       "title": "Vista general de permisos",

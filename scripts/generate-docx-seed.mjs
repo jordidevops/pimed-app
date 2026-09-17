@@ -2,18 +2,14 @@
 /**
  * generate-docx-seed.mjs
  *
- * Genera els fitxers DOCX de plantilles de documents (equivalents a les
- * plantilles HTML de la migració 20260617000001), els puja al bucket
- * Supabase Storage local i escriu el SQL a tmp/seed-docx-templates.sql.
+ * Genera els DOCX de plataforma RRHH/legal/… i, al final, crida
+ * generate-commercial-docx-seed.mjs (pressupost/albarà).
  *
- * Ús:
- *   cd scripts && npm install
- *   SUPABASE_SERVICE_ROLE_KEY=<clau> node generate-docx-seed.mjs
+ * Ús i moment (després de db reset): veure scripts/README.md
+ *   cd scripts && npm install && node generate-docx-seed.mjs
  *
- * La URL de Supabase és opcional (per defecte: http://127.0.0.1:54321).
- * Pots obtenir la clau de servei amb:  supabase status
- *
- * Si no s'especifica SERVICE_ROLE_KEY, genera els DOCX i el SQL però no puja res.
+ * El JWT service_role es llegeix de SUPABASE_SERVICE_ROLE_KEY o de `supabase status`.
+ * El JWT secret (hex) no serveix — Storage respon Invalid Compact JWS.
  */
 
 import {
@@ -25,12 +21,13 @@ import { writeFile, mkdir } from 'node:fs/promises'
 import { existsSync }        from 'node:fs'
 import path                  from 'node:path'
 import { fileURLToPath }     from 'node:url'
+import { loadServiceRoleJwt } from './load-service-role-jwt.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const SUPABASE_URL     = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321'
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
+const SERVICE_ROLE_KEY = loadServiceRoleJwt()
 const BUCKET           = 'document-templates'
 const DOCX_MIME        = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 const CREATOR_PLATFORM = '20000000-0000-0000-0000-000000000001'
@@ -105,6 +102,9 @@ const SIGN_SECTION = () => [
   BR(),
   P(B('Signatura empresa:'), T('  ______________________________     '), B('Signatura treballador/a:'), T('  ______________________________')),
 ]
+
+// QT-6 commercial full-body DOCX helpers (linesTable / totalsBlock / acceptRejectBlock)
+// live in generate-commercial-docx-seed.mjs so this HR seed is not rewritten.
 
 // ─── Definicions de les plantilles (001-028) ─────────────────────────────────
 
@@ -1207,7 +1207,8 @@ async function main() {
 
   const doUpload = Boolean(SERVICE_ROLE_KEY)
   if (!doUpload) {
-    console.log('⚠  SUPABASE_SERVICE_ROLE_KEY no especificat — els fitxers NO es pujaran a Storage.')
+    console.log('⚠  No hi ha un JWT service_role (eyJ…). El JWT secret hex no serveix per a Storage.')
+    console.log('    Usa `supabase status` i exporta SUPABASE_SERVICE_ROLE_KEY, o deixa que el script el llegeixi del CLI.')
     console.log('   Per obtenir la clau:  supabase status\n')
   }
 
@@ -1245,6 +1246,9 @@ async function main() {
   await writeFile(sqlFile, sql, 'utf8')
   await writeFile(path.join(__dirname, '..', 'tmp', 'seed-docx-templates-016-028.sql'), sqlNew, 'utf8')
 
+  const { runCommercialDocxSeed } = await import('./generate-commercial-docx-seed.mjs')
+  await runCommercialDocxSeed()
+
   // Resum final
   console.log(`\n─────────────────────────────────────────────────────────────────────────────`)
   console.log(`  DOCX generats:  ${ok} / ${TEMPLATES.length}  →  tmp/docx-seed/`)
@@ -1254,9 +1258,7 @@ async function main() {
   console.log(`  SQL generat:    tmp/seed-docx-templates.sql`)
   console.log(`─────────────────────────────────────────────────────────────────────────────`)
   console.log()
-  console.log('  Pròxim pas: els INSERT DOCX 001-015 viuen a la migració')
-  console.log('  20260617000001_seed_extra_document_templates.sql; per 016-028,')
-  console.log('  afegeix el SQL generat (o torna a executar build-template-migration.mjs).')
+  console.log('  Comercials:       generate-commercial-docx-seed.mjs (cridat aquí; veure scripts/README.md)')
   console.log()
 }
 

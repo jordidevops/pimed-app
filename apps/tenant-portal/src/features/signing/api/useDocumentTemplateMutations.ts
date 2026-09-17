@@ -4,6 +4,7 @@ import { signingKeys } from './signingKeys'
 import { uploadTemplateLocaleFile, type VariablesSchema, type SigningRolesSchema } from './signingService'
 import type { DocumentTemplate, DocumentTemplateLocale } from './signingService'
 import type { Json } from '@/types/database.types'
+import { cloneLocaleHtmlContent } from '../utils/docxTemplateIo'
 
 // ─── Clone platform template → tenant template ───────────────────────────────
 
@@ -33,18 +34,40 @@ export function useCloneTemplateMutation(tenantId: string) {
       let copiedLocales = 0
       if (sourceLocales?.length) {
         for (const loc of sourceLocales) {
+          const searchable = await cloneLocaleHtmlContent(
+            {
+              mime_type: loc.mime_type,
+              storage_path: loc.storage_path,
+              html_content: loc.html_content,
+            },
+            async (storagePath) => {
+              const { data, error: dlErr } = await supabase.storage
+                .from('document-templates')
+                .download(storagePath)
+              if (dlErr || !data) {
+                const missing = !data || /not found/i.test(dlErr?.message ?? '')
+                throw new Error(
+                  missing
+                    ? `El fitxer DOCX no és al Storage (${storagePath}).`
+                    : (dlErr?.message ?? `docx_clone_download_failed:${storagePath}`),
+                )
+              }
+              return data
+            },
+          )
           const { error: insErr } = await supabase.rpc('upsert_document_template_locale', {
             p_template_id:          newTemplate.id!,
             p_locale:               loc.locale ?? '',
             p_mime_type:            loc.mime_type ?? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             p_storage_path:         loc.storage_path ?? undefined,
-            p_html_content:         loc.html_content ?? undefined,
+            p_html_content:         searchable,
             p_variables_schema:     (loc.variables_schema ?? {}) as unknown as Json,
             p_signing_roles_schema: (loc.signing_roles_schema ?? {}) as unknown as Json,
             p_sample_values:        (loc.sample_values ?? null) as unknown as Json,
             p_is_active:            loc.is_active ?? true,
           })
-          if (!insErr) copiedLocales++
+          if (insErr) throw new Error(insErr.message)
+          copiedLocales++
         }
       }
 
@@ -96,10 +119,12 @@ export interface UpsertLocaleInput {
   locale:                string
   file?:                 File
   htmlContent?:          string
+  /** DOCX: `document.xml` cercable per a `validate_commercial_template_locale`; el RPC el valida i desa NULL. */
+  docxSearchableContent?: string
   existingStoragePath?:  string          // DOCX: manté storage_path existent si no hi ha nou fitxer
   variablesSchema:       VariablesSchema | null
   signingRolesSchema?:   SigningRolesSchema | null
-  sampleValues:          Record<string, string> | null
+  sampleValues:          Record<string, unknown> | null
   existingId?:           string
 }
 
@@ -141,6 +166,7 @@ export function useUpsertLocaleMutation(tenantId: string) {
         p_locale:               input.locale,
         p_mime_type:            mimeType,
         p_storage_path:         storagePath,
+        p_html_content:         input.docxSearchableContent,
         p_variables_schema:     (input.variablesSchema ?? {}) as unknown as Json,
         p_signing_roles_schema: (input.signingRolesSchema ?? {}) as unknown as Json,
         p_sample_values:        (input.sampleValues ?? null) as unknown as Json,

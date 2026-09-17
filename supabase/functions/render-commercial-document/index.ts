@@ -5,9 +5,17 @@ import {
   type CommercialDocumentHtmlInput,
   type CommercialDocumentLine,
 } from "../_shared/commercial-document-html.ts";
+import {
+  buildCommercialTemplateContext,
+  shouldUseFullBodyDocx,
+  shouldUseFullBodyHtml,
+  type CommercialTemplateLine,
+} from "../_shared/commercial-document-context.ts";
 import { createGotenbergClientFromConfig, GotenbergError } from "../_shared/gotenberg-client.ts";
 import { kickPdfQueueWorker } from "../_shared/kick-pdf-queue.ts";
+import { renderDocx } from "../_shared/docx-renderer.ts";
 import { renderLiquid } from "../_shared/liquid-renderer.ts";
+import { injectDocxSignatureMarkers, injectHtmlSignatureMarkers } from "../_shared/signing-field-map.ts";
 import {
   persistCommercialRenderedPdf,
   signedCommercialPdfUrl,
@@ -17,6 +25,8 @@ import { log } from "../_shared/observability/structured-logger.ts";
 
 const FEATURE = "render-commercial-document";
 const DOCUMENTS_BUCKET = "documents";
+const TEMPLATE_BUCKET = "document-templates";
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const PENDING_JOB_STATUSES = new Set(["queued", "processing", "failed"]);
 
 type AppError = { status: number; code: string; message: string };
@@ -98,12 +108,115 @@ async function loadLogoUrl(
   return logo || null;
 }
 
-async function loadTenantName(
+async function loadTenantRow(
   adminData: ReturnType<typeof createAdminDataClient>,
   tenantId: string,
-): Promise<string> {
+): Promise<{
+  name: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  logo_url: string | null;
+}> {
+  // Mateix conjunt que context-builder.ts; si alguna columna no existeix, name-only.
+  const full = await adminData
+    .from("tenants")
+    .select("name, address, phone, email, website")
+    .eq("id", tenantId)
+    .maybeSingle();
+  if (!full.error && full.data) {
+    const row = full.data as Record<string, unknown>;
+    return {
+      name: typeof row.name === "string" ? row.name : "",
+      address: typeof row.address === "string" ? row.address : null,
+      phone: typeof row.phone === "string" ? row.phone : null,
+      email: typeof row.email === "string" ? row.email : null,
+      logo_url: null,
+    };
+  }
   const { data } = await adminData.from("tenants").select("name").eq("id", tenantId).maybeSingle();
-  return typeof data?.name === "string" ? data.name : "";
+  return {
+    name: typeof data?.name === "string" ? data.name : "",
+    address: null,
+    phone: null,
+    email: null,
+    logo_url: null,
+  };
+}
+
+async function loadCommercialDisplayFormats(
+  admin: ReturnType<typeof createAdminClient>,
+  tenantId: string,
+): Promise<{ dateFormat: string; timeFormat: string }> {
+  const fallback = { dateFormat: "dd/MM/yyyy", timeFormat: "HH:mm" };
+  const { data, error } = await admin.rpc("get_commercial_display_formats", {
+    p_tenant_id: tenantId,
+  });
+  if (error || data == null) return fallback;
+  const row = asObject<{ date_format?: unknown; time_format?: unknown }>(data);
+  return {
+    dateFormat: typeof row.date_format === "string" && row.date_format.trim()
+      ? row.date_format.trim()
+      : fallback.dateFormat,
+    timeFormat: typeof row.time_format === "string" && row.time_format.trim()
+      ? row.time_format.trim()
+      : fallback.timeFormat,
+  };
+}
+
+async function loadParentDocNumber(
+  adminData: ReturnType<typeof createAdminDataClient>,
+  tenantId: string,
+  parentId: string | null,
+): Promise<string | null> {
+  if (!parentId) return null;
+  const { data } = await adminData
+    .from("commercial_documents")
+    .select("doc_number")
+    .eq("id", parentId)
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  return typeof data?.doc_number === "string" && data.doc_number.trim()
+    ? data.doc_number
+    : null;
+}
+
+async function resolveCommercialFullBodyTemplate(
+  admin: ReturnType<typeof createAdminClient>,
+  tenantId: string,
+  templateId: string | null,
+  locale: string,
+): Promise<{
+  template_type: string;
+  html_content: string | null;
+  storage_path: string | null;
+} | null> {
+  if (!templateId) return null;
+  const { data, error } = await admin.rpc("get_commercial_full_body_locale", {
+    p_tenant_id: tenantId,
+    p_template_id: templateId,
+    p_locale: locale,
+  });
+  if (error) {
+    log("warn", FEATURE, "full-body locale rpc failed", {
+      tenantId,
+      extra: { template_id: templateId, error: error.message },
+    });
+    return null;
+  }
+  if (data == null) return null;
+  const row = asObject<{
+    template_type?: unknown;
+    html_content?: unknown;
+    storage_path?: unknown;
+  }>(data);
+  const templateType = typeof row.template_type === "string" ? row.template_type : "";
+  if (!templateType) return null;
+  return {
+    template_type: templateType,
+    html_content: typeof row.html_content === "string" ? row.html_content : null,
+    storage_path: typeof row.storage_path === "string" ? row.storage_path : null,
+  };
 }
 
 async function renderTemplateBlocks(
@@ -180,18 +293,20 @@ async function enqueueCommercialPdfJob(params: {
   tenantId: string;
   documentId: string;
   title: string;
-  html: string;
+  intermediate: { bytes: Uint8Array; templateType: "html" | "docx" };
   userId: string | null;
   clientOpId: string;
   regenerate: boolean;
 }): Promise<string> {
-  const htmlPath =
-    `${params.tenantId}/commercial/${params.documentId}/intermediate/${crypto.randomUUID()}.html`;
-  const htmlBytes = new TextEncoder().encode(params.html);
+  const isDocx = params.intermediate.templateType === "docx";
+  const ext = isDocx ? "docx" : "html";
+  const mime = isDocx ? DOCX_MIME : "text/html";
+  const intermediatePath =
+    `${params.tenantId}/commercial/${params.documentId}/intermediate/${crypto.randomUUID()}.${ext}`;
   const { error: uploadErr } = await params.admin.storage
     .from(DOCUMENTS_BUCKET)
-    .upload(htmlPath, new Blob([htmlBytes], { type: "text/html" }), {
-      contentType: "text/html;charset=utf-8",
+    .upload(intermediatePath, new Blob([params.intermediate.bytes], { type: mime }), {
+      contentType: isDocx ? mime : "text/html;charset=utf-8",
       upsert: false,
     });
   if (uploadErr) throw new Error(`intermediate upload: ${uploadErr.message}`);
@@ -200,7 +315,7 @@ async function enqueueCommercialPdfJob(params: {
     p_tenant_id: params.tenantId,
     p_source_type: "commercial_document",
     p_source_ref_id: params.documentId,
-    p_template_type: "html",
+    p_template_type: params.intermediate.templateType,
     p_document_title: params.title,
     p_output_profile: "pdf",
     p_idempotency_key: params.regenerate
@@ -211,8 +326,8 @@ async function enqueueCommercialPdfJob(params: {
       commercial_document_id: params.documentId,
       client_op_id: params.clientOpId,
     },
-    p_intermediate_path: htmlPath,
-    p_intermediate_size_bytes: htmlBytes.byteLength,
+    p_intermediate_path: intermediatePath,
+    p_intermediate_size_bytes: params.intermediate.bytes.byteLength,
   });
   if (jobErr || !jobData) throw new Error(jobErr?.message ?? "create_pdf_job failed");
 
@@ -229,6 +344,17 @@ async function enqueueCommercialPdfJob(params: {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   kickPdfQueueWorker(supabaseUrl, serviceKey);
   return jobId;
+}
+
+async function downloadTemplateDocx(
+  admin: ReturnType<typeof createAdminClient>,
+  storagePath: string,
+): Promise<Uint8Array> {
+  const { data, error } = await admin.storage.from(TEMPLATE_BUCKET).download(storagePath);
+  if (error || !data) {
+    throw new Error(`template download: ${error?.message ?? "no blob"} (${storagePath})`);
+  }
+  return new Uint8Array(await data.arrayBuffer());
 }
 
 Deno.serve(async (req: Request) => {
@@ -353,24 +479,103 @@ Deno.serve(async (req: Request) => {
       lines: ((lines ?? []) as CommercialDocumentLine[]),
     };
 
-    const tenantName = await loadTenantName(adminData, tenantId);
-    const templateId = asUuid(row.document_template_id);
-    const blocks = await renderTemplateBlocks(adminData, templateId, tenantId, {
-      tenant: { name: tenantName, logo_url: logoUrl },
-      seller,
-      buyer: htmlInput.buyer_snapshot,
-      document: {
-        doc_type: htmlInput.doc_type,
-        doc_number: htmlInput.doc_number,
-        locale: htmlInput.locale,
-        status: htmlInput.status,
-      },
-    });
+    const tenant = await loadTenantRow(adminData, tenantId);
+    const tenantName = tenant.name;
+    const displayFormats = await loadCommercialDisplayFormats(admin, tenantId);
+    const fullBodyLocale = await resolveCommercialFullBodyTemplate(
+      admin,
+      tenantId,
+      asUuid(row.full_body_template_id),
+      htmlInput.locale ?? "ca",
+    );
+    if (
+      asUuid(row.full_body_template_id) &&
+      !shouldUseFullBodyHtml(fullBodyLocale) &&
+      !shouldUseFullBodyDocx(fullBodyLocale)
+    ) {
+      log("warn", FEATURE, "full-body template unresolved, using fallback HTML", {
+        tenantId,
+        extra: { template_id: row.full_body_template_id },
+      });
+    }
 
-    const html = buildCommercialDocumentHtml(htmlInput, {
-      documentHeaderHtml: blocks.documentHeaderHtml ?? undefined,
-      documentFooterHtml: blocks.documentFooterHtml ?? undefined,
-    });
+    let html: string | null = null;
+    let docxBytes: Uint8Array | null = null;
+    let pageHeaderHtml: string | null = null;
+    let pageFooterHtml: string | null = null;
+
+    const useHtmlBody = shouldUseFullBodyHtml(fullBodyLocale);
+    const useDocxBody = shouldUseFullBodyDocx(fullBodyLocale);
+
+    if (useHtmlBody || useDocxBody) {
+      const parentDocNumber = await loadParentDocNumber(
+        adminData,
+        tenantId,
+        asUuid(row.parent_document_id),
+      );
+      const context = buildCommercialTemplateContext({
+        doc: {
+          doc_type: htmlInput.doc_type,
+          doc_number: htmlInput.doc_number,
+          status: htmlInput.status,
+          locale: htmlInput.locale,
+          currency: htmlInput.currency,
+          issued_at: htmlInput.issued_at,
+          valid_until: htmlInput.valid_until,
+          created_at: (row.created_at as string | null) ?? null,
+          show_prices: htmlInput.show_prices,
+          terms_text: htmlInput.terms_text,
+          seller_snapshot: seller,
+          buyer_snapshot: htmlInput.buyer_snapshot,
+          service_address_snapshot: htmlInput.service_address_snapshot ?? {},
+          subtotal: htmlInput.subtotal,
+          tax_breakdown: htmlInput.tax_breakdown,
+          total: htmlInput.total,
+        },
+        lines: (htmlInput.lines as CommercialTemplateLine[]),
+        tenant: {
+          name: tenant.name,
+          tax_id: null,
+          address: tenant.address,
+          phone: tenant.phone,
+          email: tenant.email,
+          logo_url: tenant.logo_url,
+        },
+        logoUrl,
+        parentDocNumber,
+        dateFormat: displayFormats.dateFormat,
+        timeFormat: displayFormats.timeFormat,
+      });
+      if (useHtmlBody) {
+        const rendered = await renderLiquid(fullBodyLocale!.html_content!, context);
+        html = injectHtmlSignatureMarkers(rendered).html;
+      } else {
+        const raw = await downloadTemplateDocx(admin, fullBodyLocale!.storage_path!);
+        const rendered = renderDocx(raw, context);
+        docxBytes = injectDocxSignatureMarkers(rendered).bytes;
+      }
+    } else {
+      const templateId = asUuid(row.document_template_id);
+      const blocks = await renderTemplateBlocks(adminData, templateId, tenantId, {
+        tenant: { name: tenantName, logo_url: logoUrl },
+        seller,
+        buyer: htmlInput.buyer_snapshot,
+        document: {
+          doc_type: htmlInput.doc_type,
+          doc_number: htmlInput.doc_number,
+          locale: htmlInput.locale,
+          status: htmlInput.status,
+        },
+      });
+      pageHeaderHtml = blocks.pageHeaderHtml;
+      pageFooterHtml = blocks.pageFooterHtml;
+      html = buildCommercialDocumentHtml(htmlInput, {
+        documentHeaderHtml: blocks.documentHeaderHtml ?? undefined,
+        documentFooterHtml: blocks.documentFooterHtml ?? undefined,
+        dateFormat: displayFormats.dateFormat,
+        timeFormat: displayFormats.timeFormat,
+      });
+    }
     const title = `${htmlInput.doc_type} ${htmlInput.doc_number ?? ""}`.trim();
 
     const cfg = await getGotenbergConfig(admin);
@@ -381,11 +586,15 @@ Deno.serve(async (req: Request) => {
     // signing queue; with it false the worker would skip the job anyway.
     try {
       const client = createGotenbergClientFromConfig(cfg);
-      const pdfBytes = await client.htmlToPdf(html, {
-        profile: "pdf",
-        headerHtml: blocks.pageHeaderHtml ?? undefined,
-        footerHtml: blocks.pageFooterHtml ?? undefined,
-      });
+      const pdfBytes = docxBytes
+        ? await client.docxToPdf(docxBytes, `${title.replace(/[^\w.-]+/g, "_") || "document"}.docx`, {
+          profile: "pdf",
+        })
+        : await client.htmlToPdf(html!, {
+          profile: "pdf",
+          headerHtml: pageHeaderHtml ?? undefined,
+          footerHtml: pageFooterHtml ?? undefined,
+        });
       const persisted = await persistCommercialRenderedPdf({
         admin,
         tenantId,
@@ -417,7 +626,9 @@ Deno.serve(async (req: Request) => {
           tenantId,
           documentId,
           title,
-          html,
+          intermediate: docxBytes
+            ? { bytes: docxBytes, templateType: "docx" }
+            : { bytes: new TextEncoder().encode(html!), templateType: "html" },
           userId: user.id,
           clientOpId,
           regenerate,
@@ -425,7 +636,7 @@ Deno.serve(async (req: Request) => {
         return json(200, {
           status: "pending",
           pdf_job_id: jobId,
-          html_fallback: true,
+          html_fallback: !docxBytes,
         });
       } catch (e) {
         lastError = (e as Error).message ?? lastError;
@@ -438,7 +649,7 @@ Deno.serve(async (req: Request) => {
 
     return json(200, {
       status: "unavailable",
-      html_fallback: true,
+      html_fallback: !docxBytes,
       error: lastError || "gotenberg_unavailable",
     });
   } catch (e) {

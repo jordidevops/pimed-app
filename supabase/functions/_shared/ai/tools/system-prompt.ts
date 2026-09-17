@@ -4,7 +4,7 @@ import { getMessageTextContent } from "../content-parts.ts";
 
 export function buildToolsSystemAppendix(
   tools: ProviderToolSchema[],
-  options?: { hasImages?: boolean },
+  options?: { hasImages?: boolean; entityContext?: Record<string, unknown> | null },
 ): string {
   if (tools.length === 0) return "";
 
@@ -22,6 +22,11 @@ export function buildToolsSystemAppendix(
     "- Extreure contacte d'una imatge adjunta → crida propose_extract_structured_data amb targetType=contact",
     "- Generar document des de plantilla → query_document_templates → query_template_locale → recull variables/rols/acció amb l'usuari → open_document_generator (obre el formulari de l'app; NO propose_generate_document)",
     "- Canviar un empleat → crida propose_update_employee (requereix confirmació de l'usuari)",
+    "- Catàleg / PVP → crida query_catalog_items",
+    "- Feines anteriors amb línies → crida query_past_jobs",
+    "- Full de preus d'una OS → crida query_project_price_sheet",
+    "- Plantilles de checklist del tenant → crida query_checklist_templates",
+    "- Escriure un full de preus a l'OS → query_catalog_items (i opcionalment query_checklist_templates) → propose_price_sheet. MAI inventis UUIDs; si no hi ha projectId al context, pregunta o no aplicis.",
   ];
 
   if (options?.hasImages) {
@@ -47,7 +52,23 @@ export function buildToolsSystemAppendix(
     "7. Només quan no falti cap camp obligatori, crida open_document_generator amb el codi intern corresponent.",
     "8. L'usuari completa el formulari «Generar document»; el resultat apareixerà al xat amb enllaç al document.",
     "9. Per canvis simples (crear contacte, actualitzar empleat) usa propose_* + confirmació.",
+    "10. Per omplir el full de preus d'una OS: query_catalog_items → propose_price_sheet (mode append o replace). Si proposes checklist, ha de ser una plantilla del tenant (query_checklist_templates). L'Acceptar de l'usuari escriu project_lines; no emetis pressupost.",
   );
+
+  const entity = options?.entityContext;
+  if (entity && typeof entity === "object") {
+    const projectId = typeof entity.projectId === "string" ? entity.projectId : "";
+    const tab = typeof entity.tab === "string" ? entity.tab : "";
+    if (projectId) {
+      lines.push(
+        "",
+        "CONTEXT DE L'ENTITAT ACTIVA:",
+        `- projectId (OS): ${projectId}`,
+        tab ? `- tab: ${tab}` : "",
+        "- Usa aquest projectId a query_project_price_sheet i propose_price_sheet tret que l'usuari en demani un altre.",
+      );
+    }
+  }
 
   lines.push("", ...tools.map((t) => `- ${t.function.name}: ${t.function.description}`));
 

@@ -1,4 +1,4 @@
-import { buildCommercialDocumentHtml } from './buildCommercialDocumentHtml'
+import { buildIssuedCommercialHtml } from './buildIssuedCommercialHtml'
 import {
   type CommercialDocumentDetail,
   commercialFilename,
@@ -13,8 +13,7 @@ function triggerDownload(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url)
 }
 
-export function printCommercialDocument(doc: CommercialDocumentDetail): void {
-  const html = buildCommercialDocumentHtml(doc)
+function printHtml(html: string): void {
   const iframe = document.createElement('iframe')
   iframe.setAttribute('title', 'print')
   iframe.setAttribute('aria-hidden', 'true')
@@ -49,8 +48,12 @@ export function printCommercialDocument(doc: CommercialDocumentDetail): void {
   document.body.appendChild(iframe)
 }
 
-export function downloadCommercialDocumentHtml(doc: CommercialDocumentDetail): void {
-  const html = buildCommercialDocumentHtml(doc)
+export async function printCommercialDocument(doc: CommercialDocumentDetail): Promise<void> {
+  printHtml(await buildIssuedCommercialHtml(doc))
+}
+
+export async function downloadCommercialDocumentHtml(doc: CommercialDocumentDetail): Promise<void> {
+  const html = await buildIssuedCommercialHtml(doc)
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
   triggerDownload(blob, commercialFilename(doc))
 }
@@ -78,8 +81,8 @@ export async function commercialDocumentPdfFile(
   }
 }
 
-export function commercialDocumentHtmlFile(doc: CommercialDocumentDetail): File {
-  const html = buildCommercialDocumentHtml(doc)
+export async function commercialDocumentHtmlFile(doc: CommercialDocumentDetail): Promise<File> {
+  const html = await buildIssuedCommercialHtml(doc)
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
   return new File([blob], commercialFilename(doc), { type: 'text/html' })
 }
