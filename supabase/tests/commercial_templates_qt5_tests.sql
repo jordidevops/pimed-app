@@ -235,6 +235,26 @@ BEGIN
   IF v_resolved IS DISTINCT FROM v_tpl_a2 THEN
     RAISE EXCEPTION 'QT5 FAIL resolver: settings quote_template_id should win, got %', v_resolved;
   END IF;
+  UPDATE data.tenants
+  SET settings = COALESCE(settings, '{}'::jsonb)
+    || jsonb_build_object(
+      'commercial',
+      COALESCE(settings -> 'commercial', '{}'::jsonb)
+        || jsonb_build_object('quote_template_id', 'none')
+    )
+  WHERE id = v_tenant_a;
+  v_resolved := data.resolve_commercial_full_body_template_id(v_tenant_a, 'quote');
+  IF v_resolved IS NOT NULL THEN
+    RAISE EXCEPTION 'QT5 FAIL resolver: Cap/none must restore QT-D1, got %', v_resolved;
+  END IF;
+  UPDATE data.tenants
+  SET settings = COALESCE(settings, '{}'::jsonb)
+    || jsonb_build_object(
+      'commercial',
+      COALESCE(settings -> 'commercial', '{}'::jsonb)
+        || jsonb_build_object('quote_template_id', v_tpl_a2::text)
+    )
+  WHERE id = v_tenant_a;
   v_resolved := data.resolve_commercial_full_body_template_id(v_tenant_a, 'quote_amendment');
   IF v_resolved IS DISTINCT FROM v_tpl_a2 THEN
     RAISE EXCEPTION 'QT5 FAIL resolver: quote_amendment must reuse quote settings';

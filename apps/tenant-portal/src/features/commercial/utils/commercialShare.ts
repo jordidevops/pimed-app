@@ -15,6 +15,18 @@ function normalizePhoneForWhatsApp(phone: string): string {
   return phone.replace(/[^\d+]/g, '').replace(/^\+/, '')
 }
 
+export function buildWhatsAppTextUrl(text: string, phone?: string | null): string {
+  const encoded = encodeURIComponent(text)
+  const normalized = phone?.trim() ? normalizePhoneForWhatsApp(phone.trim()) : ''
+  if (normalized) return `https://wa.me/${normalized}?text=${encoded}`
+  return `https://wa.me/?text=${encoded}`
+}
+
+export function buildMailtoTextUrl(subject: string, body: string, email?: string | null): string {
+  const to = email?.trim() ? encodeURIComponent(email.trim()) : ''
+  return `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+}
+
 export function buildCommercialWhatsAppUrl(doc: CommercialDocumentDetail): string {
   const text = buildCommercialShareText(doc)
   const phone = doc.buyer_snapshot.phone?.trim()

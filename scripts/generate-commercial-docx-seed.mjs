@@ -119,7 +119,9 @@ function totalsBlock(copy) {
       V('#totals.tax_breakdown'),
       T(`${copy.vat} `),
       V('tax_rate'),
-      T('%: '),
+      T('% '),
+      V('tax_base'),
+      T(': '),
       V('tax_amount'),
       T(' '),
       V('document.currency'),
@@ -356,8 +358,8 @@ const SAMPLE_QUOTE = {
   totals: {
     subtotal: 168,
     tax_breakdown: [
-      { tax_rate: 21, tax_amount: 34.02 },
-      { tax_rate: 10, tax_amount: 0.6 },
+      { tax_rate: 21, tax_amount: 34.02, tax_base: 162 },
+      { tax_rate: 10, tax_amount: 0.6, tax_base: 6 },
     ],
     total: 202.62,
   },

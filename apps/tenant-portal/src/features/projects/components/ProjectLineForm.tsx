@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTenant } from '@/contexts/TenantContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useToast } from '@/hooks/use-toast'
 import { getCatalogItems, type CatalogItem } from '@/features/catalog/api/catalogService'
 import {
   DISCOUNT_CHIPS,
@@ -15,6 +16,8 @@ import {
 } from '@/features/catalog/unitOptions'
 import { generateClientOpId } from '@/features/attendance/api/clientOpId'
 import { usePermission } from '@/hooks/usePermission'
+import { usePriceSheetTitle } from '@/hooks/useSectorLabel'
+import { priceSheetRpcErrorCopy, priceSheetRpcErrorTitle } from '@/features/commercial/utils/rpcError'
 import type { Database } from '@/types/database.types'
 
 type ProjectLine = Database['api']['Views']['project_lines']['Row']
@@ -62,8 +65,10 @@ const moneyFmt = new Intl.NumberFormat('ca-ES', { minimumFractionDigits: 2, maxi
 
 export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectLineFormProps) {
   const { t } = useTranslation('projects')
+  const { toast } = useToast()
   const { activeTenant } = useTenant()
   const canEditPricing = usePermission('commercial.pricing.edit')
+  const priceSheetTitle = usePriceSheetTitle()
 
   const { data: catalogItems = [] } = useQuery<CatalogItem[]>({
     queryKey: ['catalog_items', activeTenant?.id],
@@ -133,26 +138,49 @@ export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectL
   // ─── Submit ───────────────────────────────────────────────────────────────
 
   async function onSubmit(values: LineFormValues) {
-    const { supabase } = await import('@/lib/supabase')
-    const params = {
-      p_project_id: projectId,
-      p_line_id: line?.id ?? undefined,
-      p_catalog_item_id: values.catalog_item_id ?? undefined,
-      p_kind: values.kind,
-      p_name: values.name,
-      p_description: undefined as string | undefined,
-      p_unit: values.unit ?? 'u',
-      p_quantity: values.quantity,
-      p_unit_price: values.unit_price,
-      p_discount_pct: values.discount_pct,
-      p_tax_rate: values.tax_rate,
-      p_position: undefined as number | undefined,
-      p_notes: values.notes ?? undefined,
-      p_client_op_id: line?.id ? undefined : generateClientOpId(),
+    if (!canEditPricing && !values.catalog_item_id) {
+      toast({
+        variant: 'destructive',
+        title: t(
+          'projects.lines.errors.pricing_denied_title',
+          'No es pot canviar el preu',
+        ),
+        description: t(
+          'projects.lines.errors.catalog_required_help',
+          'Sense permís de preus cal triar un ítem del catàleg (PVP). No es poden crear línies lliures.',
+        ),
+      })
+      return
     }
-    const { error } = await supabase.rpc('upsert_project_line', params)
-    if (error) throw error
-    onSaved()
+    try {
+      const { supabase } = await import('@/lib/supabase')
+      const params = {
+        p_project_id: projectId,
+        p_line_id: line?.id ?? undefined,
+        p_catalog_item_id: values.catalog_item_id ?? undefined,
+        p_kind: values.kind,
+        p_name: values.name,
+        p_description: undefined as string | undefined,
+        p_unit: values.unit ?? 'u',
+        p_quantity: values.quantity,
+        p_unit_price: values.unit_price,
+        p_discount_pct: values.discount_pct,
+        p_tax_rate: values.tax_rate,
+        p_position: undefined as number | undefined,
+        p_notes: values.notes ?? undefined,
+        p_client_op_id: line?.id ? undefined : generateClientOpId(),
+      }
+      const { error } = await supabase.rpc('upsert_project_line', params)
+      if (error) throw error
+      onSaved()
+    } catch (err) {
+      const copy = priceSheetRpcErrorCopy(err, priceSheetTitle)
+      toast({
+        variant: 'destructive',
+        title: priceSheetRpcErrorTitle(t, copy),
+        description: t(copy.descriptionKey, copy.descriptionFallback),
+      })
+    }
   }
 
   // ─── Render ───────────────────────────────────────────────────────────────
@@ -177,7 +205,15 @@ export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectL
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="">
-            {t('projects.lines.form.catalog_item_placeholder', 'Selecciona o escriu per cercar...')}
+            {canEditPricing
+              ? t(
+                  'projects.lines.form.catalog_item_placeholder',
+                  'Selecciona o escriu per cercar...',
+                )
+              : t(
+                  'projects.lines.form.catalog_item_required',
+                  'Selecciona un ítem del catàleg (obligatori)',
+                )}
           </option>
           {catalogItems.map((ci) => (
             <option key={ci.id} value={ci.id ?? ''}>
@@ -185,6 +221,14 @@ export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectL
             </option>
           ))}
         </select>
+        {!canEditPricing ? (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t(
+              'projects.lines.form.catalog_required_hint',
+              'Sense permís de preus només pots afegir ítems del catàleg al PVP.',
+            )}
+          </p>
+        ) : null}
       </div>
 
       {/* Kind + Name row */}

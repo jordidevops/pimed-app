@@ -23,7 +23,7 @@ function PreviewItem({ item }: { item: ResolvedNavItem }) {
         ) : (
           <span className="h-5 w-5 shrink-0" aria-hidden />
         )}
-        <span>{item.label}</span>
+        <span className="min-w-0 truncate">{item.label}</span>
       </div>
     )
   }
@@ -31,7 +31,7 @@ function PreviewItem({ item }: { item: ResolvedNavItem }) {
   return (
     <div className={cn(itemClass({ emphasis: item.emphasis }), 'pointer-events-none')}>
       {item.showIcon ? <Icon className="h-5 w-5 shrink-0" /> : <span className="h-5 w-5 shrink-0" aria-hidden />}
-      <span>{item.label}</span>
+      <span className="min-w-0 truncate">{item.label}</span>
     </div>
   )
 }

@@ -100,15 +100,33 @@ BEGIN
   );
   DELETE FROM data.checklist_runs WHERE project_id IN (v_source, v_target);
   DELETE FROM data.project_lines WHERE project_id IN (v_source, v_target);
-  DELETE FROM data.checklist_template_items WHERE version_id = v_ver;
-  DELETE FROM data.checklist_template_versions WHERE id = v_ver;
-  DELETE FROM data.checklist_templates WHERE id = v_tpl;
+
+  IF NOT EXISTS (SELECT 1 FROM data.checklist_templates WHERE id = v_tpl) THEN
+    INSERT INTO data.checklist_templates (
+      id, tenant_id, name, kind, is_active, is_archived, created_by
+    ) VALUES (
+      v_tpl, v_tenant, 'QC visita', 'todo', true, false, v_owner
+    );
+    INSERT INTO data.checklist_template_versions (
+      id, template_id, version_number, status, created_by
+    ) VALUES (
+      v_ver, v_tpl, 1, 'draft', v_owner
+    );
+    INSERT INTO data.checklist_template_items (
+      version_id, position, title, is_required, response_type
+    ) VALUES (
+      v_ver, 0, 'Comprovar tensio', true, 'checkbox'
+    );
+    UPDATE data.checklist_template_versions
+    SET status = 'published', published_at = now(), published_by = v_owner
+    WHERE id = v_ver AND status = 'draft';
+  END IF;
 
   INSERT INTO data.project_lines (
     tenant_id, project_id, catalog_item_id, kind, name, unit, quantity,
     unit_price, discount_pct, tax_rate, position
   ) VALUES (
-    v_tenant, v_source, v_catalog, 'service', 'QC Hora tècnic', 'h', 2,
+    v_tenant, v_source, v_catalog, 'service', 'QC Hora tecnic', 'h', 2,
     99.00, 10, 21.00, 0
   );
 
@@ -116,34 +134,9 @@ BEGIN
     tenant_id, project_id, catalog_item_id, kind, name, unit, quantity,
     unit_price, discount_pct, tax_rate, position
   ) VALUES (
-    v_tenant, v_source, NULL, 'service', 'QC línia lliure', 'u', 1,
+    v_tenant, v_source, NULL, 'service', 'QC linia lliure', 'u', 1,
     80.00, 0, 21.00, 1
   );
-
-  INSERT INTO data.checklist_templates (
-    id, tenant_id, name, kind, is_active, is_archived, created_by
-  ) VALUES (
-    v_tpl, v_tenant, 'QC visita', 'todo', true, false, v_owner
-  )
-  ON CONFLICT (id) DO UPDATE SET is_active = true, is_archived = false, tenant_id = v_tenant;
-
-  INSERT INTO data.checklist_template_versions (
-    id, template_id, version_number, status, created_by
-  ) VALUES (
-    v_ver, v_tpl, 1, 'draft', v_owner
-  );
-
-  INSERT INTO data.checklist_template_items (
-    version_id, position, title, is_required, response_type
-  )
-  SELECT v_ver, 0, 'Comprovar tensió', true, 'checkbox'
-  WHERE NOT EXISTS (
-    SELECT 1 FROM data.checklist_template_items WHERE version_id = v_ver
-  );
-
-  UPDATE data.checklist_template_versions
-  SET status = 'published', published_at = now(), published_by = v_owner
-  WHERE id = v_ver AND status = 'draft';
 
   v_run := api.apply_checklist_to_project(v_source, v_tpl, NULL);
 

@@ -8,6 +8,10 @@ import {
   recordCommercialDocumentSent,
 } from '../api/commercialFlowService'
 import { useCommercialPdf } from '../hooks/useCommercialPdf'
+import { useCommercialDocumentSigningHub } from '../api/useCommercialSigningHub'
+import {
+  commercialSignedPdfDocumentId,
+} from '../utils/commercialSigningHub'
 import type { CommercialDocumentDetail } from '../utils/commercialDocumentModel'
 import { commercialFilename } from '../utils/commercialDocumentModel'
 import {
@@ -15,6 +19,7 @@ import {
   downloadCommercialDocumentPdfFromUrl,
   printCommercialDocument,
 } from '../utils/commercialDocumentPrint'
+import { ISSUED_COMMERCIAL_DOCX_UNAVAILABLE } from '../utils/buildIssuedCommercialHtml'
 import {
   buildCommercialMailto,
   buildCommercialWhatsAppUrl,
@@ -47,6 +52,8 @@ export function CommercialDocumentShareSheet({
     initialRenderedDocumentId: doc?.rendered_document_id,
     initialPdfJobId: doc?.pdf_job_id,
   })
+  const { data: signingHub } = useCommercialDocumentSigningHub(open ? documentId : null)
+  const signedPdfId = commercialSignedPdfDocumentId(signingHub)
 
   useEffect(() => {
     if (!open) return
@@ -103,10 +110,19 @@ export function CommercialDocumentShareSheet({
         title: t('projects.commercial.share_ok', 'Document preparat per enviar'),
       })
     } catch (err) {
+      const isDocx =
+        err instanceof Error && err.message === ISSUED_COMMERCIAL_DOCX_UNAVAILABLE
       toast({
         variant: 'destructive',
         title: t('projects.commercial.share_failed', 'Enviament fallit · Reintentar'),
-        description: err instanceof Error ? err.message : undefined,
+        description: isDocx
+          ? t(
+              'projects.commercial.view_docx_use_pdf',
+              'Aquesta plantilla és DOCX: el PDF és la còpia fidel. L’HTML per defecte no s’hi mostra.',
+            )
+          : err instanceof Error
+            ? err.message
+            : undefined,
       })
     } finally {
       setBusyChannel(null)
@@ -290,6 +306,13 @@ export function CommercialDocumentShareSheet({
                 <Button type="button" variant="outline" asChild>
                   <Link to={`/documents/${pdf.renderedDocumentId}`}>
                     {t('projects.commercial.open_dms', 'Obrir al DMS')}
+                  </Link>
+                </Button>
+              ) : null}
+              {signedPdfId && signedPdfId !== pdf.renderedDocumentId ? (
+                <Button type="button" variant="outline" asChild>
+                  <Link to={`/documents/${signedPdfId}`}>
+                    {t('projects.commercial.open_signed_pdf', 'Obrir PDF firmat')}
                   </Link>
                 </Button>
               ) : null}

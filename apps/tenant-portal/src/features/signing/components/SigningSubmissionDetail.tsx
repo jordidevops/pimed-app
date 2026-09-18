@@ -27,6 +27,11 @@ import {
   getSigningProvider,
 } from '../api/signingService'
 import { DocumentIntegrityPanel, DocuSealIntegrityNote } from './DocumentIntegrityPanel'
+import { useCommercialSigningHubBySubmissions } from '@/features/commercial/api/useCommercialSigningHub'
+import {
+  commercialQuoteViewHref,
+  commercialSigningHubTitle,
+} from '@/features/commercial/utils/commercialSigningHub'
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -123,6 +128,10 @@ export function SigningSubmissionDetail() {
   const { data: submission, isLoading, refetch } = useSigningSubmission(id)
   const { data: events = [] }                     = useSigningEvents(id, eventsPage, SIGNING_EVENTS_PAGE_SIZE)
   const markReviewed = useMarkReviewedMutation()
+  const { data: commercialHub = {} } = useCommercialSigningHubBySubmissions(
+    submission?.id ? [submission.id] : [],
+  )
+  const commercialLink = submission?.id ? commercialHub[submission.id] : undefined
 
   const [copiedSigningUrl, setCopiedSigningUrl] = useState(false)
   const [selectedSigner, setSelectedSigner] = useState<SignerSnapshot | null>(null)
@@ -468,6 +477,27 @@ export function SigningSubmissionDetail() {
                   className="text-indigo-600 hover:underline text-sm"
                 >
                   {submission.document_title}
+                </Link>
+              </div>
+            </>
+          )}
+
+          {commercialLink && (
+            <>
+              <div className="text-muted-foreground">{t('detail.commercialDocument', 'Document comercial')}</div>
+              <div>
+                <Link
+                  to={commercialQuoteViewHref(commercialLink.commercialDocumentId)}
+                  className="text-indigo-600 hover:underline text-sm"
+                >
+                  {commercialSigningHubTitle(
+                    commercialLink,
+                    commercialLink.docType === 'delivery_note'
+                      ? t('center.sourceDeliveryNote', 'Albarà')
+                      : commercialLink.docType === 'quote_amendment'
+                        ? t('center.sourceAmendment', 'Ampliació')
+                        : t('center.sourceQuote', 'Pressupost'),
+                  )}
                 </Link>
               </div>
             </>

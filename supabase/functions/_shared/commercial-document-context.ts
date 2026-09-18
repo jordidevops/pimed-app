@@ -18,6 +18,7 @@ export type CommercialTemplateLine = {
   unit_price?: number | string | null;
   discount_pct?: number | string | null;
   tax_rate?: number | string | null;
+  line_subtotal?: number | string | null;
   line_total?: number | string | null;
   kind?: string | null;
 };
@@ -196,13 +197,26 @@ function serviceAddress(raw: Record<string, unknown>): Record<string, string | n
   };
 }
 
-function taxBreakdown(raw: unknown): Array<{ tax_rate: number | null; tax_amount: number | null }> {
+function taxBreakdown(
+  raw: unknown,
+  lines: CommercialTemplateLine[],
+): Array<{ tax_rate: number | null; tax_amount: number | null; tax_base: number | null }> {
+  const derived = new Map<number, number>();
+  for (const line of lines) {
+    const rate = num(line.tax_rate);
+    const base = num(line.line_subtotal);
+    if (rate == null || base == null) continue;
+    derived.set(rate, (derived.get(rate) ?? 0) + base);
+  }
   if (!Array.isArray(raw)) return [];
   return raw.map((row) => {
     const rec = asRecord(row);
+    const tax_rate = num(rec.tax_rate);
+    const stored = num(rec.tax_base);
     return {
-      tax_rate: num(rec.tax_rate),
+      tax_rate,
       tax_amount: num(rec.tax_amount),
+      tax_base: stored ?? (tax_rate == null ? null : derived.get(tax_rate) ?? null),
     };
   });
 }
@@ -309,7 +323,7 @@ export function buildCommercialTemplateContext(
     })),
     totals: {
       subtotal: num(doc.subtotal),
-      tax_breakdown: taxBreakdown(doc.tax_breakdown),
+      tax_breakdown: taxBreakdown(doc.tax_breakdown, input.lines),
       total: num(doc.total),
     },
     legal: {

@@ -36,6 +36,10 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/contexts/TenantContext'
+import { FieldAdminBackLink } from './FieldAdminBackLink'
+import { useFieldAdminPaths } from '../utils/fieldAdminPaths'
+import { AIGenerateAction } from '@/features/ai/components/AIGenerateAction'
+import { parseAiJsonContent } from '@/features/commercial/utils/aiJson'
 import { ChecklistKindIcon } from './ChecklistKindIcon'
 import {
   ChecklistTemplatePreview,
@@ -138,6 +142,7 @@ function PointPickerDialog({
   onAdd: (points: ChecklistReviewPoint[]) => void
 }) {
   const { t } = useTranslation('field-service')
+  const { points } = useFieldAdminPaths()
   const [q, setQ] = useState('')
   const [page, setPage] = useState(0)
   const [picked, setPicked] = useState<Record<string, ChecklistReviewPoint>>({})
@@ -193,7 +198,7 @@ function PointPickerDialog({
         ) : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {t('editor.no_points', 'No hi ha punts al teu catàleg.')}{' '}
-            <Link to="/field/checklist-points" className="underline">
+            <Link to={points} className="underline">
               {t('points.title', 'Punts de revisió')}
             </Link>
           </p>
@@ -278,6 +283,7 @@ function TemplateEditor({
   onClose: () => void
 }) {
   const { t } = useTranslation('field-service')
+  const { responseSets: responseSetsPath } = useFieldAdminPaths()
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -304,6 +310,12 @@ function TemplateEditor({
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [editorTab, setEditorTab] = useState<'edit' | 'preview'>('edit')
+  const [aiPrompt, setAiPrompt] = useState('')
+
+  const aiMessages = useMemo(
+    () => [{ role: 'user' as const, content: aiPrompt.trim() }],
+    [aiPrompt],
+  )
 
   useEffect(() => {
     if (!detail) return
@@ -368,6 +380,34 @@ function TemplateEditor({
     }
     setKind(nextKind)
     setItems(nextKind === 'todo' ? [emptyTodoItem()] : [])
+  }
+
+  function hydrateFromAi(content: string) {
+    const parsed = parseAiJsonContent(content) as {
+      name?: string
+      kind?: string
+      items?: Array<Record<string, unknown>>
+    }
+      if (parsed.name) setName(String(parsed.name))
+      const nextKind: ChecklistKind = parsed.kind === 'review' ? 'review' : 'todo'
+      if (nextKind !== kind) {
+        setKind(nextKind)
+      }
+      const nextItems: DraftItem[] = []
+      for (const raw of parsed.items ?? []) {
+        const title = String(raw.title ?? '').trim()
+        if (!title) continue
+        if (nextKind === 'review') continue
+        nextItems.push({
+          ...emptyTodoItem(),
+          title,
+          is_required: Boolean(raw.required),
+          response_type: raw.response_type === 'single_choice' ? 'single_choice' : 'checkbox',
+        })
+      }
+      if (nextKind === 'todo' && nextItems.length) setItems(nextItems)
+      else if (nextKind === 'review') setItems([])
+      toast({ description: t('editor.ai_filled', 'Camps omplerts. Revisa i desa; no es publica sola.') })
   }
 
   async function handleSave(): Promise<boolean> {
@@ -525,6 +565,43 @@ function TemplateEditor({
           <label className="text-sm font-medium">{t('templates.name', 'Nom de la plantilla')}</label>
           <Input value={name} onChange={(e) => setName(e.target.value)} disabled={!isDraft} />
         </div>
+        {isDraft ? (
+          <div className="space-y-2 rounded-lg border border-dashed border-border p-3 sm:col-span-2">
+            <Textarea
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              rows={4}
+              className="resize-y"
+              placeholder={t('editor.ai_fill_placeholder', 'Descriu la checklist…')}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t(
+                'editor.ai_fill_example',
+                'Exemple: Checklist de visita elèctrica: tensió, diferencial, informe',
+              )}
+            </p>
+            <AIGenerateAction
+              feature="field.checklist_template"
+              messages={aiMessages}
+              responseFormat="json"
+              disabled={!aiPrompt.trim()}
+              label={t('editor.ai_fill', 'Omplir amb IA')}
+              onSuccess={(result) => {
+                try {
+                  hydrateFromAi(result.content)
+                } catch (err) {
+                  toast({
+                    variant: 'destructive',
+                    description:
+                      err instanceof Error
+                        ? err.message
+                        : t('editor.ai_fill_failed', "No s'ha pogut omplir amb IA"),
+                  })
+                }
+              }}
+            />
+          </div>
+        ) : null}
         <div className="space-y-1.5 sm:col-span-2">
           <label className="text-sm font-medium">{t('editor.description', 'Descripció')}</label>
           <Textarea
@@ -609,7 +686,7 @@ function TemplateEditor({
               {t('editor.default_response_set', 'Conjunt de respostes per defecte')}
             </label>
             <Link
-              to="/field/response-sets"
+              to={responseSetsPath}
               className="text-xs text-primary underline-offset-2 hover:underline"
             >
               {t('editor.manage_response_sets', 'Gestionar conjunts')}
@@ -958,6 +1035,7 @@ function TenantPreviewDialog({
 
 export function ChecklistTemplatesPage() {
   const { t } = useTranslation('field-service')
+  const { pageClassName } = useFieldAdminPaths()
   const { toast } = useToast()
   const { activeTenant } = useTenant()
   const queryClient = useQueryClient()
@@ -1074,12 +1152,10 @@ export function ChecklistTemplatesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 pb-24">
+    <div className={pageClassName}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <Link to="/field/more" className="text-sm text-muted-foreground hover:underline">
-            ← {t('more.title', 'Més')}
-          </Link>
+          <FieldAdminBackLink />
           <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold">
             <ListChecks className="h-6 w-6" />
             {t('templates.title', 'Plantilles de checklist')}

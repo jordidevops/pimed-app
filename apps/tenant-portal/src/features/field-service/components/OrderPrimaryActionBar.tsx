@@ -40,6 +40,10 @@ export function OrderPrimaryActionBar({
     ),
     review_close: t('field-service:detail.primary_review_close', 'Revisar i tancar'),
     show_delivery: t('field-service:detail.primary_show_delivery', 'Mostrar albarà'),
+    office_quote_handoff: t(
+      'field-service:detail.primary_office_quote',
+      'Preparar pressupost (oficina)',
+    ),
     collect: t('projects:projects.commercial.collect', 'Cobrar'),
     send_receipt: t('projects:projects.commercial.send_receipt', 'Enviar comprovant'),
     sync_pending: t(

@@ -119,7 +119,7 @@ function SidebarNavItemRow({
       onClick={onNavigate}
     >
       {item.showIcon ? <Icon className="h-5 w-5 shrink-0" /> : <span className="h-5 w-5 shrink-0" aria-hidden />}
-      <span>{item.label}</span>
+      <span className="min-w-0 truncate">{item.label}</span>
     </NavLink>
   )
 }

@@ -32,6 +32,7 @@ import { applyOverrides } from "../_shared/ai/providers.ts";
 import { errorResponse, jsonResponse } from "../_shared/ai/responses.ts";
 import { loadTenantAiRuntimeConfig } from "../_shared/ai/run.ts";
 import { sanitizeProviderError } from "../_shared/ai/sanitize.ts";
+import { AiConfigError, mapAiGenerationError, stripTenantIds } from "../_shared/ai/generationErrors.ts";
 import {
   AiGovernanceError,
   prepareAiExecution,
@@ -670,15 +671,23 @@ Deno.serve(async (req: Request) => {
       const mapped = toHttpGovernanceError(err);
       return errorResponse(mapped.status, mapped.code, mapped.message);
     }
+    if (err instanceof AiConfigError) {
+      return errorResponse(err.status, err.code, err.message);
+    }
+    const raw = err instanceof Error ? err.message : String(err);
+    const mapped = mapAiGenerationError(raw);
+    if (mapped) {
+      return errorResponse(mapped.status, mapped.code, mapped.message);
+    }
     captureException(err, {
       feature: "ai-chat-turn",
       tenantId: req.headers.get("x-tenant-id"),
     });
     log("error", "ai-chat-turn", "Unhandled chat turn error", {
       tenantId: req.headers.get("x-tenant-id"),
-      extra: { message: err instanceof Error ? err.message : String(err) },
+      extra: { message: raw },
     });
-    const message = sanitizeProviderError(err instanceof Error ? err.message : String(err));
+    const message = stripTenantIds(sanitizeProviderError(raw));
     return errorResponse(500, "chat_turn_failed", message);
   }
 });

@@ -68,7 +68,7 @@ export function AppIndexPage() {
                     return (
                       <li key={item.id} className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground">
                         <Icon className="h-5 w-5 shrink-0" />
-                        <span>{item.label}</span>
+                        <span className="min-w-0 truncate">{item.label}</span>
                         <span className="ml-auto text-xs">
                           {t('app_index.sidebar_only', 'Només al menú lateral')}
                         </span>
@@ -82,7 +82,7 @@ export function AppIndexPage() {
                         className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-200"
                       >
                         <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
-                        <span>{item.label}</span>
+                        <span className="min-w-0 truncate">{item.label}</span>
                       </Link>
                     </li>
                   )

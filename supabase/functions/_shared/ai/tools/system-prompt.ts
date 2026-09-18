@@ -4,9 +4,17 @@ import { getMessageTextContent } from "../content-parts.ts";
 
 export function buildToolsSystemAppendix(
   tools: ProviderToolSchema[],
-  options?: { hasImages?: boolean; entityContext?: Record<string, unknown> | null },
+  options?: {
+    hasImages?: boolean;
+    entityContext?: Record<string, unknown> | null;
+    projectLabel?: string;
+    priceSheetLabel?: string;
+  },
 ): string {
   if (tools.length === 0) return "";
+
+  const projectLabel = options?.projectLabel?.trim() || "ordre de servei";
+  const priceSheetLabel = options?.priceSheetLabel?.trim() || "Full de preus";
 
   const lines = [
     "EINES DISPONIBLES (function calling — obligatori quan correspongui):",
@@ -24,9 +32,9 @@ export function buildToolsSystemAppendix(
     "- Canviar un empleat → crida propose_update_employee (requereix confirmació de l'usuari)",
     "- Catàleg / PVP → crida query_catalog_items",
     "- Feines anteriors amb línies → crida query_past_jobs",
-    "- Full de preus d'una OS → crida query_project_price_sheet",
+    `- Consultar la secció «${priceSheetLabel}» d'un/a «${projectLabel}» → crida query_project_price_sheet`,
     "- Plantilles de checklist del tenant → crida query_checklist_templates",
-    "- Escriure un full de preus a l'OS → query_catalog_items (i opcionalment query_checklist_templates) → propose_price_sheet. MAI inventis UUIDs; si no hi ha projectId al context, pregunta o no aplicis.",
+    `- Escriure la secció «${priceSheetLabel}» a un/a «${projectLabel}» → query_catalog_items (i opcionalment query_checklist_templates) → propose_price_sheet. MAI inventis UUIDs; si no hi ha projectId al context, pregunta o no aplicis.`,
   ];
 
   if (options?.hasImages) {
@@ -52,7 +60,8 @@ export function buildToolsSystemAppendix(
     "7. Només quan no falti cap camp obligatori, crida open_document_generator amb el codi intern corresponent.",
     "8. L'usuari completa el formulari «Generar document»; el resultat apareixerà al xat amb enllaç al document.",
     "9. Per canvis simples (crear contacte, actualitzar empleat) usa propose_* + confirmació.",
-    "10. Per omplir el full de preus d'una OS: query_catalog_items → propose_price_sheet (mode append o replace). Si proposes checklist, ha de ser una plantilla del tenant (query_checklist_templates). L'Acceptar de l'usuari escriu project_lines; no emetis pressupost.",
+    `10. Per omplir la secció «${priceSheetLabel}» d'un/a «${projectLabel}»: query_catalog_items → propose_price_sheet (mode append o replace). Si proposes checklist, ha de ser una plantilla del tenant (query_checklist_templates). L'Acceptar de l'usuari escriu project_lines; no emetis pressupost.`,
+    "Els identificadors d'eina (query_project_price_sheet, propose_price_sheet) no canvien encara que la secció tingui un altre nom.",
   );
 
   const entity = options?.entityContext;
@@ -63,7 +72,7 @@ export function buildToolsSystemAppendix(
       lines.push(
         "",
         "CONTEXT DE L'ENTITAT ACTIVA:",
-        `- projectId (OS): ${projectId}`,
+        `- projectId (${projectLabel}): ${projectId}`,
         tab ? `- tab: ${tab}` : "",
         "- Usa aquest projectId a query_project_price_sheet i propose_price_sheet tret que l'usuari en demani un altre.",
       );

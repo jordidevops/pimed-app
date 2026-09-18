@@ -9,6 +9,8 @@ import { getToolByName, listProviderSchemas } from "./registry.ts";
 import type { AiProposalSummary } from "./proposals.ts";
 import { appendToolsToMessages, buildToolsSystemAppendix } from "./system-prompt.ts";
 import type { ToolExecutionContext, ToolResult } from "./types.ts";
+import { createAdminDataClient } from "../../supabase.ts";
+import { loadTenantTerminology } from "../../tenant-terminology.ts";
 
 const MAX_TOOL_ROUNDS = 8;
 const TOOL_TIMEOUT_MS = 5000;
@@ -200,11 +202,14 @@ export async function runToolLoop(params: {
     };
   }
 
+  const terms = await loadTenantTerminology(createAdminDataClient(), params.ctx.tenantId);
   appendToolsToMessages(
     messages,
     buildToolsSystemAppendix(tools, {
       hasImages: params.ctx.metadata?.hasAttachments === true,
       entityContext: (params.ctx.metadata?.entityContext as Record<string, unknown> | undefined) ?? null,
+      projectLabel: terms.project,
+      priceSheetLabel: terms.priceSheet,
     }),
   );
   const loopMessages = [...messages];

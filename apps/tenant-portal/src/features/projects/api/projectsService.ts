@@ -1,7 +1,10 @@
 import { supabase } from '@/lib/supabase'
 import type { Database, Json } from '@/types/database.types'
 
-export type Project = Database['api']['Views']['projects']['Row']
+export type Project = Database['api']['Views']['projects']['Row'] & {
+  commercial_regime?: string | null
+  service_mode?: string | null
+}
 export type ProjectUpdate = Database['api']['Views']['projects']['Update']
 
 /** Project row from list RPC — may include joined client/site fields. */
@@ -223,6 +226,28 @@ export async function setProjectVisitIntent(
   const { error } = await supabase.rpc('set_project_visit_intent', {
     p_id: projectId,
     p_intent: intent,
+  })
+  if (error) throw error
+}
+
+export async function setProjectCommercialRegime(
+  projectId: string,
+  regime: 'consumer' | 'contractual',
+): Promise<void> {
+  const { error } = await supabase.rpc('set_project_commercial_regime', {
+    p_id: projectId,
+    p_regime: regime,
+  })
+  if (error) throw error
+}
+
+export async function setProjectServiceMode(
+  projectId: string,
+  mode: 'execute' | 'assessment',
+): Promise<void> {
+  const { error } = await supabase.rpc('set_project_service_mode', {
+    p_id: projectId,
+    p_mode: mode,
   })
   if (error) throw error
 }

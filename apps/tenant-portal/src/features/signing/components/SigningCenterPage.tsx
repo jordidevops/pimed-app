@@ -13,6 +13,12 @@ import { DocumentsSubNav } from '@/features/documents/components/DocumentsSubNav
 import type { SigningStatus } from '../api/signingService'
 import { getSigningProvider } from '../api/signingService'
 import type { SigningSubmissionListItem, SubmissionsFilter } from '../api/useSigningSubmissions'
+import { useCommercialSigningHubBySubmissions } from '@/features/commercial/api/useCommercialSigningHub'
+import {
+  commercialQuoteViewHref,
+  commercialSigningHubTitle,
+  matchesSigningCenterSearch,
+} from '@/features/commercial/utils/commercialSigningHub'
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -75,17 +81,12 @@ export function SigningCenterPage() {
   const total    = result?.total ?? 0
   const pageSize = result?.pageSize ?? SUBMISSIONS_PAGE_SIZE
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const { data: commercialHub = {} } = useCommercialSigningHubBySubmissions(
+    rows.map((row) => row.id).filter((id): id is string => !!id),
+  )
 
   const filteredRows = search.trim()
-    ? rows.filter(r => {
-        const q = search.toLowerCase()
-        const signers = Array.isArray(r.signers) ? r.signers : []
-        const signerMatch = signers.some((s: unknown) => {
-          const signer = s as { email?: string; name?: string }
-          return (signer.email ?? '').toLowerCase().includes(q) || (signer.name ?? '').toLowerCase().includes(q)
-        })
-        return (r.id ?? '').toLowerCase().includes(q) || signerMatch
-      })
+    ? rows.filter(r => matchesSigningCenterSearch(r, search))
     : rows
 
   function toggleStatusFilter(s: SigningStatus) {
@@ -99,6 +100,20 @@ export function SigningCenterPage() {
       source_type: v ? (v as SubmissionsFilter['source_type']) : undefined,
     }))
     setPage(0)
+  }
+
+  function setProviderFilter(v: string) {
+    setFilters(prev => ({
+      ...prev,
+      signing_provider: v ? (v as SubmissionsFilter['signing_provider']) : undefined,
+    }))
+    setPage(0)
+  }
+
+  function commercialSourceLabel(docType: string): string {
+    if (docType === 'delivery_note') return t('center.sourceDeliveryNote', 'Albarà')
+    if (docType === 'quote_amendment') return t('center.sourceAmendment', 'Ampliació')
+    return t('center.sourceQuote', 'Pressupost')
   }
 
   return (
@@ -168,6 +183,17 @@ export function SigningCenterPage() {
             <option value="template_locale">{t('center.sourceTemplate', 'Plantilla')}</option>
           </select>
 
+          <select
+            title={t('center.filterProvider', 'Proveïdor')}
+            value={filters.signing_provider ?? ''}
+            onChange={e => setProviderFilter(e.target.value)}
+            className="h-8 text-sm border border-input rounded-md px-2 bg-background"
+          >
+            <option value="">{t('center.providerAll', 'Tots els proveïdors')}</option>
+            <option value="native">{t('center.providerNative', 'Firma pròpia')}</option>
+            <option value="docuseal">{t('center.providerDocuseal', 'DocuSeal')}</option>
+          </select>
+
           <input
             type="date"
             title={t('center.filterFrom', 'Des de')}
@@ -188,7 +214,7 @@ export function SigningCenterPage() {
             <Input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder={t('center.searchPlaceholder', 'Cercar per ID o signant...')}
+              placeholder={t('center.searchPlaceholder', 'Cercar per títol, ID o signant...')}
               className="pl-8 h-8 text-sm"
             />
           </div>
@@ -230,22 +256,36 @@ export function SigningCenterPage() {
                   </div>
                 </td>
                 <td className="px-4 py-3 hidden md:table-cell">
-                  {row.source_document_id && row.document_title ? (
-                    <Link
-                      to={`/documents/${row.source_document_id}`}
-                      onClick={e => e.stopPropagation()}
-                      className="text-xs text-indigo-600 hover:underline truncate block max-w-40"
-                    >
-                      {row.document_title}
-                    </Link>
-                  ) : (
-                    <span className="text-muted-foreground text-xs">—</span>
-                  )}
+                  {(() => {
+                    const hub = row.id ? commercialHub[row.id] : undefined
+                    const title = hub
+                      ? commercialSigningHubTitle(hub, commercialSourceLabel(hub.docType))
+                      : row.document_title
+                    const href = hub
+                      ? commercialQuoteViewHref(hub.commercialDocumentId)
+                      : (row.source_document_id ? `/documents/${row.source_document_id}` : null)
+                    if (href && title) {
+                      return (
+                        <Link
+                          to={href}
+                          onClick={e => e.stopPropagation()}
+                          className="text-xs text-indigo-600 hover:underline truncate block max-w-40"
+                        >
+                          {title}
+                        </Link>
+                      )
+                    }
+                    return <span className="text-muted-foreground text-xs">—</span>
+                  })()}
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
-                  {row.source_type === 'document_existing'
-                    ? t('center.sourceDocument', 'Document existent')
-                    : t('center.sourceTemplate', 'Plantilla')}
+                  {(() => {
+                    const hub = row.id ? commercialHub[row.id] : undefined
+                    if (hub) return commercialSourceLabel(hub.docType)
+                    return row.source_type === 'document_existing'
+                      ? t('center.sourceDocument', 'Document existent')
+                      : t('center.sourceTemplate', 'Plantilla')
+                  })()}
                 </td>
                 <td className="px-4 py-3">{signersSummary(row.signers)}</td>
                 <td className="px-4 py-3 text-muted-foreground tabular-nums">{formatDate(row.created_at)}</td>

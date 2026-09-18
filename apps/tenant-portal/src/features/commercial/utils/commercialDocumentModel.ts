@@ -5,6 +5,10 @@ export type CommercialPartySnapshot = {
   tax_id?: string | null
   email?: string | null
   phone?: string | null
+  address_line1?: string | null
+  address_line2?: string | null
+  city?: string | null
+  postal_code?: string | null
   is_consumer?: boolean | null
   preferred_locale?: string | null
   slug?: string | null
@@ -24,6 +28,7 @@ export type CommercialAddressSnapshot = {
 export type CommercialTaxBreakdownRow = {
   tax_rate?: number | string
   tax_amount?: number | string
+  tax_base?: number | string
 }
 
 export type CommercialDocumentLine = {
@@ -148,6 +153,7 @@ export const COMMERCIAL_LIFECYCLE_EVENT_TYPES = [
   'rejected',
   'cancelled',
   'superseded',
+  'signed',
 ] as const
 
 export function commercialFilename(

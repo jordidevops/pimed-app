@@ -10,8 +10,11 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/contexts/TenantContext'
+import { AIGenerateAction } from '@/features/ai/components/AIGenerateAction'
+import { matchCatalogItemId, matchNamedId, parseAiJsonContent } from '@/features/commercial/utils/aiJson'
 import { getCatalogItems } from '../api/catalogService'
 import { listPublishedTemplatesForTenant } from '@/features/field-service/api/checklistTemplatesService'
 import {
@@ -69,6 +72,7 @@ export function PricingTemplateForm({
   const [checklistIds, setChecklistIds] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [loadingItems, setLoadingItems] = useState(false)
+  const [aiPrompt, setAiPrompt] = useState('')
 
   const { data: catalogItems = [] } = useQuery({
     queryKey: ['catalog_items', activeTenant?.id],
@@ -88,6 +92,22 @@ export function PricingTemplateForm({
         String(a.name ?? '').localeCompare(String(b.name ?? ''), 'ca'),
       ),
     [catalogItems],
+  )
+
+  const aiMessages = useMemo(
+    () => [
+      {
+        role: 'user' as const,
+        content: `${aiPrompt.trim()}\n\nCatàleg:\n${catalogItems
+          .slice(0, 40)
+          .map((item) => `${item.name} [${item.id}]`)
+          .join('\n')}\n\nChecklists:\n${checklistTemplates
+          .slice(0, 20)
+          .map((tpl) => `${tpl.name} [${tpl.id}]`)
+          .join('\n')}`,
+      },
+    ],
+    [aiPrompt, catalogItems, checklistTemplates],
   )
 
   useEffect(() => {
@@ -219,6 +239,49 @@ export function PricingTemplateForm({
     }
   }
 
+  function hydrateFromAi(content: string) {
+    const parsed = parseAiJsonContent(content) as {
+      name?: string
+      description?: string
+      category?: string
+      lines?: Array<Record<string, unknown>>
+      checklist_names?: string[]
+    }
+    if (parsed.name) setName(String(parsed.name))
+    if (parsed.description) setDescription(String(parsed.description))
+    if (parsed.category) setCategory(String(parsed.category))
+    const nextItems: DraftItem[] = []
+    for (const raw of parsed.lines ?? []) {
+      const named = String(raw.name ?? '')
+      const id =
+        (typeof raw.catalog_item_id === 'string' &&
+        catalogItems.some((item) => item.id === raw.catalog_item_id)
+          ? raw.catalog_item_id
+          : matchCatalogItemId(named, catalogItems)) ?? ''
+      if (!id) continue
+      nextItems.push({
+        key: crypto.randomUUID(),
+        catalog_item_id: id,
+        default_quantity: Number(raw.quantity ?? 1) || 1,
+        prompt_quantity: false,
+        prompt_label: '',
+        default_discount_pct: 0,
+      })
+    }
+    if (nextItems.length) setItems(nextItems)
+    const names = Array.isArray(parsed.checklist_names) ? parsed.checklist_names : []
+    const nextChecks = names
+      .map((label) =>
+        matchNamedId(
+          label,
+          checklistTemplates.map((tpl) => ({ id: tpl.id, name: tpl.name })),
+        ),
+      )
+      .filter((id): id is string => !!id)
+    if (nextChecks.length) setChecklistIds(nextChecks)
+    toast({ title: t('catalog.packs.ai_filled', 'Camps omplerts. Revisa i desa.') })
+  }
+
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -237,6 +300,40 @@ export function PricingTemplateForm({
               'Un pack de línies del catàleg (p. ex. Visita estàndard) per aplicar-lo ràpidament a una OS. Pots vincular-hi checklists de visita.',
             )}
           </p>
+
+          <div className="rounded-lg border border-dashed border-border p-3 space-y-2">
+            <Textarea
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              rows={4}
+              className="resize-y"
+              placeholder={t('catalog.packs.ai_fill_placeholder', 'Descriu el servei habitual…')}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t(
+                'catalog.packs.ai_fill_example',
+                'Exemple: Visita estàndard 1h tècnic + checklist de tensió',
+              )}
+            </p>
+            <AIGenerateAction
+              feature="catalog.pricing_template"
+              messages={aiMessages}
+              responseFormat="json"
+              disabled={!aiPrompt.trim()}
+              label={t('catalog.packs.ai_fill', 'Omplir amb IA')}
+              onSuccess={(result) => {
+                try {
+                  hydrateFromAi(result.content)
+                } catch (err) {
+                  toast({
+                    variant: 'destructive',
+                    title: t('catalog.packs.ai_fill_failed', "No s'ha pogut omplir amb IA"),
+                    description: err instanceof Error ? err.message : undefined,
+                  })
+                }
+              }}
+            />
+          </div>
 
           <div>
             <label className="text-sm font-medium block mb-1.5">

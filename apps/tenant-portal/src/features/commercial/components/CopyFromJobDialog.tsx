@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
+import { usePriceSheetTitle } from '@/hooks/useSectorLabel'
 import {
   copyProjectLines,
   searchJobsForPricing,
   type PricingJobSearchRow,
 } from '../api/commercialFlowService'
-import { rpcErrorMessage } from '../utils/rpcError'
+import { priceSheetRpcErrorCopy, priceSheetRpcErrorTitle } from '../utils/rpcError'
 
 const moneyFmt = new Intl.NumberFormat('ca-ES', {
   style: 'currency',
@@ -34,6 +35,7 @@ export function CopyFromJobDialog({
 }: CopyFromJobDialogProps) {
   const { t } = useTranslation('projects')
   const { toast } = useToast()
+  const priceSheetTitle = usePriceSheetTitle()
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [completedOnly, setCompletedOnly] = useState(false)
@@ -114,10 +116,11 @@ export function CopyFromJobDialog({
       onCopied()
       onClose()
     } catch (err) {
+      const copy = priceSheetRpcErrorCopy(err, priceSheetTitle)
       toast({
         variant: 'destructive',
-        title: t('projects.lines.copy_failed', "No s'ha pogut copiar el full"),
-        description: rpcErrorMessage(err) || undefined,
+        title: priceSheetRpcErrorTitle(t, copy),
+        description: t(copy.descriptionKey, copy.descriptionFallback),
       })
     } finally {
       setSubmitting(false)
@@ -191,6 +194,9 @@ export function CopyFromJobDialog({
                   {job.same_client
                     ? ` · ${t('projects.lines.copy_same_client', 'Mateix client')}`
                     : ''}
+                  {job.service_mode === 'assessment'
+                    ? ` · ${t('projects.lines.copy_assessment', 'Avaluació')}`
+                    : ''}
                 </p>
               </button>
             ))
@@ -209,6 +215,7 @@ export function CopyFromJobDialog({
               <input
                 type="radio"
                 name="copy-mode"
+                value="append"
                 checked={mode === 'append'}
                 onChange={() => setMode('append')}
               />
@@ -218,6 +225,7 @@ export function CopyFromJobDialog({
               <input
                 type="radio"
                 name="copy-mode"
+                value="replace"
                 checked={mode === 'replace'}
                 onChange={() => setMode('replace')}
               />

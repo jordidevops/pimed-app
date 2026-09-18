@@ -1,7 +1,7 @@
 # 01 — Contracte de variables i contingut legal
 
 > **Pla:** [`README.md`](./README.md) · **Llegir primer:** [`00-agent-instructions-and-guardrails.md`](./00-agent-instructions-and-guardrails.md)
-> **Estat QT-0:** **congelat 2026-09-17.** El contracte de §1 i la llista de tokens de §2.1 no es reobren sense documentar-ho a [`README.md`](./README.md) § Decisions tancades. QT-1 implementa `validate_commercial_template_locale` **tal com està escrit aquí**, sense afegir tokens.
+> **Estat QT-0:** **congelat 2026-09-17.** Reobertura puntual 2026-09-18: `totals.tax_breakdown[].tax_base` entra a §1 (no a §2.1). El contracte de tokens de validació segueix congelat.
 > **Avís:** el contingut de clàusules d'aquest document **no és assessorament jurídic**. Ha de revisar-se per comunitat autònoma i sector abans d'activar-se en producció, tal com ja adverteix [`commercial-flow/01-legal-requirements.md`](../commercial-flow/01-legal-requirements.md).
 > **Signatura:** els blocs d'acceptació/refús i de conformitat ja no són text pla — usen la sintaxi real de camps de signatura del motor DMS existent (`<signature-field>` / `{{...;type=signature;role=...}}`). Veure [`07-signing-integration.md`](./07-signing-integration.md) per al disseny complet.
 
@@ -48,7 +48,7 @@ lines: [
 
 totals: {
   subtotal,
-  tax_breakdown: [ { tax_rate, tax_amount } ],
+  tax_breakdown: [ { tax_rate, tax_amount, tax_base } ],
   total
 }
 
@@ -59,7 +59,7 @@ Tots els imports i línies venen de camps ja calculats i congelats a `commercial
 
 `kind` a cada línia és opcional per a l'autor (permet agrupar mà d'obra / peces / despeses). **No** forma part de la validació legal de §2.1.
 
-`tax_breakdown[].tax_base` **no existeix** al snapshot (`jsonb_build_object('tax_rate', …, 'tax_amount', …)` a `20261160000001`). No s'exposa; no es deriva.
+`tax_breakdown[].tax_base` s'exposa des del 2026-09-18 (reobertura de §1, **no** de §2.1): es desa a l'emissió com a suma dels `line_net` per tipus. Documents vells sense `tax_base` el deriven al render des de `commercial_document_lines.line_subtotal` congelat. Prohibit `tax_amount / (rate/100)`. Identitat de l'emissor (NIF/adreça) **no** es deriva al render.
 
 ### 1.1 Sintaxi HTML (LiquidJS)
 
@@ -72,7 +72,7 @@ Pressupost núm. {{ document.doc_number }} — {{ document.issued_at }}
 
 Subtotal: {{ totals.subtotal }}
 {% for tax in totals.tax_breakdown %}
-  IVA {{ tax.tax_rate }}%: {{ tax.tax_amount }}
+  IVA {{ tax.tax_rate }}% ({{ tax.tax_base }}): {{ tax.tax_amount }}
 {% endfor %}
 Total: {{ totals.total }}
 
@@ -90,7 +90,7 @@ Total: {{ totals.total }}
 
 Subtotal: [[totals.subtotal]]
 [[#totals.tax_breakdown]]
-  IVA [[tax_rate]]%: [[tax_amount]]
+  IVA [[tax_rate]]% [[tax_base]]: [[tax_amount]]
 [[/totals.tax_breakdown]]
 Total: [[totals.total]]
 ```
@@ -107,14 +107,14 @@ Total: [[totals.total]]
 | `tenant.name` | `tenants.name` (ja el carrega `loadTenantName`) | |
 | `tenant.logo_url` | `loadLogoUrl` ja existent (snapshot o `email_configs.logo_url`) | |
 | `tenant.address`, `tenant.phone`, `tenant.email` | Mateix `SELECT` de `tenants` que ja fa `context-builder.ts` (`address, phone, email, website`) | Ampliar `loadTenantName` a aquestes columnes. Si una columna no hi és en runtime, `null` |
-| `tenant.tax_id` | `seller_snapshot.tax_id` si existeix; si no, `null` | `data.tenants` **no** té columna `tax_id`. QT-1/QT-2 **no** n'afegeixen |
+| `tenant.tax_id` | `seller_snapshot.tax_id` (NIF de `tenant_legal_profiles.nif` a l'emissió) | `data.tenants` **no** té columna `tax_id` |
 | `document.doc_type` … `terms_text` | Columnes de `commercial_documents` | Ja les llegeix `render-commercial-document` |
 | `document.issued_at_display` / `valid_until_display` / `created_at_display` | Derivats de les columnes ISO + `default_date_format`/`default_time_format` | Addendum 2026-09-17. `valid_until` només data; els altres data+hora. ISO es queda |
 | `document.is_amendment` | `doc_type === 'quote_amendment'` | Booleà derivat, no un extra de BD |
 | `document.parent_doc_number` | `commercial_documents.doc_number` del `parent_document_id` (mateix `tenant_id`) | **Una** consulta extra permesa a QT-2; si no hi ha parent, `null` |
-| `seller.display_name` | Mateixa regla que `partyDisplayName`: `display_name` \|\| `legal_name` \|\| `name` | El snapshot d'emissor avui és `{ tenant_id, name, slug, settings }` |
-| `seller.tax_id`, `email`, `phone` | Camps homònims del snapshot si hi són | Avui solen ser absents a l'emissor |
-| `seller.address_line1` … `postal_code` | Camps homònims del snapshot si hi són | Avui absents; `null`. No parsejar `tenant.address` |
+| `seller.display_name` | `display_name` \|\| `legal_name` \|\| `name` (`legal_name`\|\|`trade_name`\|\|`tenants.name` a l'emissió) | Identitat legal congelada |
+| `seller.tax_id`, `email`, `phone` | Snapshot | `tax_id` = NIF del perfil legal; email/phone no es copien de `privacy_email` |
+| `seller.address_line1` … `postal_code` | `address_line1` = `postal_address` sencer; `city`/`postal_code` null | No parsejar |
 | `buyer.display_name` | `partyDisplayName(buyer_snapshot)` | Snapshot avui: `id, kind, display_name, legal_name, tax_id, email, phone, is_consumer, preferred_locale` |
 | `buyer.tax_id`, `email`, `phone` | Snapshot | |
 | `buyer.address_*` / `city` / `postal_code` | Snapshot si hi són; si no, `null` | Avui el comprador **no** porta adreça; l'adreça de servei és `service_address` |
@@ -127,11 +127,11 @@ Total: [[totals.total]]
 | `service_address.country` | `country_code` | |
 | `lines[]` | `commercial_document_lines` ja carregades | `kind` = `catalog_item_kind` de la línia |
 | `totals.subtotal` / `total` | Columnes del document | |
-| `totals.tax_breakdown[]` | `tax_breakdown` jsonb `{ tax_rate, tax_amount }` | Sense `tax_base` |
+| `totals.tax_breakdown[]` | `{ tax_rate, tax_amount, tax_base }` a l'emissió | Docs vells: `tax_base` derivat de `line_subtotal`. Prohibit `tax_amount/(rate/100)` |
 | `legal.retention_days` | Constant `180` | Sis mesos, text de [`commercial-flow/01-legal-requirements.md`](../commercial-flow/01-legal-requirements.md). No és una columna |
 | `legal.jurisdiction_text` | Constant buida `""` | El text viu a la plantilla (clàusula §3), no al context |
 
-**Prohibit a QT-2:** noves consultes més enllà de (a) el que `render-commercial-document` ja fa, (b) ampliar el `SELECT` de `tenants` com `context-builder`, (c) l'únic lookup de `parent_doc_number`. No s'enriqueix `seller_snapshot` / `buyer_snapshot` en aquest pla (això seria `commercial-flow`).
+**Prohibit a QT-2 (històric):** noves consultes extra. L'enriquiment de `seller_snapshot` / `tax_base` és a `api.issue_commercial_document` (commercial-flow, 2026-09-18), no al render. Identitat legal buida a `tenant_legal_profiles` = pressupost sense NIF/adreça.
 
 Camps de snapshot no exposats al contracte (`slug`, `settings`, `is_consumer`, `preferred_locale`, `id` de comprador, `line_subtotal`, `line_tax`, …) **no** s'afegeixen. Si calen més endavant, es documenta com a reobertura.
 
@@ -247,3 +247,17 @@ Estructura recomanada, de dalt a baix. El text de clàusules **no** forma part d
 ## 5. Traducció es
 
 Totes dues plantilles (pressupost i albarà) es sembren també en castellà amb la mateixa estructura i camps, traduint únicament el text fix (etiquetes, condicions, avisos). Els noms de camps del context (`document.doc_number`, etc.) i els `role` de signatura **no** es tradueixen.
+
+## 6. Via jurídica (no és un epic d'enginyeria)
+
+El text de clàusules de QT-3 **no és assessorament jurídic** i no està validat per un advocat. `validate_commercial_template_locale` només cerca marcadors §2.1, no la redacció.
+
+**Paquet per a l'advocat (ja existeix):**
+
+- Marc: [`commercial-flow/01-legal-requirements.md`](../commercial-flow/01-legal-requirements.md)
+- Esborranys: aquest document §2–§5
+- Text enviat: `COPY` / `QUOTE_EXTRA` a `apps/tenant-portal/src/features/commercial/templates/platformCommercialHtml.ts` i el germà a `scripts/generate-commercial-docx-seed.mjs`
+
+**Quan torni el text:** editar aquestes dues fonts (ca i es, cada arquetip + albarà), regenerar seeds, i una **migració UPDATE nova** de locales de plataforma. No reescriure `20261164000001` / `20261168000001` sols. Tokens §2.1 i `role=` intactes. Això no reobre QT-3.
+
+Identitat legal buida a Configuració → Legal = pressupost sense NIF/adreça. No hi ha banner nou a l'emissió.

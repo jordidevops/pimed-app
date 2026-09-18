@@ -5,6 +5,7 @@ import { Liquid } from 'liquidjs'
 import { describe, expect, it } from 'vitest'
 import { buildCommercialDocumentHtml } from './buildCommercialDocumentHtml'
 import { shouldUseFullBodyHtml } from './commercialDocumentContext'
+import { injectIssuedHtmlSignatureMarkers } from './commercialHtmlSignatureMarkers'
 import type { CommercialDocumentDetail, CommercialDocumentLine } from './commercialDocumentModel'
 import {
   buildPlatformQuoteHtml,
@@ -15,32 +16,6 @@ const SIGNING_FIELD_MAP = resolve(
   dirname(fileURLToPath(import.meta.url)),
   '../../../../../../supabase/functions/_shared/signing-field-map.ts',
 )
-
-/**
- * Mirrors injectHtmlSignatureMarkers in signing-field-map.ts (HTML branch only).
- * QT-5 smoke avoids Deno/Gotenberg; the source-file assertion below binds the token format.
- */
-function injectHtmlSignatureMarkers(html: string): {
-  html: string
-  roles: string[]
-} {
-  const roles: string[] = []
-  const tagRe = /<signature-field\b([^>]*)\s*\/?>(?:<\/signature-field>)?/gi
-  const newHtml = html.replace(tagRe, (_match, attrs: string) => {
-    const role = attrs.match(/role=["']([^"']+)["']/i)?.[1]?.trim() ?? 'signer'
-    if (!roles.includes(role)) roles.push(role)
-    return (
-      `<div class="sig-slot" data-sig-role="${role}" ` +
-      `style="display:block;width:180px;height:60px;` +
-      `border:1px dashed #999;position:relative;box-sizing:border-box;margin:10px 0;">` +
-      `<span style="position:absolute;left:6px;top:6px;font-size:10pt;color:#555;">${role}</span>` +
-      `<span style="position:absolute;left:6px;bottom:6px;font-size:9pt;color:#888;font-family:monospace;">` +
-      `[FIRMA:${role}]</span>` +
-      `</div>`
-    )
-  })
-  return { html: newHtml, roles }
-}
 
 function line(): CommercialDocumentLine {
   return {
@@ -118,14 +93,14 @@ describe('QT-5 render smoke', () => {
     expect(rendered).toContain('role="client_reject"')
     expect(rendered).not.toContain('[FIRMA:')
 
-    const marked = injectHtmlSignatureMarkers(rendered)
-    expect(marked.roles).toEqual(['client_accept', 'client_reject'])
-    expect(marked.html).toContain('[FIRMA:client_accept]')
-    expect(marked.html).toContain('[FIRMA:client_reject]')
-    expect(marked.html).toContain('class="sig-slot"')
-    expect(marked.html).toContain('data-sig-role="client_accept"')
-    expect(marked.html).not.toContain('<signature-field')
-    expect(marked.html).not.toMatch(/stamp|signature[_-]image|data:image\/png/i)
+    const marked = injectIssuedHtmlSignatureMarkers(rendered)
+    expect(marked).toContain('[FIRMA:client_accept]')
+    expect(marked).toContain('[FIRMA:client_reject]')
+    expect(marked).toContain('class="sig-slot"')
+    expect(marked).toContain('data-sig-role="client_accept"')
+    expect(marked).toContain('width:220px;height:70px;')
+    expect(marked).not.toContain('<signature-field')
+    expect(marked).not.toMatch(/stamp|signature[_-]image|data:image\/png/i)
     expect(rendered).toContain('17/09/2026 12:00')
     expect(rendered).not.toMatch(/T10:00:00|\+00:00/)
   })

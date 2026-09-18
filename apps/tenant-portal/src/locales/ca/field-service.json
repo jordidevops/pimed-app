@@ -114,6 +114,8 @@
     "phase_do_open": "En curs",
     "phase_deliver_pending": "Pendent de cobrar",
     "phase_deliver_paid": "Cobrat",
+    "phase_deliver_quoted": "Pressupost fet",
+    "phase_deliver_await_quote": "Pendent pressupost",
     "phase_deliver_issued": "Albarà emès",
     "phase_deliver_empty": "Pendent",
     "primary_show_quote": "Mostrar pressupost",
@@ -123,6 +125,9 @@
     "punch_start_hint": "Prem per iniciar el fitxatge i capturar la ubicació.",
     "primary_review_close": "Revisar i tancar",
     "primary_show_delivery": "Mostrar albarà",
+    "primary_office_quote": "Preparar pressupost (oficina)",
+    "assessment_handoff_title": "Visita d’avaluació",
+    "assessment_handoff_help": "Afegeix o revisa el full de preus i emet el pressupost des d’oficina. No cal albarà fins que hi hagi pressupost acceptat.",
     "primary_sync_pending": "Pendent de sincronitzar",
     "primary_review_sync_error": "Revisar error de sincronització",
     "primary_need_lines": "Afegeix línies al full de preus abans de continuar.",
@@ -461,6 +466,19 @@
     "generic": "Genèrica",
     "save_failed": "No s'ha pogut desar la intenció"
   },
+  "regime": {
+    "consumer": "Consumidor",
+    "contractual": "Contractual",
+    "save_failed": "No s'ha pogut desar el règim comercial"
+  },
+  "service_mode": {
+    "label": "Tipus de visita",
+    "execute": "Execució",
+    "assessment": "Avaluació",
+    "help": "Avaluació: visita per valorar i fer pressupost des d’oficina (sense pack de preus per defecte).",
+    "save_failed": "No s'ha pogut desar el tipus de visita",
+    "save_failed_create_help": "L’ordre s’ha creat com a execució. Canvia el tipus a la capçalera de l’ordre."
+  },
   "materials": {
     "title": "Materials",
     "hint": "Omple el formulari i prem Afegir per desar-lo a l'ordre.",
@@ -775,6 +793,11 @@
     "in_report": "Incloure al part del client",
     "evidence_required": "Requereix foto",
     "tab_edit": "Editar",
+    "ai_fill": "Omplir amb IA",
+    "ai_fill_placeholder": "Descriu la checklist…",
+    "ai_fill_example": "Exemple: Checklist de visita elèctrica: tensió, diferencial, informe",
+    "ai_filled": "Camps omplerts. Revisa i desa; no es publica sola.",
+    "ai_fill_failed": "No s'ha pogut omplir amb IA",
     "tab_preview": "Vista prèvia",
     "preview_hint": "Pots provar respostes i notes aquí: no es desen enlloc.",
     "preview_ephemeral": "Sense desar",

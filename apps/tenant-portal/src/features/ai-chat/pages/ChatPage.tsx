@@ -46,6 +46,7 @@ import { formatBytes } from '@/features/storage/utils/fileUtils'
 import { loadChatSession, loadConsumedGenerators, markConsumedGenerator, saveChatSession } from '@/features/ai-chat/utils/chatSessionState'
 import type { DocumentResultUiBlock } from '@/features/ai-chat/schemas/chartBlock'
 import { useStorageUsage } from '@/features/storage/api/useStorageUsage'
+import { resolveQuoteComposerChatContext } from '@/features/commercial/utils/quoteComposerChatContext'
 
 export function ChatPage() {
   const location = useLocation()
@@ -85,6 +86,10 @@ export function ChatPage() {
   const activeConversationIdRef = useRef<string | null>(null)
 
   const canManageSharedPresets = activeRole === 'owner' || activeRole === 'manager'
+  const chatEntityContext = useMemo(
+    () => resolveQuoteComposerChatContext({ state: location.state, search: location.search }),
+    [location.state, location.search],
+  )
 
   const sendingRef = useRef(false)
   const streamDisplayRef = useRef(createStreamDisplay((text) => setStreamingContent(text)))
@@ -257,6 +262,7 @@ export function ChatPage() {
       presetId: input.presetId,
       regenerate: input.regenerate,
       siteId: activeSite?.id ?? null,
+      entityContext: chatEntityContext,
       stream: true,
       streamHandlers: {
         onMeta: ({ conversationId, regenerated }) => {

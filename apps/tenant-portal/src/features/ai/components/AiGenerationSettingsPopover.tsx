@@ -49,7 +49,7 @@ export function AiGenerationSettingsPopover({
     isLoading,
   } = useAiGenerationConfig(tenantId)
 
-  const { data: access } = useQuery({
+  const { data: access, isPending: accessPending } = useQuery({
     queryKey: aiUserAccessQueryKey(tenantId!),
     enabled: !!tenantId,
     queryFn: () => fetchAiUserAccess(tenantId!),
@@ -66,7 +66,7 @@ export function AiGenerationSettingsPopover({
     return `${providerLabel} · ${modelLabel}`
   }, [effectiveProvider, effectiveModel, t])
 
-  const notConfigured = !access?.configured
+  const notConfigured = !accessPending && !access?.configured
   const availableModels = providerStatus?.available_models ?? []
   const suggestedModels = providerStatus?.suggested_models ?? []
 

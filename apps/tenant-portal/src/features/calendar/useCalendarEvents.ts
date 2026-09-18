@@ -8,6 +8,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useTenant } from '../../contexts/TenantContext'
+import { useSectorLabel } from '@/hooks/useSectorLabel'
 import { CalendarRegistry } from './CalendarRegistry'
 import type { AddonStatus, CalendarEventRow, CalendarResolvedEvent } from './calendar.types'
 
@@ -25,8 +26,8 @@ export function useCalendarEvents({
   rangeEnd,
   siteId,
 }: UseCalendarEventsOptions) {
-  const { selectedTenantId, activeTenant } = useTenant()
-  const projectSectorLabel = activeTenant?.sector_labels?.project
+  const { selectedTenantId } = useTenant()
+  const projectSectorLabel = useSectorLabel('project', '')
   const normalizedSiteId = typeof siteId === 'string' && siteId.trim().length > 0 ? siteId : null
   const normalizedRangeStart = rangeStart <= rangeEnd ? rangeStart : rangeEnd
   const normalizedRangeEnd = rangeStart <= rangeEnd ? rangeEnd : rangeStart

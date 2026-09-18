@@ -11,11 +11,26 @@ import { useDocumentTemplates } from '@/features/signing/api/useDocumentTemplate
 import {
   COMMERCIAL_DELIVERY_NOTE_TEMPLATE_ID_KEY,
   COMMERCIAL_QUOTE_TEMPLATE_ID_KEY,
+  commercialFullBodyTemplateSettingValue,
   commercialSettingsPatchWithFullBodyTemplates,
   commercialSettingsPatchWithThreshold,
   parseCommercialSettingId,
   parseDeviationApprovalThresholdEur,
 } from '@/features/commercial/utils/deviationApprovalThreshold'
+import {
+  type CommercialRegime,
+  type PolicyEnforcement,
+  type RegimePolicy,
+  commercialSettingsPatchWithRegimes,
+  parseCommercialRegimes,
+} from '@/features/commercial/utils/commercialRegimePolicy'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const NONE = ''
 
@@ -68,8 +83,8 @@ export function CommercialDocumentTemplatesSection() {
     try {
       await mutation.mutateAsync(
         commercialSettingsPatchWithFullBodyTemplates(effective?.commercial, {
-          quote_template_id: quoteId || null,
-          delivery_note_template_id: deliveryId || null,
+          quote_template_id: commercialFullBodyTemplateSettingValue(quoteId),
+          delivery_note_template_id: commercialFullBodyTemplateSettingValue(deliveryId),
         }),
       )
       toast({ description: t('templates.commercial_saved', 'Plantilles comercials desades') })
@@ -101,7 +116,7 @@ export function CommercialDocumentTemplatesSection() {
         <p className="text-xs text-muted-foreground">
           {t(
             'templates.commercial_none_help',
-            '«Cap» deixa el selector sense preferència explícita: s’usa la plantilla pròpia més antiga d’aquesta categoria, o el format per defecte si no n’hi ha cap. Clona una plantilla de sistema a Documents → Plantilles abans de triar-la aquí.',
+            '«Cap» força el format per defecte (no editable), encara que hi hagi plantilles pròpies. Si no deseu cap preferència, s’usa la plantilla pròpia més antiga d’aquesta categoria. Clona una plantilla de sistema a Documents → Plantilles abans de triar-la aquí.',
           )}
         </p>
       </div>
@@ -227,6 +242,142 @@ export function CommercialDeviationThresholdSection() {
           )}
         </span>
       </label>
+    </section>
+  )
+}
+
+const ENFORCEMENT_OPTIONS: PolicyEnforcement[] = ['off', 'warn', 'block']
+
+function RegimePolicySelect({
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string
+  value: PolicyEnforcement
+  disabled?: boolean
+  onChange: (next: PolicyEnforcement) => void
+}) {
+  const { t } = useTranslation('settings')
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-sm font-medium">{label}</span>
+      <Select
+        value={value}
+        disabled={disabled}
+        onValueChange={(next) => onChange(next as PolicyEnforcement)}
+      >
+        <SelectTrigger className="h-10">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {ENFORCEMENT_OPTIONS.map((opt) => (
+            <SelectItem key={opt} value={opt}>
+              {t(`templates.regime_enforcement.${opt}`, opt)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </label>
+  )
+}
+
+export function CommercialRegimesSection() {
+  const { t } = useTranslation('settings')
+  const { activeTenant, activeRole } = useTenant()
+  const tenantId = activeTenant?.id ?? ''
+  const canManage = activeRole === 'owner' || activeRole === 'manager'
+  const { data: effective } = useEffectiveSettings(
+    { tenantId },
+    { enabled: !!tenantId },
+  )
+  const mutation = useTenantSettingsMutation()
+  const saved = parseCommercialRegimes(effective)
+  const [draft, setDraft] = useState<Record<CommercialRegime, RegimePolicy> | null>(null)
+  const regimes = draft ?? saved
+
+  if (!canManage) return null
+
+  function patchRegime(
+    regime: CommercialRegime,
+    key: keyof RegimePolicy,
+    value: PolicyEnforcement,
+  ) {
+    const next = {
+      ...regimes,
+      [regime]: { ...regimes[regime], [key]: value },
+    }
+    setDraft(next)
+    void mutation
+      .mutateAsync(commercialSettingsPatchWithRegimes(effective?.commercial, next))
+      .then(() => setDraft(null))
+      .catch(() => setDraft(null))
+  }
+
+  return (
+    <section className="rounded-2xl border bg-card p-6 space-y-5">
+      <div className="space-y-1">
+        <h3 className="text-base font-semibold">
+          {t('templates.regimes_title', 'Política per règim comercial')}
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          {t(
+            'templates.regimes_help',
+            'Cada ordre de servei és consumidor o contractual. Aquestes regles s’apliquen al flux de camp; la visita d’avaluació sempre queda exempta de bloquejos d’autorització.',
+          )}
+        </p>
+      </div>
+
+      {(['consumer', 'contractual'] as const).map((regime) => (
+        <div key={regime} className="space-y-3 rounded-xl border border-border/60 p-4">
+          <div>
+            <p className="text-sm font-semibold">
+              {regime === 'consumer'
+                ? t('templates.regime_consumer', 'Consumidor')
+                : t('templates.regime_contractual', 'Contractual')}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {regime === 'consumer'
+                ? t(
+                    'templates.regime_consumer_help',
+                    'Aplica la normativa de consum (particulars).',
+                  )
+                : t(
+                    'templates.regime_contractual_help',
+                    'Llibertat de pacte / empresa.',
+                  )}
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <RegimePolicySelect
+              label={t(
+                'templates.regime_require_auth',
+                'Autorització abans de treballar',
+              )}
+              value={regimes[regime].require_auth_before_work}
+              disabled={mutation.isPending}
+              onChange={(next) =>
+                patchRegime(regime, 'require_auth_before_work', next)
+              }
+            />
+            <RegimePolicySelect
+              label={t('templates.regime_overage_close', 'Sobrecost al tancar visita')}
+              value={regimes[regime].overage_on_close}
+              disabled={mutation.isPending}
+              onChange={(next) => patchRegime(regime, 'overage_on_close', next)}
+            />
+            <RegimePolicySelect
+              label={t('templates.regime_overage_delivery', 'Sobrecost a l’albarà')}
+              value={regimes[regime].overage_on_delivery}
+              disabled={mutation.isPending}
+              onChange={(next) =>
+                patchRegime(regime, 'overage_on_delivery', next)
+              }
+            />
+          </div>
+        </div>
+      ))}
     </section>
   )
 }

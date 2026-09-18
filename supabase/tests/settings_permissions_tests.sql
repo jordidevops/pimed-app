@@ -16,7 +16,7 @@
 --   T12 get_tenant_role_permissions accessible per membre site-only
 --   T13 update_tenant_role_permissions és owner-only
 --   T14 update_tenant_role_permissions valida claus de permís
---   T15 get_role_permissions('member') NO inclou commercial.pricing.edit per defecte
+--   T15 get_role_permissions('member') inclou commercial.pricing.edit per defecte
 --   T16 owner pot desar personalització de member amb commercial.pricing.edit
 --   T17 get_role_permissions('member', custom) retorna commercial.pricing.edit
 -- =============================================================================
@@ -549,7 +549,7 @@ BEGIN
 END $$;
 
 -- -----------------------------------------------------------------------------
--- T15: member per defecte NO té commercial.pricing.edit; manager sí
+-- T15: member per defecte TÉ commercial.pricing.edit; manager també
 -- -----------------------------------------------------------------------------
 DO $$
 DECLARE
@@ -559,17 +559,17 @@ BEGIN
   v_member_perms  := data.get_role_permissions('member', NULL);
   v_manager_perms := data.get_role_permissions('manager', NULL);
 
-  IF NOT ('commercial.pricing.edit' = ANY (v_member_perms))
+  IF ('commercial.pricing.edit' = ANY (v_member_perms))
      AND ('commercial.pricing.edit' = ANY (v_manager_perms))
   THEN
     INSERT INTO test_results VALUES (
-      'T15 member default excludes commercial.pricing.edit',
+      'T15 member default includes commercial.pricing.edit',
       'PASS',
-      'member without; manager with'
+      'member and manager with'
     );
   ELSE
     INSERT INTO test_results VALUES (
-      'T15 member default excludes commercial.pricing.edit',
+      'T15 member default includes commercial.pricing.edit',
       'FAIL',
       format(
         'member has=%s manager has=%s',

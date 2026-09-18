@@ -60,6 +60,17 @@ export async function setContactPreferredLocale(
   if (error) throw error
 }
 
+export async function setContactIsConsumer(
+  contactId: string,
+  isConsumer: boolean,
+): Promise<void> {
+  const { error } = await supabase.rpc('set_contact_is_consumer', {
+    p_contact_id: contactId,
+    p_is_consumer: isConsumer,
+  })
+  if (error) throw error
+}
+
 export async function getContactSites(contactId: string): Promise<ContactSite[]> {
   const { data, error } = await supabase
     .from('contact_sites')

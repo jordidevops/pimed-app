@@ -4,14 +4,13 @@ import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useToast } from '@/hooks/use-toast'
 import { usePermission } from '@/hooks/usePermission'
 import {
-  acceptCommercialDocument,
   type CommercialDocument,
 } from '@/features/commercial/api/commercialFlowService'
 import { ProjectCommercialPanel } from '@/features/commercial/components/ProjectCommercialPanel'
 import { CommercialDocumentStatusBadges } from '@/features/commercial/components/CommercialDocumentStatusBadge'
+import { CommercialNativeSignDialog } from '@/features/commercial/components/CommercialNativeSignDialog'
 import { ProjectBulletinPanel } from './ProjectBulletinPanel'
 
 interface DeliverPhaseViewProps {
@@ -26,6 +25,7 @@ interface DeliverPhaseViewProps {
   complete: boolean
   latestDeliveryId: string | null
   pendingAmendment: CommercialDocument | null
+  serviceMode?: 'execute' | 'assessment' | null
   forceViewDocId?: string | null
   forceCollectDocId?: string | null
   forceReceiptPaymentId?: string | null
@@ -92,6 +92,7 @@ export function DeliverPhaseView({
   complete,
   latestDeliveryId,
   pendingAmendment,
+  serviceMode = null,
   forceViewDocId,
   forceCollectDocId,
   forceReceiptPaymentId,
@@ -102,34 +103,12 @@ export function DeliverPhaseView({
   onForceReceiptHandled,
 }: DeliverPhaseViewProps) {
   const { t } = useTranslation(['field-service', 'projects'])
-  const { toast } = useToast()
   const queryClient = useQueryClient()
   const canApproveAmendment = usePermission('commercial.pricing.edit')
-  const [acceptBusy, setAcceptBusy] = useState(false)
+  const [signAmendmentId, setSignAmendmentId] = useState<string | null>(null)
   const [activeView, setActiveView] = useState<'commercial' | 'report'>(
     openReportByDefault ? 'report' : 'commercial',
   )
-
-  async function handleAcceptAmendment(documentId: string) {
-    setAcceptBusy(true)
-    try {
-      await acceptCommercialDocument({ documentId })
-      await queryClient.invalidateQueries({ queryKey: ['commercial_documents', projectId] })
-      await queryClient.invalidateQueries({ queryKey: ['projects'] })
-      await queryClient.invalidateQueries({ queryKey: ['project', projectId] })
-      toast({
-        title: t('projects:projects.commercial.accepted', 'Acceptat'),
-      })
-    } catch (err) {
-      toast({
-        variant: 'destructive',
-        title: t('projects:projects.commercial.error', 'Error comercial'),
-        description: err instanceof Error ? err.message : undefined,
-      })
-    } finally {
-      setAcceptBusy(false)
-    }
-  }
 
   return (
     <div className="space-y-4">
@@ -178,8 +157,7 @@ export function DeliverPhaseView({
                 <Button
                   type="button"
                   size="sm"
-                  disabled={acceptBusy}
-                  onClick={() => void handleAcceptAmendment(pendingAmendment.id)}
+                  onClick={() => setSignAmendmentId(pendingAmendment.id)}
                 >
                   {t(
                     'field-service:deliver.review_accept',
@@ -255,11 +233,25 @@ export function DeliverPhaseView({
         <>
           <PhaseBlock
             icon={<ReceiptText className="h-5 w-5" />}
-            title={t('field-service:deliver.delivery_title', 'Albarà i cobrament')}
-            help={t(
-              'field-service:deliver.delivery_help',
-              'Consulta l’albarà, registra el cobrament i entrega el comprovant.',
-            )}
+            title={
+              serviceMode === 'assessment'
+                ? t(
+                    'field-service:deliver.assessment_title',
+                    'Pressupost després de l’avaluació',
+                  )
+                : t('field-service:deliver.delivery_title', 'Albarà i cobrament')
+            }
+            help={
+              serviceMode === 'assessment'
+                ? t(
+                    'field-service:deliver.assessment_help',
+                    'Aquesta visita és d’avaluació: prepara el pressupost a Preparar. L’albarà només aplica quan hi ha pressupost acceptat.',
+                  )
+                : t(
+                    'field-service:deliver.delivery_help',
+                    'Consulta l’albarà, registra el cobrament i entrega el comprovant.',
+                  )
+            }
           >
             <ProjectCommercialPanel
               projectId={projectId}
@@ -267,6 +259,7 @@ export function DeliverPhaseView({
               section="deliver"
               embedded
               showHeader={false}
+              serviceMode={serviceMode}
               forceViewDocId={forceViewDocId}
               forceCollectDocId={forceCollectDocId}
               forceReceiptPaymentId={forceReceiptPaymentId}
@@ -312,6 +305,19 @@ export function DeliverPhaseView({
           )}
         </>
       )}
+      {signAmendmentId ? (
+        <CommercialNativeSignDialog
+          documentId={signAmendmentId}
+          action="accept"
+          open
+          onClose={() => setSignAmendmentId(null)}
+          onCompleted={() => {
+            void queryClient.invalidateQueries({ queryKey: ['commercial_documents', projectId] })
+            void queryClient.invalidateQueries({ queryKey: ['projects'] })
+            void queryClient.invalidateQueries({ queryKey: ['project', projectId] })
+          }}
+        />
+      ) : null}
     </div>
   )
 }

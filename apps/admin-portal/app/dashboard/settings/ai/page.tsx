@@ -1,13 +1,15 @@
-import { getAiModelCapabilitiesAdmin, getPlatformAiDefaults } from '@/app/admin/actions/ai-settings'
+import { getAiModelCapabilitiesAdmin, getPlatformAiDefaults, getPlatformAiFeaturePrompts } from '@/app/admin/actions/ai-settings'
 import { AdminAiSettings } from '@/components/dashboard/settings/AdminAiSettings'
 import { AdminAiModelCapabilities } from '@/components/dashboard/settings/AdminAiModelCapabilities'
+import { AdminAiFeaturePrompts } from '@/components/dashboard/settings/AdminAiFeaturePrompts'
 import { getT } from '@/lib/i18n/server'
 
 export default async function AiSettingsPage() {
   const t = getT('settings')
-  const [defaults, capabilities] = await Promise.all([
+  const [defaults, capabilities, featurePrompts] = await Promise.all([
     getPlatformAiDefaults(),
     getAiModelCapabilitiesAdmin({ includeDeprecated: true }),
+    getPlatformAiFeaturePrompts(),
   ])
 
   return (
@@ -24,6 +26,7 @@ export default async function AiSettingsPage() {
         </p>
       </div>
 
+      <AdminAiFeaturePrompts prompts={featurePrompts} />
       <AdminAiSettings defaults={defaults} />
       <AdminAiModelCapabilities rows={capabilities} />
     </div>

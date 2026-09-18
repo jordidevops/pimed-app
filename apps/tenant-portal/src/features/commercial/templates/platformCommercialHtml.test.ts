@@ -46,7 +46,7 @@ describe('QT-3 platform commercial HTML', () => {
         expect(rendered).toContain('202.62')
         expect(rendered).toContain('21%')
         expect(rendered).toContain('10%')
-        expect(rendered).toContain('Visita tècnica')
+        expect(rendered).toContain('Visita tècnica') // catàleg sample; overlay de vocabulari no el toca
         expect(rendered).toContain('role="client_accept"')
         expect(rendered).toContain('role="client_reject"')
         if (archetype === 'field_service') {

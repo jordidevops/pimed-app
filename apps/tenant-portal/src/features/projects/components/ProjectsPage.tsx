@@ -89,7 +89,10 @@ export function ProjectsPage({ fieldServiceMode = false }: ProjectsPageProps) {
   const { data: departments = [] } = useDepartments()
   const isFieldService = useIsFieldService() || fieldServiceMode
   const projectLabel = useSectorLabel('project', t('projects.list.title', 'Projectes'))
-  const projectLabelPlural = isFieldService ? t('field-service:orders.title', 'Ordres de servei') : projectLabel
+  const projectLabelPlural = useSectorLabel(
+    'project_plural',
+    isFieldService ? t('field-service:orders.title', 'Ordres de servei') : projectLabel,
+  )
 
   const { openLogInOtherProject } = useWorkLog(null)
   const activePunchProjectId = isFieldService

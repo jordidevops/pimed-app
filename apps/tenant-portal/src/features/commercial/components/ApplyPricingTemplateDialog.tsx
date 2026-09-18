@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { usePermission } from '@/hooks/usePermission'
+import { usePriceSheetTitle } from '@/hooks/useSectorLabel'
 import {
   DISCOUNT_CHIPS,
   formatQuantityChip,
@@ -20,7 +21,8 @@ import {
 } from '../api/commercialFlowService'
 import {
   isCommercialPricingPermissionDenied,
-  rpcErrorMessage,
+  priceSheetRpcErrorCopy,
+  priceSheetRpcErrorTitle,
 } from '../utils/rpcError'
 
 interface ApplyPricingTemplateDialogProps {
@@ -43,6 +45,7 @@ export function ApplyPricingTemplateDialog({
   const queryClient = useQueryClient()
   const { activeTenant } = useTenant()
   const canEditPricing = usePermission('commercial.pricing.edit')
+  const priceSheetTitle = usePriceSheetTitle()
   const [templateId, setTemplateId] = useState(initialTemplateId ?? '')
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [discountPct, setDiscountPct] = useState(0)
@@ -121,15 +124,21 @@ export function ApplyPricingTemplateDialog({
       onApplied()
       onClose()
     } catch (err) {
+      const copy = priceSheetRpcErrorCopy(err, priceSheetTitle)
       toast({
         variant: 'destructive',
-        title: t('projects.lines.template_apply_failed', "No s'ha pogut aplicar el servei"),
+        title: isCommercialPricingPermissionDenied(err)
+          ? t(
+              'projects.lines.errors.pricing_denied_title',
+              'No es pot canviar el preu',
+            )
+          : priceSheetRpcErrorTitle(t, copy),
         description: isCommercialPricingPermissionDenied(err)
           ? t(
               'projects.lines.template_apply_pricing_denied',
               'Només l’oficina pot aplicar un descompte. Deixa’l a 0 % o demana permís comercial.',
             )
-          : rpcErrorMessage(err) || undefined,
+          : t(copy.descriptionKey, copy.descriptionFallback),
       })
     } finally {
       setSubmitting(false)

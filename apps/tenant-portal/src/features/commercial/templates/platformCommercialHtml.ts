@@ -4,6 +4,7 @@
  *
  * Clauses are a starting point for tenants to clone, not legal advice.
  */
+import { COMMERCIAL_SIGNATURE_BOX_STYLE } from '../../signing/utils/commercialSignatureFields'
 
 export type CommercialTemplateLocale = 'ca' | 'es'
 
@@ -212,7 +213,7 @@ function linesTable(locale: CommercialTemplateLocale, withPrices: boolean): stri
 <table class="totals">
   <tr><td>${t.subtotal}</td><td class="num">{{ totals.subtotal }} {{ document.currency }}</td></tr>
   {% for tax in totals.tax_breakdown %}
-  <tr><td>${t.vat} {{ tax.tax_rate }}%</td><td class="num">{{ tax.tax_amount }} {{ document.currency }}</td></tr>
+  <tr><td>${t.vat} {{ tax.tax_rate }}%{% if tax.tax_base %} ({{ tax.tax_base }}){% endif %}</td><td class="num">{{ tax.tax_amount }} {{ document.currency }}</td></tr>
   {% endfor %}
   <tr><td><strong>${t.total}</strong></td><td class="num"><strong>{{ totals.total }} {{ document.currency }}</strong></td></tr>
 </table>
@@ -259,11 +260,11 @@ export function buildPlatformQuoteHtml(
 <div class="sigs">
   <div>
     <div>${t.acceptLabel}</div>
-    <signature-field name="Accepto" role="client_accept" style="width:220px;height:70px;display:inline-block;"></signature-field>
+    <signature-field name="Accepto" role="client_accept" style="${COMMERCIAL_SIGNATURE_BOX_STYLE}"></signature-field>
   </div>
   <div>
     <div>${t.rejectLabel}</div>
-    <signature-field name="Refuso" role="client_reject" style="width:220px;height:70px;display:inline-block;"></signature-field>
+    <signature-field name="Refuso" role="client_reject" style="${COMMERCIAL_SIGNATURE_BOX_STYLE}"></signature-field>
   </div>
 </div>
 <h2>${t.privacy}</h2>
@@ -285,7 +286,7 @@ export function buildPlatformDeliveryNoteHtml(locale: CommercialTemplateLocale):
     `{% endif %}` +
     `<h2>${t.deliveryConformity}</h2>
 <p class="note">${t.deliveryConformityHint}</p>
-<signature-field name="Conformitat" role="client_delivery" style="width:220px;height:70px;display:inline-block;"></signature-field>
+<signature-field name="Conformitat" role="client_delivery" style="${COMMERCIAL_SIGNATURE_BOX_STYLE}"></signature-field>
 <div class="foot">${t.notInvoice}<br/>${t.generated} {{ tenant.name }}.</div>` +
     SHELL_END
   )
@@ -391,8 +392,8 @@ export const PLATFORM_QUOTE_SAMPLE_VALUES = {
   totals: {
     subtotal: 168,
     tax_breakdown: [
-      { tax_rate: 21, tax_amount: 34.02 },
-      { tax_rate: 10, tax_amount: 0.6 },
+      { tax_rate: 21, tax_amount: 34.02, tax_base: 162 },
+      { tax_rate: 10, tax_amount: 0.6, tax_base: 6 },
     ],
     total: 202.62,
   },

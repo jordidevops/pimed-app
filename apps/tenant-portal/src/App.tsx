@@ -272,6 +272,10 @@ export default function App() {
             <Route path="attendance-control" element={<AttendanceControlPage />} />
             <Route path="attendance-stations" element={<AttendanceStationsPage />} />
             <Route path="templates" element={<SettingsTemplatesPage />} />
+            <Route path="field" element={<Navigate to="/settings/field/checklist-templates" replace />} />
+            <Route path="field/checklist-templates" element={<ChecklistTemplatesPage />} />
+            <Route path="field/checklist-points" element={<ChecklistPointsPage />} />
+            <Route path="field/response-sets" element={<ChecklistResponseSetsPage />} />
             <Route path="signing" element={<SigningPage />} />
             <Route path="ai" element={<AiPage />} />
             <Route path="maps" element={<MapsSettingsPage />} />

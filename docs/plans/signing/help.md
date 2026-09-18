@@ -38,6 +38,8 @@ Comprova: `signing_provider=native`, sessions, events, `completed`, hashes via R
 - **Config:** Admin → PDF → «Mode d'evidències» (`detached` per defecte: PDF net + auditoria separada).
 - **Plantilla:** «Test de firmes» (`…000015`) amb `<signature-field role="worker|manager">`.
 - **Flux:** `sign_native` injecta marques `[[SIG:role]]` → Gotenberg → `signing_field_map` a sessions → `stamp-pdf-signatures` overlay a coordenades.
+- **Pressupost/albarà:** camí `document_existing` sobre el PDF ja renderitzat. L'estampat detecta `[FIRMA:role]` en viu. Si el PDF té `[FIRMA:` i el rol del signant no es resol → `signature_field_not_found` (no peu). Sense token (fallback QT-D1) → peu. Gate 2026-09-18: `detectFieldForRole(client_accept)` sobre HTML comercial via Gotenberg local `:3007`.
+- **`audit_trail_storage_path`:** l'omple el job Edge `process-audit-pdf-queue`; no es verifica amb un `DO $$`. Comprovar a mà o via job local.
 - Després de canvis a Edge Functions: `supabase functions serve` (o reiniciar el servei local).
 
 # Fase 3 — Centre de signatures (integritat)

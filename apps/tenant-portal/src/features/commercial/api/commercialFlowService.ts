@@ -222,6 +222,8 @@ export type PricingJobSearchRow = {
   line_count: number
   subtotal: number
   same_client: boolean
+  service_mode?: string | null
+  commercial_regime?: string | null
 }
 
 export type PriceSheetSkippedLine = {
@@ -387,12 +389,12 @@ export async function reissueCommercialQuote(params: {
 
 export async function acceptCommercialDocument(params: {
   documentId: string
-  signature?: Record<string, unknown> | null
+  signature: Record<string, unknown>
   clientOpId?: string
 }): Promise<unknown> {
   const { data, error } = await supabase.rpc('accept_commercial_document' as never, {
     p_document_id: params.documentId,
-    p_signature: params.signature ?? { method: 'staff_ui' },
+    p_signature: params.signature,
     p_client_op_id: params.clientOpId ?? generateClientOpId(),
   } as never)
   if (error) throw error
@@ -401,16 +403,52 @@ export async function acceptCommercialDocument(params: {
 
 export async function rejectCommercialDocument(params: {
   documentId: string
+  signature: Record<string, unknown>
   reason?: string | null
   clientOpId?: string
 }): Promise<unknown> {
   const { data, error } = await supabase.rpc('reject_commercial_document' as never, {
     p_document_id: params.documentId,
-    p_signature: { method: 'staff_ui', reason: params.reason ?? null },
+    p_signature: {
+      ...params.signature,
+      ...(params.reason != null ? { reason: params.reason } : {}),
+    },
     p_client_op_id: params.clientOpId ?? generateClientOpId(),
   } as never)
   if (error) throw error
   return data
+}
+
+export async function signCommercialDeliveryNote(params: {
+  documentId: string
+  signature: Record<string, unknown>
+  clientOpId?: string
+}): Promise<unknown> {
+  const { data, error } = await supabase.rpc('sign_commercial_delivery_note' as never, {
+    p_document_id: params.documentId,
+    p_signature: params.signature,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  return data
+}
+
+export async function registerCommercialSigningIntent(params: {
+  documentId: string
+  sessionId: string
+  action: 'accept' | 'reject' | 'delivery'
+  clientOpId: string
+  submissionId?: string | null
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('register_commercial_signing_intent' as never, {
+    p_document_id: params.documentId,
+    p_session_id: params.sessionId,
+    p_action: params.action,
+    p_client_op_id: params.clientOpId,
+    p_submission_id: params.submissionId ?? null,
+  } as never)
+  if (error) throw error
+  return data as string
 }
 
 export async function cancelCommercialDocument(params: {
@@ -813,6 +851,53 @@ export async function getCommercialFullBodyLocale(params: {
     template_type: row.template_type,
     html_content: typeof row.html_content === 'string' ? row.html_content : null,
     storage_path: typeof row.storage_path === 'string' ? row.storage_path : null,
+  }
+}
+
+export async function getCommercialIssuedPreviewContext(params: {
+  tenantId: string
+  parentDocumentId?: string | null
+}): Promise<{
+  tenant: {
+    name: string | null
+    address: string | null
+    phone: string | null
+    email: string | null
+  }
+  parentDocNumber: string | null
+}> {
+  const tenantQuery = supabase
+    .from('tenants')
+    .select('name')
+    .eq('id', params.tenantId)
+    .maybeSingle()
+  const parentQuery = params.parentDocumentId
+    ? supabase
+        .from('commercial_documents' as never)
+        .select('doc_number')
+        .eq('id', params.parentDocumentId)
+        .eq('tenant_id', params.tenantId)
+        .maybeSingle()
+    : Promise.resolve({ data: null as { doc_number?: string | null } | null, error: null })
+
+  const [{ data: tenant, error: tenantError }, parentResult] = await Promise.all([
+    tenantQuery,
+    parentQuery,
+  ])
+  if (tenantError) throw tenantError
+  if (parentResult.error) throw parentResult.error
+  const parentRow = parentResult.data as { doc_number?: string | null } | null
+  return {
+    tenant: {
+      name: typeof tenant?.name === 'string' && tenant.name.trim() ? tenant.name.trim() : null,
+      address: null,
+      phone: null,
+      email: null,
+    },
+    parentDocNumber:
+      typeof parentRow?.doc_number === 'string' && parentRow.doc_number.trim()
+        ? parentRow.doc_number.trim()
+        : null,
   }
 }
 

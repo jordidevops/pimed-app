@@ -1997,7 +1997,11 @@ Deno.serve(async (req: Request) => {
           p_metadata:                {
             native_signing:   true,
             signing_type:     signingType,
-            signature_roles:  signatureRoles,
+            signature_roles:  signatureRoles.length > 0
+              ? signatureRoles
+              : fallbackSigners
+                .map((s) => s.role)
+                .filter((role): role is string => Boolean(role)),
             fallback_signers: fallbackSigners,
             field_metas:      signatureFieldMetas,
           },
@@ -2053,9 +2057,14 @@ Deno.serve(async (req: Request) => {
 
       // Mapa de camps de signatura (overlay stamp-pdf-signatures)
       if (pdfBytesForFieldMap) {
+        const persistRoles = signatureRoles.length > 0
+          ? signatureRoles
+          : sessionsToCreate
+            .map((s) => s.role?.trim())
+            .filter((role): role is string => Boolean(role));
         await resolveAndPersistFieldMap(adminClient, {
           pdfBytes:       pdfBytesForFieldMap,
-          roles:          signatureRoles,
+          roles:          persistRoles,
           signers:        sessionsToCreate.map((s, i) => ({
             role:  s.role,
             order: s.order ?? i,

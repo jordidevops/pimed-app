@@ -30,10 +30,10 @@ import {
 } from "../_shared/native-signing-staging.ts";
 import {
   type SigningFieldArea,
-  fieldsForSigner,
-  detectFieldForRole,
   parseNativeEvidenceMode,
   markerTokenForRole,
+  resolveStampOverlayFields,
+  SIGNATURE_FIELD_NOT_FOUND,
 } from "../_shared/signing-field-map.ts";
 import { PDFDocument, rgb, StandardFonts } from "npm:pdf-lib@1.17.1";
 import { initObservability, captureException } from "../_shared/observability/system-error-tracker.ts";
@@ -471,22 +471,23 @@ Deno.serve(async (req: Request) => {
 
     const fieldMap = session.signing_field_map as SigningFieldArea[] | null;
     const signerRole = session.signer_role as string | null;
-    let signerFields = fieldsForSigner(
-      fieldMap,
-      signerRole,
-      signerOrder,
-      pdfDoc.getPageCount(),
-      [],
-    );
-
-    if (doOverlay && signerRole) {
-      const liveField = await detectFieldForRole(origBytes, signerRole);
-      if (liveField) {
-        signerFields = [liveField];
-      }
-    }
+    let signerFields: SigningFieldArea[] = [];
 
     if (doOverlay) {
+      const overlay = await resolveStampOverlayFields({
+        pdfBytes: origBytes,
+        signerRole,
+        signerOrder,
+        pageCount: pdfDoc.getPageCount(),
+        fieldMap,
+      });
+      if (overlay.error === SIGNATURE_FIELD_NOT_FOUND) {
+        return new Response(JSON.stringify({ error: SIGNATURE_FIELD_NOT_FOUND }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      signerFields = overlay.fields;
       await overlaySignatureFields(pdfDoc, signerFields, clientSigBytes, signerRole);
     }
 

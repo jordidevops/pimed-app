@@ -24,6 +24,8 @@ export function parseDeviationApprovalThresholdEur(
 
 export const COMMERCIAL_QUOTE_TEMPLATE_ID_KEY = 'quote_template_id' as const
 export const COMMERCIAL_DELIVERY_NOTE_TEMPLATE_ID_KEY = 'delivery_note_template_id' as const
+/** Settings «Cap»: explicit QT-D1 fallback even when own clones exist. */
+export const COMMERCIAL_FULL_BODY_TEMPLATE_NONE = 'none' as const
 
 function commercialSettingsBase(existingCommercial: unknown): Record<string, unknown> {
   return existingCommercial &&
@@ -59,7 +61,13 @@ export function parseCommercialSettingId(
   }
   if (typeof raw !== 'string') return null
   const trimmed = raw.trim()
-  return trimmed || null
+  if (!trimmed || trimmed.toLowerCase() === COMMERCIAL_FULL_BODY_TEMPLATE_NONE) return null
+  return trimmed
+}
+
+export function commercialFullBodyTemplateSettingValue(id: string | null | undefined): string {
+  const trimmed = (id ?? '').trim()
+  return trimmed || COMMERCIAL_FULL_BODY_TEMPLATE_NONE
 }
 
 export function commercialSettingsPatchWithThreshold(

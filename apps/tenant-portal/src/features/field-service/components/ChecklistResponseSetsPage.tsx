@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
-import { ArrowLeft, Copy, ListChecks, Plus } from 'lucide-react'
+import { Copy, ListChecks, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +15,8 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/contexts/TenantContext'
+import { FieldAdminBackLink } from './FieldAdminBackLink'
+import { useFieldAdminPaths } from '../utils/fieldAdminPaths'
 import {
   clonePlatformResponseSet,
   createTenantResponseSet,
@@ -119,6 +120,7 @@ function formFromSet(set: TenantResponseSetDetail): FormState {
 
 export function ChecklistResponseSetsPage() {
   const { t } = useTranslation('field-service')
+  const { pageClassName } = useFieldAdminPaths('space-y-6')
   const { toast } = useToast()
   const { activeTenant } = useTenant()
   const queryClient = useQueryClient()
@@ -247,16 +249,10 @@ export function ChecklistResponseSetsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 pb-24">
+    <div className={pageClassName}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link
-            to="/field/more"
-            className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t('more.title', 'Més')}
-          </Link>
+          <FieldAdminBackLink />
           <h1 className="flex items-center gap-2 text-2xl font-bold">
             <ListChecks className="h-6 w-6" />
             {t('response_sets.title', 'Conjunts de respostes')}

@@ -194,6 +194,25 @@ function extractFragments(
   return frags;
 }
 
+function isWs(ch: string): boolean {
+  return /\s/.test(ch);
+}
+
+function boxFromFragmentChar(
+  frag: TextFrag,
+  charIdx: number,
+  pageNum: number,
+  pageW: number,
+  pageH: number,
+  boxW: number,
+  boxH: number,
+): SigningFieldArea {
+  const charW = frag.w / Math.max(frag.str.length, 1);
+  const tokenX = frag.x + charIdx * charW;
+  const box = normalizedBox(tokenX, frag.y, pageW, pageH, boxW, boxH);
+  return { role: "", page: pageNum, ...box };
+}
+
 function findTokenInFragments(
   frags: TextFrag[],
   token: string,
@@ -205,24 +224,67 @@ function findTokenInFragments(
 ): SigningFieldArea | null {
   const full = frags.map((f) => f.str).join("");
   const idx = full.indexOf(token);
-  if (idx < 0) return null;
-
-  let charCount = 0;
-  for (const f of frags) {
-    const end = charCount + f.str.length;
-    if (idx < end) {
-      const relIdx = idx - charCount;
-      const charW = f.w / Math.max(f.str.length, 1);
-      const tokenX = f.x + relIdx * charW;
-      const box = normalizedBox(tokenX, f.y, pageW, pageH, boxW, boxH);
-      return { role: "", page: pageNum, ...box };
+  if (idx >= 0) {
+    let charCount = 0;
+    for (const f of frags) {
+      const end = charCount + f.str.length;
+      if (idx < end) {
+        return boxFromFragmentChar(
+          f,
+          idx - charCount,
+          pageNum,
+          pageW,
+          pageH,
+          boxW,
+          boxH,
+        );
+      }
+      charCount = end;
     }
-    charCount = end;
   }
-  return null;
+
+  const compactToken = token.replace(/\s+/g, "");
+  if (!compactToken) return null;
+  let compact = "";
+  const map: Array<{ frag: TextFrag; charIdx: number }> = [];
+  for (const f of frags) {
+    for (let i = 0; i < f.str.length; i++) {
+      if (isWs(f.str[i]!)) continue;
+      compact += f.str[i];
+      map.push({ frag: f, charIdx: i });
+    }
+  }
+  const cidx = compact.indexOf(compactToken);
+  if (cidx < 0) return null;
+  const pos = map[cidx];
+  if (!pos) return null;
+  return boxFromFragmentChar(pos.frag, pos.charIdx, pageNum, pageW, pageH, boxW, boxH);
 }
 
-/** Localitza tokens SIGWORKER / SIGMANAGER al PDF. */
+function pageTextCompact(frags: TextFrag[]): string {
+  return frags.map((f) => f.str).join("").replace(/\s+/g, "");
+}
+
+async function loadPdfDocument(pdfBytes: Uint8Array): Promise<{
+  numPages: number;
+  getPage: (n: number) => Promise<{
+    getViewport: (opts: { scale: number }) => { width: number; height: number };
+    getTextContent: () => Promise<{ items: unknown[] }>;
+  }>;
+  destroy?: () => Promise<void>;
+}> {
+  const pdfjs = await import("npm:pdfjs-dist/legacy/build/pdf.mjs");
+  const copy = pdfBytes.slice();
+  return await pdfjs.getDocument({
+    data: copy,
+    useSystemFonts: true,
+    disableFontFace: true,
+  }).promise;
+}
+
+async function closePdfDocument(doc: { destroy?: () => Promise<void> }): Promise<void> {
+  if (typeof doc.destroy === "function") await doc.destroy();
+}
 export async function detectFieldMapFromPdf(
   pdfBytes: Uint8Array,
   roles: string[],
@@ -231,13 +293,7 @@ export async function detectFieldMapFromPdf(
   if (roles.length === 0) return [];
 
   try {
-    const pdfjs = await import("npm:pdfjs-dist/legacy/build/pdf.mjs");
-    const doc = await pdfjs.getDocument({
-      data: pdfBytes,
-      useSystemFonts: true,
-      disableFontFace: true,
-      isEvalSupported: false,
-    }).promise;
+    const doc = await loadPdfDocument(pdfBytes);
 
     const found: SigningFieldArea[] = [];
 
@@ -278,7 +334,7 @@ export async function detectFieldMapFromPdf(
       }
     }
 
-    await doc.destroy();
+    await closePdfDocument(doc);
     return found;
   } catch (err) {
     log("warn", FEATURE, "detectFieldMapFromPdf failed", {
@@ -297,6 +353,64 @@ export async function detectFieldForRole(
   const map = await detectFieldMapFromPdf(pdfBytes, [role], { fieldHints });
   if (map[0]) return map[0];
   return null;
+}
+
+/** True if the PDF text layer contains a `[FIRMA:` marker (whitespace ignored). */
+export async function pdfHasFirmaToken(pdfBytes: Uint8Array): Promise<boolean> {
+  try {
+    const doc = await loadPdfDocument(pdfBytes);
+    for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
+      const page = await doc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 1 });
+      const textContent = await page.getTextContent();
+      const frags = extractFragments(
+        textContent.items as Array<Record<string, unknown>>,
+        viewport,
+      );
+      if (pageTextCompact(frags).includes("[FIRMA:")) {
+        await closePdfDocument(doc);
+        return true;
+      }
+    }
+    await closePdfDocument(doc);
+    return false;
+  } catch (err) {
+    log("warn", FEATURE, "pdfHasFirmaToken failed", {
+      extra: { error: (err as Error).message },
+    });
+    return false;
+  }
+}
+
+export const SIGNATURE_FIELD_NOT_FOUND = "signature_field_not_found";
+
+export async function resolveStampOverlayFields(opts: {
+  pdfBytes: Uint8Array;
+  signerRole: string | null;
+  signerOrder: number;
+  pageCount: number;
+  fieldMap?: SigningFieldArea[] | null;
+  fieldHints?: SigningFieldMeta[];
+}): Promise<{ fields: SigningFieldArea[]; error?: string }> {
+  const live = opts.signerRole
+    ? await detectFieldForRole(opts.pdfBytes, opts.signerRole, opts.fieldHints)
+    : null;
+  if (live) return { fields: [live] };
+
+  if (opts.signerRole && await pdfHasFirmaToken(opts.pdfBytes)) {
+    return { fields: [], error: SIGNATURE_FIELD_NOT_FOUND };
+  }
+
+  return {
+    fields: fieldsForSigner(
+      opts.fieldMap,
+      opts.signerRole,
+      opts.signerOrder,
+      opts.pageCount,
+      [],
+      opts.fieldHints,
+    ),
+  };
 }
 
 export function buildLayoutFieldMap(

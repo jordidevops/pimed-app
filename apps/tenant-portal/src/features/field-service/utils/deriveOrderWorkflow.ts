@@ -13,6 +13,7 @@ export type OrderPrimaryAction =
   | 'resume_work'
   | 'review_close'
   | 'show_delivery'
+  | 'office_quote_handoff'
   | 'collect'
   | 'send_receipt'
   | 'sync_pending'
@@ -115,8 +116,28 @@ export function deriveOrderWorkflow(input: {
   hasOpenWorkLog: boolean
   receiptHandled?: boolean
   nowMs?: number
+  /** assessment = visita d’avaluació (pressupost a oficina) */
+  serviceMode?: 'execute' | 'assessment' | null
+  /**
+   * Auth-before-work policy:
+   * - block: Prepare must be authorized; Do blocked until then
+   * - warn: work allowed, Prepare not green until quote/waiver; anomaly if advanced
+   * - off: Prepare considered done without quote (contractual default)
+   * Omitted defaults to block (legacy).
+   */
+  authBeforeWork?: 'off' | 'warn' | 'block'
 }): OrderWorkflow {
   const nowMs = input.nowMs ?? Date.now()
+  const isAssessment = input.serviceMode === 'assessment'
+  const authBeforeWork: 'off' | 'warn' | 'block' = isAssessment
+    ? 'off'
+    : input.authBeforeWork === 'off' ||
+        input.authBeforeWork === 'warn' ||
+        input.authBeforeWork === 'block'
+      ? input.authBeforeWork
+      : 'block'
+  const mustBlockWithoutAuth = authBeforeWork === 'block'
+  const warnWithoutAuth = authBeforeWork === 'warn'
   const localCloseState = input.localCloseState ?? 'none'
   const visitClosedUi =
     input.visitClosed ||
@@ -186,7 +207,6 @@ export function deriveOrderWorkflow(input: {
             ? 'paused'
             : 'not_started'
 
-  const authorized = input.hasWaiver || !!acceptedQuote
   const workflowAdvanced =
     hasRecordedWork ||
     visitClosedUi ||
@@ -194,29 +214,38 @@ export function deriveOrderWorkflow(input: {
     !!latestDelivery ||
     input.payments.length > 0
 
+  const prepareAuthorized = isAssessment || input.hasWaiver || !!acceptedQuote
+  // Soft policies: allow Do/start without formal auth. Warn does NOT mark Prepare done.
+  const canAdvanceWithoutAuth = authBeforeWork === 'off' || authBeforeWork === 'warn'
+  const flowAuthorized = prepareAuthorized || canAdvanceWithoutAuth
+  // Prepare step green only with formal auth, or contractual "off".
+  const prepareDone =
+    prepareAuthorized || authBeforeWork === 'off' || isAssessment
+
   let authorizationState: AuthorizationState
-  if (authorized) authorizationState = 'authorized'
-  else if (workflowAdvanced) {
-    authorizationState = 'inconsistent'
-  } else if (activeQuote) authorizationState = 'pending'
+  if (prepareAuthorized) authorizationState = 'authorized'
+  else if (workflowAdvanced && mustBlockWithoutAuth) authorizationState = 'inconsistent'
+  else if (activeQuote) authorizationState = 'pending'
   else if (latestQuoteStatus === 'rejected') authorizationState = 'rejected'
   else if (latestQuoteStatus === 'expired') authorizationState = 'expired'
   else authorizationState = 'missing'
 
   let deliveryState: DeliveryState
-  if (fullyPaid) deliveryState = 'paid'
+  if (isAssessment && !latestDelivery) {
+    deliveryState = 'not_started'
+  } else if (fullyPaid) deliveryState = 'paid'
   else if (paymentPending) deliveryState = 'payment_pending'
   else if (input.visitClosed && !latestDelivery) deliveryState = 'delivery_pending'
   else deliveryState = 'not_started'
 
-  // Real progress determines the suggested phase. Missing historical data can
-  // warn, but never sends delivered work backwards.
   const suggestedTab: OrderPhaseTab =
-    visitClosedUi || input.reportPublished || !!latestDelivery
+    isAssessment && visitClosedUi
       ? 'deliver'
-      : hasRecordedWork || authorized
-        ? 'do'
-        : 'prepare'
+      : visitClosedUi || input.reportPublished || !!latestDelivery
+        ? 'deliver'
+        : hasRecordedWork || flowAuthorized
+          ? 'do'
+          : 'prepare'
 
   let primaryAction: OrderPrimaryAction
   if (operationalState === 'cancelled') {
@@ -225,6 +254,8 @@ export function deriveOrderWorkflow(input: {
     primaryAction = 'sync_pending'
   } else if (localCloseState === 'action_required' && !input.visitClosed) {
     primaryAction = 'review_sync_error'
+  } else if (isAssessment && (input.visitClosed || localCloseState === 'synced')) {
+    primaryAction = acceptedQuote ? 'show_quote' : 'office_quote_handoff'
   } else if (latestDelivery) {
     if (paymentPending) primaryAction = 'collect'
     else if (fullyPaid && latestPayment && !input.receiptHandled) {
@@ -232,14 +263,14 @@ export function deriveOrderWorkflow(input: {
     } else primaryAction = 'done'
   } else if (input.visitClosed || localCloseState === 'synced') {
     if (activeQuote) primaryAction = 'show_quote'
-    else if (!authorized && reissueFromQuote) primaryAction = 'create_quote'
-    else if (!authorized) primaryAction = 'show_quote'
+    else if (!prepareAuthorized && reissueFromQuote) primaryAction = 'create_quote'
+    else if (!prepareAuthorized) primaryAction = 'show_quote'
     else primaryAction = 'show_delivery'
   } else if (operationalState === 'paused') {
     primaryAction = 'resume_work'
   } else if (operationalState === 'running') {
     primaryAction = 'review_close'
-  } else if (!authorized) {
+  } else if (!flowAuthorized) {
     if (activeQuote) primaryAction = 'show_quote'
     else if (reissueFromQuote) primaryAction = 'create_quote'
     else primaryAction = 'show_quote'
@@ -250,13 +281,22 @@ export function deriveOrderWorkflow(input: {
   }
 
   const anomalies: WorkflowAnomaly[] = []
-  if (!authorized && workflowAdvanced) {
+  if (
+    !prepareAuthorized &&
+    !isAssessment &&
+    (mustBlockWithoutAuth || warnWithoutAuth) &&
+    workflowAdvanced
+  ) {
     anomalies.push('advanced_without_authorization')
   }
   if (input.status === 'draft' && hasRecordedWork) {
     anomalies.push('draft_with_recorded_work')
   }
-  if (input.status === 'completed' && !latestDelivery) {
+  if (
+    input.status === 'completed' &&
+    !latestDelivery &&
+    !isAssessment
+  ) {
     anomalies.push('completed_without_delivery')
   }
 
@@ -267,10 +307,12 @@ export function deriveOrderWorkflow(input: {
     deliveryState,
     suggestedTab,
     primaryAction,
-    prepareDone: authorized,
+    prepareDone,
     doDone: visitClosedUi,
-    deliverDone: fullyPaid,
-    authorized,
+    // Assessment: Deliver "done" = office quote accepted (not payment).
+    // Execute: Deliver "done" = delivery fully paid.
+    deliverDone: isAssessment ? !!acceptedQuote : fullyPaid,
+    authorized: prepareDone,
     visitClosed: input.visitClosed,
     visitClosedUi,
     localCloseState,

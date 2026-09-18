@@ -8,6 +8,7 @@ import { useTenant } from '@/contexts/TenantContext'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase'
 import { getFunctionErrorMessage, getResponseErrorMessage } from '@/lib/functionErrors'
+import { sanitizeAiErrorMessage } from '@/features/ai/utils/sanitizeAiErrorMessage'
 import { fetchAiUserAccess } from '@/features/ai/api/aiRpc'
 import { aiUserAccessQueryKey } from '@/features/ai/api/aiQueryKeys'
 import type { AiUserAccess } from '@/features/ai/types/rpc'
@@ -71,17 +72,17 @@ export function AIGenerateAction({
   const [nearLimitWarning, setNearLimitWarning] = useState(false)
   const [warnOnlyBanner, setWarnOnlyBanner] = useState(false)
 
-  const { data: access } = useQuery<AiUserAccess | null>({
+  const { data: access, isPending: accessPending } = useQuery<AiUserAccess | null>({
     queryKey: aiUserAccessQueryKey(tenantId!),
     enabled: !!tenantId,
     queryFn: () => fetchAiUserAccess(tenantId!),
   })
 
-  const notConfigured = !access?.configured
+  const notConfigured = !accessPending && !access?.configured
   const isBlocked = access?.blocked ?? false
 
   async function handleGenerate() {
-    if (!tenantId || generating || disabled || notConfigured || isBlocked) return
+    if (!tenantId || generating || disabled || accessPending || notConfigured || isBlocked) return
 
     setGenerating(true)
     setNearLimitWarning(false)
@@ -101,7 +102,7 @@ export function AIGenerateAction({
 
       if (error) {
         const detailed = await getFunctionErrorMessage(error)
-        const message = detailed ?? error.message
+        const message = sanitizeAiErrorMessage(detailed ?? error.message)
         onError?.(message)
         toast({ variant: 'destructive', description: message })
         return
@@ -109,8 +110,9 @@ export function AIGenerateAction({
 
       const responseError = getResponseErrorMessage(data)
       if (responseError) {
-        onError?.(responseError)
-        toast({ variant: 'destructive', description: responseError })
+        const message = sanitizeAiErrorMessage(responseError)
+        onError?.(message)
+        toast({ variant: 'destructive', description: message })
         return
       }
 
@@ -120,7 +122,7 @@ export function AIGenerateAction({
 
       onSuccess?.(result)
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
+      const message = sanitizeAiErrorMessage(err instanceof Error ? err.message : String(err))
       onError?.(message)
       toast({ variant: 'destructive', description: message })
     } finally {
@@ -164,7 +166,7 @@ export function AIGenerateAction({
         <Button
           type="button"
           onClick={() => void handleGenerate()}
-          disabled={disabled || generating || notConfigured || isBlocked}
+          disabled={disabled || generating || accessPending || notConfigured || isBlocked}
         >
           {generating ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />

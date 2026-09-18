@@ -4884,6 +4884,253 @@ export type Database = {
           },
         ]
       }
+      commercial_signing_hub: {
+        Row: {
+          action: string | null
+          applied_at: string | null
+          commercial_document_id: string | null
+          commercial_status: string | null
+          created_at: string | null
+          doc_number: string | null
+          doc_type: string | null
+          intent_id: string | null
+          project_id: string | null
+          result_document_id: string | null
+          result_document_version_id: string | null
+          session_id: string | null
+          signing_provider: string | null
+          signing_status:
+            | "draft"
+            | "pending"
+            | "in_progress"
+            | "completed"
+            | "declined"
+            | "expired"
+            | "cancelled"
+            | "error"
+            | null
+          source_document_id: string | null
+          submission_id: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_client_report_inventory"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "commercial_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_signing_intents_document_id_fkey"
+            columns: ["commercial_document_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_signing_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_signing_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_signing_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_signing_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_signing_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["result_document_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["result_document_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["result_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_result_document_version_id_fkey"
+            columns: ["result_document_version_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["version_id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_result_document_version_id_fkey"
+            columns: ["result_document_version_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["version_id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_result_document_version_id_fkey"
+            columns: ["result_document_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "active_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "archived_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signing_submissions_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commercial_signing_intents: {
+        Row: {
+          action: string | null
+          applied_at: string | null
+          client_op_id: string | null
+          created_at: string | null
+          created_by: string | null
+          document_id: string | null
+          id: string | null
+          session_id: string | null
+          submission_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          applied_at?: string | null
+          client_op_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          document_id?: string | null
+          id?: string | null
+          session_id?: string | null
+          submission_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          applied_at?: string | null
+          client_op_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          document_id?: string | null
+          id?: string | null
+          session_id?: string | null
+          submission_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_signing_intents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_signing_intents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_signing_intents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_signing_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_signing_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_signing_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_signing_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_signing_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compliance_notice_log: {
         Row: {
           certification_id: string | null
@@ -16608,6 +16855,8 @@ export type Database = {
         Row: {
           asset_id: string | null
           authorized_total: number | null
+          commercial_regime: string | null
+          service_mode: string | null
           client_id: string | null
           client_report_published_at: string | null
           client_report_published_by: string | null
@@ -16638,6 +16887,8 @@ export type Database = {
         Insert: {
           asset_id?: string | null
           authorized_total?: number | null
+          commercial_regime?: string | null
+          service_mode?: string | null
           client_id?: string | null
           client_report_published_at?: string | null
           client_report_published_by?: string | null
@@ -16668,6 +16919,8 @@ export type Database = {
         Update: {
           asset_id?: string | null
           authorized_total?: number | null
+          commercial_regime?: string | null
+          service_mode?: string | null
           client_id?: string | null
           client_report_published_at?: string | null
           client_report_published_by?: string | null
@@ -23107,6 +23360,10 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_proposed_price_sheet_service: {
+        Args: { p_payload: Json; p_tenant_id: string; p_user_id: string }
+        Returns: Json
+      }
       apply_sector_recipe:
         | {
             Args: { p_company_name?: string; p_sector_profile_id: string }
@@ -25808,6 +26065,11 @@ export type Database = {
         Returns: Json
       }
       get_platform_ai_defaults: { Args: never; Returns: Json }
+      get_platform_ai_feature_prompt: {
+        Args: { p_feature: string }
+        Returns: string
+      }
+      get_platform_ai_feature_prompts: { Args: never; Returns: Json }
       get_platform_email_defaults: { Args: never; Returns: Json }
       get_public_job_posting: {
         Args: { p_public_site_id: string; p_slug: string }
@@ -27983,6 +28245,16 @@ export type Database = {
         }
         Returns: string
       }
+      register_commercial_signing_intent: {
+        Args: {
+          p_action: string
+          p_client_op_id: string
+          p_document_id: string
+          p_session_id: string
+          p_submission_id?: string
+        }
+        Returns: string
+      }
       register_it: {
         Args: {
           p_absence_type: string
@@ -28918,6 +29190,22 @@ export type Database = {
         Args: { p_id: string; p_intent: string }
         Returns: undefined
       }
+      set_project_commercial_regime: {
+        Args: { p_id: string; p_regime: string }
+        Returns: undefined
+      }
+      set_project_service_mode: {
+        Args: { p_id: string; p_mode: string }
+        Returns: undefined
+      }
+      set_contact_is_consumer: {
+        Args: { p_contact_id: string; p_is_consumer: boolean }
+        Returns: undefined
+      }
+      project_commercial_policy: {
+        Args: { p_project_id: string }
+        Returns: Json
+      }
       set_project_work_notes: {
         Args: { p_html: string; p_id: string }
         Returns: undefined
@@ -28955,6 +29243,14 @@ export type Database = {
       set_tenant_signing_active: {
         Args: { p_active: boolean; p_tenant_id: string }
         Returns: Json
+      }
+      sign_commercial_delivery_note: {
+        Args: {
+          p_client_op_id: string
+          p_document_id: string
+          p_signature: Json
+        }
+        Returns: string
       }
       stage_attendance_protocol_publish: {
         Args: {
@@ -30094,6 +30390,10 @@ export type Database = {
           p_system_prompt?: string
           p_temperature?: number
         }
+        Returns: Json
+      }
+      upsert_platform_ai_feature_prompt: {
+        Args: { p_feature: string; p_instructions: string; p_title: string }
         Returns: Json
       }
       upsert_project_line: {

@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import {
-  acceptCommercialDocument,
   getCommercialDocumentDetail,
-  rejectCommercialDocument,
 } from '../api/commercialFlowService'
+import { CommercialNativeSignDialog } from './CommercialNativeSignDialog'
+import type { CommercialNativeSignAction } from '../utils/commercialNativeSign'
 import type { CommercialDocumentDetail } from '../utils/commercialDocumentModel'
 import {
   commercialFilename,
@@ -24,10 +24,20 @@ import {
   downloadCommercialDocumentPdfFromUrl,
   printCommercialDocument,
 } from '../utils/commercialDocumentPrint'
-import { buildIssuedCommercialHtml } from '../utils/buildIssuedCommercialHtml'
+import {
+  buildIssuedCommercialPreview,
+  type IssuedCommercialPreview,
+} from '../utils/buildIssuedCommercialHtml'
 import { usePermission } from '@/hooks/usePermission'
 import { CommercialDocumentStatusBadges } from './CommercialDocumentStatusBadge'
 import { useCommercialPdf } from '../hooks/useCommercialPdf'
+import { useCommercialDocumentSigningHub } from '../api/useCommercialSigningHub'
+import {
+  commercialSignedPdfDocumentId,
+  commercialSigningCentreHref,
+} from '../utils/commercialSigningHub'
+import { SIGNING_STATUS_CLASSES } from '@/features/signing/signingStatusColors'
+import type { SigningStatus } from '@/features/signing/api/signingService'
 
 interface CommercialDocumentViewProps {
   documentId: string
@@ -49,8 +59,8 @@ export function CommercialDocumentView({
   const canEditPricing = usePermission('commercial.pricing.edit')
   const [doc, setDoc] = useState<CommercialDocumentDetail | null>(null)
   const [loading, setLoading] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null)
+  const [signAction, setSignAction] = useState<CommercialNativeSignAction | null>(null)
+  const [preview, setPreview] = useState<IssuedCommercialPreview | null>(null)
   const pdf = useCommercialPdf({
     documentId,
     tenantId: doc?.tenant_id ?? null,
@@ -58,6 +68,7 @@ export function CommercialDocumentView({
     initialRenderedDocumentId: doc?.rendered_document_id,
     initialPdfJobId: doc?.pdf_job_id,
   })
+  const { data: signingHub } = useCommercialDocumentSigningHub(open ? documentId : null)
 
   useEffect(() => {
     if (!open) return
@@ -88,12 +99,12 @@ export function CommercialDocumentView({
 
   useEffect(() => {
     if (!open || !doc) {
-      setPreviewHtml(null)
+      setPreview(null)
       return
     }
     let cancelled = false
-    void buildIssuedCommercialHtml(doc).then((html) => {
-      if (!cancelled) setPreviewHtml(html)
+    void buildIssuedCommercialPreview(doc).then((next) => {
+      if (!cancelled) setPreview(next)
     })
     return () => {
       cancelled = true
@@ -102,28 +113,9 @@ export function CommercialDocumentView({
 
   if (!open) return null
 
-  async function decide(kind: 'accept' | 'reject') {
+  function decide(kind: 'accept' | 'reject') {
     if (!doc) return
-    setBusy(true)
-    try {
-      if (kind === 'accept') {
-        await acceptCommercialDocument({ documentId: doc.id })
-        toast({ title: t('projects.commercial.accepted', 'Acceptat') })
-      } else {
-        await rejectCommercialDocument({ documentId: doc.id })
-        toast({ title: t('projects.commercial.rejected', 'Refusat') })
-      }
-      onChanged?.()
-      onClose()
-    } catch (err) {
-      toast({
-        variant: 'destructive',
-        title: t('projects.commercial.error', 'Error comercial'),
-        description: err instanceof Error ? err.message : undefined,
-      })
-    } finally {
-      setBusy(false)
-    }
+    setSignAction(kind)
   }
 
   const showPrices = doc?.show_prices !== false
@@ -147,6 +139,12 @@ export function CommercialDocumentView({
     effectiveStatus === 'issued' &&
     doc.doc_type === 'quote_amendment' &&
     !canEditPricing
+  const showDeliverySignFooter =
+    !!doc &&
+    effectiveStatus === 'issued' &&
+    doc.doc_type === 'delivery_note'
+
+  const signedPdfId = commercialSignedPdfDocumentId(signingHub)
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
@@ -191,7 +189,21 @@ export function CommercialDocumentView({
               </Link>
             </Button>
           ) : null}
-          {doc ? (
+          {signedPdfId && signedPdfId !== pdf.renderedDocumentId ? (
+            <Button type="button" size="sm" variant="outline" asChild>
+              <Link to={`/documents/${signedPdfId}`}>
+                {t('projects.commercial.open_signed_pdf', 'Obrir PDF firmat')}
+              </Link>
+            </Button>
+          ) : null}
+          {signingHub?.submissionId ? (
+            <Button type="button" size="sm" variant="outline" asChild>
+              <Link to={commercialSigningCentreHref(signingHub.submissionId)}>
+                {t('projects.commercial.open_signing_centre', 'Centre de signatures')}
+              </Link>
+            </Button>
+          ) : null}
+          {doc && preview?.kind !== 'docx' ? (
             <Button
               type="button"
               size="sm"
@@ -250,7 +262,25 @@ export function CommercialDocumentView({
                 <span className="text-sm font-medium">
                   {t('projects.commercial.document_status', 'Estat del document')}
                 </span>
-                <CommercialDocumentStatusBadges doc={doc} t={t} />
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
+                  <CommercialDocumentStatusBadges doc={doc} t={t} />
+                  {signingHub?.signingStatus ? (
+                    <Link
+                      to={commercialSigningCentreHref(signingHub.submissionId)}
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:opacity-80 ${
+                        SIGNING_STATUS_CLASSES[(signingHub.signingStatus as SigningStatus)]
+                        ?? 'bg-violet-50 text-violet-700'
+                      }`}
+                    >
+                      {t(
+                        `signing:center.status.${signingHub.signingStatus}`,
+                        signingHub.signingStatus === 'completed'
+                          ? 'Firmat digitalment'
+                          : signingHub.signingStatus,
+                      )}
+                    </Link>
+                  ) : null}
+                </div>
               </div>
               {(effectiveStatus === 'rejected' ||
                 effectiveStatus === 'expired' ||
@@ -285,6 +315,8 @@ export function CommercialDocumentView({
                     return t('projects.commercial.event_cancelled', 'Anul·lat')
                   case 'superseded':
                     return t('projects.commercial.event_superseded', 'Substituït')
+                  case 'signed':
+                    return t('projects.commercial.event_signed', 'Signat')
                   default:
                     return type
                 }
@@ -380,10 +412,40 @@ export function CommercialDocumentView({
             ) : null}
           </TabsContent>
           <TabsContent value="document" className="flex-1 min-h-0 mt-0 flex flex-col">
-            {previewHtml ? (
+            {preview?.kind === 'docx' ? (
+              <div className="px-4 py-5 space-y-3 max-w-3xl w-full mx-auto">
+                <p className="text-sm text-muted-foreground">
+                  {t(
+                    'projects.commercial.view_docx_use_pdf',
+                    'Aquesta plantilla és DOCX: el PDF és la còpia fidel. L’HTML per defecte no s’hi mostra.',
+                  )}
+                </p>
+                {signedPdfId ? (
+                  <Button type="button" size="sm" variant="outline" asChild>
+                    <Link to={`/documents/${signedPdfId}`}>
+                      {t('projects.commercial.open_signed_pdf', 'Obrir PDF firmat')}
+                    </Link>
+                  </Button>
+                ) : pdf.status === 'ready' && pdf.downloadUrl ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      downloadCommercialDocumentPdfFromUrl(
+                        pdf.downloadUrl!,
+                        commercialFilename(doc, 'pdf'),
+                      )
+                    }}
+                  >
+                    {t('projects.commercial.share_pdf', 'Descarregar PDF')}
+                  </Button>
+                ) : null}
+              </div>
+            ) : preview?.kind === 'html' ? (
               <iframe
                 title={t('projects.commercial.view_tab_document', 'Document')}
-                srcDoc={previewHtml}
+                srcDoc={preview.html}
                 className="w-full flex-1 min-h-[32rem] border-0 bg-white"
               />
             ) : (
@@ -412,22 +474,46 @@ export function CommercialDocumentView({
             type="button"
             size="lg"
             variant="outline"
-            disabled={busy}
             className="h-12"
-            onClick={() => void decide('reject')}
+            onClick={() => decide('reject')}
           >
             {t('projects.commercial.reject', 'Refusar')}
           </Button>
           <Button
             type="button"
             size="lg"
-            disabled={busy}
             className="h-12"
-            onClick={() => void decide('accept')}
+            onClick={() => decide('accept')}
           >
             {t('projects.commercial.accept', 'Acceptar')}
           </Button>
         </footer>
+      ) : null}
+
+      {showDeliverySignFooter ? (
+        <footer className="border-t border-border p-4 max-w-3xl w-full mx-auto">
+          <Button
+            type="button"
+            size="lg"
+            className="h-12 w-full"
+            onClick={() => setSignAction('delivery')}
+          >
+            {t('projects.commercial.sign_delivery', 'Signar conformitat')}
+          </Button>
+        </footer>
+      ) : null}
+
+      {signAction ? (
+        <CommercialNativeSignDialog
+          documentId={documentId}
+          action={signAction}
+          open
+          onClose={() => setSignAction(null)}
+          onCompleted={() => {
+            onChanged?.()
+            if (signAction !== 'delivery') onClose()
+          }}
+        />
       ) : null}
     </div>
   )

@@ -152,6 +152,37 @@ export async function upsertPlatformAiDefault(input: {
   revalidatePath('/dashboard/settings/ai')
 }
 
+export type PlatformAiFeaturePrompt = {
+  feature: string
+  title: string
+  instructions: string
+  updated_at: string
+}
+
+export async function getPlatformAiFeaturePrompts(): Promise<PlatformAiFeaturePrompt[]> {
+  await assertAdmin(['admin', 'support'])
+  const admin = createSupabaseAdminClient()
+  const { data, error } = await admin.rpc('get_platform_ai_feature_prompts')
+  if (error) throw new Error(error.message)
+  return (Array.isArray(data) ? data : []) as PlatformAiFeaturePrompt[]
+}
+
+export async function upsertPlatformAiFeaturePrompt(input: {
+  feature: string
+  title: string
+  instructions: string
+}) {
+  await assertAdmin(['admin'])
+  const admin = createSupabaseAdminClient()
+  const { error } = await admin.rpc('upsert_platform_ai_feature_prompt', {
+    p_feature: input.feature,
+    p_title: input.title,
+    p_instructions: input.instructions,
+  })
+  if (error) throw new Error(error.message)
+  revalidatePath('/dashboard/settings/ai')
+}
+
 export async function savePlatformApiKey(input: {
   provider: string
   apiKey: string

@@ -243,6 +243,71 @@ describe('deriveOrderWorkflow', () => {
     expect(result.remainingCents).toBe(7500)
     expect(result.primaryAction).toBe('collect')
   })
+
+  it('assessment skips auth and hands off to office after close', () => {
+    const result = workflow({
+      documents: [],
+      hasWaiver: false,
+      serviceMode: 'assessment',
+      visitClosed: true,
+      status: 'completed',
+    })
+
+    expect(result.authorized).toBe(true)
+    expect(result.prepareDone).toBe(true)
+    expect(result.deliverDone).toBe(false)
+    expect(result.primaryAction).toBe('office_quote_handoff')
+    expect(result.anomalies).not.toContain('completed_without_delivery')
+  })
+
+  it('assessment deliverDone only after accepted quote', () => {
+    const result = workflow({
+      documents: [document('Q-1', 'quote', 'accepted')],
+      hasWaiver: false,
+      serviceMode: 'assessment',
+      visitClosed: true,
+      status: 'completed',
+    })
+    expect(result.deliverDone).toBe(true)
+    expect(result.primaryAction).toBe('show_quote')
+  })
+
+  it('contractual soft policy allows start without quote', () => {
+    const result = workflow({
+      documents: [],
+      hasWaiver: false,
+      authBeforeWork: 'off',
+    })
+
+    expect(result.authorized).toBe(true)
+    expect(result.prepareDone).toBe(true)
+    expect(result.primaryAction).toBe('start_work')
+  })
+
+  it('warn auth allows start but Prepare stays incomplete', () => {
+    const result = workflow({
+      documents: [],
+      hasWaiver: false,
+      authBeforeWork: 'warn',
+    })
+
+    expect(result.prepareDone).toBe(false)
+    expect(result.authorized).toBe(false)
+    expect(result.primaryAction).toBe('start_work')
+    expect(result.anomalies).not.toContain('advanced_without_authorization')
+  })
+
+  it('warn auth flags anomaly after work without quote', () => {
+    const result = workflow({
+      documents: [],
+      hasWaiver: false,
+      authBeforeWork: 'warn',
+      totalWorkSeconds: 600,
+    })
+
+    expect(result.prepareDone).toBe(false)
+    expect(result.anomalies).toContain('advanced_without_authorization')
+  })
 })
 
 describe('order phase URL contract', () => {

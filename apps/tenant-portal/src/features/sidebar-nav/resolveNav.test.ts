@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { mergeMissingDefaultNavItems, passesGate, pickSidebarLayout, type NavGateContext } from './resolveNav'
+import { NAV_CATALOG_BY_ID } from './navCatalog'
+import { mergeMissingDefaultNavItems, passesGate, pickSidebarLayout, resolveItemLabel, type NavGateContext } from './resolveNav'
 import type { SidebarNavV1 } from './sidebarNavSchema'
 
 const officeDesktop: NavGateContext = {
@@ -115,5 +116,26 @@ describe('passesGate field-service office vs member', () => {
     const officeMobile: NavGateContext = { ...officeDesktop, homePath: '/field/today' }
     expect(passesGate('showOfficeDashboardNav', officeMobile)).toBe(true)
     expect(passesGate('showFieldTodayNav', officeMobile)).toBe(false)
+  })
+})
+
+describe('resolveItemLabel', () => {
+  const labels = {
+    t: (_key: string, fallback: string) => fallback,
+    contactLabel: 'Clients',
+    projectLabel: 'Ordre de servei',
+    projectLabelPlural: 'Obres',
+  }
+
+  it('uses project_plural for list nav and keeps a manual sidebar label', () => {
+    expect(resolveItemLabel(NAV_CATALOG_BY_ID.field_orders, undefined, labels, officeDesktop)).toBe(
+      'Obres',
+    )
+    expect(resolveItemLabel(NAV_CATALOG_BY_ID.projects, undefined, labels, officeDesktop)).toBe(
+      'Obres',
+    )
+    expect(resolveItemLabel(NAV_CATALOG_BY_ID.field_orders, '  Manual  ', labels, officeDesktop)).toBe(
+      'Manual',
+    )
   })
 })

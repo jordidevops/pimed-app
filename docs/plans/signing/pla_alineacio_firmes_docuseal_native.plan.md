@@ -56,7 +56,7 @@ flowchart TB
 | PDF firmat al DMS | `result_document_version_id` | `document_signing_sessions.result_version_id` |
 | PDF auditoria | `audit_trail_storage_path` (descarregat de DocuSeal) | `audit_version_id` / `audit_pdf_path` (worker existeix, **no enllaçat a la UI**) |
 | Hash a la UI | No | No (només a BD i dins del PDF estampat) |
-| Signatures dins el document (etiquetes) | Sí (tags DocuSeal al PDF/DOCX/HTML) | **No** — només pàgina d'evidències o posició fixa al peu |
+| Signatures dins el document (etiquetes) | Sí | ✓ overlay `[FIRMA:role]` (2026-09-18; fail-closed si el token hi és i no es resol) |
 | Crèdits | Platform consumeix | Gratuït |
 
 **Conclusió:** el backend de firma pròpia és funcional; les bretxes principals són **integració amb el model de seguiment** (Centre/badges) i **estampació de signatures a la posició de les etiquetes** del document (com DocuSeal).
@@ -357,11 +357,11 @@ async function emitNativeSigningEvent(payload: {
 
 ### Fase 4 — Mode evidències + signatures incrustades (~3–4 dies)
 
-- [ ] `native_evidence_mode` a `pdf_converter_settings` (default **`detached`**) + Admin UI
-- [ ] Extracció `signing_field_map` des de plantilla HTML/DOCX al generar PDF signable
-- [ ] `stamp-pdf-signatures`: branca `detached` (overlay a etiquetes) / `embedded` / `both`
-- [ ] Fallback `buildDefaultSignatureFields` quan no hi ha etiquetes
-- [ ] Assegurar que `process-audit-pdf-queue` omple `audit_trail_storage_path` al submission
+- [x] `native_evidence_mode` a `pdf_converter_settings` (default **`detached`**) + Admin UI (ja era al codi; no re-UAT Admin aquesta sessió)
+- [x] Extracció `signing_field_map` / detecció `[FIRMA:role]` al PDF (whitespace + còpia de bytes; gate Gotenberg comercial 2026-09-18)
+- [x] `stamp-pdf-signatures`: overlay via `resolveStampOverlayFields`; si el PDF té `[FIRMA:` i el rol no es resol → `signature_field_not_found` (no peu)
+- [x] Fallback `buildFallbackFieldMap` quan no hi ha `[FIRMA:` (QT-D1 / HR sense tags)
+- [ ] Assegurar que `process-audit-pdf-queue` omple `audit_trail_storage_path` al submission (job Edge; no verificat amb SQL)
 
 ### Fase 4b — Seed «Test de firmes» (~1 dia)
 
@@ -438,7 +438,7 @@ Les 14 plantilles HTML/DOCX actuals **no inclouen etiquetes de signatura** (nom�
 | HTML → signar | ✓ | ✓ |
 | DOCX → signar | ✓ | ✓ |
 | 2 signants seqüencials | ✓ | ✓ |
-| Signatures visibles **dins** el PDF | ✓ | ✓ (després Fase 4) |
+| Signatures visibles **dins** el PDF | ✓ | ✓ (detect Gotenberg comercial 2026-09-18; fail-closed si hi ha `[FIRMA:` i el rol no es resol) |
 | Auditoria separada (`detached`) | ✓ | ✓ |
 | Centre de signatures | ✓ | ✓ (després Fase 1) |
 

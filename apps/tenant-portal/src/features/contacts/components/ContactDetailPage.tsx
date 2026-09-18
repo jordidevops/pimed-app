@@ -22,6 +22,7 @@ import {
   getContact,
   getContactSites,
   archiveContact,
+  setContactIsConsumer,
 } from '../api/contactsService'
 import { ContactSitesList } from './ContactSitesList'
 import { ContactRelationshipsPanel } from './ContactRelationshipsPanel'
@@ -232,6 +233,40 @@ export function ContactDetailPage() {
                   ? t('contacts.kind.company', 'Empresa')
                   : t('contacts.kind.person', 'Persona')}
               </span>
+              <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="rounded border-input"
+                  checked={Boolean(
+                    (contact as { is_consumer?: boolean | null }).is_consumer ??
+                      contact.kind === 'person',
+                  )}
+                  onChange={async (e) => {
+                    if (!contact.id) return
+                    try {
+                      await setContactIsConsumer(contact.id, e.target.checked)
+                      await queryClient.invalidateQueries({
+                        queryKey: ['contacts', contact.id],
+                      })
+                      toast({
+                        title: t(
+                          'contacts.detail.regime_saved',
+                          'Règim del contacte actualitzat',
+                        ),
+                      })
+                    } catch {
+                      toast({
+                        variant: 'destructive',
+                        description: t(
+                          'contacts.detail.regime_save_failed',
+                          'No s’ha pogut desar el règim del contacte',
+                        ),
+                      })
+                    }
+                  }}
+                />
+                {t('contacts.detail.is_consumer', 'Consumidor (normativa de consum)')}
+              </label>
             </div>
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">

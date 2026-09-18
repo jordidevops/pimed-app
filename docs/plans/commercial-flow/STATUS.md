@@ -1,8 +1,16 @@
 # Flux comercial — Estat d'implementació
 
-> **Última actualització:** 2026-09-16
+> **Última actualització:** 2026-09-18
 > **Propòsit:** seguir el desenvolupament dels epics CF i deixar constància honesta del que falta.
 > **Pla:** [`README.md`](./README.md) · backlog [`04-phases-and-backlog.md`](./04-phases-and-backlog.md) · ordre [`EXECUTION.md`](./EXECUTION.md)
+
+## Novetat 2026-09-18 — Règim comercial OS + visita d’avaluació
+
+- `projects.commercial_regime` (`consumer` | `contractual`): snapshot editable heretat del contacte.
+- `projects.service_mode` (`execute` | `assessment`): avaluació tanca sense autorització; hand-off a oficina; albarà bloquejat fins a pressupost acceptat.
+- Polítiques per règim a `tenants.settings.commercial.regimes` (Settings → Plantilles → Comercial).
+- Gates SQL usen règim de l’OS + waiver (no només `contacts.is_consumer`).
+- UI: selectors a capçalera OS, toggle `is_consumer` al fitxer de contacte.
 
 ## Llegenda
 

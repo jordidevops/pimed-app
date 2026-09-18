@@ -123,13 +123,16 @@ async function getValidatedAccessToken(): Promise<string> {
 
 export interface SignDocumentInput {
   tenant_id:                   string
-  action:                      'sign' | 'generate_only'
+  action:                      'sign' | 'generate_only' | 'sign_native'
   source_type:                 'document_existing' | 'template_locale'
   source_document_version_id?: string
   source_template_locale_id?:  string
   folder_id?:                  string
   document_title?:             string
   document_category?:          string | null
+  signer_email?:               string
+  signer_name?:                string
+  signer_role?:                string
   signers?:                    { email: string; name: string; role?: string; order?: number }[]
   /** Contracte canònic de context nested (globals els genera el servidor). */
   context?:                    Record<string, unknown>

@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
+import { usePriceSheetTitle } from '@/hooks/useSectorLabel'
 import { createQuoteWaiver } from '../api/commercialFlowService'
+import { priceSheetRpcErrorCopy, priceSheetRpcErrorTitle } from '../utils/rpcError'
 
 const DEFAULT_WAIVER_TEXT_CA =
   'Renuncio a l’elaboració del pressupost previ i autorizo a realitzar els treballs necessaris per al servei sol·licitat, conforme a la descripció indicada.'
@@ -23,6 +25,7 @@ export function QuoteWaiverDialog({
 }: QuoteWaiverDialogProps) {
   const { t } = useTranslation('projects')
   const { toast } = useToast()
+  const priceSheetTitle = usePriceSheetTitle()
   const [workDescription, setWorkDescription] = useState('')
   const [signerName, setSignerName] = useState('')
   const [accepted, setAccepted] = useState(false)
@@ -63,10 +66,11 @@ export function QuoteWaiverDialog({
       onSaved()
       onClose()
     } catch (err) {
+      const copy = priceSheetRpcErrorCopy(err, priceSheetTitle)
       toast({
         variant: 'destructive',
-        title: t('projects.commercial.waiver_failed', "No s'ha pogut desar la renúncia"),
-        description: err instanceof Error ? err.message : undefined,
+        title: priceSheetRpcErrorTitle(t, copy),
+        description: t(copy.descriptionKey, copy.descriptionFallback),
       })
     } finally {
       setSubmitting(false)
@@ -78,7 +82,7 @@ export function QuoteWaiverDialog({
       <div className="w-full max-w-lg rounded-t-2xl sm:rounded-xl border border-border bg-background p-4 sm:p-6 shadow-lg max-h-[90vh] overflow-y-auto space-y-4">
         <div>
           <h3 className="text-lg font-semibold text-foreground">
-            {t('projects.commercial.waiver_title', 'Renúncia al pressupost previ')}
+            {t('projects.commercial.work_without_quote', 'Treballar sense pressupost')}
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
             {t(

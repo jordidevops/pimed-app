@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  COMMERCIAL_FULL_BODY_TEMPLATE_NONE,
+  commercialFullBodyTemplateSettingValue,
   commercialSettingsPatchWithFullBodyTemplates,
   commercialSettingsPatchWithThreshold,
   parseCommercialSettingId,
@@ -43,5 +45,21 @@ describe('commercial full-body settings patch', () => {
       ),
     ).toBe('tpl-1')
     expect(parseCommercialSettingId({ commercial: { quote_template_id: '' } }, 'quote_template_id')).toBeNull()
+    expect(
+      parseCommercialSettingId(
+        { commercial: { quote_template_id: COMMERCIAL_FULL_BODY_TEMPLATE_NONE } },
+        'quote_template_id',
+      ),
+    ).toBeNull()
+  })
+
+  it('persists Cap as the none sentinel instead of null', () => {
+    expect(commercialFullBodyTemplateSettingValue('')).toBe(COMMERCIAL_FULL_BODY_TEMPLATE_NONE)
+    expect(commercialFullBodyTemplateSettingValue(null)).toBe(COMMERCIAL_FULL_BODY_TEMPLATE_NONE)
+    const next = commercialSettingsPatchWithFullBodyTemplates(
+      { quote_template_id: 'abc' },
+      { quote_template_id: commercialFullBodyTemplateSettingValue('') },
+    )
+    expect(next.commercial.quote_template_id).toBe(COMMERCIAL_FULL_BODY_TEMPLATE_NONE)
   })
 })

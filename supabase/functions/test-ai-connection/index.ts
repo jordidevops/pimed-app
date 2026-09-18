@@ -10,6 +10,7 @@ import { applyOverrides, generateWithProvider } from "../_shared/ai/providers.ts
 import { errorResponse, jsonResponse } from "../_shared/ai/responses.ts";
 import { loadTenantAiRuntimeConfig } from "../_shared/ai/run.ts";
 import { sanitizeProviderError } from "../_shared/ai/sanitize.ts";
+import { AiConfigError, mapAiGenerationError, stripTenantIds } from "../_shared/ai/generationErrors.ts";
 import {
   AiGovernanceError,
   prepareAiExecution,
@@ -138,7 +139,15 @@ Deno.serve(async (req: Request) => {
       const mapped = toHttpGovernanceError(err);
       return errorResponse(mapped.status, mapped.code, mapped.message);
     }
-    const message = sanitizeProviderError(err instanceof Error ? err.message : String(err));
+    if (err instanceof AiConfigError) {
+      return errorResponse(err.status, err.code, err.message);
+    }
+    const raw = err instanceof Error ? err.message : String(err);
+    const mapped = mapAiGenerationError(raw);
+    if (mapped) {
+      return errorResponse(mapped.status, mapped.code, mapped.message);
+    }
+    const message = stripTenantIds(sanitizeProviderError(raw));
     log("error", FEATURE, "Connection test failed", {
       tenantId: req.headers.get("x-tenant-id") ?? undefined,
       extra: { error: message },

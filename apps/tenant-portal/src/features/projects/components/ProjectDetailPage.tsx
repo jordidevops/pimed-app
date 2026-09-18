@@ -37,13 +37,14 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { useProject } from '../api/useProject'
 import { projectsKeys } from '../api/projectsKeys'
-import { getProject, setProjectVisitIntent } from '../api/projectsService'
+import { getProject, setProjectVisitIntent, setProjectCommercialRegime, setProjectServiceMode } from '../api/projectsService'
 import { ProjectForm } from './ProjectForm'
 import { TaskList } from './TaskList'
 import { ProjectLinesSection } from './ProjectLinesSection'
 import { WorkLogCard } from './WorkLogCard'
 import { useProjectWorkLogSummary } from '../api/useProjectWorkLogSummary'
 import { useTenant } from '@/contexts/TenantContext'
+import { useEffectiveSettings } from '@/hooks/useSettings'
 import { useFieldSync, enqueueFieldOp } from '@/hooks/useFieldSync'
 import { EntityTimeline } from '@/features/entity-timeline'
 import { useIsFieldService } from '@/hooks/useSectorLabel'
@@ -70,6 +71,13 @@ import {
   type OrderPhaseTab,
   type OrderPrimaryAction,
 } from '@/features/field-service/utils/deriveOrderWorkflow'
+import {
+  effectiveProjectCommercialPolicy,
+  parseCommercialRegimes,
+  resolveProjectCommercialSnapshot,
+  type CommercialRegime,
+  type ServiceMode,
+} from '@/features/commercial/utils/commercialRegimePolicy'
 import { ProjectCommercialPanel } from '@/features/commercial/components/ProjectCommercialPanel'
 import { PaymentPendingChip } from '@/features/commercial/components/PaymentPendingChip'
 import { ReissueQuoteDialog } from '@/features/commercial/components/ReissueQuoteDialog'
@@ -110,6 +118,14 @@ export function ProjectDetailPage() {
   const [primaryBusy, setPrimaryBusy] = useState(false)
   const [reissueQuoteOpen, setReissueQuoteOpen] = useState(false)
   const { activeTenant, activeRole, selectedTenantId, tenantScopeReady } = useTenant()
+  const { data: effectiveSettings } = useEffectiveSettings(
+    { tenantId: activeTenant?.id ?? '' },
+    { enabled: !!activeTenant?.id },
+  )
+  const tenantRegimes = useMemo(
+    () => parseCommercialRegimes(effectiveSettings),
+    [effectiveSettings],
+  )
   const canEditVisitIntent =
     activeRole === 'owner' || activeRole === 'manager' || activeRole === 'member'
   const canPublishReport =
@@ -169,6 +185,15 @@ export function ProjectDetailPage() {
   const visitClosed = punchLocked
   const fieldWorkLocked = workLocked || localCloseState !== 'none'
 
+  const commercialPolicy = useMemo(() => {
+    const snap = resolveProjectCommercialSnapshot(project)
+    return effectiveProjectCommercialPolicy({
+      commercialRegime: snap.commercialRegime,
+      serviceMode: snap.serviceMode,
+      tenantRegimes,
+    })
+  }, [project, tenantRegimes])
+
   const workflow = useMemo(
     () =>
       deriveOrderWorkflow({
@@ -182,6 +207,8 @@ export function ProjectDetailPage() {
         totalWorkSeconds: workLogSummary.totalSeconds,
         hasOpenWorkLog: workLogSummary.isOpen,
         receiptHandled,
+        serviceMode: commercialPolicy.service_mode,
+        authBeforeWork: commercialPolicy.require_auth_before_work,
       }),
     [
       status,
@@ -194,6 +221,8 @@ export function ProjectDetailPage() {
       workLogSummary.totalSeconds,
       workLogSummary.isOpen,
       receiptHandled,
+      commercialPolicy.service_mode,
+      commercialPolicy.require_auth_before_work,
     ],
   )
 
@@ -371,13 +400,21 @@ export function ProjectDetailPage() {
   const doMicro = workflow.doDone
     ? t('field-service:detail.phase_do_done', 'Tancada')
     : t('field-service:detail.phase_do_open', 'En curs')
-  const deliverMicro = workflow.paymentPending
-    ? t('field-service:detail.phase_deliver_pending', 'Pendent de cobrar')
-    : workflow.deliverDone
-      ? t('field-service:detail.phase_deliver_paid', 'Cobrat')
-      : workflow.hasDelivery
-        ? t('field-service:detail.phase_deliver_issued', 'Albarà emès')
-        : t('field-service:detail.phase_deliver_empty', 'Pendent')
+  const deliverMicro =
+    commercialPolicy.service_mode === 'assessment'
+      ? workflow.deliverDone
+        ? t('field-service:detail.phase_deliver_quoted', 'Pressupost fet')
+        : t(
+            'field-service:detail.phase_deliver_await_quote',
+            'Pendent pressupost',
+          )
+      : workflow.paymentPending
+        ? t('field-service:detail.phase_deliver_pending', 'Pendent de cobrar')
+        : workflow.deliverDone
+          ? t('field-service:detail.phase_deliver_paid', 'Cobrat')
+          : workflow.hasDelivery
+            ? t('field-service:detail.phase_deliver_issued', 'Albarà emès')
+            : t('field-service:detail.phase_deliver_empty', 'Pendent')
   const pendingAmendment =
     commercialDocs.find(
       (document) =>
@@ -522,6 +559,20 @@ export function ProjectDetailPage() {
         } finally {
           setPrimaryBusy(false)
         }
+        return
+      }
+      case 'office_quote_handoff': {
+        setTab('prepare')
+        toast({
+          title: t(
+            'field-service:detail.assessment_handoff_title',
+            'Visita d’avaluació',
+          ),
+          description: t(
+            'field-service:detail.assessment_handoff_help',
+            'Afegeix o revisa el full de preus i emet el pressupost des d’oficina. No cal albarà fins que hi hagi pressupost acceptat.',
+          ),
+        })
         return
       }
       case 'collect':
@@ -778,6 +829,79 @@ export function ProjectDetailPage() {
                   </SelectItem>
                   <SelectItem value="generic">
                     {t('field-service:intent.generic', 'Genèrica')}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            {isFieldService && (
+              <Select
+                value={commercialPolicy.commercial_regime}
+                disabled={!canEditVisitIntent || workLocked}
+                onValueChange={async (next) => {
+                  if (!project.id || !canEditVisitIntent) return
+                  try {
+                    await setProjectCommercialRegime(
+                      project.id,
+                      next as CommercialRegime,
+                    )
+                    await queryClient.invalidateQueries({
+                      queryKey: projectsKeys.detail(project.id),
+                    })
+                  } catch {
+                    toast({
+                      variant: 'destructive',
+                      description: t(
+                        'field-service:regime.save_failed',
+                        'No s\'ha pogut desar el règim comercial',
+                      ),
+                    })
+                  }
+                }}
+              >
+                <SelectTrigger className="h-7 w-auto min-w-[8rem] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="consumer">
+                    {t('field-service:regime.consumer', 'Consumidor')}
+                  </SelectItem>
+                  <SelectItem value="contractual">
+                    {t('field-service:regime.contractual', 'Contractual')}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            {isFieldService && (
+              <Select
+                value={commercialPolicy.service_mode}
+                disabled={!canEditVisitIntent || workLocked}
+                onValueChange={async (next) => {
+                  if (!project.id || !canEditVisitIntent) return
+                  try {
+                    await setProjectServiceMode(project.id, next as ServiceMode)
+                    await queryClient.invalidateQueries({
+                      queryKey: projectsKeys.detail(project.id),
+                    })
+                  } catch {
+                    toast({
+                      variant: 'destructive',
+                      description: t(
+                        'field-service:service_mode.save_failed',
+                        'No s\'ha pogut desar el tipus de visita',
+                      ),
+                    })
+                  }
+                }}
+              >
+                <SelectTrigger className="h-7 w-auto min-w-[8rem] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="execute">
+                    {t('field-service:service_mode.execute', 'Execució')}
+                  </SelectItem>
+                  <SelectItem value="assessment">
+                    {t('field-service:service_mode.assessment', 'Avaluació')}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -1148,6 +1272,7 @@ export function ProjectDetailPage() {
               projectId={project.id!}
               hasLines={linesCount > 0}
               section="authorize"
+              serviceMode={commercialPolicy.service_mode}
               forceViewDocId={forceViewDocId}
               onForceViewHandled={clearForceView}
             />
@@ -1169,9 +1294,14 @@ export function ProjectDetailPage() {
               workLocked={workLocked}
               publishedAt={reportPublishedAt}
               openReportByDefault={tabParam === 'bulletin'}
-              complete={workflow.deliverDone}
+              complete={
+                commercialPolicy.service_mode === 'assessment'
+                  ? false
+                  : workflow.deliverDone
+              }
               latestDeliveryId={workflow.latestDeliveryId}
               pendingAmendment={pendingAmendment}
+              serviceMode={commercialPolicy.service_mode}
               forceViewDocId={forceViewDocId}
               forceCollectDocId={forceCollectDocId}
               forceReceiptPaymentId={forceReceiptPaymentId}

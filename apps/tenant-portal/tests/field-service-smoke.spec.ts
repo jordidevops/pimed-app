@@ -170,6 +170,7 @@ test.describe('Field Service smoke', () => {
   })
 
   test('Volt: orders list uses sector vocabulary', async ({ page }) => {
+    // Sense overlay de tenant: el heading és el plural del seed (Ordres de servei).
     await pinVoltTenant(page)
 
     await page.goto('/field/orders')

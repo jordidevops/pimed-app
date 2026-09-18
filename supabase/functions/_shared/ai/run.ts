@@ -25,6 +25,11 @@ import type {
   AiMessage,
   AiTenantRuntimeConfig,
 } from "./types.ts";
+import { toAiConfigError } from "./generationErrors.ts";
+import {
+  applyFeatureInstructions,
+  loadFeaturePromptInstructions,
+} from "./featurePrompts.ts";
 
 function clampTemperature(value: number | null | undefined): number {
   if (!Number.isFinite(value ?? NaN)) return 0.2;
@@ -59,7 +64,7 @@ export async function loadTenantAiRuntimeConfig(
     p_provider: providerOverride ?? null,
   });
 
-  if (error) throw new Error(error.message ?? "No s'ha pogut obtenir configuració AI");
+  if (error) throw toAiConfigError(error.message ?? "No s'ha pogut obtenir configuració AI");
 
   const raw = data as Record<string, unknown>;
   const provider = raw.provider as string | undefined;
@@ -114,8 +119,15 @@ export async function runAiGeneration(params: {
     ? tenantMaxTokens
     : sanitizeMaxTokens(params.body.maxTokens);
   const boundedMaxTokens = Math.min(requestMaxTokens, tenantMaxTokens);
-  const messages = sanitizeMessages(params.body.messages);
-  if (!messages.some((m) => m.role === "user" && m.content.trim())) {
+  const featureInstructions = await loadFeaturePromptInstructions(
+    params.adminClient,
+    feature,
+  );
+  const messages = applyFeatureInstructions(
+    sanitizeMessages(params.body.messages),
+    featureInstructions,
+  );
+  if (!messages.some((m) => m.role === "user" && typeof m.content === "string" && m.content.trim())) {
     throw new Error("messages ha d'incloure almenys un missatge user");
   }
 

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
 import { Copy, Languages, ListTree, Plus, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,6 +24,8 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/contexts/TenantContext'
+import { FieldAdminBackLink } from './FieldAdminBackLink'
+import { useFieldAdminPaths } from '../utils/fieldAdminPaths'
 import { AIGenerateAction } from '@/features/ai/components/AIGenerateAction'
 import {
   CHECKLIST_LOCALES,
@@ -503,6 +504,7 @@ function PlatformPreviewDialog({
 
 export function ChecklistPointsPage() {
   const { t } = useTranslation('field-service')
+  const { pageClassName } = useFieldAdminPaths()
   const { toast } = useToast()
   const { activeTenant } = useTenant()
   const queryClient = useQueryClient()
@@ -756,12 +758,10 @@ export function ChecklistPointsPage() {
   const isLoading = scope === 'tenant' ? tenantLoading : platformLoading
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 pb-24">
+    <div className={pageClassName}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <Link to="/field/more" className="text-sm text-muted-foreground hover:underline">
-            ← {t('more.title', 'Més')}
-          </Link>
+          <FieldAdminBackLink />
           <h1 className="mt-1 text-2xl font-bold flex items-center gap-2">
             <ListTree className="h-6 w-6" />
             {t('points.title', 'Punts de revisió')}

@@ -5,13 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import {
-  acceptCommercialDocument,
   cancelCommercialDocument,
   issueCommercialDocument,
   listPaymentsForDocuments,
   listProjectCommercialDocuments,
   reissueCommercialQuote,
-  rejectCommercialDocument,
   setDeliveryExternalInvoiceRef,
   type CommercialDocument,
 } from '../api/commercialFlowService'
@@ -29,15 +27,18 @@ import {
   resolveCommercialDocumentBadges,
 } from './CommercialDocumentStatusBadge'
 import { CommercialDocumentView } from './CommercialDocumentView'
+import { CommercialNativeSignDialog } from './CommercialNativeSignDialog'
 import { PaymentReceiptSheet } from './PaymentReceiptSheet'
 import { QuoteWaiverDialog } from './QuoteWaiverDialog'
 import { ReissueQuoteDialog } from './ReissueQuoteDialog'
 import { usePermission } from '@/hooks/usePermission'
 import { supabase } from '@/lib/supabase'
+import type { CommercialNativeSignAction } from '../utils/commercialNativeSign'
 import {
   commercialDocumentDivergesFromLiveTotal,
   liveProjectLinesTotalCents,
 } from '../utils/quotePriceDrift'
+import { canShowQuoteWaiverCta } from '../utils/priceSheetMutability'
 
 export type CommercialPanelSection = 'authorize' | 'deliver' | 'summary'
 
@@ -48,6 +49,7 @@ interface ProjectCommercialPanelProps {
   section?: CommercialPanelSection
   embedded?: boolean
   showHeader?: boolean
+  serviceMode?: 'execute' | 'assessment' | null
   /** Optional controlled dialogs driven by the primary action bar */
   forceViewDocId?: string | null
   forceCollectDocId?: string | null
@@ -82,6 +84,7 @@ export function ProjectCommercialPanel({
   section = 'authorize',
   embedded = false,
   showHeader = true,
+  serviceMode = null,
   forceViewDocId = null,
   forceCollectDocId = null,
   forceReceiptPaymentId = null,
@@ -102,6 +105,10 @@ export function ProjectCommercialPanel({
   const [invoiceRef, setInvoiceRef] = useState('')
   const [invoiceSaving, setInvoiceSaving] = useState(false)
   const [reissueOpen, setReissueOpen] = useState(false)
+  const [signTarget, setSignTarget] = useState<{
+    documentId: string
+    action: CommercialNativeSignAction
+  } | null>(null)
 
   const effectiveViewId = forceViewDocId ?? viewDocId
   const effectiveCollectId = forceCollectDocId ?? collectDocId
@@ -143,6 +150,25 @@ export function ProjectCommercialPanel({
     },
     enabled: !!projectId && section === 'authorize',
   })
+
+  const { data: hasWaiver = false } = useQuery({
+    queryKey: ['quote_waivers', projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quote_waivers')
+        .select('id')
+        .eq('project_id', projectId)
+        .limit(1)
+      if (error) throw error
+      return (data?.length ?? 0) > 0
+    },
+    enabled: !!projectId && section === 'authorize',
+  })
+
+  const showWaiverCta = useMemo(
+    () => canShowQuoteWaiverCta(docs),
+    [docs],
+  )
 
   const paymentsByDoc = useMemo(() => {
     const map = new Map<string, typeof payments>()
@@ -203,6 +229,7 @@ export function ProjectCommercialPanel({
 
   const showAuthorizeActions = section === 'authorize'
   const showDeliverActions = section === 'deliver'
+  const isAssessment = serviceMode === 'assessment'
   const showSummaryTotals = section === 'summary' || section === 'deliver'
 
   const deliveryPaidCents = latestDelivery
@@ -348,10 +375,7 @@ export function ProjectCommercialPanel({
               variant="outline"
               disabled={busy}
               onClick={() =>
-                run(
-                  () => rejectCommercialDocument({ documentId: latestQuote.id }),
-                  t('projects.commercial.rejected', 'Refusat'),
-                )
+                setSignTarget({ documentId: latestQuote.id, action: 'reject' })
               }
             >
               {t('projects.commercial.reject', 'Refusar')}
@@ -450,37 +474,80 @@ export function ProjectCommercialPanel({
       )}
 
       <div className="flex flex-wrap gap-2">
-        {showAuthorizeActions && !latestQuote && (
-          <>
-            <Button
-              type="button"
-              size="sm"
-              disabled={busy || !hasLines}
-              onClick={() =>
-                run(
-                  () =>
-                    issueCommercialDocument({
-                      projectId,
-                      docType: 'quote',
-                    }),
-                  t('projects.commercial.quote_issued', 'Pressupost emès'),
-                )
-              }
-            >
-              {t('projects.commercial.issue_quote', 'Emetre pressupost')}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              onClick={() => setWaiverOpen(true)}
-            >
-              {t('projects.commercial.waiver_cta', 'Renúncia al pressupost')}
-            </Button>
-          </>
+        {showAuthorizeActions && isAssessment ? (
+          <div className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            {t(
+              'projects.commercial.assessment_prepare_help',
+              'Visita d’avaluació: no cal autorització ni renúncia abans de la visita. Després, oficina prepara el pressupost.',
+            )}
+          </div>
+        ) : null}
+        {showAuthorizeActions && hasWaiver ? (
+          <span className="inline-flex items-center rounded-md border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            {t(
+              'projects.commercial.waiver_chip',
+              'Treball sense pressupost (renúncia registrada)',
+            )}
+          </span>
+        ) : null}
+        {showAuthorizeActions && !isAssessment && !latestQuote && (
+          <Button
+            type="button"
+            size="sm"
+            disabled={busy || !hasLines}
+            onClick={() =>
+              run(
+                () =>
+                  issueCommercialDocument({
+                    projectId,
+                    docType: 'quote',
+                  }),
+                t('projects.commercial.quote_issued', 'Pressupost emès'),
+              )
+            }
+          >
+            {t('projects.commercial.issue_quote', 'Emetre pressupost')}
+          </Button>
         )}
-        {showDeliverActions && (
+        {showAuthorizeActions && isAssessment && !latestQuote && (
+          <Button
+            type="button"
+            size="sm"
+            disabled={busy || !hasLines}
+            onClick={() =>
+              run(
+                () =>
+                  issueCommercialDocument({
+                    projectId,
+                    docType: 'quote',
+                  }),
+                t('projects.commercial.quote_issued', 'Pressupost emès'),
+              )
+            }
+          >
+            {t('projects.commercial.issue_quote_office', 'Emetre pressupost (oficina)')}
+          </Button>
+        )}
+        {showAuthorizeActions && showWaiverCta && !hasWaiver && !isAssessment ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => setWaiverOpen(true)}
+          >
+            {t('projects.commercial.work_without_quote', 'Treballar sense pressupost')}
+          </Button>
+        ) : null}
+        {showDeliverActions && isAssessment && !latestDelivery ? (
+          <div className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            {t(
+              'projects.commercial.assessment_deliver_help',
+              'Avaluació: l’albarà no s’emet fins que hi hagi un pressupost acceptat (o una ordre d’execució de seguiment).',
+            )}
+          </div>
+        ) : null}
+        {showDeliverActions && !(isAssessment && !docs.some((d) => d.doc_type === 'quote' && (d.status === 'accepted' || d.status === 'signed'))) && (
           <Button
             type="button"
             size="sm"
@@ -557,6 +624,20 @@ export function ProjectCommercialPanel({
           }}
           onShare={() => {
             setShareDocId(effectiveViewId)
+          }}
+        />
+      ) : null}
+
+      {signTarget ? (
+        <CommercialNativeSignDialog
+          documentId={signTarget.documentId}
+          action={signTarget.action}
+          open
+          onClose={() => setSignTarget(null)}
+          onCompleted={() => {
+            void refetch()
+            queryClient.invalidateQueries({ queryKey: ['projects'] })
+            queryClient.invalidateQueries({ queryKey: ['commercial_documents'] })
           }}
         />
       ) : null}
@@ -684,10 +765,7 @@ export function ProjectCommercialPanel({
                         variant="outline"
                         disabled={busy}
                         onClick={() =>
-                          run(
-                            () => acceptCommercialDocument({ documentId: doc.id }),
-                            t('projects.commercial.accepted', 'Acceptat'),
-                          )
+                          setSignTarget({ documentId: doc.id, action: 'accept' })
                         }
                       >
                         {t('projects.commercial.accept', 'Acceptar')}
@@ -698,10 +776,7 @@ export function ProjectCommercialPanel({
                         variant="outline"
                         disabled={busy}
                         onClick={() =>
-                          run(
-                            () => rejectCommercialDocument({ documentId: doc.id }),
-                            t('projects.commercial.rejected', 'Refusat'),
-                          )
+                          setSignTarget({ documentId: doc.id, action: 'reject' })
                         }
                       >
                         {t('projects.commercial.reject', 'Refusar')}
@@ -723,6 +798,19 @@ export function ProjectCommercialPanel({
                         </Button>
                       ) : null}
                     </>
+                  )}
+                  {effectiveStatus(doc) === 'issued' && doc.doc_type === 'delivery_note' && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() =>
+                        setSignTarget({ documentId: doc.id, action: 'delivery' })
+                      }
+                    >
+                      {t('projects.commercial.sign_delivery', 'Signar conformitat')}
+                    </Button>
                   )}
                   {canCollect && (
                     <Button

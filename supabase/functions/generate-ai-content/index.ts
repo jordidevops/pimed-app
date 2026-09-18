@@ -9,6 +9,7 @@ import {
 import { errorResponse, jsonResponse } from "../_shared/ai/responses.ts";
 import { runAiGeneration } from "../_shared/ai/run.ts";
 import { AiRateLimitError, AiUserBlockedError } from "../_shared/ai/usage.ts";
+import { AiConfigError, mapAiGenerationError, stripTenantIds } from "../_shared/ai/generationErrors.ts";
 import type { AiGenerateRequestBody } from "../_shared/ai/types.ts";
 import { initObservability, captureException } from "../_shared/observability/system-error-tracker.ts";
 import { log } from "../_shared/observability/structured-logger.ts";
@@ -65,7 +66,14 @@ Deno.serve(async (req: Request) => {
     if (err instanceof AiUserBlockedError) {
       return errorResponse(403, "user_blocked", err.message);
     }
+    if (err instanceof AiConfigError) {
+      return errorResponse(err.status, err.code, err.message);
+    }
     const message = err instanceof Error ? err.message : String(err);
+    const mapped = mapAiGenerationError(message);
+    if (mapped) {
+      return errorResponse(mapped.status, mapped.code, mapped.message);
+    }
     log("error", FEATURE, "Generation failed", {
       tenantId: req.headers.get("x-tenant-id") ?? undefined,
       extra: { error: message },
@@ -96,6 +104,10 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return errorResponse(500, "generation_failed", message);
+    return errorResponse(
+      500,
+      "generation_failed",
+      stripTenantIds(message) || "No s'ha pogut generar el contingut.",
+    );
   }
 });

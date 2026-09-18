@@ -24,7 +24,7 @@ const CONTRACT_LIQUID = `
   {{ line.name }} {{ line.description }} {{ line.unit }} {{ line.quantity }} {{ line.unit_price }} {{ line.discount_pct }} {{ line.tax_rate }} {{ line.line_total }} {{ line.kind }}
 {% endfor %}
 {{ totals.subtotal }}
-{% for tax in totals.tax_breakdown %}{{ tax.tax_rate }} {{ tax.tax_amount }}{% endfor %}
+{% for tax in totals.tax_breakdown %}{{ tax.tax_rate }} {{ tax.tax_amount }} {{ tax.tax_base }}{% endfor %}
 {{ totals.total }}
 {{ legal.retention_days }} {{ legal.jurisdiction_text }}
 `.trim()
@@ -88,7 +88,7 @@ function sampleDoc(): Parameters<typeof buildCommercialTemplateContext>[0] {
 }
 
 describe('buildCommercialTemplateContext', () => {
-  it('maps frozen snapshots without inventing tax_base or seller address', () => {
+  it('passes through snapshot tax_base and does not invent seller address', () => {
     const ctx = buildCommercialTemplateContext(sampleDoc())
     expect(ctx.globals).toEqual({
       today: '2026-09-17',
@@ -123,12 +123,20 @@ describe('buildCommercialTemplateContext', () => {
     })
     const totals = ctx.totals as { tax_breakdown: Array<Record<string, unknown>>; total: number }
     expect(totals.total).toBe(121)
-    expect(totals.tax_breakdown).toEqual([{ tax_rate: 21, tax_amount: 21 }])
-    expect(totals.tax_breakdown[0]).not.toHaveProperty('tax_base')
+    expect(totals.tax_breakdown).toEqual([{ tax_rate: 21, tax_amount: 21, tax_base: 999 }])
     expect(ctx.legal).toEqual({
       retention_days: COMMERCIAL_LEGAL_RETENTION_DAYS,
       jurisdiction_text: '',
     })
+  })
+
+  it('derives tax_base from frozen line_subtotal when the snapshot omits it', () => {
+    const input = sampleDoc()
+    input.doc.tax_breakdown = [{ tax_rate: 21, tax_amount: 21 }]
+    input.lines[0] = { ...input.lines[0], line_subtotal: 100 }
+    const ctx = buildCommercialTemplateContext(input)
+    const totals = ctx.totals as { tax_breakdown: Array<Record<string, unknown>> }
+    expect(totals.tax_breakdown).toEqual([{ tax_rate: 21, tax_amount: 21, tax_base: 100 }])
   })
 
   it('renders the frozen Liquid contract without syntax errors or empty required fields', async () => {

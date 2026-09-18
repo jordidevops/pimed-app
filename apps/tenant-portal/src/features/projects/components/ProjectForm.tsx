@@ -19,6 +19,7 @@ import { useIsFieldService } from '@/hooks/useSectorLabel'
 import { useCreateProject } from '../api/useCreateProject'
 import { useUpdateProject } from '../api/useUpdateProject'
 import type { Project } from '../api/projectsService'
+import { setProjectServiceMode } from '../api/projectsService'
 import { useDepartments } from '@/features/departments/api/useDepartments'
 import { getContacts, getContactSites } from '@/features/contacts/api/contactsService'
 import {
@@ -40,6 +41,7 @@ const projectSchema = z.object({
   contact_site_id: z.string().optional().or(z.literal('')),
   planned_start: z.string().optional().or(z.literal('')),
   planned_end: z.string().optional().or(z.literal('')),
+  service_mode: z.enum(['execute', 'assessment']).optional(),
 })
 
 type ProjectFormValues = z.infer<typeof projectSchema>
@@ -118,6 +120,7 @@ export function ProjectForm({
       contact_site_id: '',
       planned_start: '',
       planned_end: '',
+      service_mode: 'execute',
     },
   })
 
@@ -147,6 +150,8 @@ export function ProjectForm({
         contact_site_id: editProject.contact_site_id ?? '',
         planned_start: toDateInputValue(editProject.planned_start),
         planned_end: toDateInputValue(editProject.planned_end),
+        service_mode:
+          (editProject.service_mode as 'execute' | 'assessment' | null) ?? 'execute',
       })
     } else {
       reset({
@@ -161,6 +166,7 @@ export function ProjectForm({
         contact_site_id: initialContactSiteId ?? '',
         planned_start: '',
         planned_end: '',
+        service_mode: 'execute',
       })
     }
   }, [open, editProject, reset, isFieldService, initialClientId, initialContactSiteId, departments, sites])
@@ -245,6 +251,22 @@ export function ProjectForm({
             planned_end: values.planned_end || null,
           },
         })
+        if (isFieldService && editProject?.id) {
+          const mode = values.service_mode === 'assessment' ? 'assessment' : 'execute'
+          try {
+            await setProjectServiceMode(editProject.id, mode)
+          } catch (modeErr) {
+            console.error('[ProjectForm] set service_mode on edit failed', modeErr)
+            toast({
+              variant: 'destructive',
+              description: t(
+                'field-service:service_mode.save_failed',
+                'No s\'ha pogut desar el tipus de visita',
+              ),
+            })
+            return
+          }
+        }
         toast({ description: t('projects.toast.updated', 'Projecte actualitzat') })
         onClose()
       } else {
@@ -264,32 +286,55 @@ export function ProjectForm({
         })
 
         if (isFieldService && id) {
-          try {
-            const templates = await listPricingTemplates()
-            const def =
-              templates.find((x) => x.is_default) ??
-              templates.find((x) => /visita\s*est[aà]ndard/i.test(x.name)) ??
-              null
-            if (def) {
-              const items = await listPricingTemplateItems(def.id)
-              const quantities: Record<string, number> = {}
-              for (const item of items) {
-                quantities[item.id] = Number(item.default_quantity ?? 1)
+          const mode = values.service_mode === 'assessment' ? 'assessment' : 'execute'
+          if (mode === 'assessment') {
+            try {
+              await setProjectServiceMode(id, 'assessment')
+            } catch (modeErr) {
+              console.error('[ProjectForm] set service_mode failed', modeErr)
+              toast({
+                variant: 'destructive',
+                title: t(
+                  'field-service:service_mode.save_failed',
+                  'No s\'ha pogut desar el tipus de visita',
+                ),
+                description: t(
+                  'field-service:service_mode.save_failed_create_help',
+                  'L’ordre s’ha creat com a execució. Canvia el tipus a la capçalera de l’ordre.',
+                ),
+              })
+              onClose()
+              navigate(`/field/orders/${id}?tab=prepare`)
+              return
+            }
+          } else {
+            try {
+              const templates = await listPricingTemplates()
+              const def =
+                templates.find((x) => x.is_default) ??
+                templates.find((x) => /visita\s*est[aà]ndard/i.test(x.name)) ??
+                null
+              if (def) {
+                const items = await listPricingTemplateItems(def.id)
+                const quantities: Record<string, number> = {}
+                for (const item of items) {
+                  quantities[item.id] = Number(item.default_quantity ?? 1)
+                }
+                await applyPricingTemplate({
+                  projectId: id,
+                  templateId: def.id,
+                  quantities,
+                })
               }
-              await applyPricingTemplate({
-                projectId: id,
-                templateId: def.id,
-                quantities,
+            } catch (applyErr) {
+              console.warn('[ProjectForm] default pricing template apply failed', applyErr)
+              toast({
+                description: t(
+                  'projects.toast.template_apply_skipped',
+                  'Ordre creada; no s’ha pogut aplicar el servei habitual per defecte.',
+                ),
               })
             }
-          } catch (applyErr) {
-            console.warn('[ProjectForm] default pricing template apply failed', applyErr)
-            toast({
-              description: t(
-                'projects.toast.template_apply_skipped',
-                'Ordre creada; no s’ha pogut aplicar el servei habitual per defecte.',
-              ),
-            })
           }
         }
 
@@ -377,6 +422,31 @@ export function ProjectForm({
               </select>
             </div>
           </div>
+          {isFieldService && (
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="project-service-mode">
+                {t('field-service:service_mode.label', 'Tipus de visita')}
+              </label>
+              <select
+                id="project-service-mode"
+                {...register('service_mode')}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="execute">
+                  {t('field-service:service_mode.execute', 'Execució')}
+                </option>
+                <option value="assessment">
+                  {t('field-service:service_mode.assessment', 'Avaluació')}
+                </option>
+              </select>
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  'field-service:service_mode.help',
+                  'Avaluació: visita per valorar i fer pressupost des d’oficina (sense pack de preus per defecte).',
+                )}
+              </p>
+            </div>
+          )}
           <p id="project-type-help" className="text-xs text-muted-foreground -mt-2">
             {projectType === 'work_order'
               ? (isFieldService

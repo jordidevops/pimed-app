@@ -1,24 +1,26 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/contexts/TenantContext'
+import { usePermission } from '@/hooks/usePermission'
+import { usePriceSheetTitle } from '@/hooks/useSectorLabel'
+import { rememberQuoteComposerChatContext } from '@/features/commercial/utils/quoteComposerChatContext'
 import { ProjectLineForm } from './ProjectLineForm'
 import { ApplyPricingTemplateDialog } from '@/features/commercial/components/ApplyPricingTemplateDialog'
 import { CopyFromJobDialog } from '@/features/commercial/components/CopyFromJobDialog'
 import { SaveAsHabitDialog } from '@/features/commercial/components/SaveAsHabitDialog'
+import { PriceSheetAiComposer } from '@/features/commercial/components/PriceSheetAiComposer'
 import {
   cancelCommercialDocument,
   listProjectCommercialDocuments,
-  rejectCommercialDocument,
 } from '@/features/commercial/api/commercialFlowService'
-import {
-  commercialDocumentDivergesFromLiveTotal,
-  liveProjectLinesTotalCents,
-} from '@/features/commercial/utils/quotePriceDrift'
-import { effectiveCommercialDocumentStatus } from '@/features/commercial/utils/pendingCommercialAction'
+import { CommercialNativeSignDialog } from '@/features/commercial/components/CommercialNativeSignDialog'
+import { resolvePriceSheetMutability } from '@/features/commercial/utils/priceSheetMutability'
+import { priceSheetRpcErrorCopy, priceSheetRpcErrorTitle } from '@/features/commercial/utils/rpcError'
 import type { Database } from '@/types/database.types'
 
 type ProjectLine = Database['api']['Views']['project_lines']['Row']
@@ -41,14 +43,22 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { activeRole } = useTenant()
+  const canEditPricing = usePermission('commercial.pricing.edit')
   const canSaveHabit = activeRole === 'owner' || activeRole === 'manager'
+  const priceSheetTitle = usePriceSheetTitle()
 
   const [addingLine, setAddingLine] = useState(false)
   const [editLine, setEditLine] = useState<ProjectLine | null>(null)
   const [templateOpen, setTemplateOpen] = useState(false)
   const [copyOpen, setCopyOpen] = useState(false)
   const [habitOpen, setHabitOpen] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
   const [quoteBusy, setQuoteBusy] = useState(false)
+  const [rejectQuoteId, setRejectQuoteId] = useState<string | null>(null)
+
+  useEffect(() => {
+    rememberQuoteComposerChatContext({ projectId, tab: 'prepare' })
+  }, [projectId])
 
   const {
     data: lines = [],
@@ -74,18 +84,26 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
     enabled: !!projectId,
   })
 
-  const latestQuote = commercialDocs.find((doc) => doc.doc_type === 'quote')
-  const latestQuoteStatus = latestQuote
-    ? effectiveCommercialDocumentStatus(latestQuote)
-    : null
-  const liveCents = liveProjectLinesTotalCents(lines)
-  const quoteDiverges =
-    !!latestQuote &&
-    commercialDocumentDivergesFromLiveTotal(Number(latestQuote.total), liveCents)
-  const issuedQuoteDiverges = quoteDiverges && latestQuoteStatus === 'issued'
-  const acceptedQuoteDiverges =
-    quoteDiverges &&
-    (latestQuoteStatus === 'accepted' || latestQuoteStatus === 'signed')
+  const mutability = useMemo(
+    () =>
+      resolvePriceSheetMutability({
+        documents: commercialDocs,
+        canEditPricing,
+      }),
+    [commercialDocs, canEditPricing],
+  )
+  const canMutate = mutability.canMutateStructure
+  const blockingDoc = mutability.blockingDocument
+
+  useEffect(() => {
+    if (!canMutate) {
+      setAddingLine(false)
+      setEditLine(null)
+      setTemplateOpen(false)
+      setCopyOpen(false)
+      setAiOpen(false)
+    }
+  }, [canMutate])
 
   // ─── Totals ─────────────────────────────────────────────────────────────────
 
@@ -101,10 +119,12 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
       if (error) throw error
       queryClient.invalidateQueries({ queryKey: ['project_lines', projectId] })
       queryClient.invalidateQueries({ queryKey: ['commercial_documents', projectId] })
-    } catch {
+    } catch (err) {
+      const copy = priceSheetRpcErrorCopy(err, priceSheetTitle)
       toast({
         variant: 'destructive',
-        title: t('projects.lines.errors.delete_failed', 'Error en eliminar la línia'),
+        title: priceSheetRpcErrorTitle(t, copy),
+        description: t(copy.descriptionKey, copy.descriptionFallback),
       })
     }
   }
@@ -124,7 +144,7 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-lg font-semibold text-foreground">
-            {t('projects.lines.title', 'Full de preus')}
+            {priceSheetTitle}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {t(
@@ -133,10 +153,13 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
             )}
           </p>
         </div>
-        {!addingLine && !editLine && (
+        {!addingLine && !editLine && canMutate && (
           <div className="flex shrink-0 flex-col sm:flex-row gap-2">
             <Button size="sm" variant="outline" onClick={() => setCopyOpen(true)}>
               {t('projects.lines.copy_from_job', "Copiar d'una feina")}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setAiOpen(true)}>
+              {t('projects.lines.ai_fill', 'Omplir amb IA')}
             </Button>
             {canSaveHabit && lines.length > 0 ? (
               <Button size="sm" variant="outline" onClick={() => setHabitOpen(true)}>
@@ -172,20 +195,32 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
         open={habitOpen}
         onClose={() => setHabitOpen(false)}
       />
+      <PriceSheetAiComposer
+        projectId={projectId}
+        currentLineCount={lines.length}
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        onApplied={handleLineSaved}
+      />
 
-      {issuedQuoteDiverges && latestQuote ? (
+      {mutability.structureLocked && blockingDoc ? (
         <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950/30 space-y-2">
           <p className="text-sm font-medium">
             {t(
-              'projects.commercial.price_drift_issued_title',
-              'El full de preus ja no coincideix amb el pressupost emès',
+              'projects.lines.locked_issued_title',
+              'No es pot modificar el full mentre hi ha un pressupost en curs',
             )}
           </p>
           <p className="text-xs text-muted-foreground">
-            {t(
-              'projects.commercial.price_drift_issued_help',
-              'El client veu l’import del document. Per crear-ne un de nou, descarta o refusa l’actual.',
-            )}
+            {blockingDoc.doc_type === 'quote_amendment'
+              ? t(
+                  'projects.lines.locked_issued_amendment_help',
+                  'Hi ha una ampliació emesa. Descarta-la o espera l’aprovació abans de canviar el full de preus.',
+                )
+              : t(
+                  'projects.lines.locked_issued_help',
+                  'Hi ha un pressupost emès. Descarta’l o refusa’l si cal crear-ne un de nou, o espera la resposta del client.',
+                )}
           </p>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -197,7 +232,7 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
                 void (async () => {
                   setQuoteBusy(true)
                   try {
-                    await cancelCommercialDocument({ documentId: latestQuote.id })
+                    await cancelCommercialDocument({ documentId: blockingDoc.id })
                     toast({
                       title: t('projects.commercial.cancelled', 'Pressupost descartat'),
                     })
@@ -216,55 +251,40 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
             >
               {t('projects.commercial.discard', 'Descartar')}
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={quoteBusy}
-              onClick={() => {
-                void (async () => {
-                  setQuoteBusy(true)
-                  try {
-                    await rejectCommercialDocument({ documentId: latestQuote.id })
-                    toast({ title: t('projects.commercial.rejected', 'Refusat') })
-                    queryClient.invalidateQueries({ queryKey: ['commercial_documents', projectId] })
-                  } catch (err) {
-                    toast({
-                      variant: 'destructive',
-                      title: t('projects.commercial.error', 'Error comercial'),
-                      description: err instanceof Error ? err.message : undefined,
-                    })
-                  } finally {
-                    setQuoteBusy(false)
-                  }
-                })()
-              }}
-            >
-              {t('projects.commercial.reject', 'Refusar')}
-            </Button>
+            {blockingDoc.doc_type === 'quote' ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={quoteBusy}
+                onClick={() => setRejectQuoteId(blockingDoc.id)}
+              >
+                {t('projects.commercial.reject', 'Refusar')}
+              </Button>
+            ) : null}
           </div>
         </div>
       ) : null}
 
-      {acceptedQuoteDiverges ? (
+      {mutability.showAcceptedBanner ? (
         <div className="rounded-lg border border-border bg-muted/40 px-3 py-2">
           <p className="text-sm font-medium">
             {t(
-              'projects.commercial.price_drift_accepted_title',
-              'El full intern no coincideix amb l’import autoritzat',
+              'projects.lines.accepted_banner_title',
+              'El pressupost acceptat no es modifica',
             )}
           </p>
           <p className="text-xs text-muted-foreground">
             {t(
-              'projects.commercial.price_drift_accepted_help',
-              'El pressupost acceptat no es descarta. Si cal, fes una ampliació o revisa les desviacions.',
+              'projects.lines.accepted_banner_help',
+              'Pots actualitzar el full intern (hores, materials). Els canvis d’import es resolen amb una ampliació a Preparar o a Desviacions en tancar la visita.',
             )}
           </p>
         </div>
       ) : null}
 
       {/* Inline add form */}
-      {addingLine && (
+      {addingLine && canMutate && (
         <div className="rounded-xl border border-border bg-card p-4">
           <ProjectLineForm
             projectId={projectId}
@@ -290,10 +310,12 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
           <p className="text-sm text-muted-foreground">
             {t('projects.lines.empty', "No hi ha línies d'imports")}
           </p>
-          <Button variant="outline" size="sm" onClick={() => setAddingLine(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            {t('projects.lines.add_line', 'Afegir línia')}
-          </Button>
+          {canMutate ? (
+            <Button variant="outline" size="sm" onClick={() => setAddingLine(true)}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              {t('projects.lines.add_line', 'Afegir línia')}
+            </Button>
+          ) : null}
         </div>
       ) : lines.length > 0 ? (
         <>
@@ -315,21 +337,27 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
                   className="rounded-xl border border-border bg-card p-4 space-y-2"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <button
-                      type="button"
-                      className="text-left font-medium text-foreground hover:underline"
-                      onClick={() => setEditLine(line)}
-                    >
-                      {line.name}
-                    </button>
-                    <button
-                      type="button"
-                      title={t('projects.lines.delete_line', 'Eliminar línia')}
-                      onClick={() => handleDelete(line)}
-                      className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {canMutate ? (
+                      <button
+                        type="button"
+                        className="text-left font-medium text-foreground hover:underline"
+                        onClick={() => setEditLine(line)}
+                      >
+                        {line.name}
+                      </button>
+                    ) : (
+                      <span className="font-medium text-foreground">{line.name}</span>
+                    )}
+                    {canMutate ? (
+                      <button
+                        type="button"
+                        title={t('projects.lines.delete_line', 'Eliminar línia')}
+                        onClick={() => handleDelete(line)}
+                        className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    ) : null}
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground tabular-nums">
                     <span>
@@ -421,18 +449,29 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
                   ) : (
                     <>
                       <td className="px-4 py-2.5 text-foreground font-medium">
-                        <button
-                          type="button"
-                          className="text-left hover:underline"
-                          onClick={() => setEditLine(line)}
-                        >
-                          {line.name}
-                          {line.catalog_item_sku && (
-                            <span className="ml-1.5 text-xs text-muted-foreground font-mono">
-                              {line.catalog_item_sku}
-                            </span>
-                          )}
-                        </button>
+                        {canMutate ? (
+                          <button
+                            type="button"
+                            className="text-left hover:underline"
+                            onClick={() => setEditLine(line)}
+                          >
+                            {line.name}
+                            {line.catalog_item_sku && (
+                              <span className="ml-1.5 text-xs text-muted-foreground font-mono">
+                                {line.catalog_item_sku}
+                              </span>
+                            )}
+                          </button>
+                        ) : (
+                          <span>
+                            {line.name}
+                            {line.catalog_item_sku && (
+                              <span className="ml-1.5 text-xs text-muted-foreground font-mono">
+                                {line.catalog_item_sku}
+                              </span>
+                            )}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
                         {line.quantity ?? '—'}
@@ -460,14 +499,16 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
                           : '—'}
                       </td>
                       <td className="px-2 py-2.5 text-right">
-                        <button
-                          type="button"
-                          title={t('projects.lines.delete_line', 'Eliminar línia')}
-                          onClick={() => handleDelete(line)}
-                          className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {canMutate ? (
+                          <button
+                            type="button"
+                            title={t('projects.lines.delete_line', 'Eliminar línia')}
+                            onClick={() => handleDelete(line)}
+                            className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        ) : null}
                       </td>
                     </>
                   )}
@@ -505,6 +546,18 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
           </table>
           </div>
         </>
+      ) : null}
+
+      {rejectQuoteId ? (
+        <CommercialNativeSignDialog
+          documentId={rejectQuoteId}
+          action="reject"
+          open
+          onClose={() => setRejectQuoteId(null)}
+          onCompleted={() => {
+            void queryClient.invalidateQueries({ queryKey: ['commercial_documents', projectId] })
+          }}
+        />
       ) : null}
     </div>
   )

@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase'
 import { useProjectWorkLogSummary } from '@/features/projects/api/useProjectWorkLogSummary'
-import { getContact } from '@/features/contacts/api/contactsService'
 import {
   formatQuantityChip,
   quantityChipsForUnit,
@@ -18,10 +17,16 @@ import {
   acceptCommercialDocument,
   issueCommercialDocument,
   listProjectCommercialDocuments,
+  projectHasQuoteWaiver,
 } from '@/features/commercial/api/commercialFlowService'
 import {
   parseDeviationApprovalThresholdEur,
 } from '@/features/commercial/utils/deviationApprovalThreshold'
+import {
+  effectiveProjectCommercialPolicy,
+  parseCommercialRegimes,
+  resolveProjectCommercialSnapshot,
+} from '@/features/commercial/utils/commercialRegimePolicy'
 import { useEffectiveSettings } from '@/hooks/useSettings'
 import { usePermission } from '@/hooks/usePermission'
 import { useTenant } from '@/contexts/TenantContext'
@@ -109,12 +114,6 @@ export function CloseOutDeviationsCard({
     enabled: !!projectId,
   })
 
-  const { data: client, isLoading: clientLoading } = useQuery({
-    queryKey: ['contacts', project?.client_id],
-    queryFn: () => getContact(project!.client_id!),
-    enabled: !!project?.client_id,
-  })
-
   const { data: docs = [] } = useQuery({
     queryKey: ['commercial_documents', projectId],
     queryFn: () => listProjectCommercialDocuments(projectId),
@@ -169,15 +168,40 @@ export function CloseOutDeviationsCard({
   const authorizedTotal = Number(
     (project as { authorized_total?: number | null } | null | undefined)?.authorized_total ?? 0,
   )
-  const isConsumer = clientLoading || !client
-    ? true
-    : Boolean(
-        (client as { is_consumer?: boolean | null }).is_consumer ??
-          (client as { kind?: string | null }).kind === 'person',
-      )
+  const snap = resolveProjectCommercialSnapshot(project)
+
+  const tenantRegimes = useMemo(
+    () => parseCommercialRegimes(effective),
+    [effective],
+  )
+  const commercialPolicy = useMemo(
+    () =>
+      effectiveProjectCommercialPolicy({
+        commercialRegime: snap.commercialRegime,
+        serviceMode: snap.serviceMode,
+        tenantRegimes,
+      }),
+    [snap.commercialRegime, snap.serviceMode, tenantRegimes],
+  )
+
+  const { data: hasWaiver = false } = useQuery({
+    queryKey: ['quote_waivers', projectId],
+    queryFn: () => projectHasQuoteWaiver(projectId),
+    enabled: !!projectId,
+  })
+
   const overAuthorized = estimatedTotal > authorizedTotal + 0.009
   const overageAmount = Math.max(0, estimatedTotal - authorizedTotal)
-  const blockOverage = isConsumer && overAuthorized
+  // Align with SQL: only 'block' prevents close; assessment/off/warn do not.
+  const blockOverage =
+    overAuthorized &&
+    !hasWaiver &&
+    commercialPolicy.overage_on_close === 'block'
+  const warnOverage =
+    overAuthorized &&
+    !hasWaiver &&
+    !blockOverage &&
+    commercialPolicy.overage_on_close === 'warn'
   const canAutoAcceptAmendment =
     canEditPricing && overageAmount <= approvalThreshold + 0.009
   const pendingIssuedAmendment = docs.some(
@@ -498,11 +522,11 @@ export function CloseOutDeviationsCard({
                 )}
               </div>
             )}
-            {!isConsumer && overAuthorized && (
+            {warnOverage && (
               <p className="mt-1 text-xs">
                 {t(
-                  'closeout.deviations.b2b_warning',
-                  'Client B2B: es pot continuar, però queda registrat que se supera l’autoritzat.',
+                  'closeout.deviations.overage_warn',
+                  'Se supera l’autoritzat: es pot tancar la visita, però cal revisar el sobrecost.',
                 )}
               </p>
             )}

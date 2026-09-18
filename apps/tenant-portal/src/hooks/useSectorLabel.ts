@@ -1,20 +1,29 @@
 import { useTranslation } from 'react-i18next'
 import { useTenant } from '@/contexts/TenantContext'
+import { useEffectiveSettings } from '@/hooks/useSettings'
+import { resolveTerm } from '@/features/terminology/resolveTerm'
 
-export type SectorLabelKey = 'project' | 'contact' | string
+export type SectorLabelKey = 'project' | 'project_plural' | 'contact' | 'contacts' | 'price_sheet' | string
 
 /**
- * Resolves a sector_profiles.labels key for the active tenant.
- * Falls back to the provided default when the archetype has no override.
+ * Resolves tenant overlay → sector_profiles.labels → fallback.
  */
 export function useSectorLabel(key: SectorLabelKey, fallback: string): string {
   const { activeTenant } = useTenant()
-  const labels = activeTenant?.sector_labels
-  if (labels && typeof labels === 'object' && !Array.isArray(labels)) {
-    const value = (labels as Record<string, unknown>)[key]
-    if (typeof value === 'string' && value.trim()) return value
-  }
-  return fallback
+  const { data: settings } = useEffectiveSettings(
+    { tenantId: activeTenant?.id ?? null },
+    { enabled: !!activeTenant?.id },
+  )
+  return resolveTerm(key, {
+    tenant: settings?.terminology,
+    sector: activeTenant?.sector_labels,
+    fallback,
+  })
+}
+
+export function usePriceSheetTitle(): string {
+  const { t } = useTranslation('projects')
+  return useSectorLabel('price_sheet', t('projects.lines.title', 'Full de preus'))
 }
 
 export function useIsFieldService(): boolean {
@@ -22,7 +31,7 @@ export function useIsFieldService(): boolean {
   return activeTenant?.archetype === 'field_service'
 }
 
-/** List/nav label for `/contacts`: plural in field service ("Clients"), singular sector override otherwise. */
+/** List/nav label for `/contacts`: plural overlay/seed, then FSM i18n, then singular. */
 export function useSectorContactListLabel(): string {
   const { t } = useTranslation('common')
   const { t: tField } = useTranslation('field-service')

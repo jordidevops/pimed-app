@@ -8,6 +8,7 @@ export const SUBMISSIONS_PAGE_SIZE = 20
 export interface SubmissionsFilter {
   status?:      SigningStatus
   source_type?: 'document_existing' | 'template_locale'
+  signing_provider?: 'native' | 'docuseal'
   date_from?:   string
   date_to?:     string
 }
@@ -54,6 +55,11 @@ export function useSigningSubmissions(
 
       if (filters.status)      q = q.eq('status', filters.status)
       if (filters.source_type) q = q.eq('source_type', filters.source_type)
+      if (filters.signing_provider === 'native') {
+        q = q.eq('signing_provider', 'native')
+      } else if (filters.signing_provider === 'docuseal') {
+        q = q.or('signing_provider.eq.docuseal,signing_provider.is.null')
+      }
       if (filters.date_from)   q = q.gte('created_at', filters.date_from)
       if (filters.date_to)     q = q.lte('created_at', filters.date_to)
 

@@ -16,6 +16,12 @@ import {
   Table2, Plus, Minus, Trash2,
 } from 'lucide-react'
 import DOMPurify from 'dompurify'
+import type { CommercialFullBodyCategory } from '../utils/templateCategories'
+import {
+  COMMERCIAL_SIGNATURE_BOX_STYLE,
+  commercialSignatureHtml,
+  commercialSigningRolesToEnsure,
+} from '../utils/commercialSignatureFields'
 
 // ─── Tipus ─────────────────────────────────────────────────────────────────────
 
@@ -121,6 +127,9 @@ interface TemplateHtmlEditorProps {
   /** Crida automàticament en inserir un camp path-based des del catàleg perquè el pare
    *  el pugui registrar a variables_schema i garantir la resolució server-side */
   onAddVariable?:    (key: string) => void
+  /** Plantilla de pressupost/albarà: inserció dels camps §3/§4 (mateixa mida). */
+  fullBodyCategory?: CommercialFullBodyCategory | null
+  onAddSigningRoles?: (roles: ReturnType<typeof commercialSigningRolesToEnsure>) => void
 }
 
 // Escapa valors d'atributs HTML per prevenir injecció
@@ -137,6 +146,8 @@ export function TemplateHtmlEditor({
   variableKeys,
   signingRolesDefs,
   onAddVariable: _onAddVariable,
+  fullBodyCategory,
+  onAddSigningRoles,
 }: TemplateHtmlEditorProps) {
   const { t } = useTranslation('signing')
   const [showRaw, setShowRaw] = useState(false)
@@ -198,19 +209,32 @@ export function TemplateHtmlEditor({
   function insertSigningField() {
     const { fieldType, fieldName, role, required } = fieldDialog
     const tag = FIELD_TAG[fieldType]
-    const fieldHtml = `<${tag} name="${escapeAttr(fieldName)}" role="${escapeAttr(role)}" required="${required}" style="width:150px;height:50px;display:inline-block;"> </${tag}>`
+    const boxStyle = fullBodyCategory
+      ? COMMERCIAL_SIGNATURE_BOX_STYLE
+      : 'width:150px;height:50px;display:inline-block;'
+    const fieldHtml = `<${tag} name="${escapeAttr(fieldName)}" role="${escapeAttr(role)}" required="${required}" style="${boxStyle}"> </${tag}>`
+    appendRawHtml(fieldHtml)
+    setFieldDialog(d => ({ ...d, open: false }))
+  }
+
+  function insertCommercialSignatureBlock() {
+    if (!fullBodyCategory) return
+    appendRawHtml(commercialSignatureHtml(fullBodyCategory))
+    onAddSigningRoles?.(commercialSigningRolesToEnsure(fullBodyCategory))
+  }
+
+  function appendRawHtml(fragment: string) {
     const current = rawHtml || editor?.getHTML() || ''
-    const newHtml = current + '\n' + fieldHtml
+    const newHtml = current + '\n' + fragment
     const clean = DOMPurify.sanitize(newHtml, {
       ADD_TAGS: ['signature-field', 'text-field', 'date-field', 'initials-field', 'number-field', 'checkbox-field', 'image-field',
                  'table', 'thead', 'tbody', 'tr', 'th', 'td', 'colgroup', 'col'],
-      ADD_ATTR: ['name', 'role', 'required', 'style', 'colspan', 'rowspan', 'data-type'],
+      ADD_ATTR: ['name', 'role', 'required', 'style', 'colspan', 'rowspan', 'data-type', 'class'],
     })
     setRawHtml(clean)
     editor?.commands.setContent(clean)
     onChange(clean)
     setShowRaw(true)
-    setFieldDialog(d => ({ ...d, open: false }))
   }
 
   // ── Inserció de taula ──────────────────────────────────────────────────────
@@ -347,6 +371,24 @@ export function TemplateHtmlEditor({
           >
             <PenLine className="h-3.5 w-3.5" />
             {t('html.insertField', 'Camp firma')}
+          </Button>
+        )}
+        {fullBodyCategory && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 gap-1 text-xs"
+            onClick={insertCommercialSignatureBlock}
+            title={t(
+              'html.insertCommercialSignaturesHint',
+              'Insereix les caselles de signatura obligatòries (mateixa mida, 220×70).',
+            )}
+          >
+            <PenLine className="h-3.5 w-3.5" />
+            {fullBodyCategory === 'delivery_note'
+              ? t('html.insertDeliverySignature', 'Conformitat')
+              : t('html.insertQuoteSignatures', 'Accepto / Refuso')}
           </Button>
         )}
 

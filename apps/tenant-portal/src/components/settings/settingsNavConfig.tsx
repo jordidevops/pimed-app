@@ -184,7 +184,7 @@ export function buildSettingsNavItems({
       show: isManagerOrOwner,
     },
     {
-      to: '/field/checklist-templates',
+      to: '/settings/field/checklist-templates',
       labelKey: 'tabs.checklist_templates',
       labelDefault: 'Plantilles de checklist',
       icon: ListChecks,
@@ -192,7 +192,7 @@ export function buildSettingsNavItems({
       show: isManagerOrOwner,
     },
     {
-      to: '/field/checklist-points',
+      to: '/settings/field/checklist-points',
       labelKey: 'tabs.checklist_points',
       labelDefault: 'Punts de revisió',
       icon: ListTree,
@@ -200,7 +200,7 @@ export function buildSettingsNavItems({
       show: isManagerOrOwner,
     },
     {
-      to: '/field/response-sets',
+      to: '/settings/field/response-sets',
       labelKey: 'tabs.response_sets',
       labelDefault: 'Conjunts de respostes',
       icon: ListChecks,

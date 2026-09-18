@@ -13,6 +13,7 @@ import { ThemeCustomizer } from '../../components/ThemeCustomizer'
 import { FieldServiceHomePreferenceCard } from '@/features/field-service/components/FieldServiceHomePreferenceCard'
 import { useFieldServiceHome } from '@/features/field-service/hooks/useFieldServiceHome'
 import { useIsFieldService } from '@/hooks/useSectorLabel'
+import { TerminologySettingsSection } from '@/features/terminology/TerminologySettingsSection'
 
 // ─── Level badge ─────────────────────────────────────────────────────────────
 
@@ -286,6 +287,8 @@ export function ConfigPage() {
               </div>
             </SettingsSection>
           )}
+
+          {!previewSiteId && <TerminologySettingsSection />}
 
           {!previewSiteId && (
             <SettingsSection

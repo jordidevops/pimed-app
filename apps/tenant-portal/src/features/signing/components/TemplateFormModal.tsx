@@ -957,6 +957,23 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
                       signingRoles={roleRows.map(r => r.roleName)}
                       signingRolesDefs={roleRows.filter(r => r.roleName).map(r => ({ name: r.roleName, entity_type: r.entity_type }))}
                       variableKeys={varRows.map(r => r.key).filter(Boolean)}
+                      fullBodyCategory={isFullBodyTemplateCategory(localeCategory) ? localeCategory : null}
+                      onAddSigningRoles={(roles) => {
+                        setRoleRows(prev => {
+                          const existing = new Set(prev.map(r => r.roleName))
+                          const maxOrder = prev.reduce((m, r) => Math.max(m, r.order), 0)
+                          const extra = roles
+                            .filter(r => !existing.has(r.roleName))
+                            .map((r, i) => ({
+                              roleName: r.roleName,
+                              entity_type: r.entity_type,
+                              label: r.label,
+                              order: maxOrder + i + 1,
+                              for_signing: r.for_signing,
+                            }))
+                          return extra.length ? [...prev, ...extra] : prev
+                        })
+                      }}
                       onAddVariable={(key) => {
                         setVarRows(prev => {
                           if (prev.some(r => r.key === key)) return prev

@@ -241,6 +241,9 @@ export const BASE_ROLE_PERMISSIONS: Record<Exclude<Role, 'owner'>, PermissionKey
     'contacts.portal.manage',
     'attendance.punch_own',
     'absences.request',
+    // FSM default: technicians compose the price sheet (also unlocks amendment
+    // auto-accept under the office threshold — intentional for this product).
+    'commercial.pricing.edit',
   ],
   manager: [
     'storage.delete',

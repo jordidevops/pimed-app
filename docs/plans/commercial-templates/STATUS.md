@@ -1,6 +1,6 @@
 # Plantilles comercials — Estat d'implementació
 
-> **Última actualització:** 2026-09-17 (QT-7 tancat)
+> **Última actualització:** 2026-09-18 (estampat a etiqueta + snapshot NIF/tax_base + via jurídica)
 > **Propòsit:** seguir el desenvolupament dels epics QT i deixar constància honesta del que falta.
 > **Pla:** [`README.md`](./README.md) · backlog [`06-phases-and-backlog.md`](./06-phases-and-backlog.md) · ordre [`EXECUTION.md`](./EXECUTION.md)
 
@@ -18,15 +18,15 @@
 
 ## Resum
 
-**QT-7 tancat.** Pujada/clonació/preview DOCX de `quote`/`delivery_note` al catàleg. Següent: **QT-8** (sessió nova). El text legal del seed **no** és assessorament jurídic. Fitxers DOCX de plataforma: després de cada `db reset`, `cd scripts && node generate-docx-seed.mjs` (inclou comercials) — veure [`scripts/README.md`](../../../scripts/README.md).
+**QT-10 tancat.** Un pressupost/albarà firmat natiu apareix al Centre de signatures amb el badge «Firma pròpia» i el mateix panell d'integritat que un document DMS. Pla d'epics QT-0…QT-10 tancat. Follow-up 2026-09-18: sentinel «Cap», enllaç al PDF firmat, tab Document, trigger/office gate. Estampat natiu: gate Gotenberg `detectFieldForRole(client_accept)` sobre HTML de cos complet; fail-closed si el PDF té `[FIRMA:` i el rol no es resol. Identitat emissor + `tax_base` a l'emissió. El text legal **no** és assessorament jurídic (via §6 de `01`).
 
-Decisions tancades: fallback intacte, categories `quote`/`delivery_note` noves i mútuament excloents amb `commercial`, HTML primer/DOCX fase 2, contracte signat només forward-compat (sense epic), firma real via motor natiu del DMS (Fase 3). Contracte de variables i tokens de `validate_commercial_template_locale` congelats a [`01-context-and-legal-content.md`](./01-context-and-legal-content.md) §1 i §2.1.
+Decisions tancades: fallback intacte, categories `quote`/`delivery_note` noves i mútuament excloents amb `commercial`, HTML primer/DOCX fase 2, contracte signat només forward-compat (sense epic), firma real via motor natiu del DMS (Fase 3). Tokens de `validate_commercial_template_locale` congelats (§2.1). §1 reobert 2026-09-18 només per `tax_base` (QT-D12).
 
 ## Fase 1 — HTML de cos complet
 
 | Epic | Nom | Estat | Notes |
 |------|-----|-------|-------|
-| QT-0 | Contracte de context + validació legal | ✅ | Congelat 2026-09-17. Mapeig §1.3 verificat contra snapshots reals. Sense SQL. |
+| QT-0 | Contracte de context + validació legal | ✅ | Congelat 2026-09-17. `tax_base` a §1 des del 2026-09-18 (QT-D12). §2.1 intacte. |
 | QT-1 | Migració DB | ✅ | `20261160000014`. Proves `commercial_templates_qt1_full_body_tests.sql` PASS. Revisat 2026-09-17. |
 | QT-2 | Motor de renderitzat | ✅ | Context Liquid + branca HTML. DOCX de cos complet a QT-6. |
 | QT-3 | Repositori de plantilles HTML | ✅ | `20261164000001`. 5 quotes + 1 albarà, ca/es. Tokens §2.1 presents (incl. `<signature-field>` de §3/§4). Clàusules pendents de revisió jurídica. |
@@ -44,9 +44,9 @@ Decisions tancades: fallback intacte, categories `quote`/`delivery_note` noves i
 
 | Epic | Nom | Estat | Notes |
 |------|-----|-------|-------|
-| QT-8 | Autoria de camps de signatura | ❌ | Depèn de QT-3 |
-| QT-9 | Pipeline de firma nativa | ❌ | Depèn de QT-2, QT-8 i de la Fase 4 (pendent) del pla de signatures |
-| QT-10 | Submission Hub | ❌ | Depèn de QT-9; backend/Centre d'aquell pla (Fase 1+3) ja fets, no bloqueja |
+| QT-8 | Autoria de camps de signatura | ✅ | Seeds HTML+DOCX + botó d'inserció 220×70 |
+| QT-9 | Pipeline de firma nativa | ✅ | `sign_native` + payload d'events; stamp/router intactes |
+| QT-10 | Submission Hub | ✅ | Vista hub + Centre: badge nativa, auditoria, enllaç al document comercial |
 
 ## Changelog
 
@@ -66,4 +66,11 @@ Decisions tancades: fallback intacte, categories `quote`/`delivery_note` noves i
 | 2026-09-17 | **Bugfix post-QT-5.** El PDF no usava la plantilla clonada: `render-commercial-document` llegia `data.document_templates` via PostgREST, però `config.toml` no exposa l’esquema `data`. Nova RPC `api.get_commercial_full_body_locale` (SECURITY DEFINER). PDFs cachejats amb `full_body_template_id` es regeneren. Imprimir HTML i vista del document usen el mateix HTML. QT-D1 intacte si no hi ha plantilla. |
 | 2026-09-17 | **Dates + tabs.** Camps `*_display` (ISO intacte, QT-D11). RPC `get_commercial_display_formats`. Plantilles `quote`/`delivery_note` (plataforma i clons) interpolen `issued_at_display`/`valid_until_display`. Vista de pressupost: tabs Resum / Document. PDFs cachejats regenerats. Firma nativa no implementada. |
 | 2026-09-17 | **QT-6 tancat.** Gate worker: `process-document-pdf-queue` ja fa `docxToPdf` i `persistCommercialRenderedPdf` per `commercial_document`. Seed `generate-commercial-docx-seed.mjs` (helpers `linesTable`/`totalsBlock`/`acceptRejectBlock`, IDs 74/75/748/749). Prova Docxtemplater: cal `dottedPathParser` (sense aplanar el context). RPC `get_commercial_full_body_locale` retorna `storage_path`. Render: descarrega bucket `document-templates`, `renderDocx` + `injectDocxSignatureMarkers`, Gotenberg síncron o cua `p_template_type=docx`. Fallback QT-D1 intacte. Tests SQL QT-6 + QT-3/QT-5 PASS. Fitxers DOCX: `cd scripts && node generate-commercial-docx-seed.mjs` amb `SUPABASE_SERVICE_ROLE_KEY` per pujar-los. QT-7 no obert. |
-| 2026-09-17 | **QT-7 tancat.** Nova plantilla `quote`/`delivery_note` torna a permetre DOCX (QT-4 el forçava a HTML). Upsert i clonació passen `document.xml` cercable com a `p_html_content` (el RPC valida tokens §2.1 i desa `html_content` NULL). Sense reescriure clone RPC ni `p_acknowledge_legal_gaps`. Preview Docxtemplater usa `dottedPathParser` + `sample_values` niuats. Mismatch schema-vs-DOCX omesos per cos complet (el context no viu a `variables_schema`). Settings distingeix HTML/DOCX. Vitest 20/20. Fallback QT-D1 i `buildCommercialDocumentHtml` intactes. Sense QT-8. Fitxers seed: encara cal `generate-commercial-docx-seed.mjs` amb SERVICE_ROLE_KEY. |
+| 2026-09-17 | **QT-7 tancat.** Nova plantilla `quote`/`delivery_note` torna a permetre DOCX (QT-4 el forçava a HTML). Upsert i clonació passen `document.xml` cercable com a `p_html_content` (el RPC valida tokens §2.1 i desa `html_content` NULL). Sense reescriure clone RPC ni `p_acknowledge_legal_gaps`. Preview Docxtemplater usa `dottedPathParser` + `sample_values` niuats. Mismatch schema-vs-DOCX omesos per cos complet (el context no viu a `variables_schema`). Settings distingeix HTML/DOCX. Vitest 20/20. Fallback QT-D1 i `buildCommercialDocumentHtml` intactes. Sense QT-8. Fitxers seed: `cd scripts && node generate-docx-seed.mjs` (veure `scripts/README.md`). |
+| 2026-09-17 | **QT-8 tancat.** Acceptació detallada: 12 locales HTML de plataforma passen `validate_commercial_template_locale` sense ack i tenen `<signature-field>` 220×70 (`client_accept`/`client_reject` o `client_delivery`). 12 locales DOCX tenen els rols al `signing_roles_schema`. Editor: botó «Accepto / Refuso» o «Conformitat». SQL `commercial_templates_qt8_signature_fields_tests.sql` PASS; QT-3 regressió PASS. Sense `sign-document-router`, `stamp-pdf-signatures` ni `staff_ui` (QT-9). Fallback QT-D1 intacte. |
+| 2026-09-17 | **QT-9 tancat.** Acceptar/refusar pressupost i signar albarà van per `sign-document-router action=sign_native` (presencial `SignaturePad` o remot `/sign/:token`, sense canviar CF-11 WhatsApp/email). Events a `commercial_document_events` amb `signing_submission_id`/`signing_session_id`. Compleció remota: `commercial_signing_intents` + trigger `status=signed`. `injectHtmlSignatureMarkers`/`injectDocxSignatureMarkers` ja eren a `render-commercial-document`. `sign-document-router`, `stamp-pdf-signatures` i `signing-field-map.ts` intactes: `detectFieldForRole` en viu sobre el PDF. SQL `commercial_templates_qt9_native_signing_tests.sql` PASS; vitest native-sign PASS. Fallback QT-D1 intacte. Renúncia (`staff_ui`) i close-out (`staff_closeout`) no s'han canviat. Sense QT-10. |
+| 2026-09-17 | **QT-10 tancat.** Acceptació: un comercial firmat natiu es resol a `api.commercial_signing_hub` i es mostra al Centre amb el mateix badge «Firma pròpia» i panell d'integritat que un DMS natiu; l'enllaç del títol va a `/quotes?view=`. Filtre proveïdor DocuSeal/Firma pròpia. El document comercial enllaça al Centre. SQL `commercial_templates_qt10_signing_hub_tests.sql` PASS (resolució + aïllament); vitest hub PASS. Router/stamp/field-map i el pla de signatures intactes. Fallback QT-D1 intacte. El llistat del tenant de prova no tenia submissions; el filtre i la cerca s'han vist al Centre. |
+| 2026-09-18 | **Follow-up 2a passada.** Sentinel `none` al resolver (Settings «Cap» = QT-D1 amb clons). Hub exposa `result_*` i la vista enllaça el PDF firmat sense tocar `rendered_document_id` ni el router. Tab Document: inject 220×70, `parent_doc_number`/`tenant.name` com l'edge, sense HTML QT-D1 si la plantilla és DOCX. Trigger d'intent ja no empassa l'apply; office gate a l'apply d'ampliacions amb l'actor que va registrar. SQL `commercial_templates_review_followup_tests.sql`. |
+| 2026-09-18 | **Estampat (Fase 4, sense reobrir QT-9/10).** Gate Gotenberg: `detectFieldForRole(client_accept)` sobre HTML de cos complet amb token. Fail-closed `signature_field_not_found` si el PDF té `[FIRMA:` i el rol no es resol; sense token → peu (QT-D1). `audit_trail_storage_path` segueix sense verificar (job Edge, no SQL). |
+| 2026-09-18 | **Snapshot NIF/`tax_base`.** `api.issue_commercial_document` congela `seller.tax_id`/`address_line1` des de `tenant_legal_profiles` i `tax_breakdown.tax_base` = suma de `line_net` per tipus. Docs vells: NIF buit; `tax_base` es deriva de `line_subtotal` al context. UPDATE de locales HTML de plataforma. QT-D12. Perfil legal buit = pressupost sense NIF. |
+| 2026-09-18 | **Via jurídica.** Procediment a `01` §6: zero canvis de clàusules ara; quan torni l'advocat, editar fonts + migració UPDATE nova. Tokens §2.1 intactes. |

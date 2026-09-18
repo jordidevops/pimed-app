@@ -280,7 +280,11 @@
       "temperature": "Temperature",
       "maxTokens": "Max tokens",
       "save": "Desar",
-      "saved": "Configuració desada"
+      "saved": "Configuració desada",
+      "featurePromptsTitle": "Instruccions de tasca (compositor)",
+      "featurePromptsHint": "Aquest text s'injecta a generate-ai-content per a cada tasca. Si hi ha fila, s'ignoren les instruccions system que enviï el client. El prompt genèric del proveïdor continua aplicant-se a totes les generacions.",
+      "featurePromptInstructions": "Instruccions",
+      "featurePromptSaved": "Instruccions desades"
     }
   }
 }
