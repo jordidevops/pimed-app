@@ -5,6 +5,7 @@ import {
   commercialSettingsPatchWithFullBodyTemplates,
   commercialSettingsPatchWithThreshold,
   parseCommercialSettingId,
+  parseFormalizationModeDefault,
 } from './deviationApprovalThreshold'
 
 describe('commercial full-body settings patch', () => {
@@ -61,5 +62,17 @@ describe('commercial full-body settings patch', () => {
       { quote_template_id: commercialFullBodyTemplateSettingValue('') },
     )
     expect(next.commercial.quote_template_id).toBe(COMMERCIAL_FULL_BODY_TEMPLATE_NONE)
+  })
+
+  it('reads the tenant formalization default and falls back to signed_quote', () => {
+    expect(
+      parseFormalizationModeDefault({
+        commercial: { formalization_mode_default: 'separate_agreement' },
+      }),
+    ).toBe('separate_agreement')
+    expect(parseFormalizationModeDefault({ commercial: { formalization_mode_default: 'other' } })).toBe(
+      'signed_quote',
+    )
+    expect(parseFormalizationModeDefault(null)).toBe('signed_quote')
   })
 })

@@ -37,5 +37,6 @@ describe('templateCategories', () => {
     expect(isFullBodyTemplateCategory('quote')).toBe(true)
     expect(isFullBodyTemplateCategory('delivery_note')).toBe(true)
     expect(isFullBodyTemplateCategory('commercial')).toBe(false)
+    expect(isFullBodyTemplateCategory('commercial_agreement')).toBe(false)
   })
 })

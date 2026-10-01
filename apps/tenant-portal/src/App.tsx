@@ -63,6 +63,7 @@ import { DocumentsPage, ArchivedDocumentsPage, DocumentDetailPage, DocumentsStor
 import { TemplatesPage, TemplateDetailPage, SigningCenterPage, SigningSubmissionDetail } from './features/signing'
 import { ProjectsPage, ProjectDetailPage } from './features/projects'
 import { QuotesPage } from './features/commercial/components/QuotesPage'
+import { AgreementsPage } from './features/commercial/components/AgreementsPage'
 import {
   FieldServiceLayout,
   TodayPage,
@@ -177,6 +178,7 @@ export default function App() {
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/contacts/:id" element={<ContactDetailPage />} />
           <Route path="/quotes" element={<QuotesPage />} />
+          <Route path="/agreements" element={<AgreementsPage />} />
           <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/departments" element={<DepartmentsPage />} />
           <Route path="/locations" element={<LocationsPage />} />

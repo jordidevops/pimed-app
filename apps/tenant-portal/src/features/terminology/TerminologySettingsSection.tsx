@@ -22,6 +22,8 @@ const EMPTY_DRAFT: Record<TermKey, string> = {
   contact: '',
   contacts: '',
   price_sheet: '',
+  agreement: '',
+  agreement_plural: '',
 }
 
 export function TerminologySettingsSection() {
@@ -51,6 +53,8 @@ export function TerminologySettingsSection() {
       contact: overlay.contact ?? '',
       contacts: overlay.contacts ?? '',
       price_sheet: overlay.price_sheet ?? '',
+      agreement: overlay.agreement ?? '',
+      agreement_plural: overlay.agreement_plural ?? '',
     })
   }, [overlay])
 
@@ -74,6 +78,12 @@ export function TerminologySettingsSection() {
     if (key === 'project_plural') return t('config.terminology.project_plural_default', 'Projectes')
     if (key === 'contacts') return t('config.terminology.contacts_default', 'Contactes')
     if (key === 'contact') return t('config.terminology.contact_default', 'Contacte')
+    if (key === 'agreement') {
+      return t('config.terminology.agreement_default', 'Acord comercial')
+    }
+    if (key === 'agreement_plural') {
+      return t('config.terminology.agreement_plural_default', 'Acords comercials')
+    }
     return t('config.terminology.project_default', 'Projecte')
   }
 
@@ -213,7 +223,7 @@ export function TerminologySettingsSection() {
         <p className="text-sm text-muted-foreground">
           {t(
             'config.terminology.description',
-            'Canvia com es diuen el projecte i el contacte. El camp buit deixa el nom del sector. Els xips són només suggeriments.',
+            'Canvia com es diuen el projecte, el contacte i l’acord comercial. El camp buit deixa el nom del sector. Els xips són només suggeriments.',
           )}
         </p>
       </div>
@@ -260,6 +270,27 @@ export function TerminologySettingsSection() {
             {t(
               'config.terminology.price_sheet_help',
               'Només el títol intern de la secció. El client continua veient el pressupost.',
+            )}
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold text-foreground">
+              {t('config.terminology.group_agreement', 'Acord comercial')}
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              {inUseText(['agreement', 'agreement_plural'])}
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {renderField('agreement', t('config.terminology.singular', 'Singular'))}
+            {renderField('agreement_plural', t('config.terminology.plural', 'Plural'))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {t(
+              'config.terminology.agreement_help',
+              'Nom del document contractual separat del pressupost. Els xips «Contracte» són opcionals.',
             )}
           </p>
         </div>

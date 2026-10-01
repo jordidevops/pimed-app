@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import type { Project, ProjectListItem } from '../api/projectsService'
 import { getProjectStatusClass, getProjectStatusLabel, getProjectStatusVariant } from '../projectStatus'
 import { useIsFieldService } from '@/hooks/useSectorLabel'
+import { withReturnTo } from '@/lib/navigationReturn'
 import { StartVisitDialog } from '@/features/field-service/components/StartVisitDialog'
 import { PaymentPendingChip } from '@/features/commercial/components/PaymentPendingChip'
 import { getProjectsPaymentPending } from '@/features/commercial/api/commercialFlowService'
@@ -18,6 +19,8 @@ interface ProjectRowProps {
   project: ProjectListItem
   onEdit: (project: Project) => void
   detailBasePath?: string
+  /** Safe return path appended as ?returnTo= when opening detail. */
+  detailReturnTo?: string | null
   sortField?: string
   sortDirection?: 'asc' | 'desc'
   onSort?: (field: string) => void
@@ -38,6 +41,7 @@ export function ProjectRow({
   project,
   onEdit,
   detailBasePath = '/projects',
+  detailReturnTo = null,
   activePunchProjectId = null,
   onStopPunch,
   stopPunchBusy = false,
@@ -78,11 +82,16 @@ export function ProjectRow({
       <tr className="hover:bg-muted/30 transition-colors">
         <td className="px-4 py-3">
           <Link
-            to={`${detailBasePath}/${project.id}`}
+            to={withReturnTo(`${detailBasePath}/${project.id}`, detailReturnTo)}
             className="font-medium text-foreground hover:text-primary flex items-center gap-1 group"
           >
             <span className="min-w-0">
               <span className="block truncate">{project.name}</span>
+              {project.client_display_name ? (
+                <span className="block truncate text-xs font-normal text-muted-foreground">
+                  {project.client_display_name}
+                </span>
+              ) : null}
               {(isPunchActive || workedSeconds > 0) && (
                 <span className={`block text-xs font-normal tabular-nums ${isPunchActive ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'}`}>
                   {isPunchActive

@@ -22,7 +22,7 @@ major_version = 15
 
 [db.seed]
 enabled = true
-sql_paths = ["./seed.sql", "./seeds/attendance_demo.sql"]
+sql_paths = ["./seed.sql", "./seeds/attendance_demo.sql", "./seeds/riera_commercial_agreements.sql"]
 
 [db.pooler]
 enabled = false
@@ -235,6 +235,9 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.render-commercial-document]
+verify_jwt = true
+
+[functions.render-commercial-agreement]
 verify_jwt = true
 
 [functions.signing-session-manager]

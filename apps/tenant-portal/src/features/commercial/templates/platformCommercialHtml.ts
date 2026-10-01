@@ -56,7 +56,7 @@ const COPY = {
     total: 'Total',
     conditions: 'Condicions generals',
     conditionsBody:
-      "Aquest pressupost té una validesa de 30 dies des de la data d'emissió, llevat que s'indiqui altrament. Els preus inclouen l'IVA aplicable. Qualsevol concepte no inclòs en aquest pressupost que aparegui durant l'execució del servei serà objecte d'una ampliació de pressupost, que haurà de ser acceptada abans de la seva execució i cobrament, d'acord amb la normativa de protecció de les persones consumidores. Per a qualsevol controvèrsia, les parts se sotmeten als jutjats i tribunals que correspongui per llei.",
+      "Aquest pressupost té una validesa de 30 dies des de la data d'emissió, llevat que s'indiqui altrament. Els preus inclouen l'IVA aplicable. Qualsevol concepte no inclòs en aquest pressupost que aparegui durant l'execució del servei serà objecte d'una ampliació de pressupost, que haurà de ser acceptada abans de la seva execució i cobrament, d'acord amb la normativa de protecció de les persones consumidores. L'acceptació signada d'aquest pressupost constitueix el contracte de l'encàrrec descrit. Per a qualsevol controvèrsia, les parts se sotmeten als jutjats i tribunals que correspongui per llei.",
     accept: 'Acceptació',
     acceptHint: 'Cal signar una de les dues caselles (mateixa mida).',
     acceptLabel: 'Accepto',
@@ -89,7 +89,7 @@ const COPY = {
     total: 'Total',
     conditions: 'Condiciones generales',
     conditionsBody:
-      'Este presupuesto tiene una validez de 30 días desde la fecha de emisión, salvo indicación en contrario. Los precios incluyen el IVA aplicable. Cualquier concepto no incluido en este presupuesto que aparezca durante la ejecución del servicio será objeto de una ampliación de presupuesto, que deberá ser aceptada antes de su ejecución y cobro, de acuerdo con la normativa de protección de las personas consumidoras. Para cualquier controversia, las partes se someten a los juzgados y tribunales que correspondan por ley.',
+      'Este presupuesto tiene una validez de 30 días desde la fecha de emisión, salvo indicación en contrario. Los precios incluyen el IVA aplicable. Cualquier concepto no incluido en este presupuesto que aparezca durante la ejecución del servicio será objeto de una ampliación de presupuesto, que deberá ser aceptada antes de su ejecución y cobro, de acuerdo con la normativa de protección de las personas consumidoras. La aceptación firmada de este presupuesto constituye el contrato del encargo descrito. Para cualquier controversia, las partes se someten a los juzgados y tribunales que correspondan por ley.',
     accept: 'Aceptación',
     acceptHint: 'Hay que firmar una de las dos casillas (mismo tamaño).',
     acceptLabel: 'Acepto',

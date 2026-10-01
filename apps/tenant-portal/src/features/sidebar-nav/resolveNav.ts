@@ -58,6 +58,7 @@ export interface LabelResolvers {
   contactLabel: string
   projectLabel: string
   projectLabelPlural: string
+  agreementLabelPlural: string
 }
 
 export function passesGate(gate: NavGate, ctx: NavGateContext): boolean {
@@ -101,6 +102,8 @@ export function resolveItemLabel(
       return labels.contactLabel
     case 'sector_project':
       return labels.projectLabelPlural
+    case 'sector_agreement':
+      return labels.agreementLabelPlural
     case 'home':
       return ctx.homePath === '/field/today'
         ? labels.t('nav.field_today', 'Avui')

@@ -6,6 +6,7 @@ export type CommercialFullBodyCategory = (typeof COMMERCIAL_FULL_BODY_CATEGORIES
 export const DOCUMENT_TEMPLATE_CATEGORY_OPTIONS = [
   { value: 'quote', key: 'templates.kind.quote', fallback: 'Plantilla de pressupost', filterKey: 'templates.category.quote', filterFallback: 'Pressupost' },
   { value: 'delivery_note', key: 'templates.kind.delivery_note', fallback: "Plantilla d'albarà", filterKey: 'templates.category.delivery_note', filterFallback: 'Albarà' },
+  { value: 'commercial_agreement', key: 'templates.kind.commercial_agreement', fallback: 'Plantilla de contracte', filterKey: 'templates.category.commercial_agreement', filterFallback: 'Contracte' },
   { value: 'commercial', key: 'templates.category.commercial', fallback: 'Comercial' },
   { value: 'operations', key: 'templates.category.operations', fallback: 'Operacions' },
   { value: 'hr', key: 'templates.category.hr', fallback: 'RRHH' },

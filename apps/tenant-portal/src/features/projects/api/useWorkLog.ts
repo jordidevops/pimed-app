@@ -325,6 +325,9 @@ export function useWorkLog(projectId: string | null) {
         // EXCLUDE one_open_log_per_worker: ja existeix un fitxatge obert.
         throw new Error('worklog_already_open')
       }
+      if (error && String(error.message ?? '').includes('agreement_work_gate_blocked')) {
+        throw new Error('agreement_work_gate_blocked')
+      }
       if (error) {
         const queued = isRetryableSyncError(error) && await enqueueDurableFieldOp({
           id: opId,

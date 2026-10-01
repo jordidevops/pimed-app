@@ -1,13 +1,21 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import {
+  documentPathWithReturn,
+  isAllowedReturnTo,
+} from '@/lib/navigationReturn'
+import {
   getCommercialDocumentDetail,
+  listQuoteAgreementStates,
 } from '../api/commercialFlowService'
 import { CommercialNativeSignDialog } from './CommercialNativeSignDialog'
+import { PrepareAgreementDialog } from './PrepareAgreementDialog'
 import type { CommercialNativeSignAction } from '../utils/commercialNativeSign'
 import type { CommercialDocumentDetail } from '../utils/commercialDocumentModel'
 import {
@@ -29,7 +37,12 @@ import {
   type IssuedCommercialPreview,
 } from '../utils/buildIssuedCommercialHtml'
 import { usePermission } from '@/hooks/usePermission'
+import { useTenant } from '@/contexts/TenantContext'
 import { CommercialDocumentStatusBadges } from './CommercialDocumentStatusBadge'
+import { CommercialRelationshipBadges } from './CommercialRelationshipBadges'
+import { AgreementFlowSteps } from './AgreementFlowSteps'
+import { commercialRelationshipBadges } from '../utils/commercialRelationshipBadges'
+import { useDocumentTemplates } from '@/features/signing/api/useDocumentTemplates'
 import { useCommercialPdf } from '../hooks/useCommercialPdf'
 import { useCommercialDocumentSigningHub } from '../api/useCommercialSigningHub'
 import {
@@ -45,6 +58,8 @@ interface CommercialDocumentViewProps {
   onClose: () => void
   onChanged?: () => void
   onShare?: () => void
+  /** Where DMS “back” should return (defaults to current location or /quotes?view=). */
+  dmsReturnTo?: string | null
 }
 
 export function CommercialDocumentView({
@@ -53,13 +68,24 @@ export function CommercialDocumentView({
   onClose,
   onChanged,
   onShare,
+  dmsReturnTo,
 }: CommercialDocumentViewProps) {
   const { t } = useTranslation('projects')
+  const location = useLocation()
+  const queryClient = useQueryClient()
   const { toast } = useToast()
   const canEditPricing = usePermission('commercial.pricing.edit')
+  const { activeRole } = useTenant()
+  const canPrepareAgreement = activeRole === 'owner' || activeRole === 'manager'
+  const locationReturn = `${location.pathname}${location.search}`
+  const resolvedDmsReturn =
+    dmsReturnTo ??
+    (isAllowedReturnTo(locationReturn) ? locationReturn : `/quotes?view=${documentId}`)
+  const dmsHref = (docId: string) => documentPathWithReturn(docId, resolvedDmsReturn)
   const [doc, setDoc] = useState<CommercialDocumentDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [signAction, setSignAction] = useState<CommercialNativeSignAction | null>(null)
+  const [prepareOpen, setPrepareOpen] = useState(false)
   const [preview, setPreview] = useState<IssuedCommercialPreview | null>(null)
   const pdf = useCommercialPdf({
     documentId,
@@ -69,6 +95,22 @@ export function CommercialDocumentView({
     initialPdfJobId: doc?.pdf_job_id,
   })
   const { data: signingHub } = useCommercialDocumentSigningHub(open ? documentId : null)
+  const { data: templates = [] } = useDocumentTemplates(open ? doc?.tenant_id ?? undefined : undefined)
+  const { data: agreementStates = [] } = useQuery({
+    queryKey: ['commercial_agreements', 'by-quotes', documentId],
+    queryFn: () => listQuoteAgreementStates([documentId]),
+    enabled: open && !!documentId && doc?.doc_type !== 'delivery_note',
+  })
+  const agreement = agreementStates[0] ?? null
+  const templateName = templates.find((template) => template.id === doc?.full_body_template_id)?.name ?? null
+  const relationshipBadges = commercialRelationshipBadges({
+    docType: doc?.doc_type,
+    formalizationMode: doc?.formalization_mode,
+    templateId: doc?.full_body_template_id,
+    templateName,
+    agreementStatus: agreement?.status,
+    versionStatus: agreement?.versionStatus,
+  })
 
   useEffect(() => {
     if (!open) return
@@ -143,6 +185,12 @@ export function CommercialDocumentView({
     !!doc &&
     effectiveStatus === 'issued' &&
     doc.doc_type === 'delivery_note'
+  const showPrepareAgreement =
+    !!doc &&
+    canPrepareAgreement &&
+    doc.formalization_mode === 'separate_agreement' &&
+    (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment') &&
+    (effectiveStatus === 'accepted' || effectiveStatus === 'signed')
 
   const signedPdfId = commercialSignedPdfDocumentId(signingHub)
 
@@ -184,14 +232,14 @@ export function CommercialDocumentView({
           ) : null}
           {pdf.renderedDocumentId ? (
             <Button type="button" size="sm" variant="outline" asChild>
-              <Link to={`/documents/${pdf.renderedDocumentId}`}>
+              <Link to={dmsHref(pdf.renderedDocumentId)}>
                 {t('projects.commercial.open_dms', 'Obrir al DMS')}
               </Link>
             </Button>
           ) : null}
           {signedPdfId && signedPdfId !== pdf.renderedDocumentId ? (
             <Button type="button" size="sm" variant="outline" asChild>
-              <Link to={`/documents/${signedPdfId}`}>
+              <Link to={dmsHref(signedPdfId)}>
                 {t('projects.commercial.open_signed_pdf', 'Obrir PDF firmat')}
               </Link>
             </Button>
@@ -264,6 +312,7 @@ export function CommercialDocumentView({
                 </span>
                 <div className="flex flex-wrap items-center justify-end gap-1.5">
                   <CommercialDocumentStatusBadges doc={doc} t={t} />
+                  <CommercialRelationshipBadges kinds={relationshipBadges} />
                   {signingHub?.signingStatus ? (
                     <Link
                       to={commercialSigningCentreHref(signingHub.submissionId)}
@@ -282,6 +331,59 @@ export function CommercialDocumentView({
                   ) : null}
                 </div>
               </div>
+              {doc.doc_type !== 'delivery_note' && doc.formalization_mode === 'signed_quote' ? (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {t(
+                    'projects.commercial.formalization_view_signed',
+                    'Formalització: el pressupost acceptat és el contracte.',
+                  )}
+                </p>
+              ) : null}
+              {doc.doc_type !== 'delivery_note' && doc.formalization_mode === 'separate_agreement' ? (
+                <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                  <AgreementFlowSteps
+                    agreementStatus={agreement?.status}
+                    versionStatus={agreement?.versionStatus}
+                  />
+                  <p>
+                    {agreement?.versionStatus === 'signed'
+                      ? t(
+                          'projects.commercial.prepare_agreement_existing_signed',
+                          'El client ja l’ha firmat. El PDF és al Centre de signatures.',
+                        )
+                      : agreement?.versionStatus === 'pending_signature'
+                        ? t(
+                            'projects.commercial.prepare_agreement_existing_pending',
+                            'Ja s’ha enviat al client. El PDF i la firma són al Centre de signatures.',
+                          )
+                        : agreement
+                          ? t(
+                              'projects.commercial.prepare_agreement_existing_draft',
+                              'Ja està preparat. Encara no hi ha PDF: es crea quan l’envies a firmar.',
+                            )
+                          : t(
+                              'projects.commercial.formalization_view_separate',
+                              'Després d’acceptar: prepara l’acord amb una plantilla. Acceptar no el crea.',
+                            )}
+                  </p>
+                  {agreement ? (
+                    <Link
+                      to={`/agreements?view=${agreement.id}`}
+                      className="text-indigo-600 hover:underline"
+                    >
+                      {t('projects.commercial.prepare_agreement_open_list', 'Veure a Acords comercials')}
+                    </Link>
+                  ) : null}
+                  {agreement?.renderedDocumentId ? (
+                    <Link
+                      to={dmsHref(agreement.renderedDocumentId)}
+                      className="block text-indigo-600 hover:underline"
+                    >
+                      {t('projects.commercial.prepare_agreement_open_pdf', 'Obrir el PDF')}
+                    </Link>
+                  ) : null}
+                </div>
+              ) : null}
               {(effectiveStatus === 'rejected' ||
                 effectiveStatus === 'expired' ||
                 effectiveStatus === 'cancelled') && (
@@ -359,7 +461,18 @@ export function CommercialDocumentView({
                   {t('projects.commercial.view_buyer', 'Client')}
                 </p>
                 <p className="font-medium text-foreground">
-                  {partyDisplayName(doc.buyer_snapshot)}
+                  {doc.client_id ? (
+                    <Link
+                      to={`/contacts/${doc.client_id}`}
+                      className="inline-flex items-center gap-1.5 underline-offset-2 hover:underline"
+                      aria-label={t('projects.commercial.open_contact', 'Obrir fitxa del client')}
+                    >
+                      {partyDisplayName(doc.buyer_snapshot)}
+                      <User className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                    </Link>
+                  ) : (
+                    partyDisplayName(doc.buyer_snapshot)
+                  )}
                 </p>
                 {formatAddress(doc.service_address_snapshot) ? (
                   <p className="text-sm text-muted-foreground">
@@ -422,7 +535,7 @@ export function CommercialDocumentView({
                 </p>
                 {signedPdfId ? (
                   <Button type="button" size="sm" variant="outline" asChild>
-                    <Link to={`/documents/${signedPdfId}`}>
+                    <Link to={dmsHref(signedPdfId)}>
                       {t('projects.commercial.open_signed_pdf', 'Obrir PDF firmat')}
                     </Link>
                   </Button>
@@ -501,6 +614,86 @@ export function CommercialDocumentView({
             {t('projects.commercial.sign_delivery', 'Signar conformitat')}
           </Button>
         </footer>
+      ) : null}
+
+      {showPrepareAgreement && doc ? (
+        <footer className="border-t border-border p-4 max-w-3xl w-full mx-auto space-y-3">
+          {agreement?.versionStatus === 'draft' ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  'projects.commercial.prepare_agreement_existing_draft',
+                  'Ja està preparat. Encara no hi ha PDF: el document es crea quan l’envies a firmar. També el trobaràs a Acords comercials.',
+                )}
+              </p>
+              <Button
+                type="button"
+                size="lg"
+                className="h-12 w-full"
+                onClick={() => setPrepareOpen(true)}
+              >
+                {t('projects.commercial.prepare_agreement_footer_send', 'Enviar el contracte a firmar')}
+              </Button>
+              <Button type="button" size="lg" variant="outline" className="h-12 w-full" asChild>
+                <Link to="/agreements">
+                  {t('projects.commercial.prepare_agreement_open_list', 'Veure a Acords comercials')}
+                </Link>
+              </Button>
+            </>
+          ) : agreement?.versionStatus === 'pending_signature' || agreement?.versionStatus === 'signed' ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                {agreement.versionStatus === 'signed'
+                  ? t(
+                      'projects.commercial.prepare_agreement_existing_signed',
+                      'El client ja l’ha firmat. El PDF és al Centre de signatures.',
+                    )
+                  : t(
+                      'projects.commercial.prepare_agreement_existing_pending',
+                      'Ja s’ha enviat al client. El PDF i la firma són al Centre de signatures.',
+                    )}
+              </p>
+              <Button type="button" size="lg" className="h-12 w-full" asChild>
+                <Link to="/documents/signing">
+                  {t('projects.commercial.prepare_agreement_centre', 'Centre de signatures')}
+                </Link>
+              </Button>
+              {agreement.renderedDocumentId ? (
+                <Button type="button" size="lg" variant="outline" className="h-12 w-full" asChild>
+                  <Link to={dmsHref(agreement.renderedDocumentId)}>
+                    {t('projects.commercial.prepare_agreement_open_pdf', 'Obrir el PDF')}
+                  </Link>
+                </Button>
+              ) : null}
+            </>
+          ) : (
+            <Button
+              type="button"
+              size="lg"
+              className="h-12 w-full"
+              onClick={() => setPrepareOpen(true)}
+            >
+              {t('projects.commercial.prepare_agreement', 'Preparar acord')}
+            </Button>
+          )}
+        </footer>
+      ) : null}
+
+      {doc && showPrepareAgreement ? (
+        <PrepareAgreementDialog
+          open={prepareOpen}
+          mode={agreement ? 'followup' : 'prepare'}
+          tenantId={doc.tenant_id}
+          documentId={doc.id}
+          buyerName={partyDisplayName(doc.buyer_snapshot)}
+          onOpenChange={setPrepareOpen}
+          onChanged={() => {
+            void queryClient.invalidateQueries({
+              queryKey: ['commercial_agreements', 'by-quotes', documentId],
+            })
+            onChanged?.()
+          }}
+        />
       ) : null}
 
       {signAction ? (

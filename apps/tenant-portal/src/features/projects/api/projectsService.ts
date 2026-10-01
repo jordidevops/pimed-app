@@ -30,6 +30,7 @@ export interface ProjectListParams {
   sortDirection: 'asc' | 'desc'
   createdBy?: string
   openOnly?: boolean
+  clientId?: string
 }
 
 export interface ProjectListResponse {
@@ -74,6 +75,7 @@ export async function getProjectsPage(
     p_sort_direction: params.sortDirection || 'desc',
     p_created_by: params.createdBy || undefined,
     p_open_only: params.openOnly ?? false,
+    p_client_id: params.clientId || undefined,
   })
 
   if (error) throw error

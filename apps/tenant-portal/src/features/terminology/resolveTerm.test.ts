@@ -46,6 +46,17 @@ describe('sanitizeTerminologyMap', () => {
     expect(isTermKey('quote')).toBe(false)
   })
 
+  it('accepts agreement keys', () => {
+    expect(isTermKey('agreement')).toBe(true)
+    expect(isTermKey('agreement_plural')).toBe(true)
+    expect(
+      sanitizeTerminologyMap({
+        agreement: 'Contracte',
+        agreement_plural: 'Contractes',
+      }),
+    ).toEqual({ agreement: 'Contracte', agreement_plural: 'Contractes' })
+  })
+
   it('omits empty and denylisted values', () => {
     expect(
       sanitizeTerminologyMap({

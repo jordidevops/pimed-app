@@ -1,6 +1,6 @@
 # Plantilles comercials — Estat d'implementació
 
-> **Última actualització:** 2026-09-18 (estampat a etiqueta + snapshot NIF/tax_base + via jurídica)
+> **Última actualització:** 2026-09-27 (CT-0: doc 05 substituït pel pla d’acords)
 > **Propòsit:** seguir el desenvolupament dels epics QT i deixar constància honesta del que falta.
 > **Pla:** [`README.md`](./README.md) · backlog [`06-phases-and-backlog.md`](./06-phases-and-backlog.md) · ordre [`EXECUTION.md`](./EXECUTION.md)
 
@@ -20,7 +20,9 @@
 
 **QT-10 tancat.** Un pressupost/albarà firmat natiu apareix al Centre de signatures amb el badge «Firma pròpia» i el mateix panell d'integritat que un document DMS. Pla d'epics QT-0…QT-10 tancat. Follow-up 2026-09-18: sentinel «Cap», enllaç al PDF firmat, tab Document, trigger/office gate. Estampat natiu: gate Gotenberg `detectFieldForRole(client_accept)` sobre HTML de cos complet; fail-closed si el PDF té `[FIRMA:` i el rol no es resol. Identitat emissor + `tax_base` a l'emissió. El text legal **no** és assessorament jurídic (via §6 de `01`).
 
-Decisions tancades: fallback intacte, categories `quote`/`delivery_note` noves i mútuament excloents amb `commercial`, HTML primer/DOCX fase 2, contracte signat només forward-compat (sense epic), firma real via motor natiu del DMS (Fase 3). Tokens de `validate_commercial_template_locale` congelats (§2.1). §1 reobert 2026-09-18 només per `tax_base` (QT-D12).
+Decisions tancades: fallback intacte, categories `quote`/`delivery_note` noves i mútuament excloents amb `commercial`, HTML primer/DOCX fase 2, firma real via motor natiu del DMS (Fase 3). Tokens de `validate_commercial_template_locale` congelats (§2.1). §1 reobert 2026-09-18 només per `tax_base` (QT-D12).
+
+**Contracte / acord (2026-09-27, CT-5):** QT-D6 **no s’implementa**. CT-0…CT-5 tancats. Els distintius surten del mode, la plantilla i l’estat de l’acord.
 
 ## Fase 1 — HTML de cos complet
 
@@ -74,3 +76,4 @@ Decisions tancades: fallback intacte, categories `quote`/`delivery_note` noves i
 | 2026-09-18 | **Estampat (Fase 4, sense reobrir QT-9/10).** Gate Gotenberg: `detectFieldForRole(client_accept)` sobre HTML de cos complet amb token. Fail-closed `signature_field_not_found` si el PDF té `[FIRMA:` i el rol no es resol; sense token → peu (QT-D1). `audit_trail_storage_path` segueix sense verificar (job Edge, no SQL). |
 | 2026-09-18 | **Snapshot NIF/`tax_base`.** `api.issue_commercial_document` congela `seller.tax_id`/`address_line1` des de `tenant_legal_profiles` i `tax_breakdown.tax_base` = suma de `line_net` per tipus. Docs vells: NIF buit; `tax_base` es deriva de `line_subtotal` al context. UPDATE de locales HTML de plataforma. QT-D12. Perfil legal buit = pressupost sense NIF. |
 | 2026-09-18 | **Via jurídica.** Procediment a `01` §6: zero canvis de clàusules ara; quan torni l'advocat, editar fonts + migració UPDATE nova. Tokens §2.1 intactes. |
+| 2026-09-27 | **CT-0 (docs).** `05` deixa de ser el disseny a implementar: prohibit `contract_document_id` i generar contracte en `accepted`. Enllaç al pla [`commercial-agreements`](../commercial-agreements/pla-pressupost-contracte-acords.md). Sense migració ni UI. QT-0…QT-10 no es reobren. |

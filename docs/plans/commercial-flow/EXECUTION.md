@@ -5,7 +5,7 @@
 > **Pla:** [`README.md`](./README.md) · estat per epic: [`STATUS.md`](./STATUS.md)
 > **Fase activa:** *Cap epic obert.* **CF-18** tancat tècnicament (PDF de marca; signatura formal 📦). Següent: gate Tall 2 → Tall 3.
 > **Anterior:** **CF-18** PDF de marca — veure [`STATUS.md`](./STATUS.md)
-> **Deute:** Gate Tall 1 → Tall 2 (UAT observada) diferit; CF-16 UAT offline real pendent; Stripe i connector Holded/Quipu diferits; signatura formal de documents comercials diferida; conversió Gotenberg no es prova al TAP
+> **Deute:** Gate Tall 1 → Tall 2 (UAT observada) diferit; CF-16 UAT offline real pendent; Stripe i connector Holded/Quipu diferits; signatura formal de documents comercials diferida; conversió Gotenberg no es prova al TAP; **modes d’entrada `order_first`/`quote_first` diferits** → [`06-sales-entry-modes-quote-first.md`](./06-sales-entry-modes-quote-first.md)
 
 ## Disciplina
 
@@ -45,7 +45,7 @@
 | — | *Gate Tall 2 → Tall 3* | ❌ | Qualitat de dades d'execució |
 | 20 | **CF-19** Costos privats | ❌ | |
 | 21 | **CF-20** Rendibilitat | ❌ | |
-| 22 | **CF-21** Manteniment contractual | ❌ | |
+| 22 | **CF-21** Manteniment contractual | ⚠️ | **CF-21-a…g** implementats; **CF-21-h** hardening en curs (baseline, idempotència, cicles, billing/jobs, seguretat, UX). Factura fiscal Holded 📦 |
 | 23 | **CF-22** Obra i instal·lació | ❌ | |
 
 ---
@@ -105,3 +105,17 @@ Cada epic tancat afegeix aquí una entrada amb data, abast real i desviacions re
 | 2026-09-16 | CF-18 | HTML de marca + edge Gotenberg/DMS + enllaç RPC (membre) + UI PDF/pendent | Signatura formal 📦; TAP sense conversió PDF |
 | 2026-09-16 | Follow-up | Carpetes client a `/documents`, dates al pressupost, Activitat OS via events, Descartar, avís de preus, «Cobrat» només amb pagaments | — |
 | 2026-09-16 | Follow-up | PDF comercial no esborrable al DMS; enllaç de tornada al pressupost i a l’OT | — |
+
+
+## CF-21-f (SLA / plantilla / emails)
+
+Fet: `20261196000001` SLA a versions, plantilla manteniment, `notify_expiring_commercial_agreements`. Facturació → CF-21-g+.
+
+
+## CF-21-g (facturació periòdica)
+
+Fet: `20261197000001` cadència/import a versions, ledger de períodes, cron `generate_due_agreement_billing_periods`, mark/skip amb `external_invoice_ref`. Sense factura fiscal a PiMed.
+
+## CF-21-h (hardening)
+
+Implementat h0…h7 (migracions `20261198`–`20261204`): baseline, idempotència/unicitat, evidència de firma, cicles operatius, billing race-safe, jobs multi-tenant + digest, inclusió/render, lifecycle UI + paginació. Script: `supabase/tests/run_commercial_agreement_tests.{sh,ps1}`. CF-21 resta ⚠️ fins passar reset + suite completa.

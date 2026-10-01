@@ -126,9 +126,15 @@ export function deriveOrderWorkflow(input: {
    * Omitted defaults to block (legacy).
    */
   authBeforeWork?: 'off' | 'warn' | 'block'
+  /**
+   * CF-21-c: OS covered by an active agreement via its maintenance plan.
+   * Counts as commercial authorization (no new quote required to start).
+   */
+  agreementIncluded?: boolean
 }): OrderWorkflow {
   const nowMs = input.nowMs ?? Date.now()
   const isAssessment = input.serviceMode === 'assessment'
+  const agreementIncluded = !!input.agreementIncluded
   const authBeforeWork: 'off' | 'warn' | 'block' = isAssessment
     ? 'off'
     : input.authBeforeWork === 'off' ||
@@ -136,8 +142,8 @@ export function deriveOrderWorkflow(input: {
         input.authBeforeWork === 'block'
       ? input.authBeforeWork
       : 'block'
-  const mustBlockWithoutAuth = authBeforeWork === 'block'
-  const warnWithoutAuth = authBeforeWork === 'warn'
+  const mustBlockWithoutAuth = authBeforeWork === 'block' && !agreementIncluded
+  const warnWithoutAuth = authBeforeWork === 'warn' && !agreementIncluded
   const localCloseState = input.localCloseState ?? 'none'
   const visitClosedUi =
     input.visitClosed ||
@@ -214,11 +220,16 @@ export function deriveOrderWorkflow(input: {
     !!latestDelivery ||
     input.payments.length > 0
 
-  const prepareAuthorized = isAssessment || input.hasWaiver || !!acceptedQuote
+  const prepareAuthorized =
+    isAssessment ||
+    input.hasWaiver ||
+    !!acceptedQuote ||
+    agreementIncluded
   // Soft policies: allow Do/start without formal auth. Warn does NOT mark Prepare done.
-  const canAdvanceWithoutAuth = authBeforeWork === 'off' || authBeforeWork === 'warn'
+  const canAdvanceWithoutAuth =
+    authBeforeWork === 'off' || authBeforeWork === 'warn' || agreementIncluded
   const flowAuthorized = prepareAuthorized || canAdvanceWithoutAuth
-  // Prepare step green only with formal auth, or contractual "off".
+  // Prepare step green only with formal auth, inclusion, or contractual "off".
   const prepareDone =
     prepareAuthorized || authBeforeWork === 'off' || isAssessment
 

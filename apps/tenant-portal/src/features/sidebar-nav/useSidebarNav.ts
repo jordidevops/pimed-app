@@ -71,14 +71,19 @@ export function useSidebarNav() {
   const contactLabel = useSectorContactListLabel()
   const projectLabel = useSectorLabel('project', t('nav.projects', 'Projectes'))
   const projectLabelPlural = useSectorLabel('project_plural', projectLabel)
+  const agreementLabelPlural = useSectorLabel(
+    'agreement_plural',
+    t('nav.agreements', 'Acords comercials'),
+  )
   const labels = useMemo(
     () => ({
       t: (key: string, fallback: string) => t(key, fallback),
       contactLabel,
       projectLabel,
       projectLabelPlural,
+      agreementLabelPlural,
     }),
-    [t, contactLabel, projectLabel, projectLabelPlural],
+    [t, contactLabel, projectLabel, projectLabelPlural, agreementLabelPlural],
   )
 
   const settingsQuery = useEffectiveSettings(

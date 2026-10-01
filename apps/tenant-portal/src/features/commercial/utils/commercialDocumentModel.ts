@@ -74,6 +74,7 @@ export type CommercialDocumentDetail = {
   pdf_job_id?: string | null
   document_template_id?: string | null
   full_body_template_id?: string | null
+  formalization_mode?: 'signed_quote' | 'separate_agreement' | null
   lines: CommercialDocumentLine[]
   events: CommercialDocumentEvent[]
 }

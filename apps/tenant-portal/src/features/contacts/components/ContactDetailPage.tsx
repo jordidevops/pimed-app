@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -10,14 +10,13 @@ import {
   Archive,
   User,
   Calendar,
-  Plus,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
+import { ScrollableTabBar } from '@/components/ui/scrollable-tab-bar'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/contexts/TenantContext'
-import { useIsFieldService } from '@/hooks/useSectorLabel'
+import { useIsFieldService, useSectorLabel } from '@/hooks/useSectorLabel'
 import {
   getContact,
   getContactSites,
@@ -29,13 +28,10 @@ import { ContactRelationshipsPanel } from './ContactRelationshipsPanel'
 import { ContactDeliveryChannelsPanel } from './ContactDeliveryChannelsPanel'
 import { ContactPortalAccessPanel } from './ContactPortalAccessPanel'
 import { ContactCommercialHistory } from './ContactCommercialHistory'
+import { ContactAgreementsList } from './ContactAgreementsList'
 import { EntityTimeline } from '@/features/entity-timeline'
-import { getProjectsByClientId } from '@/features/projects/api/projectsService'
-import {
-  getProjectStatusClass,
-  getProjectStatusLabel,
-  getProjectStatusVariant,
-} from '@/features/projects/projectStatus'
+import { QuotesPage } from '@/features/commercial/components/QuotesPage'
+import { ProjectsPage } from '@/features/projects/components/ProjectsPage'
 
 // ─── Avatar helpers (shared pattern) ─────────────────────────────────────────
 
@@ -67,9 +63,10 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 
 const CONTACT_TABS = [
   'contact',
-  'quotes',
-  'sites',
   'projects',
+  'quotes',
+  'agreements',
+  'sites',
   'activity',
   'comms',
   'portal_access',
@@ -93,6 +90,10 @@ export function ContactDetailPage() {
   const queryClient = useQueryClient()
   const { activeTenant } = useTenant()
   const isFieldService = useIsFieldService()
+  const agreementsTabLabel = useSectorLabel(
+    'agreement_plural',
+    t('contacts.detail.tab_agreements', 'Acords comercials'),
+  )
   const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false)
 
   const activeTab: ContactTab = isContactTab(tabParam)
@@ -122,12 +123,6 @@ export function ContactDetailPage() {
     queryKey: ['contact_sites', id],
     queryFn: () => getContactSites(id!),
     enabled: !!id,
-  })
-
-  const { data: clientProjects = [], isLoading: projectsLoading } = useQuery({
-    queryKey: ['projects', 'by-client', id],
-    queryFn: () => getProjectsByClientId(id!),
-    enabled: !!id && activeTab === 'projects',
   })
 
   const archiveMut = useMutation({
@@ -176,7 +171,9 @@ export function ContactDetailPage() {
   const projectsTabLabel = isFieldService
     ? t('contacts.detail.tab_orders', 'Ordres')
     : t('contacts.detail.tab_projects', 'Projectes')
-  const projectDetailBase = isFieldService ? '/field/orders' : '/projects'
+  const contactOrdersReturnTo = id
+    ? `/contacts/${id}?tab=projects`
+    : null
 
   const channelLabel: Record<string, string> = {
     email: t('contacts.channels.email', 'Email'),
@@ -201,7 +198,7 @@ export function ContactDetailPage() {
     : '—'
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+    <div className="max-w-6xl mx-auto px-4 py-6 space-y-5">
       <button
         type="button"
         onClick={() => navigate('/contacts')}
@@ -322,27 +319,40 @@ export function ContactDetailPage() {
       )}
 
       <Tabs value={activeTab} onValueChange={setTab} className="space-y-4">
-        <TabsList className="w-full justify-start overflow-x-auto">
-          <TabsTrigger value="contact">
-            {t('contacts.detail.tab_contact', 'Contacte')}
-          </TabsTrigger>
-          <TabsTrigger value="quotes">
-            {t('contacts.detail.tab_quotes', 'Pressupostos')}
-          </TabsTrigger>
-          <TabsTrigger value="sites">
-            {t('contacts.detail.tab_sites', "Adreces d'intervenció")}
-          </TabsTrigger>
-          <TabsTrigger value="projects">{projectsTabLabel}</TabsTrigger>
-          <TabsTrigger value="activity">
-            {t('contacts.detail.tab_activity', 'Activitat')}
-          </TabsTrigger>
-          <TabsTrigger value="comms">
-            {t('contacts.detail.tab_comms', 'Comunicacions')}
-          </TabsTrigger>
-          <TabsTrigger value="portal_access">
-            {t('contacts.detail.tab_portal_access', 'Portal')}
-          </TabsTrigger>
-        </TabsList>
+        <ScrollableTabBar
+          activeKey={activeTab}
+          aria-label={t('contacts.detail.tabs', 'Seccions del contacte')}
+          className="-mb-px border-b border-border"
+        >
+          {(
+            [
+              { id: 'contact', label: t('contacts.detail.tab_contact', 'Contacte') },
+              { id: 'projects', label: projectsTabLabel },
+              { id: 'quotes', label: t('contacts.detail.tab_quotes', 'Pressupostos') },
+              { id: 'agreements', label: agreementsTabLabel },
+              { id: 'sites', label: t('contacts.detail.tab_sites', "Adreces d'intervenció") },
+              { id: 'activity', label: t('contacts.detail.tab_activity', 'Activitat') },
+              { id: 'comms', label: t('contacts.detail.tab_comms', 'Comunicacions') },
+              { id: 'portal_access', label: t('contacts.detail.tab_portal_access', 'Portal') },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              data-tab-key={tab.id}
+              aria-selected={activeTab === tab.id}
+              onClick={() => setTab(tab.id)}
+              className={`px-3 sm:px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${
+                activeTab === tab.id
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </ScrollableTabBar>
 
         <TabsContent value="contact" className="space-y-4">
           <section className="rounded-2xl border border-border bg-card p-5 space-y-3">
@@ -403,7 +413,7 @@ export function ContactDetailPage() {
           <ContactCommercialHistory
             clientId={contact.id!}
             mode="summary"
-            projectDetailBase={projectDetailBase}
+            projectDetailBase={isFieldService ? '/field/orders' : '/projects'}
             onSeeAll={() => setTab('quotes')}
           />
 
@@ -434,10 +444,17 @@ export function ContactDetailPage() {
         </TabsContent>
 
         <TabsContent value="quotes" className="space-y-4">
-          <ContactCommercialHistory
+          <QuotesPage
             clientId={contact.id!}
-            mode="full"
-            projectDetailBase={projectDetailBase}
+            clientName={contact.display_name ?? undefined}
+            embedded
+          />
+        </TabsContent>
+
+        <TabsContent value="agreements" className="space-y-4">
+          <ContactAgreementsList
+            clientId={contact.id!}
+            clientName={contact.display_name}
           />
         </TabsContent>
 
@@ -460,70 +477,13 @@ export function ContactDetailPage() {
         </TabsContent>
 
         <TabsContent value="projects" className="space-y-4">
-          <section className="rounded-2xl border border-border bg-card p-5 space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-foreground">{projectsTabLabel}</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {isFieldService
-                    ? t('contacts.detail.orders_hint', 'Crea una ordre de servei per aquest client')
-                    : t('contacts.detail.projects_hint', 'Crea un projecte vinculat a aquest client')}
-                </p>
-              </div>
-              <Button
-                size="sm"
-                className="gap-1.5 shrink-0"
-                onClick={() => {
-                  navigate(`${projectDetailBase}?create=1&client_id=${contact.id}`)
-                }}
-              >
-                <Plus className="h-4 w-4" />
-                {isFieldService
-                  ? t('contacts.detail.new_order', 'Nova ordre')
-                  : t('contacts.detail.new_project', 'Nou projecte')}
-              </Button>
-            </div>
-
-            {projectsLoading ? (
-              <p className="text-sm text-muted-foreground">
-                {t('contacts.detail.projects_loading', 'Carregant…')}
-              </p>
-            ) : clientProjects.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {isFieldService
-                  ? t('contacts.detail.orders_empty', 'Encara no hi ha ordres per aquest client')
-                  : t('contacts.detail.projects_empty', 'Encara no hi ha projectes per aquest client')}
-              </p>
-            ) : (
-              <ul className="divide-y divide-border rounded-xl border border-border overflow-hidden">
-                {clientProjects.map((project) => (
-                  <li key={project.id}>
-                    <Link
-                      to={`${projectDetailBase}/${project.id}`}
-                      className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-accent/40 transition-colors"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{project.name}</p>
-                        {project.planned_start && (
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(project.planned_start).toLocaleDateString('ca-ES')}
-                          </p>
-                        )}
-                      </div>
-                      {project.status && (
-                        <Badge
-                          variant={getProjectStatusVariant(project.status)}
-                          className={`text-xs shrink-0 ${getProjectStatusClass(project.status)}`}
-                        >
-                          {getProjectStatusLabel(t, project.status, { fieldService: isFieldService })}
-                        </Badge>
-                      )}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          <ProjectsPage
+            fieldServiceMode={isFieldService}
+            clientId={contact.id!}
+            clientName={contact.display_name ?? undefined}
+            embedded
+            detailReturnTo={contactOrdersReturnTo}
+          />
         </TabsContent>
 
         <TabsContent value="activity" className="space-y-4">

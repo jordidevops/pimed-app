@@ -8,6 +8,8 @@ import { useQuery } from '@tanstack/react-query'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -88,6 +90,7 @@ export function ProjectForm({
   const { activeTenant, sites } = useTenant()
   const isFieldService = useIsFieldService()
   const isEditing = !!editProject
+  const clientLocked = !isEditing && !!initialClientId
 
   const { data: departments = [] } = useDepartments()
   const { data: contacts = [] } = useQuery({
@@ -128,6 +131,9 @@ export function ProjectForm({
   const projectType = watch('type') ?? (isFieldService ? 'work_order' : 'internal')
   const showSiteSelect = sites.length > 1
   const showDepartmentSelect = departments.length > 1
+  const lockedClientLabel =
+    contacts.find((c) => c.id === (initialClientId ?? selectedClientId))?.display_name
+    ?? null
 
   const { data: contactSites = [] } = useQuery({
     queryKey: ['contact_sites', selectedClientId],
@@ -364,12 +370,24 @@ export function ProjectForm({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="flex max-h-[90vh] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <div className="shrink-0 space-y-1 border-b border-border px-6 pb-4 pt-6 pr-12">
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            {clientLocked ? (
+              <DialogDescription>
+                {t(
+                  'field-service:orders.form_client_locked',
+                  'Client: {{name}}',
+                  { name: lockedClientLabel ?? '—' },
+                )}
+              </DialogDescription>
+            ) : null}
+          </DialogHeader>
+        </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
           <div className="space-y-1">
             <label className="text-sm font-medium" htmlFor="project-name">
               {t('projects.form.name', 'Nom')}
@@ -496,13 +514,22 @@ export function ProjectForm({
                 <select
                   id="project-client"
                   {...register('client_id')}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  disabled={clientLocked}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-70"
                 >
                   <option value="">{t('projects.form.select_placeholder', 'Selecciona…')}</option>
                   {contacts.map((c) => (
                     <option key={c.id} value={c.id ?? ''}>{c.display_name}</option>
                   ))}
                 </select>
+                {clientLocked ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t(
+                      'field-service:orders.form_client_from_contact',
+                      'Preseleccionat des de la fitxa del client.',
+                    )}
+                  </p>
+                ) : null}
                 {errors.client_id && (
                   <p className="text-xs text-destructive">
                     {t('projects.errors.client_required', 'El client és obligatori')}
@@ -640,8 +667,9 @@ export function ProjectForm({
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none"
             />
           </div>
+          </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <DialogFooter className="shrink-0 gap-2 border-t border-border px-6 py-4 sm:justify-end">
             <Button type="button" variant="outline" onClick={onClose}>
               {t('projects.form.cancel', 'Cancel·lar')}
             </Button>
@@ -650,7 +678,7 @@ export function ProjectForm({
                 ? t('projects.form.saving', 'Desant…')
                 : t('projects.form.save', 'Desar')}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

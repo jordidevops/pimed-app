@@ -24,6 +24,43 @@ export function parseDeviationApprovalThresholdEur(
 
 export const COMMERCIAL_QUOTE_TEMPLATE_ID_KEY = 'quote_template_id' as const
 export const COMMERCIAL_DELIVERY_NOTE_TEMPLATE_ID_KEY = 'delivery_note_template_id' as const
+export const COMMERCIAL_FORMALIZATION_MODE_DEFAULT_KEY = 'formalization_mode_default' as const
+export const COMMERCIAL_AGREEMENT_TEMPLATE_ID_KEY = 'agreement_template_id' as const
+export const COMMERCIAL_WORK_GATE_DEFAULT_KEY = 'work_gate_default' as const
+
+export const FORMALIZATION_MODES = ['signed_quote', 'separate_agreement'] as const
+export type FormalizationMode = (typeof FORMALIZATION_MODES)[number]
+
+export const WORK_GATES = ['none', 'require_signed_agreement'] as const
+export type WorkGate = (typeof WORK_GATES)[number]
+
+export function parseWorkGateDefault(
+  effective: Record<string, unknown> | null | undefined,
+): WorkGate {
+  const commercial = effective?.commercial
+  let raw: unknown
+  if (commercial && typeof commercial === 'object' && !Array.isArray(commercial)) {
+    raw = (commercial as Record<string, unknown>)[COMMERCIAL_WORK_GATE_DEFAULT_KEY]
+  }
+  if (raw == null) {
+    raw = effective?.[`commercial.${COMMERCIAL_WORK_GATE_DEFAULT_KEY}`]
+  }
+  return raw === 'require_signed_agreement' ? 'require_signed_agreement' : 'none'
+}
+
+export function parseFormalizationModeDefault(
+  effective: Record<string, unknown> | null | undefined,
+): FormalizationMode {
+  const commercial = effective?.commercial
+  let raw: unknown
+  if (commercial && typeof commercial === 'object' && !Array.isArray(commercial)) {
+    raw = (commercial as Record<string, unknown>)[COMMERCIAL_FORMALIZATION_MODE_DEFAULT_KEY]
+  }
+  if (raw == null) {
+    raw = effective?.[`commercial.${COMMERCIAL_FORMALIZATION_MODE_DEFAULT_KEY}`]
+  }
+  return raw === 'separate_agreement' ? 'separate_agreement' : 'signed_quote'
+}
 /** Settings «Cap»: explicit QT-D1 fallback even when own clones exist. */
 export const COMMERCIAL_FULL_BODY_TEMPLATE_NONE = 'none' as const
 

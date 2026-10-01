@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -8,7 +9,9 @@ import {
   cancelCommercialDocument,
   issueCommercialDocument,
   listPaymentsForDocuments,
+  listPrimaryLineNames,
   listProjectCommercialDocuments,
+  listQuoteAgreementStates,
   reissueCommercialQuote,
   setDeliveryExternalInvoiceRef,
   type CommercialDocument,
@@ -31,7 +34,15 @@ import { CommercialNativeSignDialog } from './CommercialNativeSignDialog'
 import { PaymentReceiptSheet } from './PaymentReceiptSheet'
 import { QuoteWaiverDialog } from './QuoteWaiverDialog'
 import { ReissueQuoteDialog } from './ReissueQuoteDialog'
+import { QuoteFormalizationFields } from './QuoteFormalizationFields'
+import {
+  parseFormalizationModeDefault,
+  type FormalizationMode,
+} from '../utils/deviationApprovalThreshold'
 import { usePermission } from '@/hooks/usePermission'
+import { useTenant } from '@/contexts/TenantContext'
+import { useEffectiveSettings } from '@/hooks/useSettings'
+import { useDocumentTemplates } from '@/features/signing/api/useDocumentTemplates'
 import { supabase } from '@/lib/supabase'
 import type { CommercialNativeSignAction } from '../utils/commercialNativeSign'
 import {
@@ -94,9 +105,12 @@ export function ProjectCommercialPanel({
 }: ProjectCommercialPanelProps) {
   const { t } = useTranslation('projects')
   const { toast } = useToast()
+  const { activeTenant } = useTenant()
   const queryClient = useQueryClient()
   const canEditPricing = usePermission('commercial.pricing.edit')
   const [busy, setBusy] = useState(false)
+  const [formalizationMode, setFormalizationMode] = useState<FormalizationMode | null>(null)
+  const [quoteTemplateId, setQuoteTemplateId] = useState('')
   const [waiverOpen, setWaiverOpen] = useState(false)
   const [viewDocId, setViewDocId] = useState<string | null>(null)
   const [shareDocId, setShareDocId] = useState<string | null>(null)
@@ -113,6 +127,15 @@ export function ProjectCommercialPanel({
   const effectiveViewId = forceViewDocId ?? viewDocId
   const effectiveCollectId = forceCollectDocId ?? collectDocId
   const effectiveReceiptId = forceReceiptPaymentId ?? receiptPaymentId
+  const { data: effectiveSettings } = useEffectiveSettings(
+    { tenantId: activeTenant?.id ?? '' },
+    { enabled: !!activeTenant?.id && section === 'authorize' },
+  )
+  const { data: quoteTemplates = [] } = useDocumentTemplates(
+    section === 'authorize' ? activeTenant?.id : undefined,
+  )
+  const quoteFormalizationMode =
+    formalizationMode ?? parseFormalizationModeDefault(effectiveSettings)
 
   const { data: docs = [], refetch } = useQuery({
     queryKey: ['commercial_documents', projectId],
@@ -130,6 +153,25 @@ export function ProjectCommercialPanel({
     section === 'authorize' ? sectionDocs.slice(1) : []
 
   const docIds = useMemo(() => docs.map((d) => d.id), [docs])
+
+  const { data: lineNames = new Map<string, string>() } = useQuery({
+    queryKey: ['commercial_document_lines', 'primary', 'project', projectId, docIds.join(',')],
+    queryFn: () => listPrimaryLineNames(docIds),
+    enabled: docIds.length > 0,
+  })
+
+  const agreementQuoteIds = useMemo(
+    () => docs
+      .filter((doc) => doc.formalization_mode === 'separate_agreement' && doc.doc_type !== 'delivery_note')
+      .map((doc) => doc.id),
+    [docs],
+  )
+
+  const { data: agreementStates = [] } = useQuery({
+    queryKey: ['commercial_agreements', 'by-quotes', 'project', agreementQuoteIds.join(',')],
+    queryFn: () => listQuoteAgreementStates(agreementQuoteIds),
+    enabled: agreementQuoteIds.length > 0,
+  })
 
   const { data: payments = [], refetch: refetchPayments } = useQuery({
     queryKey: ['commercial_payments', projectId, docIds.join(',')],
@@ -490,6 +532,16 @@ export function ProjectCommercialPanel({
             )}
           </span>
         ) : null}
+        {showAuthorizeActions && !latestQuote ? (
+          <QuoteFormalizationFields
+            mode={quoteFormalizationMode}
+            templateId={quoteTemplateId}
+            templates={quoteTemplates}
+            disabled={busy}
+            onModeChange={setFormalizationMode}
+            onTemplateChange={setQuoteTemplateId}
+          />
+        ) : null}
         {showAuthorizeActions && !isAssessment && !latestQuote && (
           <Button
             type="button"
@@ -501,6 +553,8 @@ export function ProjectCommercialPanel({
                   issueCommercialDocument({
                     projectId,
                     docType: 'quote',
+                    formalizationMode: quoteFormalizationMode,
+                    fullBodyTemplateId: quoteTemplateId || null,
                   }),
                 t('projects.commercial.quote_issued', 'Pressupost emès'),
               )
@@ -520,6 +574,8 @@ export function ProjectCommercialPanel({
                   issueCommercialDocument({
                     projectId,
                     docType: 'quote',
+                    formalizationMode: quoteFormalizationMode,
+                    fullBodyTemplateId: quoteTemplateId || null,
                   }),
                 t('projects.commercial.quote_issued', 'Pressupost emès'),
               )
@@ -712,12 +768,46 @@ export function ProjectCommercialPanel({
                   <p className="text-sm font-medium text-foreground">
                     {docTypeLabel(doc)} {doc.doc_number ?? '—'}
                   </p>
+                  {lineNames.get(doc.id) ? (
+                    <p className="text-sm text-muted-foreground truncate">{lineNames.get(doc.id)}</p>
+                  ) : null}
                   <CommercialDocumentStatusBadges
                     doc={doc}
                     paidCents={paidCents}
                     t={t}
                     className="mt-1"
                   />
+                  {doc.formalization_mode === 'separate_agreement' && doc.doc_type !== 'delivery_note' ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {(() => {
+                        const agreement = agreementStates.find((row) => row.sourceQuoteId === doc.id)
+                        if (!agreement) {
+                          return t(
+                            'projects.commercial.authorize_agreement_none',
+                            'Contracte formal: es prepara des d’aquest pressupost.',
+                          )
+                        }
+                        if (agreement.versionStatus === 'signed' || agreement.status === 'active') {
+                          return t('projects.commercial.agreement_status_signed', 'Contracte signat')
+                        }
+                        if (agreement.versionStatus === 'pending_signature') {
+                          return t('projects.commercial.agreement_status_pending', 'Contracte pendent de firma')
+                        }
+                        return t(
+                          'projects.commercial.agreement_status_draft',
+                          'Contracte preparat, encara sense enviar',
+                        )
+                      })()}
+                      {agreementStates.some((row) => row.sourceQuoteId === doc.id) ? (
+                        <>
+                          {' · '}
+                          <Link to="/agreements" className="text-indigo-600 hover:underline">
+                            {t('projects.commercial.prepare_agreement_open_list', 'Veure a Acords comercials')}
+                          </Link>
+                        </>
+                      ) : null}
+                    </p>
+                  ) : null}
                   <p className="text-xs text-muted-foreground tabular-nums">
                     {Number(doc.total).toFixed(2)} €
                     {paidCents > 0
@@ -855,6 +945,9 @@ export function ProjectCommercialPanel({
                   <p className="truncate text-sm font-medium">
                     {docTypeLabel(doc)} {doc.doc_number ?? '—'}
                   </p>
+                  {lineNames.get(doc.id) ? (
+                    <p className="truncate text-sm text-muted-foreground">{lineNames.get(doc.id)}</p>
+                  ) : null}
                   <CommercialDocumentStatusBadges doc={doc} t={t} className="mt-1" />
                 </div>
                 <Button

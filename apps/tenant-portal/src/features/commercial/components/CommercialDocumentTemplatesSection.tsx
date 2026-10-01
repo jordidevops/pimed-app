@@ -9,14 +9,21 @@ import { useEffectiveSettings, useTenantSettingsMutation } from '@/hooks/useSett
 import { useToast } from '@/hooks/use-toast'
 import { useDocumentTemplates } from '@/features/signing/api/useDocumentTemplates'
 import {
+  COMMERCIAL_AGREEMENT_TEMPLATE_ID_KEY,
   COMMERCIAL_DELIVERY_NOTE_TEMPLATE_ID_KEY,
   COMMERCIAL_QUOTE_TEMPLATE_ID_KEY,
   commercialFullBodyTemplateSettingValue,
+  commercialSettingsPatch,
   commercialSettingsPatchWithFullBodyTemplates,
   commercialSettingsPatchWithThreshold,
   parseCommercialSettingId,
   parseDeviationApprovalThresholdEur,
+  parseFormalizationModeDefault,
+  parseWorkGateDefault,
+  type FormalizationMode,
+  type WorkGate,
 } from '@/features/commercial/utils/deviationApprovalThreshold'
+import { QUOTE_TEMPLATES_HREF } from '@/features/commercial/utils/commercialTemplatePaths'
 import {
   type CommercialRegime,
   type PolicyEnforcement,
@@ -50,6 +57,9 @@ export function CommercialDocumentTemplatesSection() {
 
   const [quoteId, setQuoteId] = useState(NONE)
   const [deliveryId, setDeliveryId] = useState(NONE)
+  const [formalizationMode, setFormalizationMode] = useState<FormalizationMode>('signed_quote')
+  const [agreementId, setAgreementId] = useState(NONE)
+  const [workGate, setWorkGate] = useState<WorkGate>('none')
 
   const ownQuotes = useMemo(
     () =>
@@ -71,21 +81,41 @@ export function CommercialDocumentTemplatesSection() {
       ),
     [templates, tenantId],
   )
+  const agreementTemplates = useMemo(
+    () =>
+      templates.filter(
+        (tpl) =>
+          tpl.category === 'commercial_agreement' &&
+          tpl.template_type === 'html' &&
+          (tpl.is_platform_default || tpl.tenant_id === tenantId),
+      ),
+    [templates, tenantId],
+  )
 
   useEffect(() => {
     setQuoteId(parseCommercialSettingId(effective, COMMERCIAL_QUOTE_TEMPLATE_ID_KEY) ?? NONE)
     setDeliveryId(
       parseCommercialSettingId(effective, COMMERCIAL_DELIVERY_NOTE_TEMPLATE_ID_KEY) ?? NONE,
     )
+    setFormalizationMode(parseFormalizationModeDefault(effective))
+    setAgreementId(parseCommercialSettingId(effective, COMMERCIAL_AGREEMENT_TEMPLATE_ID_KEY) ?? NONE)
+    setWorkGate(parseWorkGateDefault(effective))
   }, [effective])
 
   async function handleSave() {
     try {
       await mutation.mutateAsync(
-        commercialSettingsPatchWithFullBodyTemplates(effective?.commercial, {
-          quote_template_id: commercialFullBodyTemplateSettingValue(quoteId),
-          delivery_note_template_id: commercialFullBodyTemplateSettingValue(deliveryId),
-        }),
+        commercialSettingsPatch(
+          commercialSettingsPatchWithFullBodyTemplates(effective?.commercial, {
+            quote_template_id: commercialFullBodyTemplateSettingValue(quoteId),
+            delivery_note_template_id: commercialFullBodyTemplateSettingValue(deliveryId),
+          }).commercial,
+          {
+            formalization_mode_default: formalizationMode,
+            agreement_template_id: commercialFullBodyTemplateSettingValue(agreementId),
+            work_gate_default: workGate,
+          },
+        ),
       )
       toast({ description: t('templates.commercial_saved', 'Plantilles comercials desades') })
     } catch (err) {
@@ -171,10 +201,88 @@ export function CommercialDocumentTemplatesSection() {
         </label>
       </div>
 
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium">
+          {t('templates.formalization_default', 'Formalització per defecte dels pressupostos')}
+        </span>
+        <select
+          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+          value={formalizationMode}
+          onChange={(e) => setFormalizationMode(e.target.value as FormalizationMode)}
+          disabled={mutation.isPending}
+        >
+          <option value="signed_quote">
+            {t('templates.formalization_signed', 'Un document: l’acceptació és el contracte')}
+          </option>
+          <option value="separate_agreement">
+            {t('templates.formalization_separate', 'Després d’acceptar, preparar contracte')}
+          </option>
+        </select>
+        <span className="text-xs text-muted-foreground">
+          {t(
+            'templates.formalization_default_help',
+            'S’aplica en emetre si no es tria una altra opció. «Un document» no crea un acord. «Preparar contracte» només reserva el flux; el contracte es prepara després d’acceptar.',
+          )}
+        </span>
+      </label>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium">
+          {t('templates.agreement_template', 'Plantilla de contracte')}
+        </span>
+        <select
+          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+          value={agreementId}
+          onChange={(e) => setAgreementId(e.target.value)}
+          disabled={mutation.isPending}
+        >
+          <option value={NONE}>
+            {t('templates.commercial_none', 'Cap (usar format per defecte)')}
+          </option>
+          {agreementTemplates.map((tpl) => (
+            <option key={tpl.id ?? tpl.name} value={tpl.id ?? ''}>
+              {tpl.name}
+              {tpl.is_platform_default
+                ? ` (${t('templates.agreement_platform', 'plataforma')})`
+                : ''}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-muted-foreground">
+          {t(
+            'templates.agreement_template_help',
+            'Plantilla que s’ofereix en preparar l’acord des d’un pressupost acceptat. Pots tenir-ne diverses i triar-ne una altra al preparar.',
+          )}
+        </span>
+      </label>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium">
+          {t('templates.work_gate_default', 'Inici de feina abans del contracte')}
+        </span>
+        <select
+          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+          value={workGate}
+          onChange={(e) => setWorkGate(e.target.value as WorkGate)}
+          disabled={mutation.isPending || formalizationMode !== 'separate_agreement'}
+        >
+          <option value="none">{t('templates.work_gate_none', 'Es pot iniciar igualment')}</option>
+          <option value="require_signed_agreement">
+            {t('templates.work_gate_required', 'Només quan el contracte estigui actiu')}
+          </option>
+        </select>
+        <span className="text-xs text-muted-foreground">
+          {t(
+            'templates.work_gate_help',
+            'Només s’aplica als pressupostos de contracte separat. «Un document» no bloqueja la feina.',
+          )}
+        </span>
+      </label>
+
       <p className="text-xs text-muted-foreground">
         {t('templates.category.quote', 'Pressupost')} / {t('templates.category.delivery_note', 'Albarà')}
         {' · '}
-        <Link to="/documents/templates" className="underline underline-offset-2 hover:text-foreground">
+        <Link to={QUOTE_TEMPLATES_HREF} className="underline underline-offset-2 hover:text-foreground">
           {t('templates.commercial_open_catalog', 'Obrir catàleg de plantilles')}
         </Link>
       </p>

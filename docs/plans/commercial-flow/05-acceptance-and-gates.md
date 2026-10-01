@@ -119,5 +119,5 @@ Sense aquestes quatre condicions, la rendibilitat del Tall 3 donaria xifres fals
 1. Es pot veure el resultat brut estimat i real d'una feina, mai anomenat «benefici net».
 2. Cap usuari sense permís financer accedeix a costos ni marges, comprovat a la base de dades.
 3. Els costos històrics no canvien quan es modifiquen sous o preus de catàleg.
-4. Un contracte de manteniment distingeix el que està inclòs del que és extra autoritzable.
-5. Una obra registra bestreta, fites i ordres de canvi signades, amb seguiment de contractat, executat i facturat.
+4. Un contracte de manteniment distingeix el que està inclòs del que és extra autoritzable. **(CF-21-c** — `get_project_commercial_inclusion`: OS de pla vinculat a acord actiu = inclosa (sense pressupost nou per iniciar); altrament = extra. SLA + emails d’avís: CF-21-f; facturació periòdica (regla/períodes/ref. externa): CF-21-g; factura fiscal: CF-17 📦.)
+5. Una obra registra bestreta, fites i ordres de canvi signades, amb seguiment de contractat, executat i facturat. **(CF-22;** depèn del nucli d’acords, no de CF-21.)

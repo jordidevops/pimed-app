@@ -4,6 +4,8 @@ export const TERM_KEYS = [
   'contact',
   'contacts',
   'price_sheet',
+  'agreement',
+  'agreement_plural',
 ] as const
 
 export type TermKey = (typeof TERM_KEYS)[number]
@@ -45,6 +47,12 @@ export function termBadges(key: TermKey, archetype: string | null | undefined): 
   const arch = archetype ?? 'generic'
   if (key === 'price_sheet') {
     return ['Imports', 'Què es cobra', 'Partides']
+  }
+  if (key === 'agreement') {
+    return ['Acord comercial', 'Contracte', 'Acord']
+  }
+  if (key === 'agreement_plural') {
+    return ['Acords comercials', 'Contractes', 'Acords']
   }
   if (key === 'project') {
     if (arch === 'field_service') return ['Obra', 'Ordre de servei']

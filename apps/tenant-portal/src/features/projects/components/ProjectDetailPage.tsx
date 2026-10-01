@@ -48,6 +48,7 @@ import { useEffectiveSettings } from '@/hooks/useSettings'
 import { useFieldSync, enqueueFieldOp } from '@/hooks/useFieldSync'
 import { EntityTimeline } from '@/features/entity-timeline'
 import { useIsFieldService } from '@/hooks/useSectorLabel'
+import { readReturnTo } from '@/lib/navigationReturn'
 import { getContact, getContactSite } from '@/features/contacts/api/contactsService'
 import {
   VisitChecklistSection,
@@ -79,6 +80,10 @@ import {
   type ServiceMode,
 } from '@/features/commercial/utils/commercialRegimePolicy'
 import { ProjectCommercialPanel } from '@/features/commercial/components/ProjectCommercialPanel'
+import {
+  ProjectAgreementsSection,
+  useProjectAgreementGate,
+} from '@/features/commercial/components/ProjectAgreementsSection'
 import { PaymentPendingChip } from '@/features/commercial/components/PaymentPendingChip'
 import { ReissueQuoteDialog } from '@/features/commercial/components/ReissueQuoteDialog'
 import { useProjectFieldOps } from '@/features/field-service/hooks/useProjectFieldOps'
@@ -89,7 +94,9 @@ import {
   listProjectCommercialDocuments,
   projectHasQuoteWaiver,
   reissueCommercialQuote,
+  getProjectCommercialInclusion,
 } from '@/features/commercial/api/commercialFlowService'
+import { isAgreementIncluded } from '@/features/commercial/utils/agreementInclusion'
 import { supabase } from '@/lib/supabase'
 import { DeleteProjectDialog } from './DeleteProjectDialog'
 import {
@@ -133,12 +140,38 @@ export function ProjectDetailPage() {
   const isFieldService = useIsFieldService()
   const onFieldRoute = location.pathname.startsWith('/field/')
   const listPath = isFieldService ? '/field/orders' : '/projects'
+  const returnTo = readReturnTo(searchParams)
+  const backPath = returnTo ?? listPath
+  const backLabel = (() => {
+    if (returnTo?.startsWith('/contacts/')) {
+      return isFieldService
+        ? t('field-service:detail.back_to_contact_orders', 'Tornar a les ordres del client')
+        : t('projects.detail.back_to_contact_projects', 'Tornar als projectes del client')
+    }
+    if (returnTo?.startsWith('/field/today')) {
+      return t('field-service:detail.back_to_today', 'Tornar a Avui')
+    }
+    if (returnTo?.startsWith('/field/agenda')) {
+      return t('field-service:detail.back_to_agenda', 'Tornar a l’agenda')
+    }
+    if (returnTo?.startsWith('/quotes')) {
+      return t('field-service:detail.back_to_quotes', 'Tornar als pressupostos')
+    }
+    return isFieldService
+      ? t('field-service:detail.back', 'Tornar a les ordres')
+      : t('projects.detail.back', 'Tornar als projectes')
+  })()
   const sync = useFieldSync(activeTenant?.id ?? null, { autoDrain: false })
   const localOps = useProjectFieldOps(activeTenant?.id, id)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
   const { data: project, isLoading, error } = useProject(id ?? '')
+  const agreementBlocksWork = useProjectAgreementGate(
+    project?.id ?? null,
+    project?.client_id ?? null,
+  )
+  const canManageAgreements = activeRole === 'owner' || activeRole === 'manager'
   const workLogSummary = useProjectWorkLogSummary(project?.id ?? null)
 
   const { data: commercialDocs = [] } = useQuery({
@@ -161,6 +194,12 @@ export function ProjectDetailPage() {
     enabled: isFieldService && !!project?.id && tenantScopeReady,
   })
 
+  const { data: commercialInclusion } = useQuery({
+    queryKey: ['project_commercial_inclusion', project?.id],
+    queryFn: () => getProjectCommercialInclusion(project!.id!),
+    enabled: isFieldService && !!project?.id && tenantScopeReady,
+  })
+  const agreementIncluded = isAgreementIncluded(commercialInclusion)
   const { data: linesCount = 0 } = useQuery({
     queryKey: ['project_lines_count', project?.id],
     queryFn: async () => {
@@ -209,6 +248,7 @@ export function ProjectDetailPage() {
         receiptHandled,
         serviceMode: commercialPolicy.service_mode,
         authBeforeWork: commercialPolicy.require_auth_before_work,
+        agreementIncluded,
       }),
     [
       status,
@@ -223,6 +263,7 @@ export function ProjectDetailPage() {
       receiptHandled,
       commercialPolicy.service_mode,
       commercialPolicy.require_auth_before_work,
+      agreementIncluded,
     ],
   )
 
@@ -359,10 +400,8 @@ export function ProjectDetailPage() {
       <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-3">
         <ClipboardList className="h-10 w-10 opacity-40" />
         <p>{t('projects.detail.not_found', 'Projecte no trobat')}</p>
-        <Button variant="outline" size="sm" onClick={() => navigate(listPath)}>
-          {isFieldService
-            ? t('field-service:detail.back', 'Tornar a les ordres')
-            : t('projects.detail.back', 'Tornar als projectes')}
+        <Button variant="outline" size="sm" onClick={() => navigate(backPath)}>
+          {backLabel}
         </Button>
       </div>
     )
@@ -764,13 +803,11 @@ export function ProjectDetailPage() {
   return (
     <div className="mx-auto max-w-5xl p-4 pb-24 sm:p-6 sm:pb-24">
       <Link
-        to={listPath}
+        to={backPath}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        {isFieldService
-          ? t('field-service:detail.back', 'Tornar a les ordres')
-          : t('projects.detail.back', 'Tornar als projectes')}
+        {backLabel}
       </Link>
 
       <div className="flex flex-col gap-4 mb-4 sm:flex-row sm:items-start sm:justify-between">
@@ -1164,10 +1201,48 @@ export function ProjectDetailPage() {
         </div>
       )}
 
+      {isFieldService && commercialInclusion?.status === 'included' && (
+        <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm dark:border-emerald-800 dark:bg-emerald-950/30">
+          <p>
+            {t(
+              'projects.commercial.inclusion_included',
+              'Aquesta ordre està inclosa al contracte de manteniment. No cal un pressupost nou per iniciar la feina.',
+            )}
+          </p>
+          {commercialInclusion.agreementId ? (
+            <Link
+              to={`/agreements?view=${commercialInclusion.agreementId}`}
+              className="mt-1 inline-block text-emerald-800 underline dark:text-emerald-200"
+            >
+              {t('projects.commercial.inclusion_open_agreement', 'Veure l’acord')}
+            </Link>
+          ) : null}
+        </div>
+      )}
+
+      {isFieldService && commercialInclusion?.status === 'extra' && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm dark:border-amber-800 dark:bg-amber-950/30">
+          <p>
+            {t(
+              'projects.commercial.inclusion_extra',
+              'Aquesta ordre ve d’un pla de manteniment però no queda coberta per un acord actiu. Cal pressupost o ampliació abans de cobrar-la com a extra.',
+            )}
+          </p>
+        </div>
+      )}
+
       {isFieldService && project.id && (
         <ProjectPunchStrip
           projectId={project.id}
-          locked={punchLocked}
+          locked={punchLocked || agreementBlocksWork}
+          lockMessage={
+            agreementBlocksWork
+              ? t(
+                  'projects.commercial.agreements_gate_blocked',
+                  'Hi ha un contracte que encara no està actiu. No es pot iniciar la feina.',
+                )
+              : undefined
+          }
           startMode={
             workflow.primaryAction === 'start_work'
               ? 'start'
@@ -1210,6 +1285,14 @@ export function ProjectDetailPage() {
           </Button>
         </div>
       )}
+
+      {project.id ? (
+        <ProjectAgreementsSection
+          projectId={project.id}
+          clientId={project.client_id ?? null}
+          canManage={canManageAgreements}
+        />
+      ) : null}
 
       <Tabs
         value={activeTab === 'activity' ? 'activity' : activeTab}
@@ -1320,7 +1403,7 @@ export function ProjectDetailPage() {
         {/* Legacy aliases kept for deep links when not field-service */}
         {!isFieldService && (
           <TabsContent value="punch" className="space-y-4">
-            <WorkLogCard projectId={project.id!} locked={punchLocked} />
+            <WorkLogCard projectId={project.id!} locked={punchLocked || agreementBlocksWork} />
             {syncPanel}
           </TabsContent>
         )}

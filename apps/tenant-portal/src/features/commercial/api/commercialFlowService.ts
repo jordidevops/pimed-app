@@ -9,6 +9,12 @@ import type {
 } from '../utils/commercialDocumentModel'
 import { remainingCentsForDocument } from '../utils/paymentAllocation'
 import { getFunctionErrorMessage } from '@/lib/functionErrors'
+import {
+  parseCommercialInclusion,
+  type CommercialInclusion,
+} from '../utils/agreementInclusion'
+
+export type { CommercialInclusion }
 
 export type PricingTemplate = {
   id: string
@@ -66,6 +72,8 @@ export type CommercialDocument = {
   rendered_document_id?: string | null
   pdf_job_id?: string | null
   document_template_id?: string | null
+  full_body_template_id?: string | null
+  formalization_mode?: 'signed_quote' | 'separate_agreement' | null
 }
 
 export type { CommercialDocumentDetail, CommercialDocumentLine }
@@ -360,6 +368,8 @@ export async function issueCommercialDocument(params: {
   showPrices?: boolean
   parentDocumentId?: string | null
   clientOpId?: string
+  formalizationMode?: 'signed_quote' | 'separate_agreement' | null
+  fullBodyTemplateId?: string | null
 }): Promise<string> {
   const { data, error } = await supabase.rpc('issue_commercial_document' as never, {
     p_project_id: params.projectId,
@@ -367,6 +377,10 @@ export async function issueCommercialDocument(params: {
     p_show_prices: params.showPrices ?? true,
     p_client_op_id: params.clientOpId ?? generateClientOpId(),
     p_parent_document_id: params.parentDocumentId ?? null,
+    p_formalization_mode:
+      params.docType === 'delivery_note' ? null : (params.formalizationMode ?? null),
+    p_full_body_template_id:
+      params.docType === 'delivery_note' ? null : (params.fullBodyTemplateId ?? null),
   } as never)
   if (error) throw error
   return data as string
@@ -592,6 +606,29 @@ export async function listCommercialDocumentsForClient(
   return (data ?? []) as CommercialDocument[]
 }
 
+/** First line name per document, ordered by position. Used as a human title in lists. */
+export async function listPrimaryLineNames(
+  documentIds: string[],
+): Promise<Map<string, string>> {
+  const names = new Map<string, string>()
+  if (documentIds.length === 0) return names
+  const { data, error } = await supabase
+    .from('commercial_document_lines' as never)
+    .select('document_id, name, position')
+    .in('document_id', documentIds)
+    .order('position', { ascending: true })
+  if (error) throw error
+  for (const row of (data ?? []) as Array<{
+    document_id: string | null
+    name: string | null
+  }>) {
+    if (!row.document_id || names.has(row.document_id)) continue
+    const name = row.name?.trim()
+    if (name) names.set(row.document_id, name)
+  }
+  return names
+}
+
 export type CommercialDocumentSearchHit = CommercialDocument & {
   client_display_name: string | null
   project_name: string | null
@@ -607,6 +644,7 @@ export type SearchCommercialDocumentsParams = {
   totalMin?: number | null
   totalMax?: number | null
   limit?: number
+  clientId?: string | null
 }
 
 export async function searchCommercialDocuments(
@@ -622,9 +660,67 @@ export async function searchCommercialDocuments(
     p_total_min: params.totalMin ?? null,
     p_total_max: params.totalMax ?? null,
     p_limit: params.limit ?? 100,
+    p_client_id: params.clientId || null,
   } as never)
   if (error) throw error
   return (data ?? []) as CommercialDocumentSearchHit[]
+}
+
+export type QuoteAgreementState = {
+  id: string
+  sourceQuoteId: string
+  status: string
+  versionStatus: string | null
+  renderedDocumentId: string | null
+}
+
+export async function listQuoteAgreementStates(
+  quoteIds: string[],
+): Promise<QuoteAgreementState[]> {
+  if (quoteIds.length === 0) return []
+  const { data, error } = await supabase
+    .from('commercial_agreements' as never)
+    .select('id, status, source_quote_id, active_version_id')
+    .in('source_quote_id', quoteIds)
+    .neq('status', 'cancelled')
+  if (error) throw error
+  const rows = (data ?? []) as Array<{
+    id: string
+    status: string
+    source_quote_id: string
+    active_version_id: string | null
+  }>
+  const versionIds = rows
+    .map((row) => row.active_version_id)
+    .filter((id): id is string => !!id)
+  const versionStatus = new Map<string, string>()
+  const renderedDocumentId = new Map<string, string | null>()
+  if (versionIds.length > 0) {
+    const { data: versions, error: versionError } = await supabase
+      .from('commercial_agreement_versions' as never)
+      .select('id, status, rendered_document_id')
+      .in('id', versionIds)
+    if (versionError) throw versionError
+    for (const version of (versions ?? []) as Array<{
+      id: string
+      status: string
+      rendered_document_id: string | null
+    }>) {
+      versionStatus.set(version.id, version.status)
+      renderedDocumentId.set(version.id, version.rendered_document_id)
+    }
+  }
+  return rows.map((row) => ({
+    id: row.id,
+    sourceQuoteId: row.source_quote_id,
+    status: row.status,
+    versionStatus: row.active_version_id
+      ? versionStatus.get(row.active_version_id) ?? null
+      : null,
+    renderedDocumentId: row.active_version_id
+      ? renderedDocumentId.get(row.active_version_id) ?? null
+      : null,
+  }))
 }
 
 export async function listCommercialDocumentsForProjects(
@@ -732,6 +828,10 @@ export async function getCommercialDocumentDetail(
     pdf_job_id: (row.pdf_job_id as string | null | undefined) ?? null,
     document_template_id: (row.document_template_id as string | null | undefined) ?? null,
     full_body_template_id: (row.full_body_template_id as string | null | undefined) ?? null,
+    formalization_mode:
+      row.formalization_mode === 'separate_agreement' || row.formalization_mode === 'signed_quote'
+        ? row.formalization_mode
+        : null,
     lines: (lines ?? []) as CommercialDocumentLine[],
     events: (events ?? []) as CommercialDocumentDetail['events'],
   }
@@ -804,6 +904,392 @@ export async function renderCommercialDocumentPdf(params: {
     html_fallback: payload.html_fallback === true,
     already_ready: payload.already_ready === true,
     error: typeof payload.error === 'string' ? payload.error : null,
+  }
+}
+
+export type CommercialAgreementKind = 'specific' | 'recurring' | 'framework'
+
+export async function prepareAgreementFromQuote(params: {
+  documentId: string
+  templateId: string
+  workGate?: 'none' | 'require_signed_agreement'
+  clientOpId?: string
+  kind?: CommercialAgreementKind
+  startsOn?: string | null
+  endsOn?: string | null
+  noticeDays?: number | null
+  autoRenew?: boolean
+  slaResponseHours?: number | null
+  slaResolutionHours?: number | null
+  slaCoverageNotes?: string | null
+  billingCadence?: 'none' | 'monthly' | 'quarterly' | 'yearly'
+  billingAmountCents?: number | null
+  billingCurrency?: string | null
+  billingAnchorDay?: number | null
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('prepare_agreement_from_quote' as never, {
+    p_document_id: params.documentId,
+    p_template_id: params.templateId,
+    p_work_gate: params.workGate ?? 'none',
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+    p_kind: params.kind ?? 'specific',
+    p_starts_on: params.startsOn?.trim() || null,
+    p_ends_on: params.endsOn?.trim() || null,
+    p_notice_days: params.noticeDays ?? null,
+    p_auto_renew: params.autoRenew ?? false,
+    p_sla_response_hours: params.slaResponseHours ?? null,
+    p_sla_resolution_hours: params.slaResolutionHours ?? null,
+    p_sla_coverage_notes: params.slaCoverageNotes?.trim() || null,
+    p_billing_cadence: params.billingCadence ?? 'none',
+    p_billing_amount_cents: params.billingAmountCents ?? null,
+    p_billing_currency: params.billingCurrency?.trim() || 'EUR',
+    p_billing_anchor_day: params.billingAnchorDay ?? null,
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+export async function createFrameworkAgreement(params: {
+  tenantId: string
+  clientId: string
+  templateId: string
+  workGate?: 'none' | 'require_signed_agreement'
+  clientOpId?: string
+  startsOn?: string | null
+  endsOn: string
+  noticeDays?: number | null
+  locale?: string | null
+  autoRenew?: boolean
+  slaResponseHours?: number | null
+  slaResolutionHours?: number | null
+  slaCoverageNotes?: string | null
+  billingCadence?: 'none' | 'monthly' | 'quarterly' | 'yearly'
+  billingAmountCents?: number | null
+  billingCurrency?: string | null
+  billingAnchorDay?: number | null
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('create_framework_agreement' as never, {
+    p_tenant_id: params.tenantId,
+    p_client_id: params.clientId,
+    p_template_id: params.templateId,
+    p_work_gate: params.workGate ?? 'none',
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+    p_starts_on: params.startsOn?.trim() || null,
+    p_ends_on: params.endsOn.trim(),
+    p_notice_days: params.noticeDays ?? null,
+    p_locale: params.locale?.trim() || null,
+    p_auto_renew: params.autoRenew ?? false,
+    p_sla_response_hours: params.slaResponseHours ?? null,
+    p_sla_resolution_hours: params.slaResolutionHours ?? null,
+    p_sla_coverage_notes: params.slaCoverageNotes?.trim() || null,
+    p_billing_cadence: params.billingCadence ?? 'none',
+    p_billing_amount_cents: params.billingAmountCents ?? null,
+    p_billing_currency: params.billingCurrency?.trim() || 'EUR',
+    p_billing_anchor_day: params.billingAnchorDay ?? null,
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+/** @deprecated CF-21-h2: finalize is service_role / signing-hook only. Do not call from the portal. */
+export async function finalizeCommercialAgreementVersion(_params: {
+  versionId: string
+  signedDocumentId?: string | null
+  asOf?: string | null
+}): Promise<string> {
+  throw new Error(
+    'finalize_commercial_agreement_version is internal (signing webhook / service_role only)',
+  )
+}
+
+export async function markAgreementSentForSignature(params: {
+  versionId: string
+  submissionId: string | null
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('mark_agreement_sent_for_signature' as never, {
+    p_version_id: params.versionId,
+    p_submission_id: params.submissionId,
+    p_signer_role: 'client',
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+export async function linkAgreementProject(params: {
+  agreementId: string
+  projectId: string
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('link_agreement_project' as never, {
+    p_agreement_id: params.agreementId,
+    p_project_id: params.projectId,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+export async function unlinkAgreementProject(params: {
+  agreementId: string
+  projectId: string
+  clientOpId?: string
+}): Promise<void> {
+  const { error } = await supabase.rpc('unlink_agreement_project' as never, {
+    p_agreement_id: params.agreementId,
+    p_project_id: params.projectId,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+}
+
+export type AgreementCoverageEntityType = 'contact' | 'contact_site' | 'asset'
+
+export type AgreementCoverageRow = {
+  id: string
+  agreementId: string
+  entityType: AgreementCoverageEntityType
+  entityId: string
+  label: string
+}
+
+export type AgreementMaintenancePlanRow = {
+  id: string
+  agreementId: string
+  maintenancePlanId: string
+  planName: string
+}
+
+export async function linkAgreementCoverage(params: {
+  agreementId: string
+  entityType: AgreementCoverageEntityType
+  entityId: string
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('link_agreement_coverage' as never, {
+    p_agreement_id: params.agreementId,
+    p_entity_type: params.entityType,
+    p_entity_id: params.entityId,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+export async function unlinkAgreementCoverage(params: {
+  agreementId: string
+  entityType: AgreementCoverageEntityType
+  entityId: string
+  clientOpId?: string
+}): Promise<void> {
+  const { error } = await supabase.rpc('unlink_agreement_coverage' as never, {
+    p_agreement_id: params.agreementId,
+    p_entity_type: params.entityType,
+    p_entity_id: params.entityId,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+}
+
+export async function linkAgreementMaintenancePlan(params: {
+  agreementId: string
+  maintenancePlanId: string
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('link_agreement_maintenance_plan' as never, {
+    p_agreement_id: params.agreementId,
+    p_maintenance_plan_id: params.maintenancePlanId,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+export async function unlinkAgreementMaintenancePlan(params: {
+  agreementId: string
+  maintenancePlanId: string
+  clientOpId?: string
+}): Promise<void> {
+  const { error } = await supabase.rpc('unlink_agreement_maintenance_plan' as never, {
+    p_agreement_id: params.agreementId,
+    p_maintenance_plan_id: params.maintenancePlanId,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+}
+
+export async function listAgreementCoverage(
+  agreementId: string,
+): Promise<AgreementCoverageRow[]> {
+  const { data, error } = await supabase
+    .from('commercial_agreement_coverage' as never)
+    .select('id, agreement_id, entity_type, entity_id')
+    .eq('agreement_id', agreementId)
+  if (error) throw error
+  const rows = (data ?? []) as Array<{
+    id: string
+    agreement_id: string
+    entity_type: AgreementCoverageEntityType
+    entity_id: string
+  }>
+  if (rows.length === 0) return []
+
+  const byType = {
+    contact: rows.filter((r) => r.entity_type === 'contact').map((r) => r.entity_id),
+    contact_site: rows.filter((r) => r.entity_type === 'contact_site').map((r) => r.entity_id),
+    asset: rows.filter((r) => r.entity_type === 'asset').map((r) => r.entity_id),
+  }
+  const labels = new Map<string, string>()
+
+  if (byType.contact.length > 0) {
+    const { data: contacts, error: contactError } = await supabase
+      .from('contacts')
+      .select('id, display_name')
+      .in('id', byType.contact)
+    if (contactError) throw contactError
+    for (const c of (contacts ?? []) as Array<{ id: string; display_name: string | null }>) {
+      labels.set(`contact:${c.id}`, c.display_name?.trim() || c.id.slice(0, 8))
+    }
+  }
+  if (byType.contact_site.length > 0) {
+    const { data: sites, error: siteError } = await supabase
+      .from('contact_sites')
+      .select('id, name')
+      .in('id', byType.contact_site)
+    if (siteError) throw siteError
+    for (const s of (sites ?? []) as Array<{ id: string; name: string | null }>) {
+      labels.set(`contact_site:${s.id}`, s.name?.trim() || s.id.slice(0, 8))
+    }
+  }
+  if (byType.asset.length > 0) {
+    const { data: assets, error: assetError } = await supabase
+      .from('assets')
+      .select('id, name')
+      .in('id', byType.asset)
+    if (assetError) throw assetError
+    for (const a of (assets ?? []) as Array<{ id: string; name: string | null }>) {
+      labels.set(`asset:${a.id}`, a.name?.trim() || a.id.slice(0, 8))
+    }
+  }
+
+  return rows.map((row) => ({
+    id: row.id,
+    agreementId: row.agreement_id,
+    entityType: row.entity_type,
+    entityId: row.entity_id,
+    label: labels.get(`${row.entity_type}:${row.entity_id}`) ?? row.entity_id.slice(0, 8),
+  }))
+}
+
+export async function listAgreementMaintenancePlans(
+  agreementId: string,
+): Promise<AgreementMaintenancePlanRow[]> {
+  const { data, error } = await supabase
+    .from('commercial_agreement_maintenance_plans' as never)
+    .select('id, agreement_id, maintenance_plan_id')
+    .eq('agreement_id', agreementId)
+  if (error) throw error
+  const rows = (data ?? []) as Array<{
+    id: string
+    agreement_id: string
+    maintenance_plan_id: string
+  }>
+  if (rows.length === 0) return []
+  const planIds = rows.map((r) => r.maintenance_plan_id)
+  const { data: plans, error: planError } = await supabase
+    .from('maintenance_plans')
+    .select('id, name')
+    .in('id', planIds)
+  if (planError) throw planError
+  const nameById = new Map(
+    ((plans ?? []) as Array<{ id: string; name: string | null }>).map((p) => [
+      p.id,
+      p.name?.trim() || p.id.slice(0, 8),
+    ]),
+  )
+  return rows.map((row) => ({
+    id: row.id,
+    agreementId: row.agreement_id,
+    maintenancePlanId: row.maintenance_plan_id,
+    planName: nameById.get(row.maintenance_plan_id) ?? row.maintenance_plan_id.slice(0, 8),
+  }))
+}
+
+export async function getProjectCommercialInclusion(
+  projectId: string,
+): Promise<CommercialInclusion> {
+  const { data, error } = await supabase.rpc(
+    'get_project_commercial_inclusion' as never,
+    { p_project_id: projectId } as never,
+  )
+  if (error) throw error
+  return parseCommercialInclusion(data)
+}
+
+export async function countAgreementCoverageAndPlans(
+  agreementIds: string[],
+): Promise<Map<string, { coverage: number; plans: number }>> {
+  const out = new Map<string, { coverage: number; plans: number }>()
+  if (agreementIds.length === 0) return out
+  for (const id of agreementIds) out.set(id, { coverage: 0, plans: 0 })
+
+  const [coverageResult, plansResult] = await Promise.all([
+    supabase
+      .from('commercial_agreement_coverage' as never)
+      .select('agreement_id')
+      .in('agreement_id', agreementIds),
+    supabase
+      .from('commercial_agreement_maintenance_plans' as never)
+      .select('agreement_id')
+      .in('agreement_id', agreementIds),
+  ])
+  if (coverageResult.error) throw coverageResult.error
+  if (plansResult.error) throw plansResult.error
+
+  for (const row of (coverageResult.data ?? []) as Array<{ agreement_id: string }>) {
+    const current = out.get(row.agreement_id) ?? { coverage: 0, plans: 0 }
+    current.coverage += 1
+    out.set(row.agreement_id, current)
+  }
+  for (const row of (plansResult.data ?? []) as Array<{ agreement_id: string }>) {
+    const current = out.get(row.agreement_id) ?? { coverage: 0, plans: 0 }
+    current.plans += 1
+    out.set(row.agreement_id, current)
+  }
+  return out
+}
+
+export async function renderCommercialAgreementPdf(params: {
+  versionId: string
+  tenantId: string
+}): Promise<CommercialRenderResult> {
+  const { data, error } = await supabase.functions.invoke('render-commercial-agreement', {
+    headers: { 'x-tenant-id': params.tenantId },
+    body: { version_id: params.versionId },
+  })
+  if (error) {
+    const detailed = await getFunctionErrorMessage(error)
+    throw new Error(detailed ?? error.message)
+  }
+  const payload = (data ?? {}) as Record<string, unknown>
+  if (payload.status === 'unavailable' || payload.status === 'error') {
+    const errObj = payload.error
+    const message =
+      typeof errObj === 'string'
+        ? errObj
+        : errObj && typeof errObj === 'object' && typeof (errObj as { message?: unknown }).message === 'string'
+          ? String((errObj as { message: string }).message)
+          : payload.status === 'unavailable'
+            ? 'gotenberg_unavailable'
+            : 'render_failed'
+    throw new Error(message)
+  }
+  return {
+    status: 'ready',
+    rendered_document_id: (payload.rendered_document_id as string | null | undefined) ?? null,
+    version_id: (payload.version_id as string | null | undefined) ?? null,
+    download_url: (payload.download_url as string | null | undefined) ?? null,
   }
 }
 
@@ -920,3 +1406,302 @@ export async function getCommercialDisplayFormats(tenantId: string): Promise<{
       : 'HH:mm'
   return { dateFormat, timeFormat }
 }
+
+export type AgreementBillingPeriodStatus = 'due' | 'invoiced' | 'skipped' | 'cancelled'
+
+export type AgreementListPageRow = {
+  id: string
+  kind: string
+  status: string
+  clientId: string
+  sourceQuoteId: string | null
+  activeVersionId: string | null
+  workGate: string | null
+  createdAt: string
+  versionStatus: string | null
+  renderedDocumentId: string | null
+  signedDocumentId: string | null
+  fullBodyTemplateId: string | null
+  startsOn: string | null
+  endsOn: string | null
+  noticeDays: number | null
+  autoRenew: boolean
+  slaResponseHours: number | null
+  slaResolutionHours: number | null
+  slaCoverageNotes: string | null
+  billingCadence: string | null
+  billingAmountCents: number | null
+  billingCurrency: string | null
+  billingAnchorDay: number | null
+  cycleId: string | null
+  cycleNo: number | null
+  cycleStatus: string | null
+  cycleStartsOn: string | null
+  cycleEndsOn: string | null
+  nextBillingOn: string | null
+}
+
+export type AgreementsListCursor = { createdAt: string; id: string }
+
+export type AgreementsListPage = {
+  rows: AgreementListPageRow[]
+  nextCursor: AgreementsListCursor | null
+}
+
+export const AGREEMENTS_PAGE_SIZE = 50
+
+function mapAgreementListRow(row: Record<string, unknown>): AgreementListPageRow {
+  return {
+    id: String(row.id),
+    kind: String(row.kind ?? 'specific'),
+    status: String(row.status ?? ''),
+    clientId: String(row.client_id),
+    sourceQuoteId: (row.source_quote_id as string | null) ?? null,
+    activeVersionId: (row.active_version_id as string | null) ?? null,
+    workGate: (row.work_gate as string | null) ?? null,
+    createdAt: String(row.created_at),
+    versionStatus: (row.version_status as string | null) ?? null,
+    renderedDocumentId: (row.rendered_document_id as string | null) ?? null,
+    signedDocumentId: (row.signed_document_id as string | null) ?? null,
+    fullBodyTemplateId: (row.full_body_template_id as string | null) ?? null,
+    startsOn: (row.starts_on as string | null) ?? null,
+    endsOn: (row.ends_on as string | null) ?? null,
+    noticeDays: row.notice_days == null ? null : Number(row.notice_days),
+    autoRenew: Boolean(row.auto_renew),
+    slaResponseHours: row.sla_response_hours == null ? null : Number(row.sla_response_hours),
+    slaResolutionHours: row.sla_resolution_hours == null ? null : Number(row.sla_resolution_hours),
+    slaCoverageNotes: (row.sla_coverage_notes as string | null) ?? null,
+    billingCadence: (row.billing_cadence as string | null) ?? null,
+    billingAmountCents: row.billing_amount_cents == null ? null : Number(row.billing_amount_cents),
+    billingCurrency: (row.billing_currency as string | null) ?? null,
+    billingAnchorDay: row.billing_anchor_day == null ? null : Number(row.billing_anchor_day),
+    cycleId: (row.cycle_id as string | null) ?? null,
+    cycleNo: row.cycle_no == null ? null : Number(row.cycle_no),
+    cycleStatus: (row.cycle_status as string | null) ?? null,
+    cycleStartsOn: (row.cycle_starts_on as string | null) ?? null,
+    cycleEndsOn: (row.cycle_ends_on as string | null) ?? null,
+    nextBillingOn: (row.next_billing_on as string | null) ?? null,
+  }
+}
+
+export async function listCommercialAgreementsPage(params: {
+  limit?: number
+  cursor?: AgreementsListCursor | null
+  signatureFilter?: 'all' | 'draft' | 'pending' | 'signed' | null
+  validityFilter?: 'all' | 'active' | 'expiring' | 'finished' | null
+}): Promise<AgreementsListPage> {
+  const limit = Math.min(Math.max(params.limit ?? AGREEMENTS_PAGE_SIZE, 1), 199)
+  const { data, error } = await supabase.rpc('list_commercial_agreements_page' as never, {
+    p_limit: limit + 1,
+    p_cursor_created_at: params.cursor?.createdAt ?? null,
+    p_cursor_id: params.cursor?.id ?? null,
+    p_signature_filter: params.signatureFilter ?? 'all',
+    p_validity_filter: params.validityFilter ?? 'all',
+  } as never)
+  if (error) throw error
+  const all = ((data ?? []) as Array<Record<string, unknown>>).map(mapAgreementListRow)
+  const rows = all.slice(0, limit)
+  const last = rows[rows.length - 1]
+  return {
+    rows,
+    nextCursor: all.length > limit && last ? { createdAt: last.createdAt, id: last.id } : null,
+  }
+}
+
+export async function cancelCommercialAgreement(params: {
+  agreementId: string
+  reason?: string | null
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('cancel_commercial_agreement' as never, {
+    p_agreement_id: params.agreementId,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+    p_reason: params.reason ?? null,
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+export async function suspendCommercialAgreement(params: {
+  agreementId: string
+  reason?: string | null
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('suspend_commercial_agreement' as never, {
+    p_agreement_id: params.agreementId,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+    p_reason: params.reason ?? null,
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+export async function resumeCommercialAgreement(params: {
+  agreementId: string
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('resume_commercial_agreement' as never, {
+    p_agreement_id: params.agreementId,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+export async function sendAgreementVersionForSignature(params: {
+  versionId: string
+  tenantId: string
+  documentTitle: string
+  signerName: string
+}): Promise<string> {
+  const rendered = await renderCommercialAgreementPdf({
+    versionId: params.versionId,
+    tenantId: params.tenantId,
+  })
+  if (!rendered.version_id) throw new Error('agreement_pdf_required')
+  const { callSignDocumentRouter } = await import('@/features/signing/api/signingService')
+  const opId = generateClientOpId()
+  const result = await callSignDocumentRouter({
+    tenant_id: params.tenantId,
+    action: 'sign_native',
+    source_type: 'document_existing',
+    source_document_version_id: rendered.version_id,
+    document_title: params.documentTitle,
+    native_sign_type: 'presential',
+    output_format: 'pdf',
+    output_profile: 'pdfa2b',
+    signer_name: params.signerName,
+    signer_role: 'client',
+    client_request_id: opId,
+  })
+  return markAgreementSentForSignature({
+    versionId: params.versionId,
+    submissionId: result.submission_id ?? null,
+    clientOpId: opId,
+  })
+}
+
+export async function hasRecentAgreementSigningFailure(agreementId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('commercial_agreement_events' as never)
+    .select('id')
+    .eq('agreement_id', agreementId)
+    .eq('event_type', 'signing_failed')
+    .order('created_at', { ascending: false })
+    .limit(1)
+  if (error) throw error
+  return ((data ?? []) as unknown[]).length > 0
+}
+
+export type AgreementBillingPeriodRow = {
+  id: string
+  agreementId: string
+  periodStart: string
+  periodEnd: string
+  dueOn: string
+  amountCents: number
+  currency: string
+  status: AgreementBillingPeriodStatus
+  externalInvoiceRef: string | null
+  notes: string | null
+}
+
+function mapBillingPeriodRow(row: Record<string, unknown>): AgreementBillingPeriodRow {
+  return {
+    id: String(row.id),
+    agreementId: String(row.agreement_id),
+    periodStart: String(row.period_start),
+    periodEnd: String(row.period_end),
+    dueOn: String(row.due_on),
+    amountCents: Number(row.amount_cents ?? 0),
+    currency: String(row.currency ?? 'EUR'),
+    status: row.status as AgreementBillingPeriodStatus,
+    externalInvoiceRef: (row.external_invoice_ref as string | null) ?? null,
+    notes: (row.notes as string | null) ?? null,
+  }
+}
+
+export const AGREEMENT_BILLING_PERIODS_PAGE_SIZE = 24
+
+export type AgreementBillingPeriodsCursor = { dueOn: string; id: string }
+
+export type AgreementBillingPeriodsPage = {
+  rows: AgreementBillingPeriodRow[]
+  nextCursor: AgreementBillingPeriodsCursor | null
+}
+
+/** CF-21-h7: keyset page (due_on DESC, id DESC). Fetches limit + 1 rows to know if there is more. */
+export async function listAgreementBillingPeriodsPage(params: {
+  agreementId: string
+  limit?: number
+  cursor?: AgreementBillingPeriodsCursor | null
+}): Promise<AgreementBillingPeriodsPage> {
+  const limit = Math.min(Math.max(params.limit ?? AGREEMENT_BILLING_PERIODS_PAGE_SIZE, 1), 199)
+  const { data, error } = await supabase.rpc('list_agreement_billing_periods_page' as never, {
+    p_agreement_id: params.agreementId,
+    p_limit: limit + 1,
+    p_cursor_due_on: params.cursor?.dueOn ?? null,
+    p_cursor_id: params.cursor?.id ?? null,
+  } as never)
+  if (error) throw error
+  const all = ((data ?? []) as Array<Record<string, unknown>>).map(mapBillingPeriodRow)
+  const rows = all.slice(0, limit)
+  const last = rows[rows.length - 1]
+  return {
+    rows,
+    nextCursor: all.length > limit && last ? { dueOn: last.dueOn, id: last.id } : null,
+  }
+}
+
+/**
+ * Unbounded convenience wrapper (kept for callers that need every period). The UI uses
+ * {@link listAgreementBillingPeriodsPage}.
+ */
+export async function listAgreementBillingPeriods(
+  agreementId: string,
+): Promise<AgreementBillingPeriodRow[]> {
+  const out: AgreementBillingPeriodRow[] = []
+  let cursor: AgreementBillingPeriodsCursor | null = null
+  for (let guard = 0; guard < 50; guard += 1) {
+    const page = await listAgreementBillingPeriodsPage({ agreementId, limit: 199, cursor })
+    out.push(...page.rows)
+    if (!page.nextCursor) break
+    cursor = page.nextCursor
+  }
+  return out
+}
+
+export async function markAgreementBillingPeriodInvoiced(params: {
+  periodId: string
+  externalInvoiceRef: string
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc(
+    'mark_agreement_billing_period_invoiced' as never,
+    {
+      p_period_id: params.periodId,
+      p_external_invoice_ref: params.externalInvoiceRef,
+      p_client_op_id: params.clientOpId ?? generateClientOpId(),
+    } as never,
+  )
+  if (error) throw error
+  return data as string
+}
+
+export async function skipAgreementBillingPeriod(params: {
+  periodId: string
+  notes?: string | null
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc(
+    'skip_agreement_billing_period' as never,
+    {
+      p_period_id: params.periodId,
+      p_client_op_id: params.clientOpId ?? generateClientOpId(),
+      p_notes: params.notes?.trim() || null,
+    } as never,
+  )
+  if (error) throw error
+  return data as string
+}
+

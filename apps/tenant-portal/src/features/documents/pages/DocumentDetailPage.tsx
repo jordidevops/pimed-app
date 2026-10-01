@@ -39,6 +39,7 @@ import { DocumentTagsEditor } from '../components/DocumentTagsEditor'
 import { DocumentShareModal } from '../components/DocumentShareModal'
 import { EntityTimeline } from '@/features/entity-timeline'
 import { useIsFieldService } from '@/hooks/useSectorLabel'
+import { readReturnTo } from '@/lib/navigationReturn'
 import {
   commercialDocumentOrderPath,
   getCommercialDocumentLinkInfo,
@@ -571,6 +572,24 @@ export function DocumentDetailPage() {
     folderPath.length > 0 && folderPath[folderPath.length - 1]?.id
       ? `/documents?folder=${folderPath[folderPath.length - 1]!.id}`
       : '/documents'
+  const returnTo = readReturnTo(searchParams)
+  const backHref = returnTo ?? folderHref
+  const backLabel = (() => {
+    if (!returnTo) return t('detail.backToDocuments', 'Tornar a Documents')
+    if (returnTo.startsWith('/quotes')) {
+      return t('detail.backToQuote', 'Tornar al pressupost')
+    }
+    if (returnTo.includes('/field/orders') || /\/projects\//.test(returnTo)) {
+      return t('detail.backToOrder', 'Tornar a l’ordre')
+    }
+    if (returnTo.startsWith('/contacts/')) {
+      return t('detail.backToContact', 'Tornar al contacte')
+    }
+    if (returnTo.startsWith('/agreements')) {
+      return t('detail.backToAgreement', 'Tornar a l’acord')
+    }
+    return t('detail.backToPrevious', 'Tornar')
+  })()
   const folderLabel = folderPath.map((folder) => folder.name).filter(Boolean).join(' / ')
   const entityHref =
     !isCommercialArtifact && doc.entity_type && doc.entity_id
@@ -606,10 +625,10 @@ export function DocumentDetailPage() {
           variant="ghost"
           size="sm"
           className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground -ml-2 lg:hidden"
-          onClick={() => navigate(folderHref)}
+          onClick={() => navigate(backHref)}
         >
           <ArrowLeft className="h-4 w-4" />
-          {t('detail.backToDocuments', 'Tornar a Documents')}
+          {backLabel}
         </Button>
 
         <div className="relative flex items-start gap-2">
@@ -617,8 +636,8 @@ export function DocumentDetailPage() {
             variant="ghost"
             size="icon"
             className="absolute -left-11 top-0.5 hidden h-8 w-8 text-muted-foreground hover:text-foreground lg:inline-flex"
-            onClick={() => navigate(folderHref)}
-            aria-label={t('detail.backToDocuments', 'Tornar a Documents')}
+            onClick={() => navigate(backHref)}
+            aria-label={backLabel}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>

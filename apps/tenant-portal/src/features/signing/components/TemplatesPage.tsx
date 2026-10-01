@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Copy, FilePlus2, Trash2, ChevronRight, FileText, Globe, AlertTriangle, Search, X, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -145,20 +145,44 @@ export function TemplatesPage() {
   const { data: templates = [], isLoading } = useDocumentTemplates(tenantId || undefined)
   const cloneMutation  = useCloneTemplateMutation(tenantId)
   const deleteMutation = useDeleteTemplateMutation(tenantId)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const categoryParam = searchParams.get('category')?.trim() ?? ''
+  const createParam = searchParams.get('create')
 
-  const [formMode,     setFormMode]     = useState<{ kind: 'create_template' } | null>(null)
+  const [formMode,     setFormMode]     = useState<{ kind: 'create_template'; category?: string } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DocumentTemplateWithLocales | null>(null)
   const [searchQuery,  setSearchQuery]  = useState('')
   const [typeFilter,   setTypeFilter]   = useState<'all' | 'html' | 'docx'>('all')
-  const [catFilter,    setCatFilter]    = useState<string>('')
+  const [catFilter,    setCatFilter]    = useState<string>(() => categoryParam)
   const [sortBy,       setSortBy]       = useState<'name' | 'date'>('date')
   const [sectorOnly,   setSectorOnly]   = useState(false)
+
+  useEffect(() => {
+    setCatFilter(categoryParam)
+  }, [categoryParam])
+
+  useEffect(() => {
+    if (createParam !== '1' || !canWrite) return
+    setFormMode({ kind: 'create_template', category: categoryParam || undefined })
+    const next = new URLSearchParams(searchParams)
+    next.delete('create')
+    setSearchParams(next, { replace: true })
+  }, [createParam, canWrite, categoryParam, searchParams, setSearchParams])
+
+  function updateCategoryFilter(nextCat: string) {
+    setCatFilter(nextCat)
+    const next = new URLSearchParams(searchParams)
+    if (nextCat) next.set('category', nextCat)
+    else next.delete('category')
+    setSearchParams(next, { replace: true })
+  }
 
   const allCategories = useMemo(() => {
     const cats = new Set<string>()
     templates.forEach(t => { if (t.category) cats.add(t.category) })
+    if (categoryParam) cats.add(categoryParam)
     return Array.from(cats).sort()
-  }, [templates])
+  }, [templates, categoryParam])
 
   function applyFilters(list: DocumentTemplateWithLocales[]) {
     let filtered = list
@@ -263,7 +287,7 @@ export function TemplatesPage() {
           )}
         </div>
         {canWrite && (
-          <Button onClick={() => setFormMode({ kind: 'create_template' })}>
+          <Button onClick={() => setFormMode({ kind: 'create_template', category: catFilter || undefined })}>
             <FilePlus2 className="h-4 w-4 mr-2" />
             {t('page.newTemplate', 'Nova plantilla')}
           </Button>
@@ -331,7 +355,7 @@ export function TemplatesPage() {
                 <button
                   key={cat}
                   type="button"
-                  onClick={() => setCatFilter(catFilter === cat ? '' : cat)}
+                  onClick={() => updateCategoryFilter(catFilter === cat ? '' : cat)}
                   className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
                     catFilter === cat
                       ? 'bg-indigo-100 text-indigo-700 border-indigo-300'

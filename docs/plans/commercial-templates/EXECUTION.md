@@ -3,7 +3,8 @@
 > **Rol:** única font de veritat de l'ordre d'implementació i del treball pendent
 > **Creat:** 2026-09-16
 > **Pla:** [`README.md`](./README.md) · estat per epic: [`STATUS.md`](./STATUS.md) · epics: [`06-phases-and-backlog.md`](./06-phases-and-backlog.md)
-> **Fase activa:** cap (pla d'epics tancat). QT-10 tancat 2026-09-17. No reobrir epics tancats sense acord.
+> **Fase activa (QT):** cap. QT-0…QT-10 tancats. No reobrir-los.
+> **Acords comercials:** pla [`../commercial-agreements/pla-pressupost-contracte-acords.md`](../commercial-agreements/pla-pressupost-contracte-acords.md). **CT-0…CT-6 tancats.** **CF-21-a…e** fets (fins a cicle de vida operatiu); CF-21 sencer no tancat (SLA / facturació / plantilla = CF-21-f+). Veure [`commercial-flow/EXECUTION.md`](../commercial-flow/EXECUTION.md).
 > **Instruccions obligatòries:** [`00-agent-instructions-and-guardrails.md`](./00-agent-instructions-and-guardrails.md)
 
 ## Disciplina
@@ -32,6 +33,7 @@
 | 8 | **QT-8** Autoria de camps de signatura | ✅ | Tancat 2026-09-17. Seeds + editor 220×70 |
 | 9 | **QT-9** Pipeline de firma nativa | ✅ | Tancat 2026-09-17. `sign_native` + events amb submission/session; stamp/router intactes |
 | 10 | **QT-10** Submission Hub | ✅ | Tancat 2026-09-17. Vista hub + Centre (badge/auditoria nativa, enllaç al pressupost) |
+| — | **CT-0** Docs acord vs pressupost | ✅ | 2026-09-27. Doc 05 substituït. Sense codi |
 
 ## Registre de treball
 
@@ -53,3 +55,9 @@
 | 2026-09-17 | QT-9 | Acceptar/refusar/lliurament via `sign-document-router action=sign_native` (presencial SignaturePad + remot `/sign/:token`). Events amb `signing_submission_id`/`signing_session_id`. Inject ja era a render. Stamp/router/field-map intactes: `detectFieldForRole` en viu. SQL QT-9 PASS. Sense QT-10. Fallback QT-D1 intacte. | QT-10 en una sessió nova |
 | 2026-09-17 | QT-10 | Documents comercials firmats al Centre: vista `api.commercial_signing_hub`, filtre proveïdor, enllaç `/quotes?view=`, badge nativa + panell d'integritat existent. SQL + vitest PASS. Sense tocar router/stamp/field-map ni el pla de signatures. Fallback QT-D1 intacte. | Pla d'epics tancat |
 | 2026-09-18 | Follow-up | Sentinel `none`, enllaç `result_*` al PDF firmat, tab Document alineat (DOCX/inject/parent/tenant), trigger sense WARNING + office gate a l'apply. `20261178000001`. Router/stamp/field-map intactes. | Pla d'epics tancat |
+| 2026-09-27 | CT-0 | Doc 05 reescrit: no `contract_document_id`, no PDF en `accepted`. Glossari al flux comercial. README/STATUS/06 alineats. Sense migració. | CT-1 al pla d'acords, sessió nova |
+| 2026-09-27 | CT-1 | `formalization_mode` al pressupost (`20261186000001`): default de tenant, override en emetre, clàusula i plantilla pressupost-contracte. Sense acords ni `agreement_template_id`. | CT-2 al pla d'acords, sessió nova |
+| 2026-09-27 | CT-2 | Nucli `commercial_agreements` (`20261187000001`): versions, events, N:M projectes, RLS de lectura. `kind` diferent de `specific` rebutjat. Sense prepare ni UI. | CT-3 al pla d'acords, sessió nova |
+| 2026-09-27 | CT-3 | `prepare_agreement_from_quote` (`20261188000001`): hash del pressupost, rol `client`, confirmació humana. Acceptar no prepara. | CT-4 al pla d'acords, sessió nova |
+| 2026-09-27 | CT-4 | N:M acord-projecte (`20261189000001`): vincular/desvincular auditat, sense esborrar PDF. Gate `require_signed_agreement` bloqueja iniciar; `none` no. | CT-5 al pla d'acords, sessió nova |
+| 2026-09-27 | CT-5 | Catàleg formal ca/es, distintius i filtres, settings de plantilla d'acord i work_gate. `20261190000001`. | V1 tancada |

@@ -50,12 +50,16 @@ Objectiu: un autònom cobra correctament una feina, amb o sense pressupost, i ma
 |------|-----|-----------|----------|
 | **CF-19** | Costos privats | `catalog_item_financials` i `project_line_financials` amb permís financer; marge objectiu com a suggeriment de PVP; mai columnes a les vistes obertes | Tall 2 |
 | **CF-20** | Rendibilitat | Resultat brut estimat i real; cost laboral congelat per work log; separació de cost i preu a materials; ampliació del model de despeses | CF-19 |
-| **CF-21** | Manteniment contractual | Acord amb vigència, actius coberts, serveis inclosos, SLA, revisió de preus, extres autoritzables i regla de facturació | Tall 2 |
-| **CF-22** | Obra i instal·lació | Opcions i variants, bestretes, fites, ordres de canvi signades, entregues parcials i seguiment contractat, executat i facturat | CF-21 |
+| **CF-21** | Manteniment contractual | Acord amb vigència, actius coberts, serveis inclosos, SLA, revisió de preus, extres autoritzables i regla de facturació. Reutilitza el nucli `commercial_agreements` del [pla CT](../commercial-agreements/pla-pressupost-contracte-acords.md); no és una taula `contracte` nova | Nucli CT (no cal tot CF-22) |
+| **CF-22** | Obra i instal·lació | Opcions i variants, bestretes, fites, ordres de canvi signades, entregues parcials i seguiment contractat, executat i facturat. `kind='project'` sobre el **mateix nucli d’acords**. Les extensions de manteniment de CF-21 **no** són prerequisit | Nucli CT; CF-9 com a ordre de canvi |
 
 L'ampliació construïda a CF-9 és la base natural de l'ordre de canvi de CF-22.
 
----
+**CT-0 (2026-09-27):** CF-22 ja no depèn de CF-21. Tots dos depenen del nucli d’acords del pla CT. Una obra simple es pot tancar amb pressupost signat o amb un acord `specific` sense SLA de manteniment.
+
+### Diferit — modes d’entrada comercial
+
+**CF-24 (provisional):** `sales_entry_mode` `order_first` | `quote_first` (client→pressupost→OS). Spec completa a [`06-sales-entry-modes-quote-first.md`](./06-sales-entry-modes-quote-first.md). **No** és prerequisit de CF-19…CF-22 ni del cicle UX nav. Requereix 2n tenant de prova; Riera roman `order_first`.
 
 ## Dependències crítiques
 

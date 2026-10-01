@@ -79,6 +79,33 @@ describe('deriveOrderWorkflow', () => {
     expect(result.primaryAction).toBe('start_work')
   })
 
+  it('treats agreement inclusion as authorization without a quote', () => {
+    const result = workflow({
+      documents: [],
+      hasWaiver: false,
+      authBeforeWork: 'block',
+      agreementIncluded: true,
+    })
+
+    expect(result.authorized).toBe(true)
+    expect(result.authorizationState).toBe('authorized')
+    expect(result.prepareDone).toBe(true)
+    expect(result.primaryAction).toBe('start_work')
+  })
+
+  it('blocks start when auth is required and OS is extra (not included)', () => {
+    const result = workflow({
+      documents: [],
+      hasWaiver: false,
+      authBeforeWork: 'block',
+      agreementIncluded: false,
+    })
+
+    expect(result.authorized).toBe(false)
+    expect(result.authorizationState).toBe('missing')
+    expect(result.suggestedTab).toBe('prepare')
+  })
+
   it('resumes a draft order with previous closed work logs', () => {
     const result = workflow({
       documents: [],

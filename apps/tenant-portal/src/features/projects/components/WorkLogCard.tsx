@@ -54,6 +54,13 @@ function getWorklogUiErrorMessage(
     )
   }
 
+  if (message.includes('agreement_work_gate_blocked')) {
+    return t(
+      'projects.commercial.agreements_gate_blocked',
+      'Hi ha un contracte que encara no està actiu. No es pot iniciar la feina.',
+    )
+  }
+
   if (message.includes('work_log_blocked_visit_closed')) {
     return t(
       'field-service:punch.blocked_closed',

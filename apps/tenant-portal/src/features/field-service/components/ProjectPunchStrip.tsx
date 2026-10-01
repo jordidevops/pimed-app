@@ -12,6 +12,8 @@ interface ProjectPunchStripProps {
   className?: string
   /** When true, start punch is blocked (visit closed / on_hold / cancelled). */
   locked?: boolean
+  /** Shown instead of the closed-visit line when start is locked for another reason. */
+  lockMessage?: string
   /** Surface the operational next step instead of a second footer CTA. */
   startMode?: 'start' | 'resume' | null
 }
@@ -20,6 +22,7 @@ export function ProjectPunchStrip({
   projectId,
   className,
   locked = false,
+  lockMessage,
   startMode = null,
 }: ProjectPunchStripProps) {
   const { t } = useTranslation(['projects', 'field-service'])
@@ -53,7 +56,12 @@ export function ProjectPunchStrip({
       const msg = err instanceof Error ? err.message : 'Error'
       toast({
         variant: 'destructive',
-        description: msg.includes('work_log_blocked_visit_closed')
+        description: msg.includes('agreement_work_gate_blocked')
+          ? t(
+              'projects.commercial.agreements_gate_blocked',
+              'Hi ha un contracte que encara no està actiu. No es pot iniciar la feina.',
+            )
+          : msg.includes('work_log_blocked_visit_closed')
           ? t('field-service:punch.blocked_closed', 'La visita està tancada; no es pot fitxar.')
           : msg,
       })
@@ -159,7 +167,7 @@ export function ProjectPunchStrip({
         )}
         {locked && !isOpen && (
           <p className="mt-1 text-xs text-muted-foreground">
-            {t('field-service:punch.blocked_closed', 'La visita està tancada; no es pot fitxar.')}
+            {lockMessage ?? t('field-service:punch.blocked_closed', 'La visita està tancada; no es pot fitxar.')}
           </p>
         )}
         {blockedElsewhere && !isOpen && (

@@ -125,6 +125,7 @@ describe('resolveItemLabel', () => {
     contactLabel: 'Clients',
     projectLabel: 'Ordre de servei',
     projectLabelPlural: 'Obres',
+    agreementLabelPlural: 'Acords comercials',
   }
 
   it('uses project_plural for list nav and keeps a manual sidebar label', () => {

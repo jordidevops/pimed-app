@@ -1,6 +1,7 @@
 # Flux comercial de camp — Pressupost → Albarà → Cobrament
 
-> **Estat:** pla documental creat, **cap fase implementada** — veure [`STATUS.md`](./STATUS.md) (2026-09-10)
+> **Estat d’implementació:** veure [`STATUS.md`](./STATUS.md) (el Tall 1 i bona part del Tall 2 ja estan al codi; aquesta introducció conserva el diagnòstic original del 2026-09-10).
+> **Acords / contractes (CT-5 tancat, 2026-09-27):** el pressupost acceptat no crea l’acord. Hi ha distintius derivats, filtres i una llista mínima d’acords. La feina només es bloqueja si l’acord ho exigeix. Pla: [`../commercial-agreements/pla-pressupost-contracte-acords.md`](../commercial-agreements/pla-pressupost-contracte-acords.md).
 > **Ordre d'implementació:** [`EXECUTION.md`](./EXECUTION.md)
 > **Depèn de:** [Field Service](../field-service/README.md) (motor d'ordres), [Custom portal](../custom-portal/README.md) (patró de documents publicats), [Signing](../signing/plan-sistema-firma-propi.md) (evidència de signatura)
 > **Objectiu:** que un autònom pugui anar de la comanda del client fins al cobrament sense paperassa d'oficina i **sense cobrar mai per sobre del que el client ha autoritzat**.
@@ -12,8 +13,10 @@
 | [03-ux-contract.md](./03-ux-contract.md) | Contracte mòbil: happy path, excepcions, vocabulari, chips |
 | [04-phases-and-backlog.md](./04-phases-and-backlog.md) | Epics CF-0…CF-21 per talls, dependències, fora d'abast |
 | [05-acceptance-and-gates.md](./05-acceptance-and-gates.md) | Criteris d'acceptació i gates entre talls |
+| [06-sales-entry-modes-quote-first.md](./06-sales-entry-modes-quote-first.md) | **Diferit:** modes `order_first` / `quote_first` (client→pressupost→OS); no barrejar amb el cicle UX nav |
 | [EXECUTION.md](./EXECUTION.md) | Font de veritat de l'ordre real de treball |
 | [STATUS.md](./STATUS.md) | Estat per epic; actualitzar durant la implementació |
+| [Acords comercials](../commercial-agreements/pla-pressupost-contracte-acords.md) | Formalització (pressupost signat vs acord separat) i continuació CF-21/CF-22 |
 
 ---
 
@@ -68,7 +71,8 @@ flowchart TD
 | **Ordre de treball (OS)** | Expedient operatiu | Projecte genèric |
 | **Imports** | Tab de l'OS que edita `project_lines` | Un document |
 | **Servei habitual** | Pack de línies del catàleg | Plantilla de document de `/documents` |
-| **Pressupost** | Oferta que el client accepta o refusa | Estat `draft` de l'OS |
+| **Pressupost** | Oferta que el client accepta o refusa. Amb formalització «un document», l’acceptació signada és el contracte de l’encàrrec | Estat `draft` de l’OS; un acord amb vigència |
+| **Acord comercial** | Contracte formal separat (`commercial_agreements`): segona firma i annex del pressupost. Més endavant: manteniment, marc, obra | La llista de tots els pressupostos acceptats; `commercial_regime='contractual'` (això és B2B); el contracte laboral |
 | **Renúncia al pressupost** | Alternativa signada per a urgències | Absència de document |
 | **Ampliació de pressupost** | Document fill per als sobrecostos | Versió del pressupost |
 | **Import autoritzat** | Sostre del que es pot cobrar | Total de la feina feta |
@@ -93,6 +97,7 @@ L'etiqueta de l'estat `draft` de l'OS passa de «Pressupost» a **«Esborrany»*
 | **CF-D8** | Només **EUR**, amb arrodoniment per línia i grup fiscal | No fingir multimoneda |
 | **CF-D9** | Les proteccions de consum s'activen segons `is_consumer` del contacte | En B2B preval la llibertat contractual |
 | **CF-D10** | `project_lines` continua sent la capa viva; no es duplica en una taula nova | Ja compleix la funció |
+| **CF-D11** | Acceptar un pressupost **no** crea un contracte. L’acord formal és explícit i viu a `commercial_agreements` ([pla CT](../commercial-agreements/pla-pressupost-contracte-acords.md)). `commercial_regime='contractual'` és el règim B2B, no un acord. Els contractes laborals són WFM | Evita un PDF legal diferent sense segona firma i la confusió de noms |
 
 ## Errors evitats deliberadament
 
@@ -112,5 +117,5 @@ Documentats perquè no es reintrodueixin:
 | Autònom a domicili | Tall 1 complet |
 | Empresa de 2–10 tècnics | Tall 1 + Tall 2 (separació tècnic/oficina) |
 | Servei urgent | Tall 1, via renúncia signada i ampliació al moment |
-| Manteniment recurrent | Tall 3 (acord amb vigència, serveis inclosos, SLA) |
-| Instal·lador i obra | Tall 3 (opcions, bestretes, fites, ordres de canvi) |
+| Manteniment recurrent | Nucli d’acords (pla CT) + **CF-21** (vigència, inclosos, SLA). El pla operatiu de manteniment no és l’acord |
+| Instal·lador i obra | Pressupost signat o acord `specific` ja a CT. **CF-22** afegeix fites i seguiment; **no** espera que CF-21 (manteniment) estigui fet |

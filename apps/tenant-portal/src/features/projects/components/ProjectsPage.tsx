@@ -12,13 +12,15 @@ import { useDepartments } from '@/features/departments/api/useDepartments'
 import { useProjects } from '../api/useProjects'
 import { ProjectRow } from './ProjectRow'
 import { ProjectForm } from './ProjectForm'
-import type { Project } from '../api/projectsService'
+import { getProjectsByClientId, type Project, type ProjectListItem } from '../api/projectsService'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useIsFieldService, useSectorLabel } from '@/hooks/useSectorLabel'
 import { useWorkLog } from '../api/useWorkLog'
 import { useProjectsWorkLogTotals } from '../api/useProjectWorkLogSummary'
 import { cn } from '@/lib/utils'
 import { localDayRange, plannedDateRangeBounds, type PlannedDateRangeKey } from '@/lib/dateLocal'
+import { useQuery } from '@tanstack/react-query'
+import { ClientFilterControl } from '@/features/contacts/components/ClientFilterControl'
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const
 const SORT_FIELDS = ['created_at', 'name', 'type', 'status', 'planned_start', 'task_count'] as const
@@ -78,9 +80,21 @@ function expandDateBound(value: string, endOfDay: boolean): string {
 
 interface ProjectsPageProps {
   fieldServiceMode?: boolean
+  /** Scope list to one client (contact tab). */
+  clientId?: string
+  clientName?: string
+  embedded?: boolean
+  /** Passed to row links as returnTo (e.g. contact orders tab). */
+  detailReturnTo?: string | null
 }
 
-export function ProjectsPage({ fieldServiceMode = false }: ProjectsPageProps) {
+export function ProjectsPage({
+  fieldServiceMode = false,
+  clientId,
+  clientName,
+  embedded = false,
+  detailReturnTo = null,
+}: ProjectsPageProps) {
   const { t } = useTranslation(['projects', 'field-service'])
   const { toast } = useToast()
   const { user } = useAuth()
@@ -148,13 +162,16 @@ export function ProjectsPage({ fieldServiceMode = false }: ProjectsPageProps) {
   const sortField = parseSortField(searchParams.get('sortField'))
   const sortDirection = parseSortDirection(searchParams.get('sortDirection'))
   const debouncedSearch = useDebounce(searchDraft, 300)
+  const urlFilterClientId = !embedded && !clientId
+    ? (searchParams.get('client_id')?.trim() || '')
+    : ''
 
   useEffect(() => {
     const shouldCreate = searchParams.get('create') === '1'
     if (!shouldCreate) return
 
-    const clientId = searchParams.get('client_id')
-    setInitialClientId(clientId)
+    const createClientId = searchParams.get('client_id')
+    setInitialClientId(createClientId)
     setInitialContactSiteId(searchParams.get('contact_site_id'))
     setEditTarget(null)
     setFormOpen(true)
@@ -197,6 +214,7 @@ export function ProjectsPage({ fieldServiceMode = false }: ProjectsPageProps) {
     sortDirection,
     createdBy: isFieldService && fsQuickFilter === 'mine' ? (user?.id ?? undefined) : undefined,
     openOnly: isFieldService && fsQuickFilter === 'open',
+    clientId: urlFilterClientId || undefined,
   }), [
     page,
     pageSize,
@@ -212,10 +230,63 @@ export function ProjectsPage({ fieldServiceMode = false }: ProjectsPageProps) {
     isFieldService,
     fsQuickFilter,
     user?.id,
+    urlFilterClientId,
   ])
 
-  const { data, isLoading, error, isFetching } = useProjects(projectQuery)
-  const projects = data?.items ?? []
+  const { data, isLoading: listLoading, error: listError, isFetching } = useProjects(projectQuery, {
+    enabled: !clientId,
+  })
+
+  const {
+    data: clientProjectsRaw = [],
+    isLoading: clientLoading,
+    error: clientError,
+  } = useQuery({
+    queryKey: ['projects', 'by-client', clientId],
+    queryFn: () => getProjectsByClientId(clientId!),
+    enabled: !!clientId && !!activeTenant?.id,
+  })
+
+  const clientFiltered: ProjectListItem[] = useMemo(() => {
+    if (!clientId) return []
+    const q = (searchParams.get('q') ?? '').trim().toLowerCase()
+    return (clientProjectsRaw as ProjectListItem[]).filter((project) => {
+      if (status && project.status !== status) return false
+      if (type && project.type !== type) return false
+      if (siteId && project.site_id !== siteId) return false
+      if (departmentId && project.department_id !== departmentId) return false
+      if (q) {
+        const hay = [project.name, project.description, clientName]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      if (isFieldService && fsQuickFilter === 'open') {
+        if (project.status === 'completed' || project.status === 'cancelled') return false
+      }
+      if (isFieldService && fsQuickFilter === 'mine' && user?.id && project.created_by !== user.id) {
+        return false
+      }
+      return true
+    })
+  }, [
+    clientId,
+    clientName,
+    clientProjectsRaw,
+    departmentId,
+    fsQuickFilter,
+    isFieldService,
+    searchParams,
+    siteId,
+    status,
+    type,
+    user?.id,
+  ])
+
+  const projects: ProjectListItem[] = clientId ? clientFiltered : (data?.items ?? [])
+  const isLoading = clientId ? clientLoading : listLoading
+  const error = clientId ? clientError : listError
   const projectIds = useMemo(
     () => projects.map((p) => p.id).filter((id): id is string => !!id),
     [projects],
@@ -229,14 +300,20 @@ export function ProjectsPage({ fieldServiceMode = false }: ProjectsPageProps) {
         }
       : null,
   )
-  const totalCount = data?.totalCount ?? 0
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
-  const canGoPrev = page > 1
-  const canGoNext = page < totalPages
+  const totalCount = clientId ? projects.length : (data?.totalCount ?? 0)
+  const totalPages = clientId ? 1 : Math.max(1, Math.ceil(totalCount / pageSize))
+  const canGoPrev = !clientId && page > 1
+  const canGoNext = !clientId && page < totalPages
 
   const hasSites = sites.length > 0
   const hasDepartments = departments.length > 0
   const prereqsReady = hasSites && hasDepartments
+
+  const globalOrdersHref = (() => {
+    const base = isFieldService ? '/field/orders' : '/projects'
+    if (clientId) return `${base}?client_id=${encodeURIComponent(clientId)}`
+    return base
+  })()
 
   function handleOpenCreate() {
     if (!prereqsReady) {
@@ -250,6 +327,8 @@ export function ProjectsPage({ fieldServiceMode = false }: ProjectsPageProps) {
       })
       return
     }
+    if (clientId) setInitialClientId(clientId)
+    else if (urlFilterClientId) setInitialClientId(urlFilterClientId)
     setEditTarget(null)
     setFormOpen(true)
   }
@@ -262,6 +341,8 @@ export function ProjectsPage({ fieldServiceMode = false }: ProjectsPageProps) {
   function handleCloseForm() {
     setFormOpen(false)
     setEditTarget(null)
+    if (clientId) return
+    setInitialClientId(urlFilterClientId || null)
   }
 
   function updateParam(name: string, value: string | number | null) {
@@ -355,6 +436,7 @@ export function ProjectsPage({ fieldServiceMode = false }: ProjectsPageProps) {
     departmentId,
     plannedStartFrom,
     plannedStartTo,
+    urlFilterClientId,
     isFieldService && fsQuickFilter && fsQuickFilter !== 'all' ? fsQuickFilter : '',
   ].filter(Boolean).length
 
@@ -384,8 +466,49 @@ export function ProjectsPage({ fieldServiceMode = false }: ProjectsPageProps) {
   }
 
   return (
-    <div className={cn('mx-auto max-w-7xl space-y-5', fieldServiceMode ? 'p-4 pb-24' : 'p-6')}>
-      {fieldServiceMode ? (
+    <div
+      className={cn(
+        'space-y-5',
+        embedded
+          ? ''
+          : cn('mx-auto max-w-7xl', fieldServiceMode ? 'p-4 pb-24' : 'p-6'),
+      )}
+    >
+      {embedded ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1 min-w-0">
+            <p className="text-sm text-muted-foreground">
+              {clientName
+                ? (isFieldService
+                    ? t('field-service:orders.scoped_subtitle', 'Ordres de {{name}}', {
+                        name: clientName,
+                      })
+                    : t('projects.list.scoped_subtitle', 'Projectes de {{name}}', {
+                        name: clientName,
+                      }))
+                : (isFieldService
+                    ? t('field-service:orders.scoped_subtitle_generic', 'Ordres d’aquest client')
+                    : t('projects.list.scoped_subtitle_generic', 'Projectes d’aquest client'))}
+            </p>
+            <Link to={globalOrdersHref} className="text-sm text-indigo-600 hover:underline">
+              {isFieldService
+                ? t('field-service:orders.see_all_global', 'Veure totes les ordres')
+                : t('projects.list.see_all_global', 'Veure tots els projectes')}
+            </Link>
+          </div>
+          <Button
+            onClick={handleOpenCreate}
+            className="gap-2 shrink-0"
+            disabled={!prereqsReady}
+            size="sm"
+          >
+            <Plus className="h-4 w-4" />
+            {isFieldService
+              ? t('field-service:orders.new', 'Nova ordre')
+              : t('projects.list.new', 'Nou projecte')}
+          </Button>
+        </div>
+      ) : fieldServiceMode ? (
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-1 min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">{projectLabelPlural}</h1>
@@ -417,7 +540,7 @@ export function ProjectsPage({ fieldServiceMode = false }: ProjectsPageProps) {
         </div>
       )}
 
-      {fieldServiceMode && (
+      {fieldServiceMode && !embedded && (
         <div className="sm:hidden fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-30">
           <Button
             size="icon"
@@ -545,6 +668,13 @@ export function ProjectsPage({ fieldServiceMode = false }: ProjectsPageProps) {
             !filtersOpen && 'hidden md:grid',
           )}
         >
+          {!embedded && !clientId ? (
+            <ClientFilterControl
+              labeled={false}
+              value={urlFilterClientId || null}
+              onChange={(id) => updateParam('client_id', id ?? '')}
+            />
+          ) : null}
           <select value={status} onChange={(e) => updateParam('status', e.target.value)} className="rounded-md border border-input bg-background px-3 py-2 text-sm">
             <option value="">{t('projects.filters.all_status', 'Tots els estats')}</option>
             <option value="draft">{t('projects.status.draft', 'Esborrany')}</option>
@@ -682,6 +812,7 @@ export function ProjectsPage({ fieldServiceMode = false }: ProjectsPageProps) {
                   project={project}
                   onEdit={handleEdit}
                   detailBasePath={isFieldService ? '/field/orders' : '/projects'}
+                  detailReturnTo={detailReturnTo}
                   activePunchProjectId={activePunchProjectId}
                   onStopPunch={() => { void handleStopActivePunch() }}
                   stopPunchBusy={stopPunchBusy}
@@ -727,7 +858,7 @@ export function ProjectsPage({ fieldServiceMode = false }: ProjectsPageProps) {
         open={formOpen}
         onClose={handleCloseForm}
         editProject={editTarget}
-        initialClientId={initialClientId}
+        initialClientId={initialClientId ?? clientId ?? null}
         initialContactSiteId={initialContactSiteId}
       />
     </div>

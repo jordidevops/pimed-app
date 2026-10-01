@@ -85,7 +85,15 @@ export function StartVisitDialog({
       navigate(`/field/orders/${selectedId}`)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error'
-      toast({ variant: 'destructive', description: msg })
+      toast({
+        variant: 'destructive',
+        description: msg.includes('agreement_work_gate_blocked')
+          ? t(
+              'projects.commercial.agreements_gate_blocked',
+              'Hi ha un contracte que encara no està actiu. No es pot iniciar la feina.',
+            )
+          : msg,
+      })
     }
   }
 

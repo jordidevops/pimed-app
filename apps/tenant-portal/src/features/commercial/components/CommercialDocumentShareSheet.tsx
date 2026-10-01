@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
+import {
+  documentPathWithReturn,
+  isAllowedReturnTo,
+} from '@/lib/navigationReturn'
 import {
   getCommercialDocumentDetail,
   recordCommercialDocumentSent,
@@ -32,14 +36,22 @@ interface CommercialDocumentShareSheetProps {
   documentId: string
   open: boolean
   onClose: () => void
+  dmsReturnTo?: string | null
 }
 
 export function CommercialDocumentShareSheet({
   documentId,
   open,
   onClose,
+  dmsReturnTo,
 }: CommercialDocumentShareSheetProps) {
   const { t } = useTranslation('projects')
+  const location = useLocation()
+  const locationReturn = `${location.pathname}${location.search}`
+  const resolvedDmsReturn =
+    dmsReturnTo ??
+    (isAllowedReturnTo(locationReturn) ? locationReturn : `/quotes?view=${documentId}`)
+  const dmsHref = (docId: string) => documentPathWithReturn(docId, resolvedDmsReturn)
   const { toast } = useToast()
   const [doc, setDoc] = useState<CommercialDocumentDetail | null>(null)
   const [loading, setLoading] = useState(false)
@@ -304,14 +316,14 @@ export function CommercialDocumentShareSheet({
               </Button>
               {pdf.renderedDocumentId ? (
                 <Button type="button" variant="outline" asChild>
-                  <Link to={`/documents/${pdf.renderedDocumentId}`}>
+                  <Link to={dmsHref(pdf.renderedDocumentId)}>
                     {t('projects.commercial.open_dms', 'Obrir al DMS')}
                   </Link>
                 </Button>
               ) : null}
               {signedPdfId && signedPdfId !== pdf.renderedDocumentId ? (
                 <Button type="button" variant="outline" asChild>
-                  <Link to={`/documents/${signedPdfId}`}>
+                  <Link to={dmsHref(signedPdfId)}>
                     {t('projects.commercial.open_signed_pdf', 'Obrir PDF firmat')}
                   </Link>
                 </Button>

@@ -9,16 +9,29 @@ import { useToast } from '@/hooks/use-toast'
 import { useIsFieldService } from '@/hooks/useSectorLabel'
 import {
   listPaymentsForDocuments,
+  listPrimaryLineNames,
+  listQuoteAgreementStates,
+  listCommercialDocumentsForClient,
   reissueCommercialQuote,
   searchCommercialDocuments,
   type CommercialDocument,
   type CommercialDocumentSearchHit,
+  type QuoteAgreementState,
 } from '../api/commercialFlowService'
 import { accountedPaidCents } from '../utils/paymentAllocation'
+import { useDocumentTemplates } from '@/features/signing/api/useDocumentTemplates'
+import { useTenant } from '@/contexts/TenantContext'
 import { isCommercialQuoteReissuable } from '../utils/pendingCommercialAction'
+import { commercialRelationshipBadges } from '../utils/commercialRelationshipBadges'
+import {
+  QUOTE_TEMPLATES_HREF,
+  commercialTemplatesHref,
+} from '../utils/commercialTemplatePaths'
+import { ClientFilterControl } from '@/features/contacts/components/ClientFilterControl'
 import { CommercialDocumentShareSheet } from './CommercialDocumentShareSheet'
 import { CommercialDocumentView } from './CommercialDocumentView'
 import { CommercialDocumentStatusBadges } from './CommercialDocumentStatusBadge'
+import { CommercialRelationshipBadges } from './CommercialRelationshipBadges'
 import { CreateQuoteDialog } from './CreateQuoteDialog'
 import { ReissueQuoteDialog } from './ReissueQuoteDialog'
 
@@ -81,10 +94,20 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
   return debounced
 }
 
-export function QuotesPage() {
+export function QuotesPage({
+  clientId,
+  clientName,
+  embedded = false,
+}: {
+  clientId?: string
+  clientName?: string
+  embedded?: boolean
+} = {}) {
   const { t } = useTranslation('projects')
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { activeTenant } = useTenant()
+  const { data: templates = [] } = useDocumentTemplates(activeTenant?.id)
   const isFieldService = useIsFieldService()
   const projectBase = isFieldService ? '/field/orders' : '/projects'
   const [searchParams, setSearchParams] = useSearchParams()
@@ -98,22 +121,53 @@ export function QuotesPage() {
   const [expiredOnly, setExpiredOnly] = useState(false)
   const [totalMin, setTotalMin] = useState('')
   const [totalMax, setTotalMax] = useState('')
+  const [formalization, setFormalization] = useState<'all' | 'signed_quote' | 'separate_agreement'>('all')
+  const [hasAgreement, setHasAgreement] = useState<'all' | 'yes' | 'no'>('all')
+  const [signature, setSignature] = useState<'all' | 'none' | 'pending' | 'signed'>('all')
   const [viewDocId, setViewDocId] = useState<string | null>(null)
   const [shareDocId, setShareDocId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [reissueDocId, setReissueDocId] = useState<string | null>(null)
   const [reissueBusy, setReissueBusy] = useState(false)
 
+  const urlClientId = !embedded && !clientId
+    ? (searchParams.get('client_id')?.trim() || null)
+    : null
+
+  function setUrlClientId(nextId: string | null) {
+    if (embedded || clientId) return
+    const next = new URLSearchParams(searchParams)
+    if (nextId) next.set('client_id', nextId)
+    else next.delete('client_id')
+    setSearchParams(next, { replace: true })
+  }
+
   useEffect(() => {
+    if (embedded) return
     const view = searchParams.get('view')
     if (view) setViewDocId(view)
-  }, [searchParams])
+  }, [searchParams, embedded])
+
+  useEffect(() => {
+    if (embedded || clientId) return
+    const q = searchParams.get('q')
+    if (q && !search) setSearch(q)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function closeView() {
     setViewDocId(null)
-    if (!searchParams.get('view')) return
+    if (embedded || !searchParams.get('view')) return
     const next = new URLSearchParams(searchParams)
     next.delete('view')
+    setSearchParams(next, { replace: true })
+  }
+
+  function openView(id: string) {
+    setViewDocId(id)
+    if (embedded) return
+    const next = new URLSearchParams(searchParams)
+    next.set('view', id)
     setSearchParams(next, { replace: true })
   }
 
@@ -128,6 +182,7 @@ export function QuotesPage() {
       totalMin: totalMin === '' ? null : Number(totalMin),
       totalMax: totalMax === '' ? null : Number(totalMax),
       limit: 100,
+      clientId: urlClientId,
     }),
     [
       debouncedSearch,
@@ -138,13 +193,78 @@ export function QuotesPage() {
       expiredOnly,
       totalMin,
       totalMax,
+      urlClientId,
     ],
   )
 
-  const { data: hits = [], isLoading, error } = useQuery({
+  const { data: globalHits = [], isLoading: globalLoading, error: globalError } = useQuery({
     queryKey: ['commercial_documents', 'search', filters],
     queryFn: () => searchCommercialDocuments(filters),
+    enabled: !clientId,
   })
+
+  const { data: clientDocs = [], isLoading: clientLoading, error: clientError } = useQuery({
+    queryKey: ['commercial_documents', 'client', clientId],
+    queryFn: () => listCommercialDocumentsForClient(clientId!),
+    enabled: !!clientId,
+  })
+
+  const hits: CommercialDocumentSearchHit[] = useMemo(() => {
+    if (!clientId) return globalHits
+    const q = debouncedSearch.trim().toLowerCase()
+    return clientDocs
+      .filter((doc) => {
+        if (docType !== 'all' && doc.doc_type !== docType) return false
+        if (status !== 'all' && doc.status !== status) return false
+        if (expiredOnly) {
+          if (!doc.valid_until || new Date(doc.valid_until) >= new Date()) return false
+        }
+        if (issuedFrom) {
+          const from = new Date(issuedFrom).getTime()
+          const issued = doc.issued_at ? new Date(doc.issued_at).getTime() : 0
+          if (issued < from) return false
+        }
+        if (issuedTo) {
+          const to = new Date(`${issuedTo}T23:59:59`).getTime()
+          const issued = doc.issued_at ? new Date(doc.issued_at).getTime() : 0
+          if (issued > to) return false
+        }
+        if (totalMin !== '' && Number(doc.total) < Number(totalMin)) return false
+        if (totalMax !== '' && Number(doc.total) > Number(totalMax)) return false
+        if (q) {
+          const hay = [
+            doc.doc_number,
+            doc.status,
+            clientName,
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase()
+          if (!hay.includes(q)) return false
+        }
+        return true
+      })
+      .map((doc) => ({
+        ...doc,
+        client_display_name: clientName ?? null,
+      }))
+  }, [
+    clientDocs,
+    clientId,
+    clientName,
+    debouncedSearch,
+    docType,
+    expiredOnly,
+    globalHits,
+    issuedFrom,
+    issuedTo,
+    status,
+    totalMax,
+    totalMin,
+  ])
+
+  const isLoading = clientId ? clientLoading : globalLoading
+  const error = clientId ? clientError : globalError
 
   const docIds = useMemo(() => hits.map((d) => d.id), [hits])
 
@@ -154,10 +274,57 @@ export function QuotesPage() {
     enabled: docIds.length > 0,
   })
 
+  const { data: agreementStates = [] } = useQuery({
+    queryKey: ['commercial_agreements', 'by-quotes', docIds.join(',')],
+    queryFn: () => listQuoteAgreementStates(docIds),
+    enabled: docIds.length > 0,
+  })
+
+  const { data: lineNames = new Map<string, string>() } = useQuery({
+    queryKey: ['commercial_document_lines', 'primary', docIds.join(',')],
+    queryFn: () => listPrimaryLineNames(docIds),
+    enabled: docIds.length > 0,
+  })
+
+  const agreementByQuote = useMemo(() => {
+    const map = new Map<string, QuoteAgreementState>()
+    for (const state of agreementStates) map.set(state.sourceQuoteId, state)
+    return map
+  }, [agreementStates])
+
+  const templateNameById = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const template of templates) {
+      if (template.id && template.name) map.set(template.id, template.name)
+    }
+    return map
+  }, [templates])
+
+  const visibleHits = useMemo(() => hits.filter((doc) => {
+    if (formalization !== 'all') {
+      if (doc.doc_type === 'delivery_note') return false
+      if ((doc.formalization_mode ?? 'signed_quote') !== formalization) return false
+    }
+    const agreement = agreementByQuote.get(doc.id)
+    if (hasAgreement === 'yes' && !agreement) return false
+    if (hasAgreement === 'no' && agreement) return false
+    if (signature === 'pending' && agreement?.versionStatus !== 'pending_signature') return false
+    if (signature === 'signed' && agreement?.versionStatus !== 'signed') return false
+    if (signature === 'none' && agreement && agreement.versionStatus !== 'draft' && agreement.versionStatus != null) {
+      return false
+    }
+    return true
+  }), [agreementByQuote, formalization, hasAgreement, hits, signature])
+
   function handleChanged() {
     void queryClient.invalidateQueries({ queryKey: ['commercial_documents', 'search'] })
+    void queryClient.invalidateQueries({ queryKey: ['commercial_documents', 'client'] })
     void queryClient.invalidateQueries({ queryKey: ['commercial_payments', 'quotes-search'] })
   }
+
+  const globalQuotesHref = clientId
+    ? `/quotes?client_id=${encodeURIComponent(clientId)}`
+    : '/quotes'
 
   async function confirmReissue() {
     if (!reissueDocId) return
@@ -198,18 +365,52 @@ export function QuotesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5 px-4 py-6">
+    <div className={embedded ? 'space-y-5' : 'mx-auto max-w-4xl space-y-5 px-4 py-6'}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {t('projects.quotes.title', 'Pressupostos')}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {t(
-              'projects.quotes.subtitle',
-              'Cerca pressupostos, ampliacions i albarans per client, número o text de línia.',
-            )}
-          </p>
+          {embedded ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                {clientName
+                  ? t('projects.quotes.scoped_subtitle', 'Documents comercials de {{name}}', {
+                      name: clientName,
+                    })
+                  : t(
+                      'projects.quotes.scoped_subtitle_generic',
+                      'Documents comercials d’aquest client',
+                    )}
+              </p>
+              <Link to={globalQuotesHref} className="text-sm text-indigo-600 hover:underline">
+                {t('projects.quotes.see_all_global', 'Veure tots els pressupostos')}
+              </Link>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold text-foreground">
+                {t('projects.quotes.title', 'Pressupostos')}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {t(
+                  'projects.quotes.subtitle',
+                  'Cerca pressupostos, ampliacions i albarans per client, número o text de línia.',
+                )}
+              </p>
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                <Link to="/agreements" className="text-sm text-indigo-600 hover:underline">
+                  {t('projects.agreements.open', 'Acords comercials')}
+                </Link>
+                <Link to={QUOTE_TEMPLATES_HREF} className="text-sm text-indigo-600 hover:underline">
+                  {t('projects.quotes.templates_link', 'Plantilles de pressupost')}
+                </Link>
+                <Link
+                  to={commercialTemplatesHref('quote', { create: true })}
+                  className="text-sm text-indigo-600 hover:underline"
+                >
+                  {t('projects.quotes.templates_new', 'Nova plantilla')}
+                </Link>
+              </div>
+            </>
+          )}
         </div>
         <Button type="button" className="shrink-0" onClick={() => setCreateOpen(true)}>
           <Plus className="mr-1.5 h-4 w-4" aria-hidden />
@@ -233,6 +434,12 @@ export function QuotesPage() {
         </label>
 
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {!embedded && !clientId ? (
+            <ClientFilterControl
+              value={urlClientId}
+              onChange={(id) => setUrlClientId(id)}
+            />
+          ) : null}
           <label className="flex flex-col gap-1 text-xs text-muted-foreground">
             {t('projects.quotes.filter_type', 'Tipus')}
             <select
@@ -265,6 +472,44 @@ export function QuotesPage() {
                     : statusLabel(s, t)}
                 </option>
               ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            {t('projects.quotes.filter_formalization', 'Formalització')}
+            <select
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+              value={formalization}
+              onChange={(e) => setFormalization(e.target.value as typeof formalization)}
+            >
+              <option value="all">{t('projects.quotes.filter_all', 'Tots')}</option>
+              <option value="signed_quote">{t('projects.commercial.badge_quote', 'Pressupost')}</option>
+              <option value="separate_agreement">{t('projects.commercial.badge_formal_contract', 'Contracte formal')}</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            {t('projects.quotes.filter_agreement', 'Acord')}
+            <select
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+              value={hasAgreement}
+              onChange={(e) => setHasAgreement(e.target.value as typeof hasAgreement)}
+            >
+              <option value="all">{t('projects.quotes.filter_all', 'Tots')}</option>
+              <option value="yes">{t('projects.quotes.filter_has_agreement', 'Amb acord')}</option>
+              <option value="no">{t('projects.quotes.filter_no_agreement', 'Sense acord')}</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            {t('projects.quotes.filter_signature', 'Firma de l’acord')}
+            <select
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+              value={signature}
+              onChange={(e) => setSignature(e.target.value as typeof signature)}
+            >
+              <option value="all">{t('projects.quotes.filter_all', 'Tots')}</option>
+              <option value="none">{t('projects.quotes.filter_signature_none', 'Sense enviar')}</option>
+              <option value="pending">{t('projects.commercial.badge_agreement_pending', 'Acord pendent de firma')}</option>
+              <option value="signed">{t('projects.commercial.agreement_status_signed', 'Contracte signat')}</option>
             </select>
           </label>
 
@@ -320,21 +565,34 @@ export function QuotesPage() {
           {t('projects.quotes.load_failed', 'No s’han pogut carregar els documents')}
         </p>
       )}
-      {!isLoading && !error && hits.length === 0 && (
+      {!isLoading && !error && visibleHits.length === 0 && (
         <p className="text-sm text-muted-foreground rounded-2xl border border-dashed border-border p-6 text-center">
           {t('projects.quotes.empty', 'Cap document no coincideix amb la cerca.')}
         </p>
       )}
 
-      {hits.length > 0 && (
+      {visibleHits.length > 0 && (
         <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-          {hits.map((doc) => (
+          {visibleHits.map((doc) => {
+            const agreement = agreementByQuote.get(doc.id)
+            return (
             <QuoteRow
               key={doc.id}
               doc={doc}
+              lineName={lineNames.get(doc.id) ?? null}
               paidCents={accountedPaidCents(doc, hits, payments)}
               projectBase={projectBase}
-              onView={setViewDocId}
+              badges={commercialRelationshipBadges({
+                docType: doc.doc_type,
+                formalizationMode: doc.formalization_mode,
+                templateId: doc.full_body_template_id,
+                templateName: doc.full_body_template_id
+                  ? templateNameById.get(doc.full_body_template_id)
+                  : null,
+                agreementStatus: agreement?.status,
+                versionStatus: agreement?.versionStatus,
+              })}
+              onView={openView}
               onShare={setShareDocId}
               onDuplicate={
                 isCommercialQuoteReissuable(doc)
@@ -342,13 +600,16 @@ export function QuotesPage() {
                   : undefined
               }
             />
-          ))}
+            )
+          })}
         </ul>
       )}
 
       <CreateQuoteDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
+        clientId={clientId ?? urlClientId}
+        clientName={clientName}
         onCreated={(documentId) => {
           handleChanged()
           setViewDocId(documentId)
@@ -397,15 +658,19 @@ export function QuotesPage() {
 
 function QuoteRow({
   doc,
+  lineName,
   paidCents,
   projectBase,
+  badges,
   onView,
   onShare,
   onDuplicate,
 }: {
   doc: CommercialDocumentSearchHit
+  lineName: string | null
   paidCents: number
   projectBase: string
+  badges: ReturnType<typeof commercialRelationshipBadges>
   onView: (id: string) => void
   onShare: (id: string) => void
   onDuplicate?: () => void
@@ -426,12 +691,26 @@ function QuoteRow({
         <p className="text-sm font-medium text-foreground">
           {docTypeLabel(doc.doc_type, t)} {doc.doc_number ?? '—'}
         </p>
+        {lineName ? (
+          <p className="text-sm text-muted-foreground truncate">{lineName}</p>
+        ) : null}
         <p className="text-sm text-muted-foreground truncate">
-          {doc.client_display_name || t('projects.quotes.unknown_client', 'Client')}
+          {doc.client_id ? (
+            <Link
+              to={`/contacts/${doc.client_id}`}
+              className="text-indigo-600 hover:underline"
+              aria-label={t('projects.commercial.open_contact', 'Obrir fitxa del client')}
+            >
+              {doc.client_display_name || t('projects.quotes.unknown_client', 'Client')}
+            </Link>
+          ) : (
+            doc.client_display_name || t('projects.quotes.unknown_client', 'Client')
+          )}
           {doc.project_name ? ` · ${doc.project_name}` : ''}
         </p>
         <div className="flex flex-wrap items-center gap-1.5">
           <CommercialDocumentStatusBadges doc={doc} paidCents={paidCents} t={t} />
+          <CommercialRelationshipBadges kinds={badges} />
           <span className="text-xs text-muted-foreground tabular-nums">{dateText}</span>
         </div>
         {doc.project_id && (

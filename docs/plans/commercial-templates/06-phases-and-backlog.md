@@ -35,8 +35,8 @@
 
 ## Fora d'abast (aquest pla sencer)
 
-- Implementació del contracte signat post-acceptació — només disseny a [`05-contract-signing-forward-compat.md`](./05-contract-signing-forward-compat.md).
-- Generació de factures fiscals pròpies — només nota a [`05-contract-signing-forward-compat.md`](./05-contract-signing-forward-compat.md) § 7.
+- Implementació d’acords/contractes — **fora d’aquest pla QT**. Pla executable: [`../commercial-agreements/pla-pressupost-contracte-acords.md`](../commercial-agreements/pla-pressupost-contracte-acords.md). El doc [`05`](./05-contract-signing-forward-compat.md) ja no és el disseny a construir. CT-0…CT-5 tancats el 2026-09-27.
+- Generació de factures fiscals pròpies — nota històrica a [`05`](./05-contract-signing-forward-compat.md) § 3; la facturació continua a l’ERP (CF-17).
 - Enforçament numèric de validesa mínima sectorial (p.ex. 12 dies hàbils RD 1457/1986) — només text informatiu a la clàusula.
 - Canvis de comportament de `buildCommercialDocumentHtml` per a tenants sense plantilla pròpia.
 - Ampliar l'albarà a plantilles diferenciades per arquetip (només la genèrica a la fase 1).

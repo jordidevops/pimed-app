@@ -86,7 +86,7 @@ function extractHtmlSigningRoles(html: string): string[] {
 // ─── Mode: create template OR add/edit locale ─────────────────────────────────
 
 type ModalMode =
-  | { kind: 'create_template' }
+  | { kind: 'create_template'; category?: string }
   | {
       kind: 'upsert_locale'
       templateId: string
@@ -259,7 +259,7 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
   const otherLocales = siblingLocales.filter(l => l.locale && l.locale !== locale)
 
   // Stable key: mode object reference changes on every parent render; use scalar values
-  const _modeKey = `${mode.kind}:${mode.kind === 'upsert_locale' ? mode.templateId : ''}:${mode.kind === 'upsert_locale' ? (mode.existing?.id ?? '') : ''}`
+  const _modeKey = `${mode.kind}:${mode.kind === 'create_template' ? (mode.category ?? '') : ''}:${mode.kind === 'upsert_locale' ? mode.templateId : ''}:${mode.kind === 'upsert_locale' ? (mode.existing?.id ?? '') : ''}`
 
   useEffect(() => {
     if (!open) return
@@ -286,8 +286,8 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
       setRoleRows([])
       setName('')
       setDesc('')
-      setCategory('')
-      setTplType('docx')
+      setCategory(mode.kind === 'create_template' ? (mode.category ?? '') : '')
+      setTplType(mode.kind === 'create_template' && isFullBodyTemplateCategory(mode.category) ? 'html' : 'docx')
       setTargetArchetypes([])
       setTargetVerticals('')
     }

@@ -2466,6 +2466,18 @@ VALUES
     'ES',
     'Avària de climatització',
     true
+  ),
+  (
+    '81000000-0000-0000-0000-000000000203',
+    '10000000-0000-0000-0000-000000000004',
+    '80000000-0000-0000-0000-000000000202',
+    'Habitatge Marta Roca',
+    'Carrer de la Independència 88, 3r 2a',
+    'Barcelona',
+    '08018',
+    'ES',
+    'Particular — proves de flux client persona',
+    true
   )
 ON CONFLICT (id) DO NOTHING;
 

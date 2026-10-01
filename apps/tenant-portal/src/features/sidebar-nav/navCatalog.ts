@@ -6,6 +6,7 @@ import {
   MapPin,
   UserCheck,
   FileText,
+  FileSignature,
   ClipboardList,
   Globe,
   Clock,
@@ -65,7 +66,13 @@ export type NavGate =
   | 'showFieldTodayNav'
   | 'showOfficeDashboardNav'
 
-export type NavLabelKind = 'i18n' | 'sector_contact' | 'sector_project' | 'home' | 'theme'
+export type NavLabelKind =
+  | 'i18n'
+  | 'sector_contact'
+  | 'sector_project'
+  | 'sector_agreement'
+  | 'home'
+  | 'theme'
 
 export interface NavCatalogEntry {
   id: NavItemId
@@ -261,6 +268,16 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     icon: FileText,
     gate: 'isOffice',
     to: '/quotes',
+    kind: 'link',
+  },
+  {
+    id: 'agreements',
+    labelKey: 'nav.agreements',
+    labelFallback: 'Acords comercials',
+    labelKind: 'sector_agreement',
+    icon: FileSignature,
+    gate: 'isOffice',
+    to: '/agreements',
     kind: 'link',
   },
   {
