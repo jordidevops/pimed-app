@@ -135,6 +135,7 @@
     "nav_photos": "Photos",
     "nav_attachments": "Attachments",
     "nav_materials": "Materials",
+    "nav_expenses": "Expenses",
     "nav_tasks": "Tasks",
     "extra_aria": "Add to the work",
     "extra_show": "Show {{section}}",
@@ -472,6 +473,25 @@
     "added": "Material added",
     "add_failed": "Could not add the material",
     "cancel_pending": "Cancel pending material"
+  },
+  "expenses": {
+    "title": "Expenses",
+    "hint": "Log a job amount and whether it is billable to the client and who paid.",
+    "hint_readonly": "The client report is published; expenses are read-only.",
+    "empty": "No expenses logged",
+    "description": "Description",
+    "amount": "Amount €",
+    "add": "Add",
+    "saving": "Saving…",
+    "added": "Expense saved",
+    "add_failed": "Could not add the expense",
+    "amount_invalid": "Invalid amount",
+    "is_billable": "Billable to client",
+    "billable": "Billable",
+    "not_billable": "Not billable",
+    "paid_by": "Paid by",
+    "paid_by_company": "Company paid",
+    "paid_by_employee": "Employee paid"
   },
   "checklist": {
     "title": "Visit checklist",

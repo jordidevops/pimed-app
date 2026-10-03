@@ -60,6 +60,8 @@ export type PermissionKey =
   | 'email.manage'
   // Facturació
   | 'invoices.view'
+  | 'invoices.review'
+  | 'invoices.export'
   | 'invoices.edit'
   | 'invoices.manage'
   // Membres
@@ -119,6 +121,7 @@ export type PermissionKey =
   | 'contacts.portal.manage'
   // Flux comercial (CF-1 / CF-13)
   | 'commercial.pricing.edit'
+  | 'commercial.costs.view'
   // Control horari i absències
   | 'attendance.punch_own'
   | 'attendance.approve'
@@ -129,7 +132,7 @@ export const ALL_PERMISSION_KEYS: PermissionKey[] = [
   'storage.view', 'storage.upload', 'storage.delete', 'storage.manage',
   'calendar.view', 'calendar.edit', 'calendar.manage',
   'email.view', 'email.send', 'email.manage',
-  'invoices.view', 'invoices.edit', 'invoices.manage',
+  'invoices.view', 'invoices.review', 'invoices.export', 'invoices.edit', 'invoices.manage',
   'members.view', 'members.invite', 'members.manage',
   'sites.view', 'sites.create', 'sites.manage',
   'settings.view', 'settings.manage',
@@ -151,6 +154,7 @@ export const ALL_PERMISSION_KEYS: PermissionKey[] = [
   'field_service.reports.preview_as_customer',
   'contacts.portal.manage',
   'commercial.pricing.edit',
+  'commercial.costs.view',
   'attendance.punch_own', 'attendance.approve', 'absences.request',
 ]
 
@@ -168,8 +172,10 @@ export const PERMISSION_DEPENDENCIES: Partial<Record<PermissionKey, PermissionKe
   'calendar.manage':    ['calendar.view', 'calendar.edit'],
   'email.send':         ['email.view'],
   'email.manage':       ['email.view', 'email.send'],
+  'invoices.review':    ['invoices.view'],
+  'invoices.export':    ['invoices.view'],
   'invoices.edit':      ['invoices.view'],
-  'invoices.manage':    ['invoices.view', 'invoices.edit'],
+  'invoices.manage':    ['invoices.view', 'invoices.edit', 'invoices.review', 'invoices.export'],
   'members.invite':     ['members.view'],
   'members.manage':     ['members.view', 'members.invite'],
   'sites.create':       ['sites.view'],
@@ -228,7 +234,6 @@ export const BASE_ROLE_PERMISSIONS: Record<Exclude<Role, 'owner'>, PermissionKey
     'storage.upload',
     'calendar.edit',
     'email.send',
-    'invoices.edit',
     'ai.use',
     'employees.directory.view',
     'employees.view',
@@ -287,6 +292,7 @@ export const BASE_ROLE_PERMISSIONS: Record<Exclude<Role, 'owner'>, PermissionKey
     'field_service.reports.preview_as_customer',
     'contacts.portal.manage',
     'commercial.pricing.edit',
+    'commercial.costs.view',
     'attendance.approve',
   ],
 }
@@ -351,6 +357,17 @@ export function computeRolePermissions(
     const base = customPermissions?.[r] ?? BASE_ROLE_PERMISSIONS[r]
     for (const perm of base) {
       accumulated.add(perm)
+    }
+  }
+
+  // CF-27: members must not inherit invoices.* from viewer base.
+  // Tenant overrides on the member role are kept.
+  if (role === 'member') {
+    const memberCustom = new Set(customPermissions?.member ?? [])
+    for (const perm of [...accumulated]) {
+      if (perm.startsWith('invoices.') && !memberCustom.has(perm)) {
+        accumulated.delete(perm)
+      }
     }
   }
 

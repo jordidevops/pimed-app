@@ -44,7 +44,6 @@ const DOC_TYPES: Array<CommercialDocument['doc_type'] | 'all'> = [
   'all',
   'quote',
   'quote_amendment',
-  'delivery_note',
 ]
 
 const STATUSES = [
@@ -214,6 +213,7 @@ export function QuotesPage({
     const q = debouncedSearch.trim().toLowerCase()
     return clientDocs
       .filter((doc) => {
+        if (doc.doc_type === 'delivery_note') return false
         if (docType !== 'all' && doc.doc_type !== docType) return false
         if (status !== 'all' && doc.status !== status) return false
         if (expiredOnly) {
@@ -247,6 +247,7 @@ export function QuotesPage({
       .map((doc) => ({
         ...doc,
         client_display_name: clientName ?? null,
+        project_name: null,
       }))
   }, [
     clientDocs,
@@ -301,8 +302,8 @@ export function QuotesPage({
   }, [templates])
 
   const visibleHits = useMemo(() => hits.filter((doc) => {
+    if (doc.doc_type === 'delivery_note') return false
     if (formalization !== 'all') {
-      if (doc.doc_type === 'delivery_note') return false
       if ((doc.formalization_mode ?? 'signed_quote') !== formalization) return false
     }
     const agreement = agreementByQuote.get(doc.id)
@@ -392,10 +393,13 @@ export function QuotesPage({
               <p className="text-sm text-muted-foreground mt-1">
                 {t(
                   'projects.quotes.subtitle',
-                  'Cerca pressupostos, ampliacions i albarans per client, número o text de línia.',
+                  'Cerca pressupostos i ampliacions per client, número o text de línia.',
                 )}
               </p>
               <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                <Link to="/delivery-notes" className="text-sm text-indigo-600 hover:underline">
+                  {t('projects.collections.title', 'Albarans')}
+                </Link>
                 <Link to="/agreements" className="text-sm text-indigo-600 hover:underline">
                   {t('projects.agreements.open', 'Acords comercials')}
                 </Link>
@@ -451,9 +455,6 @@ export function QuotesPage({
               <option value="quote">{t('projects.commercial.type_quote', 'Pressupost')}</option>
               <option value="quote_amendment">
                 {t('projects.commercial.type_amendment', 'Ampliació')}
-              </option>
-              <option value="delivery_note">
-                {t('projects.commercial.type_delivery', 'Albarà')}
               </option>
             </select>
           </label>
@@ -513,15 +514,6 @@ export function QuotesPage({
             </select>
           </label>
 
-          <label className="flex items-center gap-2 text-sm text-foreground pt-5">
-            <input
-              type="checkbox"
-              checked={expiredOnly}
-              onChange={(e) => setExpiredOnly(e.target.checked)}
-            />
-            {t('projects.quotes.filter_expired', 'Només caducats')}
-          </label>
-
           <label className="flex flex-col gap-1 text-xs text-muted-foreground">
             {t('projects.quotes.filter_from', 'Des de')}
             <Input type="date" value={issuedFrom} onChange={(e) => setIssuedFrom(e.target.value)} />
@@ -530,29 +522,36 @@ export function QuotesPage({
             {t('projects.quotes.filter_to', 'Fins a')}
             <Input type="date" value={issuedTo} onChange={(e) => setIssuedTo(e.target.value)} />
           </label>
-          <div className="grid grid-cols-2 gap-2">
-            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-              {t('projects.quotes.filter_total_min', 'Import min €')}
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={totalMin}
-                onChange={(e) => setTotalMin(e.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-              {t('projects.quotes.filter_total_max', 'Import max €')}
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={totalMax}
-                onChange={(e) => setTotalMax(e.target.value)}
-              />
-            </label>
-          </div>
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            {t('projects.quotes.filter_total_min', 'Import min €')}
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={totalMin}
+              onChange={(e) => setTotalMin(e.target.value)}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            {t('projects.quotes.filter_total_max', 'Import max €')}
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={totalMax}
+              onChange={(e) => setTotalMax(e.target.value)}
+            />
+          </label>
         </div>
+
+        <label className="flex items-center gap-2 text-sm text-foreground">
+          <input
+            type="checkbox"
+            checked={expiredOnly}
+            onChange={(e) => setExpiredOnly(e.target.checked)}
+          />
+          {t('projects.quotes.filter_expired', 'Només caducats')}
+        </label>
       </div>
 
       {isLoading && (

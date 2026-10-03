@@ -2,7 +2,8 @@
   "settings": {
     "tabs": {
       "customer_portal": "Customer portal",
-      "legal": "Legal"
+      "legal": "Legal",
+      "commercial": "Commercial"
     }
   },
   "legal": {
@@ -140,5 +141,27 @@
     "profileSaving": "Saving…",
     "profileSaved": "Public information saved",
     "profileSaveError": "Could not save public information"
+  },
+  "commercial": {
+    "subtitle": "Document number series (read-only) and natural fiscal year close/reopen.",
+    "forbidden": "Invoice permission is required to view series and fiscal years.",
+    "series_title": "Series",
+    "preview_date": "Preview date",
+    "next_number": "Next number (indicative)",
+    "inactive": "Inactive",
+    "preview": "Preview",
+    "preview_failed": "Could not preview",
+    "series_readonly_help": "Series are configured server-side; the UI does not write the counter.",
+    "fiscal_years_title": "Fiscal years",
+    "fiscal_years_help": "Natural year (1 Jan – 31 Dec). Independent of attendance labor calendar.",
+    "year": "Year",
+    "close_year": "Close year",
+    "reopen_year": "Reopen",
+    "year_closed": "Fiscal year closed",
+    "year_reopened": "Fiscal year reopened",
+    "year_action_failed": "Fiscal year action failed",
+    "no_closed_years": "No closed years yet.",
+    "closed": "Closed",
+    "open": "Open"
   }
 }

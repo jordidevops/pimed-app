@@ -23,6 +23,8 @@ export interface NavGateContext {
   canUseAttendance: boolean
   showRecruitment: boolean
   isFieldService: boolean
+  /** Office desktop OR invoices.view (gestoria). */
+  canViewSales: boolean
   /** Resolved landing path for this session (viewport + role + preference). */
   homePath: string
 }
@@ -81,6 +83,8 @@ export function passesGate(gate: NavGate, ctx: NavGateContext): boolean {
       return !ctx.isFieldService
     case 'isOffice':
       return !ctx.isFieldService || ctx.isManager
+    case 'canViewSales':
+      return ctx.canViewSales
     case 'showFieldTodayNav':
       return ctx.isFieldService && ctx.homePath !== '/field/today'
     case 'showOfficeDashboardNav':
@@ -88,6 +92,13 @@ export function passesGate(gate: NavGate, ctx: NavGateContext): boolean {
     default:
       return false
   }
+}
+
+/** Legacy sidebar ids that now resolve to the single Comercial hub item. */
+const SALES_NAV_ALIASES = new Set(['quotes', 'delivery_notes', 'cobraments', 'sales'])
+
+function aliasSalesNavItemId(id: string): string {
+  return SALES_NAV_ALIASES.has(id) ? 'sales' : id
 }
 
 export function resolveItemLabel(
@@ -153,19 +164,42 @@ export function pickSidebarLayout(
   return { layout: buildDefaultNavLayout(), source: 'platform' }
 }
 
+function aliasSavedSalesNavItems(layout: SidebarNavV1): SidebarNavV1 {
+  const mapItems = (items: SidebarNavV1['pinned']['items']) => {
+    const seen = new Set<string>()
+    const next: SidebarNavV1['pinned']['items'] = []
+    for (const item of items) {
+      const id = aliasSalesNavItemId(item.id)
+      if (seen.has(id)) continue
+      seen.add(id)
+      next.push(id === item.id ? item : { ...item, id })
+    }
+    return next
+  }
+  return {
+    ...layout,
+    pinned: { ...layout.pinned, items: mapItems(layout.pinned.items) },
+    groups: layout.groups.map((group) => ({
+      ...group,
+      items: mapItems(group.items),
+    })),
+  }
+}
+
 /**
  * Insert catalog items that exist in the platform default but are absent from a
  * saved user/tenant layout, preserving relative order within each default group.
  */
 export function mergeMissingDefaultNavItems(layout: SidebarNavV1): SidebarNavV1 {
+  const aliased = aliasSavedSalesNavItems(layout)
   const platform = buildDefaultNavLayout()
   const present = new Set<string>()
-  for (const item of layout.pinned.items) present.add(item.id)
-  for (const group of layout.groups) {
+  for (const item of aliased.pinned.items) present.add(item.id)
+  for (const group of aliased.groups) {
     for (const item of group.items) present.add(item.id)
   }
 
-  const groups = layout.groups.map((g) => ({
+  const groups = aliased.groups.map((g) => ({
     ...g,
     items: [...g.items],
   }))
@@ -196,10 +230,10 @@ export function mergeMissingDefaultNavItems(layout: SidebarNavV1): SidebarNavV1 
     }
   }
 
-  return pinItemFirstInGroup(
+  return     pinItemFirstInGroup(
     {
       version: 2,
-      pinned: layout.pinned,
+      pinned: aliased.pinned,
       groups,
     },
     DEFAULT_GROUP_IDS.operations,
@@ -250,9 +284,11 @@ function resolveRawItems(
 ): ResolvedNavItem[] {
   const items: ResolvedNavItem[] = []
   for (const rawItem of rawItems) {
-    if (!isNavItemId(rawItem.id)) continue
-    const entry = NAV_CATALOG_BY_ID[rawItem.id]
+    const itemId = aliasSalesNavItemId(rawItem.id)
+    if (!isNavItemId(itemId)) continue
+    const entry = NAV_CATALOG_BY_ID[itemId]
     if (!passesGate(entry.gate, ctx)) continue
+    if (items.some((existing) => existing.id === entry.id)) continue
 
     items.push({
       id: entry.id,

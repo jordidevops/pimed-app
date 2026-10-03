@@ -45,6 +45,10 @@ export function OrderPrimaryActionBar({
       'Preparar pressupost (oficina)',
     ),
     collect: t('projects:projects.commercial.collect', 'Cobrar'),
+    collect_invoice: t(
+      'projects:projects.collections.collect_invoice_cta',
+      'Cobrar a factura (oficina)',
+    ),
     send_receipt: t('projects:projects.commercial.send_receipt', 'Enviar comprovant'),
     sync_pending: t(
       'field-service:detail.primary_sync_pending',

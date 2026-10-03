@@ -12,6 +12,7 @@ import {
 } from '@/lib/navigationReturn'
 import {
   getCommercialDocumentDetail,
+  listDeliveryNotesPage,
   listQuoteAgreementStates,
 } from '../api/commercialFlowService'
 import { CommercialNativeSignDialog } from './CommercialNativeSignDialog'
@@ -102,6 +103,22 @@ export function CommercialDocumentView({
     enabled: open && !!documentId && doc?.doc_type !== 'delivery_note',
   })
   const agreement = agreementStates[0] ?? null
+  const { data: deliveryPage } = useQuery({
+    queryKey: ['delivery_notes', 'document-view', doc?.project_id, documentId],
+    queryFn: () =>
+      listDeliveryNotesPage({
+        projectId: doc?.project_id,
+        statusGroup: 'all',
+        includeRectified: true,
+        limit: 100,
+      }),
+    enabled: open && doc?.doc_type === 'delivery_note' && !!doc.project_id,
+  })
+  const deliveryRow = deliveryPage?.items.find((item) => item.id === documentId) ?? null
+  const replacedBy = deliveryRow?.superseded_by_number
+  const replaces = deliveryPage?.items.find((item) => item.id === deliveryRow?.supersedes_id)?.doc_number
+  const deliveryInvoiced = Boolean(deliveryRow?.external_invoice_ref || doc?.external_invoice_ref)
+  const deliveryCancelled = doc?.status === 'cancelled' || deliveryRow?.collection_status === 'rectified'
   const templateName = templates.find((template) => template.id === doc?.full_body_template_id)?.name ?? null
   const relationshipBadges = commercialRelationshipBadges({
     docType: doc?.doc_type,
@@ -205,7 +222,7 @@ export function CommercialDocumentView({
           </h2>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {doc && onShare ? (
+          {doc && onShare && doc.status !== 'cancelled' ? (
             <Button type="button" size="sm" variant="outline" onClick={onShare}>
               {t('projects.commercial.send', 'Enviar')}
             </Button>
@@ -415,6 +432,10 @@ export function CommercialDocumentView({
                     return t('projects.commercial.event_rejected', 'Refusat')
                   case 'cancelled':
                     return t('projects.commercial.event_cancelled', 'Anul·lat')
+                  case 'invoice_cancelled':
+                    return t('projects.commercial.event_invoice_cancelled', 'Factura anul·lada')
+                  case 'payment_recorded':
+                    return t('projects.commercial.event_payment_recorded', 'Cobrat')
                   case 'superseded':
                     return t('projects.commercial.event_superseded', 'Substituït')
                   case 'signed':
@@ -422,6 +443,14 @@ export function CommercialDocumentView({
                   default:
                     return type
                 }
+              }
+              const paymentAmountLabel = (payload: Record<string, unknown> | null | undefined) => {
+                const cents = Number(payload?.amount_cents)
+                if (!Number.isFinite(cents)) return ''
+                return ` · ${(cents / 100).toLocaleString('ca-ES', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })} €`
               }
               return (
                 <section className="rounded-xl border border-border px-4 py-3 space-y-1.5">
@@ -440,6 +469,9 @@ export function CommercialDocumentView({
                       {formatCommercialEventDate(event.occurred_at)}
                       {event.event_type === 'sent' && event.channel
                         ? ` · ${event.channel}`
+                        : ''}
+                      {event.event_type === 'payment_recorded'
+                        ? paymentAmountLabel(event.payload)
                         : ''}
                     </p>
                   ))}
@@ -517,6 +549,51 @@ export function CommercialDocumentView({
                   <span>{t('projects.commercial.view_total', 'Total')}</span>
                   <span className="tabular-nums">{formatMoney(doc.total, currency)}</span>
                 </div>
+                {doc.doc_type === 'delivery_note' && deliveryCancelled ? (
+                  <p className="pt-2 text-sm text-amber-700 dark:text-amber-300">
+                    {replacedBy
+                      ? t('projects.collections.superseded_by', 'Substituït per {{number}}', { number: replacedBy })
+                      : t('projects.collections.status_rectified', 'Rectificat')}
+                  </p>
+                ) : null}
+                {doc.doc_type === 'delivery_note' && !deliveryCancelled && deliveryInvoiced ? (
+                  <p className="pt-2 text-sm text-muted-foreground">
+                    {t('projects.collections.included_in_invoice', 'Inclòs a la factura {{ref}}', {
+                      ref: deliveryRow?.external_invoice_ref || doc.external_invoice_ref,
+                    })}
+                  </p>
+                ) : null}
+                {doc.doc_type === 'delivery_note' && !deliveryCancelled && !deliveryInvoiced && deliveryRow ? (
+                  <div className="space-y-1 border-t border-border pt-2">
+                    {replaces ? (
+                      <p className="text-xs text-muted-foreground">
+                        {t('projects.collections.replaces_delivery', 'Substitueix {{number}}', { number: replaces })}
+                      </p>
+                    ) : null}
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>{t('projects.commercial.summary_advance_applied', 'Bestreta aplicada')}</span>
+                      <span className="tabular-nums">{formatMoney(deliveryRow.advance_applied_cents / 100, currency)}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>{t('projects.commercial.summary_paid', 'Cobrat')}</span>
+                      <span className="tabular-nums">
+                        {formatMoney((deliveryRow.direct_paid_cents + deliveryRow.inherited_paid_cents) / 100, currency)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between font-medium text-foreground">
+                      <span>
+                        {deliveryRow.remaining_cents > 0
+                          ? t('projects.collections.remaining', 'Pendent')
+                          : t('projects.collections.status_paid', 'Pagat')}
+                      </span>
+                      <span className="tabular-nums">
+                        {deliveryRow.remaining_cents > 0
+                          ? formatMoney(deliveryRow.remaining_cents / 100, currency)
+                          : formatMoney(0, currency)}
+                      </span>
+                    </div>
+                  </div>
+                ) : null}
               </section>
             ) : null}
 

@@ -8,6 +8,7 @@ import {
   type PaymentMethod,
   recordPayment,
 } from '../api/commercialFlowService'
+import { commercialErrorMessage } from '../utils/commercialErrorMessage'
 import { centsToEuros, eurosToCents, paymentMethodLabel } from '../utils/paymentReceipt'
 
 const METHODS: PaymentMethod[] = ['cash', 'card', 'transfer', 'bizum', 'payment_link']
@@ -102,7 +103,7 @@ export function CollectPaymentDialog({
       toast({
         variant: 'destructive',
         title: t('projects.commercial.collect_failed', "No s'ha pogut registrar el cobrament"),
-        description: err instanceof Error ? err.message : undefined,
+        description: commercialErrorMessage(err),
       })
     } finally {
       setSubmitting(false)

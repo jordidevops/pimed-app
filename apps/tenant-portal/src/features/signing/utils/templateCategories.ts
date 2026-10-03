@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next'
 
-export const COMMERCIAL_FULL_BODY_CATEGORIES = ['quote', 'delivery_note'] as const
+export const COMMERCIAL_FULL_BODY_CATEGORIES = ['quote', 'delivery_note', 'invoice'] as const
 export type CommercialFullBodyCategory = (typeof COMMERCIAL_FULL_BODY_CATEGORIES)[number]
 
 export const DOCUMENT_TEMPLATE_CATEGORY_OPTIONS = [

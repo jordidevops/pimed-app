@@ -8,6 +8,7 @@ import {
   FileText,
   FileSignature,
   ClipboardList,
+  Wallet,
   Globe,
   Clock,
   CalendarDays,
@@ -42,7 +43,10 @@ export type NavItemId =
   | 'locations'
   | 'catalog'
   | 'contacts'
+  | 'sales'
   | 'quotes'
+  | 'delivery_notes'
+  | 'agreements'
   | 'maintenance_plans'
   | 'field_orders'
   | 'projects'
@@ -63,6 +67,7 @@ export type NavGate =
   | 'isFieldManager'
   | 'notFieldService'
   | 'isOffice'
+  | 'canViewSales'
   | 'showFieldTodayNav'
   | 'showOfficeDashboardNav'
 
@@ -261,14 +266,40 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     kind: 'link',
   },
   {
+    id: 'sales',
+    labelKey: 'nav.sales',
+    labelFallback: 'Comercial',
+    labelKind: 'i18n',
+    icon: Wallet,
+    gate: 'canViewSales',
+    to: '/sales',
+    kind: 'link',
+    match: (path) =>
+      path.startsWith('/sales') ||
+      path.startsWith('/quotes') ||
+      path.startsWith('/delivery-notes') ||
+      path.startsWith('/cobraments'),
+  },
+  {
     id: 'quotes',
     labelKey: 'nav.quotes',
     labelFallback: 'Pressupostos',
     labelKind: 'i18n',
     icon: FileText,
-    gate: 'isOffice',
-    to: '/quotes',
+    gate: 'canViewSales',
+    to: '/sales/quotes',
     kind: 'link',
+  },
+  {
+    id: 'delivery_notes',
+    labelKey: 'nav.delivery_notes',
+    labelFallback: 'Albarans',
+    labelKind: 'i18n',
+    icon: Wallet,
+    gate: 'canViewSales',
+    to: '/sales/delivery-notes',
+    kind: 'link',
+    match: (path) => path.startsWith('/delivery-notes') || path.startsWith('/cobraments'),
   },
   {
     id: 'agreements',

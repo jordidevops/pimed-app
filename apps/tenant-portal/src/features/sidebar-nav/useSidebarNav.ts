@@ -40,6 +40,9 @@ export function useNavGateContext(): { ctx: NavGateContext; gatesLoading: boolea
   const canViewRecruitment = usePermission('recruitment.view')
   const showRecruitment = Boolean(features?.recruitment_enabled) && canViewRecruitment
   const isFieldService = useIsFieldService()
+  const canViewInvoices = usePermission('invoices.view')
+  const isOffice = !isFieldService || isManager
+  const canViewSales = isOffice || canViewInvoices
   const { path: homePath, ready: homeReady } = useFieldServiceHome()
 
   const ctx = useMemo(
@@ -49,9 +52,18 @@ export function useNavGateContext(): { ctx: NavGateContext; gatesLoading: boolea
       canUseAttendance,
       showRecruitment,
       isFieldService,
+      canViewSales,
       homePath,
     }),
-    [isManager, hasMyEmployee, canUseAttendance, showRecruitment, isFieldService, homePath],
+    [
+      isManager,
+      hasMyEmployee,
+      canUseAttendance,
+      showRecruitment,
+      isFieldService,
+      canViewSales,
+      homePath,
+    ],
   )
 
   return {

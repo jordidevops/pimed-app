@@ -36,6 +36,7 @@ type HtmlLabels = {
   quote: string
   amendment: string
   delivery: string
+  invoice: string
   statusDraft: string
   statusIssued: string
   statusIssuedDelivery: string
@@ -68,6 +69,7 @@ const LABELS: Record<string, HtmlLabels> = {
     quote: 'Pressupost',
     amendment: 'Ampliació',
     delivery: 'Albarà',
+    invoice: 'Factura',
     statusDraft: 'Esborrany',
     statusIssued: 'Pendent de resposta',
     statusIssuedDelivery: 'Emès',
@@ -98,6 +100,7 @@ const LABELS: Record<string, HtmlLabels> = {
     quote: 'Presupuesto',
     amendment: 'Ampliación',
     delivery: 'Albarán',
+    invoice: 'Factura',
     statusDraft: 'Borrador',
     statusIssued: 'Pendiente de respuesta',
     statusIssuedDelivery: 'Emitido',
@@ -128,6 +131,7 @@ const LABELS: Record<string, HtmlLabels> = {
     quote: 'Quote',
     amendment: 'Amendment',
     delivery: 'Delivery note',
+    invoice: 'Invoice',
     statusDraft: 'Draft',
     statusIssued: 'Awaiting response',
     statusIssuedDelivery: 'Issued',
@@ -165,6 +169,8 @@ function docTitle(docType: string, locale: string | null | undefined): string {
       return labels.amendment
     case 'delivery_note':
       return labels.delivery
+    case 'invoice':
+      return labels.invoice
     default:
       return docType
   }

@@ -2,7 +2,7 @@ import type {
   CommercialDocument,
   CommercialPayment,
 } from '../../commercial/api/commercialFlowService'
-import { allocatedPaidCents } from '../../commercial/utils/paymentAllocation'
+import { allocatedPaidCents, remainingCentsForDocument } from '../../commercial/utils/paymentAllocation'
 
 export type OrderPhaseTab = 'prepare' | 'do' | 'deliver'
 
@@ -15,6 +15,7 @@ export type OrderPrimaryAction =
   | 'show_delivery'
   | 'office_quote_handoff'
   | 'collect'
+  | 'collect_invoice'
   | 'send_receipt'
   | 'sync_pending'
   | 'review_sync_error'
@@ -75,6 +76,7 @@ export type OrderWorkflow = {
   activeQuoteId: string | null
   reissueFromQuoteId: string | null
   latestDeliveryId: string | null
+  collectDeliveryId: string | null
   latestPaymentId: string | null
   anomalies: WorkflowAnomaly[]
 }
@@ -131,6 +133,8 @@ export function deriveOrderWorkflow(input: {
    * Counts as commercial authorization (no new quote required to start).
    */
   agreementIncluded?: boolean
+  /** Office users may open the Albarans hub to collect an invoiced DN. */
+  isOffice?: boolean
 }): OrderWorkflow {
   const nowMs = input.nowMs ?? Date.now()
   const isAssessment = input.serviceMode === 'assessment'
@@ -179,22 +183,39 @@ export function deriveOrderWorkflow(input: {
     (document) => document.doc_type === 'delivery_note',
   )
   const latestDelivery = deliveries[0] ?? null
-  const paidCents = latestDelivery
-    ? allocatedPaidCents(latestDelivery, documents, input.payments)
-    : 0
-  const deliveryTotalCents = latestDelivery
-    ? Math.round(Number(latestDelivery.total) * 100)
-    : 0
-  const remainingCents = Math.max(0, deliveryTotalCents - paidCents)
-  const deliveryIssued =
-    !!latestDelivery &&
-    (latestDelivery.status === 'issued' ||
-      latestDelivery.status === 'signed' ||
-      latestDelivery.status === 'accepted')
-  const paymentPending = deliveryIssued && remainingCents > 0
-  const fullyPaid =
-    deliveryIssued &&
-    (deliveryTotalCents === 0 || paidCents >= deliveryTotalCents)
+  const activeDeliveries = deliveries.filter(
+    (document) =>
+      document.status === 'issued' ||
+      document.status === 'signed' ||
+      document.status === 'accepted',
+  )
+  const paidCents = activeDeliveries.reduce(
+    (sum, document) => sum + allocatedPaidCents(document, documents, input.payments),
+    0,
+  )
+  const deliveryTotalCents = activeDeliveries.reduce(
+    (sum, document) => sum + Math.round(Number(document.total) * 100),
+    0,
+  )
+  const remainingCents = activeDeliveries.reduce(
+    (sum, document) => sum + remainingCentsForDocument(document, documents, input.payments),
+    0,
+  )
+  const deliveryIssued = activeDeliveries.length > 0
+  const collectDelivery =
+    [...activeDeliveries]
+      .filter(
+        (document) =>
+          !document.external_invoice_ref &&
+          remainingCentsForDocument(document, documents, input.payments) > 0,
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.issued_at ?? a.created_at).getTime() -
+          new Date(b.issued_at ?? b.created_at).getTime(),
+      )[0] ?? null
+  const paymentPending = remainingCents > 0
+  const fullyPaid = deliveryIssued && remainingCents === 0
   const latestPayment =
     (latestDelivery
       ? input.payments.filter((payment) => payment.document_id === latestDelivery.id)
@@ -267,8 +288,9 @@ export function deriveOrderWorkflow(input: {
     primaryAction = 'review_sync_error'
   } else if (isAssessment && (input.visitClosed || localCloseState === 'synced')) {
     primaryAction = acceptedQuote ? 'show_quote' : 'office_quote_handoff'
-  } else if (latestDelivery) {
-    if (paymentPending) primaryAction = 'collect'
+  } else if (latestDelivery || activeDeliveries.length > 0) {
+    if (collectDelivery) primaryAction = 'collect'
+    else if (paymentPending && input.isOffice) primaryAction = 'collect_invoice'
     else if (fullyPaid && latestPayment && !input.receiptHandled) {
       primaryAction = 'send_receipt'
     } else primaryAction = 'done'
@@ -335,6 +357,7 @@ export function deriveOrderWorkflow(input: {
     activeQuoteId: activeQuote?.id ?? null,
     reissueFromQuoteId: reissueFromQuote?.id ?? null,
     latestDeliveryId: latestDelivery?.id ?? null,
+    collectDeliveryId: collectDelivery?.id ?? null,
     latestPaymentId: latestPayment?.id ?? null,
     anomalies,
   }

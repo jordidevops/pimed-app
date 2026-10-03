@@ -1,28 +1,39 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import {
   cancelCommercialDocument,
   issueCommercialDocument,
+  getProjectDeliverySummary,
+  previewDeliveryNote,
+  type DeliveryNotePreview,
   listPaymentsForDocuments,
   listPrimaryLineNames,
   listProjectCommercialDocuments,
   listQuoteAgreementStates,
   reissueCommercialQuote,
-  setDeliveryExternalInvoiceRef,
   type CommercialDocument,
 } from '../api/commercialFlowService'
 import {
   accountedPaidCents,
   allocatedPaidCents,
-  advancePaidCentsForProject,
+  advanceAppliedCentsForDocument,
   canCollectDocument,
   remainingCentsForDocument,
 } from '../utils/paymentAllocation'
+import { commercialErrorMessage } from '../utils/commercialErrorMessage'
 import { CollectPaymentDialog } from './CollectPaymentDialog'
 import { CommercialDocumentShareSheet } from './CommercialDocumentShareSheet'
 import {
@@ -33,6 +44,8 @@ import { CommercialDocumentView } from './CommercialDocumentView'
 import { CommercialNativeSignDialog } from './CommercialNativeSignDialog'
 import { PaymentReceiptSheet } from './PaymentReceiptSheet'
 import { QuoteWaiverDialog } from './QuoteWaiverDialog'
+import { DeliveryNotesList } from './DeliveryNotesList'
+import { RectifyDeliveryNoteDialog } from './RectifyDeliveryNoteDialog'
 import { ReissueQuoteDialog } from './ReissueQuoteDialog'
 import { QuoteFormalizationFields } from './QuoteFormalizationFields'
 import {
@@ -42,6 +55,7 @@ import {
 import { usePermission } from '@/hooks/usePermission'
 import { useTenant } from '@/contexts/TenantContext'
 import { useEffectiveSettings } from '@/hooks/useSettings'
+import { passesGate, useNavGateContext } from '@/features/sidebar-nav'
 import { useDocumentTemplates } from '@/features/signing/api/useDocumentTemplates'
 import { supabase } from '@/lib/supabase'
 import type { CommercialNativeSignAction } from '../utils/commercialNativeSign'
@@ -108,6 +122,8 @@ export function ProjectCommercialPanel({
   const { activeTenant } = useTenant()
   const queryClient = useQueryClient()
   const canEditPricing = usePermission('commercial.pricing.edit')
+  const { ctx, gatesLoading } = useNavGateContext()
+  const isOffice = !gatesLoading && passesGate('isOffice', ctx)
   const [busy, setBusy] = useState(false)
   const [formalizationMode, setFormalizationMode] = useState<FormalizationMode | null>(null)
   const [quoteTemplateId, setQuoteTemplateId] = useState('')
@@ -116,9 +132,10 @@ export function ProjectCommercialPanel({
   const [shareDocId, setShareDocId] = useState<string | null>(null)
   const [collectDocId, setCollectDocId] = useState<string | null>(null)
   const [receiptPaymentId, setReceiptPaymentId] = useState<string | null>(null)
-  const [invoiceRef, setInvoiceRef] = useState('')
-  const [invoiceSaving, setInvoiceSaving] = useState(false)
   const [reissueOpen, setReissueOpen] = useState(false)
+  const [issueDeliveryOpen, setIssueDeliveryOpen] = useState(false)
+  const [rectifyDocId, setRectifyDocId] = useState<string | null>(null)
+  const [deliveryPreview, setDeliveryPreview] = useState<DeliveryNotePreview | null>(null)
   const [signTarget, setSignTarget] = useState<{
     documentId: string
     action: CommercialNativeSignAction
@@ -141,6 +158,12 @@ export function ProjectCommercialPanel({
     queryKey: ['commercial_documents', projectId],
     queryFn: () => listProjectCommercialDocuments(projectId),
     enabled: !!projectId,
+  })
+
+  const { data: deliverySummary } = useQuery({
+    queryKey: ['project_delivery_summary', projectId],
+    queryFn: () => getProjectDeliverySummary(projectId),
+    enabled: section === 'deliver' && !!projectId,
   })
 
   const sectionDocs = useMemo(
@@ -190,7 +213,7 @@ export function ProjectCommercialPanel({
       if (error) throw error
       return data ?? []
     },
-    enabled: !!projectId && section === 'authorize',
+    enabled: !!projectId && (section === 'authorize' || section === 'deliver'),
   })
 
   const { data: hasWaiver = false } = useQuery({
@@ -234,7 +257,7 @@ export function ProjectCommercialPanel({
       toast({
         variant: 'destructive',
         title: t('projects.commercial.error', 'Error comercial'),
-        description: err instanceof Error ? err.message : undefined,
+        description: commercialErrorMessage(err),
       })
     } finally {
       setBusy(false)
@@ -243,28 +266,20 @@ export function ProjectCommercialPanel({
 
   const latestQuote = docs.find((d) => d.doc_type === 'quote')
   const latestDelivery = docs.find((d) => d.doc_type === 'delivery_note')
-  async function saveInvoiceRef() {
-    if (!latestDelivery) return
-    setInvoiceSaving(true)
-    try {
-      await setDeliveryExternalInvoiceRef({
-        documentId: latestDelivery.id,
-        ref: invoiceRef.trim() || null,
-      })
-      toast({
-        title: t('projects.commercial.invoice_ref_saved', 'Referència de factura desada'),
-      })
-      await refetch()
-    } catch (err) {
-      toast({
-        variant: 'destructive',
-        title: t('projects.commercial.error', 'Error comercial'),
-        description: err instanceof Error ? err.message : undefined,
-      })
-    } finally {
-      setInvoiceSaving(false)
-    }
-  }
+  const amendmentNeedsDelivery = useMemo(() => {
+    const acceptedAmps = docs.filter(
+      (d) =>
+        d.doc_type === 'quote_amendment' &&
+        (d.status === 'accepted' || d.status === 'signed'),
+    )
+    if (acceptedAmps.length === 0) return false
+    const newestAmp = acceptedAmps[0]
+    if (!latestDelivery) return true
+    return (
+      new Date(newestAmp.created_at).getTime() >
+      new Date(latestDelivery.created_at).getTime()
+    )
+  }, [docs, latestDelivery])
   const collectDoc = effectiveCollectId
     ? docs.find((d) => d.id === effectiveCollectId)
     : null
@@ -272,7 +287,7 @@ export function ProjectCommercialPanel({
   const showAuthorizeActions = section === 'authorize'
   const showDeliverActions = section === 'deliver'
   const isAssessment = serviceMode === 'assessment'
-  const showSummaryTotals = section === 'summary' || section === 'deliver'
+  const showSummaryTotals = section === 'summary'
 
   const deliveryPaidCents = latestDelivery
     ? allocatedPaidCents(latestDelivery, docs, payments)
@@ -298,10 +313,6 @@ export function ProjectCommercialPanel({
       latestQuoteStatus === 'cancelled')
       ? latestQuote
       : null
-
-  useEffect(() => {
-    setInvoiceRef(latestDelivery?.external_invoice_ref ?? '')
-  }, [latestDelivery?.id, latestDelivery?.external_invoice_ref])
 
   const docTypeLabel = (doc: CommercialDocument) =>
     doc.doc_type === 'quote'
@@ -443,6 +454,33 @@ export function ProjectCommercialPanel({
         </div>
       )}
 
+      {showDeliverActions && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm space-y-1">
+          <div className="flex justify-between gap-2">
+            <span className="text-muted-foreground">{t('projects.commercial.summary_authorized', 'Autoritzat')}</span>
+            <span className="tabular-nums font-medium">{((deliverySummary?.authorized_cents ?? 0) / 100).toFixed(2)} €</span>
+          </div>
+          <div className="flex justify-between gap-2">
+            <span className="text-muted-foreground">{t('projects.commercial.summary_billed', 'Albaranat')}</span>
+            <span className="tabular-nums font-medium">{((deliverySummary?.billed_cents ?? 0) / 100).toFixed(2)} €</span>
+          </div>
+          <div className="flex justify-between gap-2">
+            <span className="text-muted-foreground">{t('projects.commercial.summary_unapplied_advance', 'Bestreta pendent d’aplicar')}</span>
+            <span className="tabular-nums font-medium">{((deliverySummary?.unapplied_advance_cents ?? 0) / 100).toFixed(2)} €</span>
+          </div>
+          <div className="flex justify-between gap-2">
+            <span className="text-muted-foreground">{t('projects.commercial.summary_paid', 'Cobrat')}</span>
+            <span className="tabular-nums font-medium">{((deliverySummary?.collected_cents ?? 0) / 100).toFixed(2)} €</span>
+          </div>
+          <div className="flex justify-between gap-2 border-t border-border/60 pt-1">
+            <span className="text-muted-foreground">{t('projects.commercial.summary_remaining', 'Pendent')}</span>
+            <span className={`tabular-nums font-semibold ${(deliverySummary?.remaining_cents ?? 0) > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
+              {((deliverySummary?.remaining_cents ?? 0) / 100).toFixed(2)} €
+            </span>
+          </div>
+        </div>
+      )}
+
       {showSummaryTotals && latestDelivery && (
         <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm space-y-1">
           <div className="flex justify-between gap-2">
@@ -472,45 +510,6 @@ export function ProjectCommercialPanel({
             >
               {(deliveryRemaining / 100).toFixed(2)} €
             </span>
-          </div>
-        </div>
-      )}
-
-      {showDeliverActions &&
-        latestDelivery &&
-        (latestDelivery.status === 'issued' ||
-          latestDelivery.status === 'signed' ||
-          latestDelivery.status === 'accepted') && (
-        <div className="space-y-1.5 rounded-lg border border-border px-3 py-2">
-          <label className="text-sm font-medium text-foreground" htmlFor="external-invoice-ref">
-            {t('projects.commercial.external_invoice_ref', 'Factura externa')}
-          </label>
-          <p className="text-xs text-muted-foreground">
-            {t(
-              'projects.commercial.external_invoice_help',
-              'Número de factura al teu programa de facturació. No genera factura fiscal.',
-            )}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Input
-              id="external-invoice-ref"
-              value={invoiceRef}
-              onChange={(e) => setInvoiceRef(e.target.value)}
-              placeholder={t('projects.commercial.external_invoice_ph', 'p. ex. F-2026-014')}
-            />
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={
-                invoiceSaving ||
-                busy ||
-                invoiceRef.trim() === (latestDelivery.external_invoice_ref ?? '').trim()
-              }
-              onClick={() => void saveInvoiceRef()}
-            >
-              {t('projects.commercial.external_invoice_save', 'Desar')}
-            </Button>
           </div>
         </div>
       )}
@@ -603,22 +602,46 @@ export function ProjectCommercialPanel({
             )}
           </div>
         ) : null}
+        {showDeliverActions && amendmentNeedsDelivery ? (
+          <div className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
+            {t(
+              'projects.commercial.amendment_needs_delivery',
+              'Hi ha una ampliació acceptada. Emet un albarà per documentar i cobrar l’import autoritzat (l’ampliació no és un albarà).',
+            )}
+          </div>
+        ) : null}
         {showDeliverActions && !(isAssessment && !docs.some((d) => d.doc_type === 'quote' && (d.status === 'accepted' || d.status === 'signed'))) && (
           <Button
             type="button"
             size="sm"
             disabled={busy || !hasLines}
-            onClick={() =>
-              run(
-                () =>
-                  issueCommercialDocument({
-                    projectId,
-                    docType: 'delivery_note',
-                    showPrices: true,
-                  }),
-                t('projects.commercial.delivery_issued', 'Albarà emès'),
-              )
-            }
+            onClick={() => {
+              void (async () => {
+                setBusy(true)
+                try {
+                  const preview = await previewDeliveryNote(projectId)
+                  if (preview.lines.length === 0) {
+                    toast({
+                      title: t(
+                        'projects.commercial.nothing_to_deliver',
+                        'Tot el que hi ha a l’ordre ja està en un albarà',
+                      ),
+                    })
+                    return
+                  }
+                  setDeliveryPreview(preview)
+                  setIssueDeliveryOpen(true)
+                } catch (err) {
+                  toast({
+                    variant: 'destructive',
+                    title: t('projects.commercial.error', 'Error comercial'),
+                    description: commercialErrorMessage(err),
+                  })
+                } finally {
+                  setBusy(false)
+                }
+              })()
+            }}
           >
             {t('projects.commercial.issue_delivery', 'Emetre albarà')}
           </Button>
@@ -657,7 +680,57 @@ export function ProjectCommercialPanel({
               toast({
                 variant: 'destructive',
                 title: t('projects.commercial.error', 'Error comercial'),
-                description: err instanceof Error ? err.message : undefined,
+                description: commercialErrorMessage(err),
+              })
+            } finally {
+              setBusy(false)
+            }
+          })()
+        }}
+      />
+
+      <ReissueQuoteDialog
+        open={issueDeliveryOpen}
+        busy={busy}
+        onOpenChange={setIssueDeliveryOpen}
+        title={t('projects.commercial.issue_delivery_confirm_title', 'Emetre un nou albarà?')}
+        help={t(
+          latestDelivery
+            ? 'projects.commercial.issue_delivery_confirm_help_multi'
+            : 'projects.commercial.issue_delivery_confirm_help',
+          latestDelivery
+            ? 'S’emetrà només el que encara no és en un albarà: {{lines}}. Import {{amount}} €. L’albarà anterior es conserva.'
+            : 'S’emetrà només el que encara no és en un albarà: {{lines}}. Import {{amount}} €.',
+          {
+            amount: Number(deliveryPreview?.total ?? 0).toFixed(2),
+            lines:
+              deliveryPreview?.lines
+                .map((line) => `${line.name} × ${Number(line.quantity)}`)
+                .join(', ') || '—',
+          },
+        )}
+        confirmLabel={t('projects.commercial.issue_delivery', 'Emetre albarà')}
+        onConfirm={() => {
+          void (async () => {
+            setBusy(true)
+            try {
+              await issueCommercialDocument({
+                projectId,
+                docType: 'delivery_note',
+                showPrices: true,
+              })
+              toast({
+                title: t('projects.commercial.delivery_issued', 'Albarà emès'),
+              })
+              setIssueDeliveryOpen(false)
+              await refetch()
+              queryClient.invalidateQueries({ queryKey: ['projects'] })
+              queryClient.invalidateQueries({ queryKey: ['commercial_documents'] })
+            } catch (err) {
+              toast({
+                variant: 'destructive',
+                title: t('projects.commercial.error', 'Error comercial'),
+                description: commercialErrorMessage(err),
               })
             } finally {
               setBusy(false)
@@ -706,6 +779,19 @@ export function ProjectCommercialPanel({
         />
       ) : null}
 
+      <RectifyDeliveryNoteDialog
+        documentId={rectifyDocId}
+        open={rectifyDocId !== null}
+        busy={busy}
+        onBusyChange={setBusy}
+        onClose={() => setRectifyDocId(null)}
+        onCompleted={() => {
+          void queryClient.invalidateQueries({ queryKey: ['commercial_documents', projectId] })
+          void queryClient.invalidateQueries({ queryKey: ['project_delivery_summary', projectId] })
+          void queryClient.invalidateQueries({ queryKey: ['delivery_notes'] })
+        }}
+      />
+
       {collectDoc ? (
         <CollectPaymentDialog
           key={`${collectDoc.id}-${remainingCentsForDocument(collectDoc, docs, payments)}`}
@@ -715,7 +801,7 @@ export function ProjectCommercialPanel({
           previousPayments={paymentsByDoc.get(collectDoc.id) ?? []}
           advancePaidCents={
             collectDoc.doc_type === 'delivery_note'
-              ? advancePaidCentsForProject(collectDoc.project_id, docs, payments)
+              ? advanceAppliedCentsForDocument(collectDoc, docs, payments)
               : 0
           }
           open
@@ -742,13 +828,13 @@ export function ProjectCommercialPanel({
         />
       ) : null}
 
-      {visibleDocs.length === 0 ? (
+      {section === 'deliver' ? (
+        <DeliveryNotesList projectId={projectId} embedded defaultStatus="all" />
+      ) : visibleDocs.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           {section === 'authorize'
             ? t('projects.commercial.empty_authorize', 'Encara no hi ha pressupost ni renúncia')
-            : section === 'deliver'
-              ? t('projects.commercial.empty_deliver', 'Encara no hi ha albarà')
-              : t('projects.commercial.empty', 'Encara no hi ha documents comercials')}
+            : t('projects.commercial.empty', 'Encara no hi ha documents comercials')}
         </p>
       ) : (
         <ul className="space-y-2">
@@ -889,27 +975,46 @@ export function ProjectCommercialPanel({
                       ) : null}
                     </>
                   )}
-                  {effectiveStatus(doc) === 'issued' && doc.doc_type === 'delivery_note' && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={busy}
-                      onClick={() =>
-                        setSignTarget({ documentId: doc.id, action: 'delivery' })
-                      }
-                    >
-                      {t('projects.commercial.sign_delivery', 'Signar conformitat')}
-                    </Button>
+                  {['issued', 'signed', 'accepted'].includes(effectiveStatus(doc)) &&
+                    doc.doc_type === 'delivery_note' &&
+                    !doc.external_invoice_ref && (
+                    <>
+                      {effectiveStatus(doc) === 'issued' && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() =>
+                            setSignTarget({ documentId: doc.id, action: 'delivery' })
+                          }
+                        >
+                          {t('projects.commercial.sign_delivery', 'Signar conformitat')}
+                        </Button>
+                      )}
+                      {isOffice ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() => setRectifyDocId(doc.id)}
+                        >
+                          {t('projects.commercial.rectify', 'Rectificar')}
+                        </Button>
+                      ) : null}
+                    </>
                   )}
-                  {canCollect && (
+                  {canCollect && !(doc.doc_type === 'delivery_note' && doc.external_invoice_ref) && (
                     <Button
                       type="button"
                       size="sm"
                       disabled={busy}
                       onClick={() => setCollectDocId(doc.id)}
                     >
-                      {t('projects.commercial.collect', 'Cobrar')}
+                      {doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment'
+                        ? t('projects.commercial.collect_advance_btn', 'Bestreta')
+                        : t('projects.commercial.collect', 'Cobrar')}
                     </Button>
                   )}
                   {latestPayment && (
@@ -949,6 +1054,9 @@ export function ProjectCommercialPanel({
                     <p className="truncate text-sm text-muted-foreground">{lineNames.get(doc.id)}</p>
                   ) : null}
                   <CommercialDocumentStatusBadges doc={doc} t={t} className="mt-1" />
+                  <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+                    {Number(doc.total).toFixed(2)} €
+                  </p>
                 </div>
                 <Button
                   type="button"

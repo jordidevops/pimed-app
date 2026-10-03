@@ -211,6 +211,9 @@
     "PROJECT_COMMERCIAL_REJECTED": "ha registrat el refús de {{doc_number}}",
     "PROJECT_COMMERCIAL_CANCELLED": "ha descartat {{doc_number}}",
     "PROJECT_COMMERCIAL_SUPERSEDED": "ha substituït {{doc_number}}",
+    "PROJECT_COMMERCIAL_INVOICE_CANCELLED": "ha anul·lat la factura {{doc_number}}",
+    "PROJECT_COMMERCIAL_PAYMENT_RECORDED": "ha registrat un cobrament a {{doc_number}}",
+    "PROJECT_COMMERCIAL_PAYMENT_RECORDED_AMOUNT": "ha registrat un cobrament de {{amount}} € a {{doc_number}}",
     "GENERIC": "{{action}}"
   },
   "visit_summary": {

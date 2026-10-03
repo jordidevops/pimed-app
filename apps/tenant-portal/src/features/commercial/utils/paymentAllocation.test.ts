@@ -108,6 +108,27 @@ describe('remainingCentsForDocument', () => {
     expect(accountedPaidCents(quote, [quote], [])).toBe(0)
   })
 
+  it('applies an advance to the older delivery before the newer one', () => {
+    const quote = document('Q-1', 'quote', 'accepted', 200, '2026-09-14T08:00:00Z')
+    const first = document('D-1', 'delivery_note', 'issued', 100, '2026-09-14T09:00:00Z')
+    const second = document('D-2', 'delivery_note', 'issued', 100, '2026-09-14T10:00:00Z')
+    const docs = [quote, first, second]
+    const payments = [payment('Q-1', 15000)]
+    expect(remainingCentsForDocument(first, docs, payments)).toBe(0)
+    expect(remainingCentsForDocument(second, docs, payments)).toBe(5000)
+  })
+
+  it('keeps a replaced delivery payment on the original and counts it for the replacement', () => {
+    const original = document('D-1', 'delivery_note', 'cancelled', 100, '2026-09-14T09:00:00Z')
+    const replacement = {
+      ...document('D-2', 'delivery_note', 'issued', 80, '2026-09-14T10:00:00Z'),
+      supersedes_id: 'D-1',
+    }
+    expect(
+      remainingCentsForDocument(replacement, [original, replacement], [payment('D-1', 4000)]),
+    ).toBe(4000)
+  })
+
   it('stops collect when remaining is zero', () => {
     const delivery = document('D-1', 'delivery_note', 'issued')
     expect(

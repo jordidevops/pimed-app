@@ -79,6 +79,7 @@ export function pendingCommercialAction(
   }
 
   if (doc.doc_type === 'delivery_note') {
+    if (doc.external_invoice_ref) return null
     const issued =
       status === 'issued' || status === 'signed' || status === 'accepted'
     if (!issued) return null

@@ -9,6 +9,7 @@ const officeDesktop: NavGateContext = {
   canUseAttendance: true,
   showRecruitment: false,
   isFieldService: true,
+  canViewSales: true,
   homePath: '/dashboard',
 }
 
@@ -18,11 +19,12 @@ const fieldMember: NavGateContext = {
   canUseAttendance: true,
   showRecruitment: false,
   isFieldService: true,
+  canViewSales: false,
   homePath: '/field/today',
 }
 
 describe('mergeMissingDefaultNavItems', () => {
-  it('inserts quotes after contacts in a saved operations layout', () => {
+  it('inserts sales after contacts in a saved operations layout', () => {
     const saved: SidebarNavV1 = {
       version: 2,
       pinned: { visible: true, items: [{ id: 'home' }] },
@@ -41,13 +43,41 @@ describe('mergeMissingDefaultNavItems', () => {
       'field_today',
       'office_dashboard',
       'contacts',
-      'quotes',
+      'sales',
       'field_orders',
+      'maintenance_plans',
       'projects',
       'documents',
       'files',
       'public_portal',
     ])
+  })
+
+  it('aliases quotes, delivery_notes and cobraments to a single sales item', () => {
+    const saved: SidebarNavV1 = {
+      version: 2,
+      pinned: { visible: true, items: [{ id: 'home' }] },
+      groups: [
+        {
+          id: 'operations',
+          label: 'Operativa',
+          items: [
+            { id: 'contacts' },
+            { id: 'quotes' },
+            { id: 'cobraments' },
+            { id: 'delivery_notes' },
+            { id: 'field_orders' },
+          ],
+        },
+      ],
+    }
+    const merged = mergeMissingDefaultNavItems(saved)
+    const ops = merged.groups.find((g) => g.id === 'operations')
+    const ids = ops?.items.map((i) => i.id) ?? []
+    expect(ids.filter((id) => id === 'sales')).toHaveLength(1)
+    expect(ids).not.toContain('cobraments')
+    expect(ids).not.toContain('quotes')
+    expect(ids).not.toContain('delivery_notes')
   })
 
   it('moves field_today to the front of Operativa when a saved layout has it later', () => {
@@ -91,7 +121,7 @@ describe('mergeMissingDefaultNavItems', () => {
     expect(
       layout.groups
         .find((g) => g.id === 'operations')
-        ?.items.some((i) => i.id === 'quotes'),
+        ?.items.some((i) => i.id === 'sales'),
     ).toBe(true)
   })
 })
@@ -100,6 +130,8 @@ describe('passesGate field-service office vs member', () => {
   it('hides office modules for field technicians', () => {
     expect(passesGate('isOffice', fieldMember)).toBe(false)
     expect(passesGate('isOffice', officeDesktop)).toBe(true)
+    expect(passesGate('canViewSales', fieldMember)).toBe(false)
+    expect(passesGate('canViewSales', officeDesktop)).toBe(true)
     expect(passesGate('showFieldTodayNav', officeDesktop)).toBe(true)
     expect(passesGate('showFieldTodayNav', fieldMember)).toBe(false)
     expect(passesGate('showOfficeDashboardNav', fieldMember)).toBe(false)
@@ -116,6 +148,15 @@ describe('passesGate field-service office vs member', () => {
     const officeMobile: NavGateContext = { ...officeDesktop, homePath: '/field/today' }
     expect(passesGate('showOfficeDashboardNav', officeMobile)).toBe(true)
     expect(passesGate('showFieldTodayNav', officeMobile)).toBe(false)
+  })
+
+  it('allows sales for gestoria via canViewSales without office', () => {
+    const gestoria: NavGateContext = {
+      ...fieldMember,
+      canViewSales: true,
+    }
+    expect(passesGate('isOffice', gestoria)).toBe(false)
+    expect(passesGate('canViewSales', gestoria)).toBe(true)
   })
 })
 

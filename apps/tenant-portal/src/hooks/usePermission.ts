@@ -8,6 +8,7 @@ import {
   computeRolePermissions,
   hasPermission,
 } from '../lib/permissions'
+import { getSessionAppMetadata } from '../lib/sessionAppMetadata'
 
 // ---------------------------------------------------------------------------
 // usePermission
@@ -70,15 +71,14 @@ export function usePermission(
 
   if (!session || !selectedTenantId) return false
 
-  const userPermissions = session.user?.app_metadata?.user_permissions as
-    | JwtUserPermissions
-    | undefined
+  const appMeta = getSessionAppMetadata(session)
+  const userPermissions = appMeta.user_permissions as JwtUserPermissions | undefined
 
   // ── Fallback: si no hi ha user_permissions (token antic / claim no sync a user),
   //    calcula des de user_tenants JWT o, si tampoc hi són, des del rol de TenantContext
   //    (mateix criteri que useCanManageEmployeePortal).
   if (!userPermissions) {
-    const userTenants = session.user?.app_metadata?.user_tenants as
+    const userTenants = appMeta.user_tenants as
       | Record<string, { global_role?: string | null; sites?: Record<string, string> }>
       | undefined
 
@@ -154,11 +154,24 @@ export function usePermissions<T extends PermissionKey>(
 
   if (!session || !selectedTenantId) return falseAll
 
-  const userPermissions = session.user?.app_metadata?.user_permissions as
-    | JwtUserPermissions
-    | undefined
+  const appMeta = getSessionAppMetadata(session)
+  const userPermissions = appMeta.user_permissions as JwtUserPermissions | undefined
 
   if (!userPermissions) {
+    const userTenants = appMeta.user_tenants as
+      | Record<string, { global_role?: string | null; sites?: Record<string, string> }>
+      | undefined
+    if (userTenants?.[selectedTenantId]) {
+      const tenantEntry = userTenants[selectedTenantId]
+      const siteToCheck = targetSiteId !== undefined ? targetSiteId : selectedSiteId
+      const role = (siteToCheck && tenantEntry.sites?.[siteToCheck]) || tenantEntry.global_role
+      if (role) {
+        const perms = computeRolePermissions(role as Role)
+        return Object.fromEntries(
+          permissionKeys.map((k) => [k, hasPermission(perms, k)]),
+        ) as Record<T, boolean>
+      }
+    }
     const ctxRole = roleFromTenantContext(
       activeRole,
       activeSiteRole,

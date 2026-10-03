@@ -1,12 +1,18 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
+import { usePermission } from '@/hooks/usePermission'
 import { useTenant } from '@/contexts/TenantContext'
-import { getProjectMaterials } from '../api/materialsService'
+import { supabase } from '@/lib/supabase'
+import {
+  getProjectMaterials,
+  listMaterialCosts,
+  setProjectMaterialAmounts,
+} from '../api/materialsService'
 import { enqueueProjectMaterial } from '../api/fieldActualsQueue'
 import { useProjectFieldOps } from '../hooks/useProjectFieldOps'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +22,19 @@ interface ProjectMaterialsSectionProps {
   workLogId?: string | null
   readOnly?: boolean
   embedded?: boolean
+}
+
+function centsToInput(cents: number | null | undefined): string {
+  if (cents == null) return ''
+  return (cents / 100).toFixed(2)
+}
+
+function inputToCents(raw: string): number | null {
+  const trimmed = raw.trim().replace(',', '.')
+  if (!trimmed) return null
+  const n = Number(trimmed)
+  if (!Number.isFinite(n) || n < 0) return Number.NaN
+  return Math.round(n * 100)
 }
 
 function formatError(err: unknown): string {
@@ -49,16 +68,69 @@ export function ProjectMaterialsSection({
   const { toast } = useToast()
   const { activeTenant } = useTenant()
   const localOps = useProjectFieldOps(activeTenant?.id, projectId)
+  const queryClient = useQueryClient()
   const [name, setName] = useState('')
   const [qty, setQty] = useState('1')
   const [unit, setUnit] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const { data: siteId } = useQuery({
+    queryKey: ['project_site', projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('site_id')
+        .eq('id', projectId)
+        .maybeSingle()
+      if (error) throw error
+      return (data as { site_id: string | null } | null)?.site_id ?? null
+    },
+    enabled: !!projectId,
+  })
+  const canSeeCost = usePermission('commercial.costs.view', siteId)
+  const canEditPrice = usePermission('commercial.pricing.edit', siteId)
 
   const { data: materials = [], isLoading } = useQuery({
     queryKey: ['project_materials', projectId],
     queryFn: () => getProjectMaterials(projectId, activeTenant?.id),
     enabled: !!projectId,
   })
+
+  const materialIds = materials.map((item) => item.id)
+  const { data: costs = [] } = useQuery({
+    queryKey: ['material_costs', projectId, materialIds],
+    queryFn: () => listMaterialCosts(materialIds),
+    enabled: canSeeCost && materialIds.length > 0,
+  })
+  const costById = new Map(costs.map((row) => [row.material_id, row.unit_cost_cents]))
+
+  async function saveAmount(
+    materialId: string,
+    field: 'unit_price_cents' | 'unit_cost_cents',
+    raw: string,
+    previousCents: number | null,
+  ) {
+    const cents = inputToCents(raw)
+    if (Number.isNaN(cents)) {
+      toast({
+        variant: 'destructive',
+        title: t('materials.amount_invalid', 'Import no vàlid'),
+      })
+      return
+    }
+    if (cents === previousCents) return
+    try {
+      await setProjectMaterialAmounts(materialId, { [field]: cents })
+      void queryClient.invalidateQueries({ queryKey: ['project_materials', projectId] })
+      void queryClient.invalidateQueries({ queryKey: ['material_costs', projectId] })
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: t('materials.amount_failed', 'No s’ha pogut desar l’import'),
+        description: formatError(err),
+      })
+    }
+  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -127,13 +199,61 @@ export function ProjectMaterialsSection({
           {materials.map((item) => (
             <li
               key={item.id}
-              className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm"
             >
               <span className="font-medium">{item.name}</span>
               <span className="text-muted-foreground">
                 {item.quantity}
                 {item.unit ? ` ${item.unit}` : ''}
               </span>
+              {canEditPrice ? (
+                <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                  {t('materials.sale_price', 'PVP €')}
+                  {readOnly ? (
+                    <span className="text-foreground">{centsToInput(item.unit_price_cents) || '—'}</span>
+                  ) : (
+                    <Input
+                      className="h-8 w-24"
+                      inputMode="decimal"
+                      defaultValue={centsToInput(item.unit_price_cents)}
+                      key={`price-${item.id}-${item.unit_price_cents ?? 'x'}`}
+                      onBlur={(e) =>
+                        void saveAmount(
+                          item.id,
+                          'unit_price_cents',
+                          e.target.value,
+                          item.unit_price_cents,
+                        )
+                      }
+                    />
+                  )}
+                </label>
+              ) : null}
+              {canSeeCost ? (
+                <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                  {t('materials.cost', 'Cost €')}
+                  {readOnly ? (
+                    <span className="text-foreground">
+                      {centsToInput(costById.get(item.id)) || '—'}
+                    </span>
+                  ) : (
+                    <Input
+                      className="h-8 w-24"
+                      inputMode="decimal"
+                      defaultValue={centsToInput(costById.get(item.id))}
+                      key={`cost-${item.id}-${costById.get(item.id) ?? 'x'}`}
+                      onBlur={(e) =>
+                        void saveAmount(
+                          item.id,
+                          'unit_cost_cents',
+                          e.target.value,
+                          costById.get(item.id) ?? null,
+                        )
+                      }
+                    />
+                  )}
+                </label>
+              ) : null}
             </li>
           ))}
           {localOps.materials.map(({ op, payload }) => (

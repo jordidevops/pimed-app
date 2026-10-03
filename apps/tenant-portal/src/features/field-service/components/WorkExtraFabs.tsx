@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Camera, CheckSquare, Package, Paperclip, type LucideIcon } from 'lucide-react'
+import { Camera, CheckSquare, Package, Paperclip, Wallet, type LucideIcon } from 'lucide-react'
 import { getProjectMaterials } from '../api/materialsService'
+import { getProjectExpenses } from '../api/expensesService'
 import { getTasks } from '@/features/projects/api/tasksService'
 import { tasksKeys } from '@/features/projects/api/tasksKeys'
 import { supabase } from '@/lib/supabase'
@@ -9,7 +10,7 @@ import { cn } from '@/lib/utils'
 import { useTenant } from '@/contexts/TenantContext'
 import { useProjectFieldOps } from '../hooks/useProjectFieldOps'
 
-export type WorkExtraSection = 'photos' | 'attachments' | 'materials' | 'tasks'
+export type WorkExtraSection = 'photos' | 'attachments' | 'materials' | 'expenses' | 'tasks'
 
 interface WorkExtraFabsProps {
   projectId: string
@@ -26,6 +27,7 @@ const ITEMS: {
   { id: 'photos', labelKey: 'detail.nav_photos', fallback: 'Fotos', icon: Camera },
   { id: 'attachments', labelKey: 'detail.nav_attachments', fallback: 'Adjunts', icon: Paperclip },
   { id: 'materials', labelKey: 'detail.nav_materials', fallback: 'Materials', icon: Package },
+  { id: 'expenses', labelKey: 'detail.nav_expenses', fallback: 'Despeses', icon: Wallet },
   { id: 'tasks', labelKey: 'detail.nav_tasks', fallback: 'Tasques', icon: CheckSquare },
 ]
 
@@ -38,6 +40,12 @@ export function WorkExtraFabs({ projectId, active, onChange }: WorkExtraFabsProp
   const { data: materials = [] } = useQuery({
     queryKey: ['project_materials', projectId, tenantId],
     queryFn: () => getProjectMaterials(projectId, tenantId),
+    enabled: !!projectId,
+  })
+
+  const { data: expenses = [] } = useQuery({
+    queryKey: ['project_expenses', projectId],
+    queryFn: () => getProjectExpenses(projectId),
     enabled: !!projectId,
   })
 
@@ -93,13 +101,14 @@ export function WorkExtraFabs({ projectId, active, onChange }: WorkExtraFabsProp
     materials: materials.length + localOps.materials.length > 0
       ? materials.length + localOps.materials.length
       : null,
+    expenses: expenses.length > 0 ? expenses.length : null,
     tasks: openTasks > 0 ? openTasks : null,
   }
 
   return (
     <nav
       aria-label={t('detail.extra_aria', 'Afegir a la feina')}
-      className="grid grid-cols-4 gap-2 px-0.5"
+      className="grid grid-cols-3 gap-2 px-0.5 sm:grid-cols-5"
     >
       {ITEMS.map((item) => {
         const isActive = active === item.id

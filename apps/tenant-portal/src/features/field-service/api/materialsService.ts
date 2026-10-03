@@ -40,6 +40,29 @@ export async function getProjectMaterials(
   return materials
 }
 
+export async function listMaterialCosts(
+  materialIds: string[],
+): Promise<{ material_id: string; unit_cost_cents: number }[]> {
+  if (materialIds.length === 0) return []
+  const { data, error } = await supabase
+    .from('project_material_costs' as never)
+    .select('material_id, unit_cost_cents')
+    .in('material_id', materialIds)
+  if (error) throw error
+  return (data ?? []) as { material_id: string; unit_cost_cents: number }[]
+}
+
+export async function setProjectMaterialAmounts(
+  materialId: string,
+  patch: { unit_price_cents?: number | null; unit_cost_cents?: number | null },
+): Promise<void> {
+  const { error } = await supabase.rpc('set_project_material_amounts' as never, {
+    p_material_id: materialId,
+    p_patch: patch,
+  } as never)
+  if (error) throw error
+}
+
 export async function addProjectMaterial(input: AddProjectMaterialInput): Promise<void> {
   const { error } = await supabase.rpc('add_project_material' as never, {
     p_project_id: input.project_id,

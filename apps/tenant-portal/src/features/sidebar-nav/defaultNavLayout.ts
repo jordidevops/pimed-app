@@ -29,7 +29,7 @@ export function buildDefaultNavLayout(): SidebarNavV1 {
           { id: 'field_today' },
           { id: 'office_dashboard' },
           { id: 'contacts' },
-          { id: 'quotes' },
+          { id: 'sales' },
           { id: 'field_orders' },
           { id: 'maintenance_plans' },
           { id: 'projects' },

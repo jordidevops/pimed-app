@@ -135,6 +135,7 @@
     "nav_photos": "Fotos",
     "nav_attachments": "Adjuntos",
     "nav_materials": "Materiales",
+    "nav_expenses": "Gastos",
     "nav_tasks": "Tareas",
     "extra_aria": "Añadir al trabajo",
     "extra_show": "Mostrar {{section}}",
@@ -472,6 +473,25 @@
     "added": "Material añadido",
     "add_failed": "No se ha podido añadir el material",
     "cancel_pending": "Cancelar material pendiente"
+  },
+  "expenses": {
+    "title": "Gastos",
+    "hint": "Registra un importe del trabajo e indica si es imputable al cliente y quién lo ha pagado.",
+    "hint_readonly": "La visita tiene el parte publicado; los gastos son solo lectura.",
+    "empty": "Ningún gasto registrado",
+    "description": "Descripción",
+    "amount": "Importe €",
+    "add": "Añadir",
+    "saving": "Guardando…",
+    "added": "Gasto guardado",
+    "add_failed": "No se ha podido añadir el gasto",
+    "amount_invalid": "Importe no válido",
+    "is_billable": "Imputable al cliente",
+    "billable": "Imputable",
+    "not_billable": "No imputable",
+    "paid_by": "Quién paga",
+    "paid_by_company": "Paga empresa",
+    "paid_by_employee": "Paga empleado"
   },
   "checklist": {
     "title": "Checklist de visita",

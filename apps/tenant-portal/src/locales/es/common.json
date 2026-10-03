@@ -1,0 +1,8 @@
+{
+  "nav": {
+    "sales": "Comercial",
+    "quotes": "Presupuestos",
+    "delivery_notes": "Albaranes",
+    "cobraments": "Albaranes"
+  }
+}

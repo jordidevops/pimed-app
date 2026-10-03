@@ -4,6 +4,8 @@ import { initReactI18next } from 'react-i18next';
 // Importem els JSON (els crearem ara)
 import storageCa from './ca/storage.json';
 import commonCa from './ca/common.json';
+import commonEs from './es/common.json';
+import commonEn from './en/common.json';
 import authCa from './ca/auth.json';
 import emailCa from './ca/email.json';
 import calendarCa from './ca/calendar.json';
@@ -69,6 +71,7 @@ i18n
         maps: mapsCa,
       },
       es: {
+        common: commonEs,
         contacts: contactsEs,
         employees: employeesEs,
         recruitment: recruitmentEs,
@@ -77,6 +80,7 @@ i18n
         settings: settingsEs,
       },
       en: {
+        common: commonEn,
         contacts: contactsEn,
         employees: employeesEn,
         recruitment: recruitmentEn,

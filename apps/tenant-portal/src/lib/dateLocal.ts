@@ -7,6 +7,11 @@ export function localDateString(d = new Date()): string {
   return `${y}-${m}-${day}`
 }
 
+/** YYYY-MM-DD in the local calendar (alias of localDateString). */
+export function localDateIso(d = new Date()): string {
+  return localDateString(d)
+}
+
 /** Inclusive local-day range as ISO timestamptz bounds. */
 export function localDayRange(day?: string): { from: string; to: string; day: string } {
   const base = day ?? localDateString()

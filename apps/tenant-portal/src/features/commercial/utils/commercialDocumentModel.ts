@@ -51,7 +51,7 @@ export type CommercialDocumentLine = {
 export type CommercialDocumentDetail = {
   id: string
   tenant_id: string
-  doc_type: 'quote' | 'quote_amendment' | 'delivery_note'
+  doc_type: 'quote' | 'quote_amendment' | 'delivery_note' | 'invoice'
   doc_number: string | null
   client_id: string
   project_id: string | null
@@ -70,11 +70,13 @@ export type CommercialDocumentDetail = {
   valid_until: string | null
   parent_document_id: string | null
   created_at: string
-  rendered_document_id?: string | null
-  pdf_job_id?: string | null
-  document_template_id?: string | null
-  full_body_template_id?: string | null
-  formalization_mode?: 'signed_quote' | 'separate_agreement' | null
+    rendered_document_id?: string | null
+    pdf_job_id?: string | null
+    document_template_id?: string | null
+    full_body_template_id?: string | null
+    formalization_mode?: 'signed_quote' | 'separate_agreement' | null
+    external_invoice_ref?: string | null
+    supersedes_id?: string | null
   lines: CommercialDocumentLine[]
   events: CommercialDocumentEvent[]
 }
@@ -84,6 +86,7 @@ export type CommercialDocumentEvent = {
   event_type: string
   occurred_at: string
   channel: string | null
+  payload?: Record<string, unknown> | null
 }
 
 export function docTypeLabel(docType: string): string {
@@ -155,6 +158,8 @@ export const COMMERCIAL_LIFECYCLE_EVENT_TYPES = [
   'cancelled',
   'superseded',
   'signed',
+  'invoice_cancelled',
+  'payment_recorded',
 ] as const
 
 export function commercialFilename(

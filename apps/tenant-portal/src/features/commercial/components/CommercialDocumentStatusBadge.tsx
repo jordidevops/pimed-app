@@ -157,12 +157,18 @@ export function resolveCommercialDocumentBadges(
   const primary = statusPresentation(status, doc.doc_type)
 
   if (pending?.kind === 'awaiting_payment') {
+    const isQuoteLike =
+      doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment'
     return [
       primary,
       {
         key: 'awaiting_payment',
-        labelKey: 'projects.commercial.payment_pending_chip',
-        labelFallback: 'Pendent de cobrar',
+        labelKey: isQuoteLike
+          ? 'projects.commercial.advance_open_chip'
+          : 'projects.commercial.payment_pending_chip',
+        labelFallback: isQuoteLike
+          ? 'Bestreta / saldo obert'
+          : 'Pendent de cobrar',
         tone: 'warning',
         Icon: Clock3,
       },

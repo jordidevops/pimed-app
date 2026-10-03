@@ -300,6 +300,33 @@ export function formatAuditMessage(
         doc_number: messageVars.doc_number ?? '—',
         defaultValue: 'ha substituït {{doc_number}}',
       })
+    case 'PROJECT_COMMERCIAL_INVOICE_CANCELLED':
+      return prefix + t('activity:audit.PROJECT_COMMERCIAL_INVOICE_CANCELLED', {
+        doc_number: messageVars.doc_number ?? '—',
+        defaultValue: 'ha anul·lat la factura {{doc_number}}',
+      })
+    case 'PROJECT_COMMERCIAL_PAYMENT_RECORDED': {
+      const cents = Number(messageVars.amount_cents)
+      const amountLabel = Number.isFinite(cents)
+        ? (cents / 100).toLocaleString('ca-ES', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        : null
+      return (
+        prefix +
+        (amountLabel
+          ? t('activity:audit.PROJECT_COMMERCIAL_PAYMENT_RECORDED_AMOUNT', {
+              doc_number: messageVars.doc_number ?? '—',
+              amount: amountLabel,
+              defaultValue: 'ha registrat un cobrament de {{amount}} € a {{doc_number}}',
+            })
+          : t('activity:audit.PROJECT_COMMERCIAL_PAYMENT_RECORDED', {
+              doc_number: messageVars.doc_number ?? '—',
+              defaultValue: 'ha registrat un cobrament a {{doc_number}}',
+            }))
+      )
+    }
     default:
       return prefix + t('activity:audit.GENERIC', {
         action: stripEntityActionPrefix(action),

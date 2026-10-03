@@ -4400,6 +4400,435 @@ export type Database = {
           },
         ]
       }
+      commercial_accounting_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          document_id: string | null
+          id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          revision: number | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          document_id?: string | null
+          id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          revision?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          document_id?: string | null
+          id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          revision?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_accounting_reviews_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_accounting_reviews_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_accounting_reviews_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_accounting_reviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_accounting_reviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_accounting_reviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_accounting_reviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_accounting_reviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commercial_agreement_billing_periods: {
+        Row: {
+          agreement_id: string | null
+          amount_cents: number | null
+          created_at: string | null
+          currency: string | null
+          cycle_id: string | null
+          due_on: string | null
+          external_invoice_ref: string | null
+          id: string | null
+          invoiced_at: string | null
+          invoiced_by: string | null
+          notes: string | null
+          period_end: string | null
+          period_start: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          version_id: string | null
+        }
+        Insert: {
+          agreement_id?: string | null
+          amount_cents?: number | null
+          created_at?: string | null
+          currency?: string | null
+          cycle_id?: string | null
+          due_on?: string | null
+          external_invoice_ref?: string | null
+          id?: string | null
+          invoiced_at?: string | null
+          invoiced_by?: string | null
+          notes?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          version_id?: string | null
+        }
+        Update: {
+          agreement_id?: string | null
+          amount_cents?: number | null
+          created_at?: string | null
+          currency?: string | null
+          cycle_id?: string | null
+          due_on?: string | null
+          external_invoice_ref?: string | null
+          id?: string | null
+          invoiced_at?: string | null
+          invoiced_by?: string | null
+          notes?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_agreement_billing_periods_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_agreements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_billing_periods_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_agreement_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_billing_periods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_billing_periods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_billing_periods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_billing_periods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_billing_periods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_billing_periods_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_agreement_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commercial_agreement_billing_state: {
+        Row: {
+          agreement_id: string | null
+          next_billing_on: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          agreement_id?: string | null
+          next_billing_on?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          agreement_id?: string | null
+          next_billing_on?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_agreement_billing_state_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: true
+            referencedRelation: "commercial_agreements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_billing_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_billing_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_billing_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_billing_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_billing_state_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commercial_agreement_coverage: {
+        Row: {
+          agreement_id: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          agreement_id?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          agreement_id?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_agreement_coverage_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_agreements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_coverage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_coverage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_coverage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_coverage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_coverage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commercial_agreement_cycles: {
+        Row: {
+          agreement_id: string | null
+          created_at: string | null
+          cycle_no: number | null
+          ends_on: string | null
+          id: string | null
+          origin: string | null
+          starts_on: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          agreement_id?: string | null
+          created_at?: string | null
+          cycle_no?: number | null
+          ends_on?: string | null
+          id?: string | null
+          origin?: string | null
+          starts_on?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          agreement_id?: string | null
+          created_at?: string | null
+          cycle_no?: number | null
+          ends_on?: string | null
+          id?: string | null
+          origin?: string | null
+          starts_on?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_agreement_cycles_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_agreements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_cycles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_cycles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_cycles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_cycles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_cycles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commercial_agreement_events: {
         Row: {
           actor_id: string | null
@@ -4493,6 +4922,155 @@ export type Database = {
           },
         ]
       }
+      commercial_agreement_maintenance_plans: {
+        Row: {
+          agreement_id: string | null
+          created_at: string | null
+          id: string | null
+          maintenance_plan_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          agreement_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          maintenance_plan_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          agreement_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          maintenance_plan_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_agreement_maintenance_plans_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_agreements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_maintenance_plans_maintenance_plan_id_fkey"
+            columns: ["maintenance_plan_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_maintenance_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_maintenance_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_maintenance_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_maintenance_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_maintenance_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commercial_agreement_notice_digests: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          digest_on: string | null
+          id: string | null
+          last_error: string | null
+          payload: Json | null
+          sent_at: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          digest_on?: string | null
+          id?: string | null
+          last_error?: string | null
+          payload?: Json | null
+          sent_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          digest_on?: string | null
+          id?: string | null
+          last_error?: string | null
+          payload?: Json | null
+          sent_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_agreement_notice_digests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_notice_digests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_notice_digests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_notice_digests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_agreement_notice_digests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commercial_agreement_projects: {
         Row: {
           agreement_id: string | null
@@ -4574,134 +5152,26 @@ export type Database = {
           },
         ]
       }
-      commercial_agreement_coverage: {
-        Row: {
-          agreement_id: string | null
-          created_at: string | null
-          entity_id: string | null
-          entity_type: string | null
-          id: string | null
-          tenant_id: string | null
-        }
-        Insert: {
-          agreement_id?: string | null
-          created_at?: string | null
-          entity_id?: string | null
-          entity_type?: string | null
-          id?: string | null
-          tenant_id?: string | null
-        }
-        Update: {
-          agreement_id?: string | null
-          created_at?: string | null
-          entity_id?: string | null
-          entity_type?: string | null
-          id?: string | null
-          tenant_id?: string | null
-        }
-        Relationships: []
-      }
-      commercial_agreement_maintenance_plans: {
-        Row: {
-          agreement_id: string | null
-          created_at: string | null
-          id: string | null
-          maintenance_plan_id: string | null
-          tenant_id: string | null
-        }
-        Insert: {
-          agreement_id?: string | null
-          created_at?: string | null
-          id?: string | null
-          maintenance_plan_id?: string | null
-          tenant_id?: string | null
-        }
-        Update: {
-          agreement_id?: string | null
-          created_at?: string | null
-          id?: string | null
-          maintenance_plan_id?: string | null
-          tenant_id?: string | null
-        }
-        Relationships: []
-      }
-      commercial_agreement_billing_periods: {
-        Row: {
-          agreement_id: string | null
-          amount_cents: number | null
-          created_at: string | null
-          currency: string | null
-          due_on: string | null
-          external_invoice_ref: string | null
-          id: string | null
-          invoiced_at: string | null
-          invoiced_by: string | null
-          notes: string | null
-          period_end: string | null
-          period_start: string | null
-          status: string | null
-          tenant_id: string | null
-          updated_at: string | null
-          version_id: string | null
-        }
-        Insert: {
-          agreement_id?: string | null
-          amount_cents?: number | null
-          created_at?: string | null
-          currency?: string | null
-          due_on?: string | null
-          external_invoice_ref?: string | null
-          id?: string | null
-          invoiced_at?: string | null
-          invoiced_by?: string | null
-          notes?: string | null
-          period_end?: string | null
-          period_start?: string | null
-          status?: string | null
-          tenant_id?: string | null
-          updated_at?: string | null
-          version_id?: string | null
-        }
-        Update: {
-          agreement_id?: string | null
-          amount_cents?: number | null
-          created_at?: string | null
-          currency?: string | null
-          due_on?: string | null
-          external_invoice_ref?: string | null
-          id?: string | null
-          invoiced_at?: string | null
-          invoiced_by?: string | null
-          notes?: string | null
-          period_end?: string | null
-          period_start?: string | null
-          status?: string | null
-          tenant_id?: string | null
-          updated_at?: string | null
-          version_id?: string | null
-        }
-        Relationships: []
-      }
       commercial_agreement_versions: {
         Row: {
           agreement_id: string | null
           auto_renew: boolean | null
+          billing_amount_cents: number | null
+          billing_anchor_day: number | null
+          billing_cadence: string | null
+          billing_currency: string | null
           content_hash: string | null
           created_at: string | null
           ends_on: string | null
           full_body_template_id: string | null
           id: string | null
-          notice_days: number | null
-          billing_amount_cents: number | null
-          billing_anchor_day: number | null
-          billing_cadence: string | null
-          billing_currency: string | null
           next_billing_on: string | null
+          notice_days: number | null
+          rendered_document_id: string | null
+          signed_document_id: string | null
           sla_coverage_notes: string | null
           sla_resolution_hours: number | null
           sla_response_hours: number | null
-          rendered_document_id: string | null
-          signed_document_id: string | null
           source_quote_content_hash: string | null
           source_quote_document_id: string | null
           source_quote_id: string | null
@@ -4715,22 +5185,22 @@ export type Database = {
         Insert: {
           agreement_id?: string | null
           auto_renew?: boolean | null
+          billing_amount_cents?: number | null
+          billing_anchor_day?: number | null
+          billing_cadence?: string | null
+          billing_currency?: string | null
           content_hash?: string | null
           created_at?: string | null
           ends_on?: string | null
           full_body_template_id?: string | null
           id?: string | null
-          notice_days?: number | null
-          billing_amount_cents?: number | null
-          billing_anchor_day?: number | null
-          billing_cadence?: string | null
-          billing_currency?: string | null
           next_billing_on?: string | null
+          notice_days?: number | null
+          rendered_document_id?: string | null
+          signed_document_id?: string | null
           sla_coverage_notes?: string | null
           sla_resolution_hours?: number | null
           sla_response_hours?: number | null
-          rendered_document_id?: string | null
-          signed_document_id?: string | null
           source_quote_content_hash?: string | null
           source_quote_document_id?: string | null
           source_quote_id?: string | null
@@ -4743,18 +5213,23 @@ export type Database = {
         }
         Update: {
           agreement_id?: string | null
+          auto_renew?: boolean | null
           billing_amount_cents?: number | null
           billing_anchor_day?: number | null
           billing_cadence?: string | null
           billing_currency?: string | null
-          next_billing_on?: string | null
           content_hash?: string | null
           created_at?: string | null
           ends_on?: string | null
           full_body_template_id?: string | null
           id?: string | null
+          next_billing_on?: string | null
+          notice_days?: number | null
           rendered_document_id?: string | null
           signed_document_id?: string | null
+          sla_coverage_notes?: string | null
+          sla_resolution_hours?: number | null
+          sla_response_hours?: number | null
           source_quote_content_hash?: string | null
           source_quote_document_id?: string | null
           source_quote_id?: string | null
@@ -4889,6 +5364,7 @@ export type Database = {
       }
       commercial_agreements: {
         Row: {
+          active_cycle_id: string | null
           active_version_id: string | null
           client_id: string | null
           created_at: string | null
@@ -4902,6 +5378,7 @@ export type Database = {
           work_gate: string | null
         }
         Insert: {
+          active_cycle_id?: string | null
           active_version_id?: string | null
           client_id?: string | null
           created_at?: string | null
@@ -4915,6 +5392,7 @@ export type Database = {
           work_gate?: string | null
         }
         Update: {
+          active_cycle_id?: string | null
           active_version_id?: string | null
           client_id?: string | null
           created_at?: string | null
@@ -4928,6 +5406,13 @@ export type Database = {
           work_gate?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "commercial_agreements_active_cycle_id_fkey"
+            columns: ["active_cycle_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_agreement_cycles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "commercial_agreements_active_version_id_fkey"
             columns: ["active_version_id"]
@@ -5105,6 +5590,91 @@ export type Database = {
           },
         ]
       }
+      commercial_document_external_refs: {
+        Row: {
+          created_at: string | null
+          document_id: string | null
+          external_id: string | null
+          external_number: string | null
+          id: string | null
+          payload: Json | null
+          payload_hash: string | null
+          provider: string | null
+          synced_at: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          document_id?: string | null
+          external_id?: string | null
+          external_number?: string | null
+          id?: string | null
+          payload?: Json | null
+          payload_hash?: string | null
+          provider?: string | null
+          synced_at?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          document_id?: string | null
+          external_id?: string | null
+          external_number?: string | null
+          id?: string | null
+          payload?: Json | null
+          payload_hash?: string | null
+          provider?: string | null
+          synced_at?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_document_external_refs_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_document_external_refs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_document_external_refs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_document_external_refs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_document_external_refs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_document_external_refs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commercial_document_lines: {
         Row: {
           catalog_item_id: string | null
@@ -5120,6 +5690,7 @@ export type Database = {
           name: string | null
           position: number | null
           quantity: number | null
+          source_commercial_document_line_id: string | null
           source_project_line_id: string | null
           tax_category: string | null
           tax_rate: number | null
@@ -5141,6 +5712,7 @@ export type Database = {
           name?: string | null
           position?: number | null
           quantity?: number | null
+          source_commercial_document_line_id?: string | null
           source_project_line_id?: string | null
           tax_category?: string | null
           tax_rate?: number | null
@@ -5162,6 +5734,7 @@ export type Database = {
           name?: string | null
           position?: number | null
           quantity?: number | null
+          source_commercial_document_line_id?: string | null
           source_project_line_id?: string | null
           tax_category?: string | null
           tax_rate?: number | null
@@ -5182,6 +5755,13 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "commercial_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_document_lines_source_commercial_document_line__fkey"
+            columns: ["source_commercial_document_line_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_document_lines"
             referencedColumns: ["id"]
           },
           {
@@ -5228,6 +5808,81 @@ export type Database = {
           },
         ]
       }
+      commercial_document_series: {
+        Row: {
+          active: boolean | null
+          code: string | null
+          created_at: string | null
+          doc_type: string | null
+          id: string | null
+          name: string | null
+          pattern: string | null
+          reset_policy: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          code?: string | null
+          created_at?: string | null
+          doc_type?: string | null
+          id?: string | null
+          name?: string | null
+          pattern?: string | null
+          reset_policy?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          code?: string | null
+          created_at?: string | null
+          doc_type?: string | null
+          id?: string | null
+          name?: string | null
+          pattern?: string | null
+          reset_policy?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_document_series_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_document_series_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_document_series_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_document_series_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_document_series_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commercial_documents: {
         Row: {
           buyer_snapshot: Json | null
@@ -5247,12 +5902,15 @@ export type Database = {
           id: string | null
           issued_at: string | null
           issued_by: string | null
+          issued_on: string | null
           locale: string | null
+          number_origin: string | null
           parent_document_id: string | null
           pdf_job_id: string | null
           project_id: string | null
           rendered_document_id: string | null
           seller_snapshot: Json | null
+          series_id: string | null
           service_address_snapshot: Json | null
           show_prices: boolean | null
           status: string | null
@@ -5283,12 +5941,15 @@ export type Database = {
           id?: string | null
           issued_at?: string | null
           issued_by?: string | null
+          issued_on?: string | null
           locale?: string | null
+          number_origin?: string | null
           parent_document_id?: string | null
           pdf_job_id?: string | null
           project_id?: string | null
           rendered_document_id?: string | null
           seller_snapshot?: Json | null
+          series_id?: string | null
           service_address_snapshot?: Json | null
           show_prices?: boolean | null
           status?: string | null
@@ -5319,12 +5980,15 @@ export type Database = {
           id?: string | null
           issued_at?: string | null
           issued_by?: string | null
+          issued_on?: string | null
           locale?: string | null
+          number_origin?: string | null
           parent_document_id?: string | null
           pdf_job_id?: string | null
           project_id?: string | null
           rendered_document_id?: string | null
           seller_snapshot?: Json | null
+          series_id?: string | null
           service_address_snapshot?: Json | null
           show_prices?: boolean | null
           status?: string | null
@@ -5444,6 +6108,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "commercial_documents_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_document_series"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "commercial_documents_supersedes_id_fkey"
             columns: ["supersedes_id"]
             isOneToOne: false
@@ -5480,6 +6151,372 @@ export type Database = {
           },
           {
             foreignKeyName: "commercial_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commercial_export_batch_documents: {
+        Row: {
+          batch_id: string | null
+          content_hash: string | null
+          document_id: string | null
+          exported_at: string | null
+          tenant_id: string | null
+          validation_errors: Json | null
+          validation_status: string | null
+        }
+        Insert: {
+          batch_id?: string | null
+          content_hash?: string | null
+          document_id?: string | null
+          exported_at?: string | null
+          tenant_id?: string | null
+          validation_errors?: Json | null
+          validation_status?: string | null
+        }
+        Update: {
+          batch_id?: string | null
+          content_hash?: string | null
+          document_id?: string | null
+          exported_at?: string | null
+          tenant_id?: string | null
+          validation_errors?: Json | null
+          validation_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_export_batch_documents_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_export_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_export_batch_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_export_batch_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_export_batch_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_export_batch_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_export_batch_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_export_batch_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commercial_export_batches: {
+        Row: {
+          checksum: string | null
+          claimed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          error_text: string | null
+          expires_at: string | null
+          failed_count: number | null
+          file_node_id: string | null
+          finalized_at: string | null
+          id: string | null
+          period_from: string | null
+          period_to: string | null
+          profile_id: string | null
+          row_count: number | null
+          schema_version: string | null
+          status: string | null
+          storage_path: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          checksum?: string | null
+          claimed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          error_text?: string | null
+          expires_at?: string | null
+          failed_count?: number | null
+          file_node_id?: string | null
+          finalized_at?: string | null
+          id?: string | null
+          period_from?: string | null
+          period_to?: string | null
+          profile_id?: string | null
+          row_count?: number | null
+          schema_version?: string | null
+          status?: string | null
+          storage_path?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          checksum?: string | null
+          claimed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          error_text?: string | null
+          expires_at?: string | null
+          failed_count?: number | null
+          file_node_id?: string | null
+          finalized_at?: string | null
+          id?: string | null
+          period_from?: string | null
+          period_to?: string | null
+          profile_id?: string | null
+          row_count?: number | null
+          schema_version?: string | null
+          status?: string | null
+          storage_path?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_export_batches_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_export_batches_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_export_batches_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_export_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_export_batches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_export_batches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_export_batches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_export_batches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_export_batches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commercial_export_profiles: {
+        Row: {
+          active: boolean | null
+          adapter: string | null
+          config: Json | null
+          created_at: string | null
+          id: string | null
+          name: string | null
+          schema_version: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          adapter?: string | null
+          config?: Json | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          schema_version?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          adapter?: string | null
+          config?: Json | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          schema_version?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_export_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_export_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_export_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_export_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_export_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commercial_fiscal_years: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string | null
+          reopened_at: string | null
+          reopened_by: string | null
+          tenant_id: string | null
+          year: number | null
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          tenant_id?: string | null
+          year?: number | null
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          tenant_id?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_fiscal_years_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_fiscal_years_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_fiscal_years_reopened_by_fkey"
+            columns: ["reopened_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_fiscal_years_reopened_by_fkey"
+            columns: ["reopened_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_fiscal_years_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_fiscal_years_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_fiscal_years_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commercial_fiscal_years_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "commercial_fiscal_years_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -13682,6 +14719,182 @@ export type Database = {
           },
         ]
       }
+      external_invoice_delivery_notes: {
+        Row: {
+          created_at: string | null
+          delivery_note_id: string | null
+          invoice_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_note_id?: string | null
+          invoice_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          delivery_note_id?: string | null
+          invoice_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_invoice_delivery_notes_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_invoice_delivery_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "external_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_invoice_delivery_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "external_invoice_delivery_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "external_invoice_delivery_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_invoice_delivery_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "external_invoice_delivery_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_invoices: {
+        Row: {
+          client_id: string | null
+          client_op_id: string | null
+          created_at: string | null
+          created_by: string | null
+          file_node_id: string | null
+          id: string | null
+          invoice_number: string | null
+          invoice_number_key: string | null
+          issued_on: string | null
+          notes: string | null
+          tenant_id: string | null
+          total_cents: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          client_op_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          file_node_id?: string | null
+          id?: string | null
+          invoice_number?: string | null
+          invoice_number_key?: string | null
+          issued_on?: string | null
+          notes?: string | null
+          tenant_id?: string | null
+          total_cents?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          client_op_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          file_node_id?: string | null
+          id?: string | null
+          invoice_number?: string | null
+          invoice_number_key?: string | null
+          issued_on?: string | null
+          notes?: string | null
+          tenant_id?: string | null
+          total_cents?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "external_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "external_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "external_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       file_nodes: {
         Row: {
           can_access_for_me: boolean | null
@@ -14114,6 +15327,80 @@ export type Database = {
           },
           {
             foreignKeyName: "interviews_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_delivery_notes: {
+        Row: {
+          created_at: string | null
+          delivery_note_id: string | null
+          invoice_id: string | null
+          released_at: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_note_id?: string | null
+          invoice_id?: string | null
+          released_at?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          delivery_note_id?: string | null
+          invoice_id?: string | null
+          released_at?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_delivery_notes_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_delivery_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_delivery_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_delivery_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_delivery_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_delivery_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "invoice_delivery_notes_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -16134,6 +17421,86 @@ export type Database = {
           },
         ]
       }
+      payment_allocations: {
+        Row: {
+          amount_cents: number | null
+          created_at: string | null
+          delivery_note_id: string | null
+          id: string | null
+          payment_id: string | null
+          position: number | null
+          tenant_id: string | null
+        }
+        Insert: {
+          amount_cents?: number | null
+          created_at?: string | null
+          delivery_note_id?: string | null
+          id?: string | null
+          payment_id?: string | null
+          position?: number | null
+          tenant_id?: string | null
+        }
+        Update: {
+          amount_cents?: number | null
+          created_at?: string | null
+          delivery_note_id?: string | null
+          id?: string | null
+          payment_id?: string | null
+          position?: number | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_allocations_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount_cents: number | null
@@ -16141,6 +17508,7 @@ export type Database = {
           collected_by: string | null
           created_at: string | null
           document_id: string | null
+          external_invoice_id: string | null
           id: string | null
           method: string | null
           occurred_at: string | null
@@ -16153,6 +17521,7 @@ export type Database = {
           collected_by?: string | null
           created_at?: string | null
           document_id?: string | null
+          external_invoice_id?: string | null
           id?: string | null
           method?: string | null
           occurred_at?: string | null
@@ -16165,6 +17534,7 @@ export type Database = {
           collected_by?: string | null
           created_at?: string | null
           document_id?: string | null
+          external_invoice_id?: string | null
           id?: string | null
           method?: string | null
           occurred_at?: string | null
@@ -16191,6 +17561,13 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "commercial_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_external_invoice_id_fkey"
+            columns: ["external_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "external_invoices"
             referencedColumns: ["id"]
           },
           {
@@ -17098,6 +18475,8 @@ export type Database = {
           currency: string | null
           description: string | null
           id: string | null
+          is_billable: boolean | null
+          paid_by: string | null
           project_id: string | null
           receipt_document_id: string | null
           tenant_id: string | null
@@ -17111,6 +18490,8 @@ export type Database = {
           currency?: string | null
           description?: string | null
           id?: string | null
+          is_billable?: boolean | null
+          paid_by?: string | null
           project_id?: string | null
           receipt_document_id?: string | null
           tenant_id?: string | null
@@ -17124,6 +18505,8 @@ export type Database = {
           currency?: string | null
           description?: string | null
           id?: string | null
+          is_billable?: boolean | null
+          paid_by?: string | null
           project_id?: string | null
           receipt_document_id?: string | null
           tenant_id?: string | null
@@ -17286,6 +18669,70 @@ export type Database = {
           },
           {
             foreignKeyName: "project_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_material_costs: {
+        Row: {
+          material_id: string | null
+          tenant_id: string | null
+          unit_cost_cents: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          material_id?: string | null
+          tenant_id?: string | null
+          unit_cost_cents?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          material_id?: string | null
+          tenant_id?: string | null
+          unit_cost_cents?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_material_costs_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: true
+            referencedRelation: "project_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_material_costs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_portal_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "project_material_costs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_public_portal_status"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "project_material_costs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "my_tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_material_costs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_entitlements"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "project_material_costs_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -23789,6 +25236,14 @@ export type Database = {
         Returns: Json
       }
       acknowledge_my_tenant_platform_dpa: { Args: never; Returns: Json }
+      activate_due_commercial_agreements: {
+        Args: {
+          p_as_of?: string
+          p_limit?: number
+          p_per_tenant_limit?: number
+        }
+        Returns: Json
+      }
       activate_tenant_geocoding_api_key_candidate: {
         Args: { p_provider_key: string; p_tenant_id: string }
         Returns: Json
@@ -23829,6 +25284,18 @@ export type Database = {
           p_storage_type?: string
         }
         Returns: Json
+      }
+      add_project_expense: {
+        Args: {
+          p_amount_cents: number
+          p_category?: string
+          p_description: string
+          p_is_billable?: boolean
+          p_paid_by?: string
+          p_project_id: string
+          p_work_log_id?: string
+        }
+        Returns: string
       }
       add_project_material: {
         Args: {
@@ -24260,12 +25727,24 @@ export type Database = {
         Returns: Json
       }
       cancel_automation_run: { Args: { p_run_id: string }; Returns: undefined }
+      cancel_commercial_agreement: {
+        Args: {
+          p_agreement_id: string
+          p_client_op_id: string
+          p_reason?: string
+        }
+        Returns: string
+      }
       cancel_commercial_document: {
         Args: {
           p_client_op_id: string
           p_document_id: string
           p_reason?: string
         }
+        Returns: string
+      }
+      cancel_invoice: {
+        Args: { p_client_op_id: string; p_invoice_id: string }
         Returns: string
       }
       cancel_my_absence: {
@@ -24339,6 +25818,10 @@ export type Database = {
       }
       checklist_closeout_blockers: {
         Args: { p_project_id: string }
+        Returns: Json
+      }
+      claim_commercial_export_batch: {
+        Args: { p_batch_id: string }
         Returns: Json
       }
       claim_customer_intervention_report_media_copy_jobs: {
@@ -24435,6 +25918,10 @@ export type Database = {
       clone_pipeline_stages_to_posting: {
         Args: { p_job_posting_id: string }
         Returns: Json
+      }
+      close_commercial_fiscal_year: {
+        Args: { p_year: number }
+        Returns: undefined
       }
       close_it: {
         Args: {
@@ -25078,6 +26565,28 @@ export type Database = {
         }
         Returns: Json
       }
+      create_framework_agreement: {
+        Args: {
+          p_auto_renew?: boolean
+          p_billing_amount_cents?: number
+          p_billing_anchor_day?: number
+          p_billing_cadence?: string
+          p_billing_currency?: string
+          p_client_id: string
+          p_client_op_id: string
+          p_ends_on?: string
+          p_locale?: string
+          p_notice_days?: number
+          p_sla_coverage_notes?: string
+          p_sla_resolution_hours?: number
+          p_sla_response_hours?: number
+          p_starts_on?: string
+          p_template_id: string
+          p_tenant_id: string
+          p_work_gate: string
+        }
+        Returns: string
+      }
       create_holiday: {
         Args: {
           p_calendar_id: string
@@ -25087,6 +26596,15 @@ export type Database = {
           p_name: string
         }
         Returns: Json
+      }
+      create_invoice_draft_from_delivery_notes: {
+        Args: {
+          p_client_op_id: string
+          p_delivery_note_ids: string[]
+          p_issued_on?: string
+          p_notes?: string
+        }
+        Returns: string
       }
       create_pdf_job: {
         Args: {
@@ -25834,6 +27352,14 @@ export type Database = {
         }
         Returns: Json
       }
+      expire_or_renew_commercial_agreements: {
+        Args: {
+          p_as_of?: string
+          p_limit?: number
+          p_per_tenant_limit?: number
+        }
+        Returns: Json
+      }
       expire_signing_sessions: { Args: never; Returns: number }
       export_attendance_inspection: {
         Args: {
@@ -25948,6 +27474,18 @@ export type Database = {
         }
         Returns: Json
       }
+      finalize_commercial_agreement_version: {
+        Args: {
+          p_as_of?: string
+          p_signed_document_id?: string
+          p_version_id: string
+        }
+        Returns: string
+      }
+      finalize_commercial_export_batch: {
+        Args: { p_batch_id: string }
+        Returns: Json
+      }
       finalize_recruitment_export: {
         Args: { p_package_id: string; p_uploaded?: boolean }
         Returns: Json
@@ -25963,6 +27501,10 @@ export type Database = {
           p_user_agent?: string
         }
         Returns: undefined
+      }
+      flush_commercial_agreement_notice_digests: {
+        Args: { p_as_of?: string; p_limit?: number; p_max_attempts?: number }
+        Returns: Json
       }
       flush_notification_digests: {
         Args: { p_limit?: number }
@@ -25990,6 +27532,15 @@ export type Database = {
       }
       fulfill_customer_report_share_delivery_intent: {
         Args: { p_intent_id: string }
+        Returns: Json
+      }
+      generate_due_agreement_billing_periods: {
+        Args: {
+          p_as_of?: string
+          p_limit?: number
+          p_max_per_agreement?: number
+          p_per_tenant_limit?: number
+        }
         Returns: Json
       }
       generate_due_maintenance_orders: {
@@ -26320,6 +27871,10 @@ export type Database = {
           p_role_id?: string
           p_site_id: string
         }
+        Returns: Json
+      }
+      get_delivery_note_collection_detail: {
+        Args: { p_document_id: string }
         Returns: Json
       }
       get_docuseal_key_for_signing: {
@@ -26685,6 +28240,23 @@ export type Database = {
       }
       get_platform_ai_feature_prompts: { Args: never; Returns: Json }
       get_platform_email_defaults: { Args: never; Returns: Json }
+      get_project_commercial_inclusion: {
+        Args: { p_project_id: string }
+        Returns: Json
+      }
+      get_project_delivery_summary: {
+        Args: { p_project_ids: string[] }
+        Returns: {
+          advance_pool_cents: number
+          authorized_cents: number
+          billed_cents: number
+          collected_cents: number
+          has_open_delivery: boolean
+          project_id: string
+          remaining_cents: number
+          unapplied_advance_cents: number
+        }[]
+      }
       get_public_job_posting: {
         Args: { p_public_site_id: string; p_slug: string }
         Returns: Json
@@ -26719,6 +28291,7 @@ export type Database = {
         Args: { p_provider_key: string; p_tenant_id: string }
         Returns: string
       }
+      get_sales_dashboard_kpis: { Args: { p_year?: number }; Returns: Json }
       get_schedule_planner_actuals: {
         Args: {
           p_employee_ids?: string[]
@@ -27103,6 +28676,16 @@ export type Database = {
         }
         Returns: string
       }
+      issue_invoice: {
+        Args: {
+          p_client_op_id: string
+          p_doc_number?: string
+          p_invoice_id: string
+          p_issued_on?: string
+          p_series_id?: string
+        }
+        Returns: string
+      }
       link_agreement_coverage: {
         Args: {
           p_agreement_id: string
@@ -27419,6 +29002,29 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      list_agreement_billing_periods_page: {
+        Args: {
+          p_agreement_id: string
+          p_cursor_due_on?: string
+          p_cursor_id?: string
+          p_limit?: number
+        }
+        Returns: {
+          agreement_id: string
+          amount_cents: number
+          currency: string
+          cycle_id: string
+          due_on: string
+          external_invoice_ref: string
+          id: string
+          invoiced_at: string
+          notes: string
+          period_end: string
+          period_start: string
+          status: string
+          version_id: string
+        }[]
+      }
       list_applicant_data_requests: {
         Args: { p_status?: string }
         Returns: Json
@@ -27569,6 +29175,46 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      list_commercial_agreements_page: {
+        Args: {
+          p_cursor_created_at?: string
+          p_cursor_id?: string
+          p_limit?: number
+          p_signature_filter?: string
+          p_validity_filter?: string
+        }
+        Returns: {
+          active_version_id: string
+          auto_renew: boolean
+          billing_amount_cents: number
+          billing_anchor_day: number
+          billing_cadence: string
+          billing_currency: string
+          client_id: string
+          created_at: string
+          cycle_ends_on: string
+          cycle_id: string
+          cycle_no: number
+          cycle_starts_on: string
+          cycle_status: string
+          ends_on: string
+          full_body_template_id: string
+          id: string
+          kind: string
+          next_billing_on: string
+          notice_days: number
+          rendered_document_id: string
+          signed_document_id: string
+          sla_coverage_notes: string
+          sla_resolution_hours: number
+          sla_response_hours: number
+          source_quote_id: string
+          starts_on: string
+          status: string
+          version_status: string
+          work_gate: string
+        }[]
       }
       list_compensation_ledger: {
         Args: { p_employee_id: string; p_limit?: number; p_offset?: number }
@@ -27753,6 +29399,56 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      list_delivery_collection_page: {
+        Args: {
+          p_client_id?: string
+          p_has_external_ref?: string
+          p_issued_from?: string
+          p_issued_to?: string
+          p_limit?: number
+          p_offset?: number
+          p_project_id?: string
+          p_q?: string
+          p_status_group?: string
+        }
+        Returns: {
+          items: Json
+          total_count: number
+          total_remaining_cents: number
+        }[]
+      }
+      list_delivery_note_legacy_conflicts: {
+        Args: { p_tenant_id?: string }
+        Returns: {
+          client_id: string
+          conflict_kind: string
+          detail: string
+          document_id: string
+          project_id: string
+          tenant_id: string
+        }[]
+      }
+      list_delivery_notes_page: {
+        Args: {
+          p_client_id?: string
+          p_has_external_ref?: string
+          p_include_rectified?: boolean
+          p_issued_from?: string
+          p_issued_to?: string
+          p_limit?: number
+          p_offset?: number
+          p_project_id?: string
+          p_q?: string
+          p_status_group?: string
+        }
+        Returns: {
+          items: Json
+          total_cents: number
+          total_count: number
+          total_paid_cents: number
+          total_remaining_cents: number
+        }[]
       }
       list_due_ai_scheduled_jobs_service: {
         Args: { p_limit?: number }
@@ -27978,6 +29674,20 @@ export type Database = {
         Returns: Json
       }
       list_entity_risk_rules: { Args: never; Returns: Json }
+      list_external_invoices_page: {
+        Args: {
+          p_client_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_project_id?: string
+          p_q?: string
+        }
+        Returns: {
+          items: Json
+          total_count: number
+          total_remaining_cents: number
+        }[]
+      }
       list_labor_rules: { Args: { p_site_id?: string }; Returns: Json }
       list_my_customer_portal_dsar_actions: {
         Args: { p_limit?: number }
@@ -28073,6 +29783,54 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      list_sales_delivery_notes_page: {
+        Args: {
+          p_billing_status?: string[]
+          p_client_id?: string
+          p_collection_status?: string[]
+          p_cursor_id?: string
+          p_cursor_value?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_dir?: string
+          p_limit?: number
+          p_project_id?: string
+          p_q?: string
+          p_sort?: string
+          p_year?: number
+        }
+        Returns: {
+          has_more: boolean
+          items: Json
+          next_cursor_id: string
+          next_cursor_value: string
+          total_count: number
+        }[]
+      }
+      list_sales_invoices_page: {
+        Args: {
+          p_client_id?: string
+          p_collection_status?: string[]
+          p_cursor_id?: string
+          p_cursor_value?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_dir?: string
+          p_document_status?: string[]
+          p_limit?: number
+          p_project_id?: string
+          p_q?: string
+          p_sort?: string
+          p_year?: number
+        }
+        Returns: {
+          has_more: boolean
+          items: Json
+          next_cursor_id: string
+          next_cursor_value: string
+          total_count: number
+        }[]
       }
       list_secret_access_log: {
         Args: {
@@ -28454,6 +30212,14 @@ export type Database = {
         }
         Returns: Json
       }
+      mark_agreement_billing_period_invoiced: {
+        Args: {
+          p_client_op_id?: string
+          p_external_invoice_ref: string
+          p_period_id: string
+        }
+        Returns: string
+      }
       mark_agreement_sent_for_signature: {
         Args: {
           p_client_op_id: string
@@ -28527,6 +30293,14 @@ export type Database = {
       normalize_employee_document_id: {
         Args: { p_value: string }
         Returns: string
+      }
+      notify_expiring_commercial_agreements: {
+        Args: {
+          p_as_of?: string
+          p_limit?: number
+          p_per_tenant_limit?: number
+        }
+        Returns: Json
       }
       on_native_signer_completed:
         | {
@@ -28616,15 +30390,15 @@ export type Database = {
       prepare_agreement_from_quote: {
         Args: {
           p_auto_renew?: boolean
+          p_billing_amount_cents?: number
+          p_billing_anchor_day?: number
+          p_billing_cadence?: string
+          p_billing_currency?: string
           p_client_op_id: string
           p_document_id: string
           p_ends_on?: string
           p_kind?: string
           p_notice_days?: number
-          p_billing_amount_cents?: number
-          p_billing_anchor_day?: number
-          p_billing_cadence?: string
-          p_billing_currency?: string
           p_sla_coverage_notes?: string
           p_sla_resolution_hours?: number
           p_sla_response_hours?: number
@@ -28633,75 +30407,6 @@ export type Database = {
           p_work_gate: string
         }
         Returns: string
-      }
-      create_framework_agreement: {
-        Args: {
-          p_auto_renew?: boolean
-          p_client_id: string
-          p_client_op_id: string
-          p_ends_on?: string
-          p_locale?: string
-          p_notice_days?: number
-          p_billing_amount_cents?: number
-          p_billing_anchor_day?: number
-          p_billing_cadence?: string
-          p_billing_currency?: string
-          p_sla_coverage_notes?: string
-          p_sla_resolution_hours?: number
-          p_sla_response_hours?: number
-          p_starts_on?: string
-          p_template_id: string
-          p_tenant_id: string
-          p_work_gate: string
-        }
-        Returns: string
-      }
-      finalize_commercial_agreement_version: {
-        Args: {
-          p_as_of?: string
-          p_signed_document_id?: string
-          p_version_id: string
-        }
-        Returns: string
-      }
-      activate_due_commercial_agreements: {
-        Args: { p_as_of?: string; p_limit?: number }
-        Returns: Json
-      }
-      notify_expiring_commercial_agreements: {
-        Args: {
-          p_as_of?: string
-          p_limit?: number
-        }
-        Returns: Json
-      generate_due_agreement_billing_periods: {
-        Args: {
-          p_as_of?: string
-          p_limit?: number
-        }
-        Returns: Json
-      }
-      mark_agreement_billing_period_invoiced: {
-        Args: {
-          p_client_op_id?: string
-          p_external_invoice_ref: string
-          p_period_id: string
-        }
-        Returns: string
-      }
-      skip_agreement_billing_period: {
-        Args: {
-          p_client_op_id?: string
-          p_notes?: string
-          p_period_id: string
-        }
-        Returns: string
-      }
-
-      }
-      expire_or_renew_commercial_agreements: {
-        Args: { p_as_of?: string; p_limit?: number }
-        Returns: Json
       }
       prepare_ai_execution: {
         Args: {
@@ -28712,6 +30417,15 @@ export type Database = {
           p_site_id?: string
           p_tenant_id: string
           p_user_id: string
+        }
+        Returns: Json
+      }
+      prepare_commercial_export_batch: {
+        Args: {
+          p_client_op_id?: string
+          p_period_from: string
+          p_period_to: string
+          p_profile_id?: string
         }
         Returns: Json
       }
@@ -28754,8 +30468,21 @@ export type Database = {
         Args: { p_draft_id: string }
         Returns: Json
       }
+      preview_delivery_note: { Args: { p_project_id: string }; Returns: Json }
       preview_my_tenant_legal_document: {
         Args: { p_code: string; p_locale?: string }
+        Returns: Json
+      }
+      preview_next_document_number: {
+        Args: {
+          p_doc_type?: string
+          p_issued_on?: string
+          p_series_id?: string
+        }
+        Returns: string
+      }
+      preview_rectify_delivery_note: {
+        Args: { p_document_id: string; p_line_patches?: Json }
         Returns: Json
       }
       preview_tenant_content_reach: {
@@ -28777,10 +30504,6 @@ export type Database = {
       }
       process_risk_incident: { Args: { p_incident_id: string }; Returns: Json }
       project_commercial_policy: {
-        Args: { p_project_id: string }
-        Returns: Json
-      }
-      get_project_commercial_inclusion: {
         Args: { p_project_id: string }
         Returns: Json
       }
@@ -28853,6 +30576,15 @@ export type Database = {
         }
         Returns: Json
       }
+      record_commercial_agreement_render_orphan: {
+        Args: {
+          p_created_by?: string
+          p_storage_path: string
+          p_tenant_id: string
+          p_version_id: string
+        }
+        Returns: string
+      }
       record_commercial_document_sent: {
         Args: {
           p_channel: string
@@ -28883,6 +30615,17 @@ export type Database = {
           p_reason: string
           p_tenant_id: string
           p_threshold?: number
+        }
+        Returns: Json
+      }
+      record_invoice_payment: {
+        Args: {
+          p_amount_cents: number
+          p_client_op_id: string
+          p_invoice_id: string
+          p_method: string
+          p_occurred_at?: string
+          p_reference: string
         }
         Returns: Json
       }
@@ -28968,6 +30711,15 @@ export type Database = {
         }
         Returns: Json
       }
+      rectify_delivery_note: {
+        Args: {
+          p_client_op_id: string
+          p_document_id: string
+          p_line_patches?: Json
+          p_reason: string
+        }
+        Returns: string
+      }
       register_ai_models_for_review: {
         Args: { p_models: string[]; p_provider: string; p_source?: string }
         Returns: Json
@@ -29003,6 +30755,17 @@ export type Database = {
           p_submission_id?: string
         }
         Returns: string
+      }
+      register_external_invoice: {
+        Args: {
+          p_client_op_id: string
+          p_delivery_note_ids: string[]
+          p_invoice_number: string
+          p_issued_on: string
+          p_notes?: string
+          p_total_cents: number
+        }
+        Returns: Json
       }
       register_it: {
         Args: {
@@ -29040,6 +30803,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      remediate_legacy_duplicate_delivery_notes: {
+        Args: { p_dry_run?: boolean; p_project_id: string }
+        Returns: Json
+      }
       remove_attendance_location_assignment: {
         Args: { p_assignment_id: string }
         Returns: Json
@@ -29051,6 +30818,10 @@ export type Database = {
       remove_tenant_holiday_calendar_assignment: {
         Args: { p_assignment_id: string }
         Returns: Json
+      }
+      reopen_commercial_fiscal_year: {
+        Args: { p_year: number }
+        Returns: undefined
       }
       reorder_checklist_runs: {
         Args: { p_project_id: string; p_run_ids: string[] }
@@ -29300,7 +31071,15 @@ export type Database = {
         Returns: Json
       }
       restore_node: { Args: { p_node_id: string }; Returns: number }
+      resume_commercial_agreement: {
+        Args: { p_agreement_id: string; p_client_op_id: string }
+        Returns: string
+      }
       retry_automation_run: { Args: { p_run_id: string }; Returns: undefined }
+      retry_commercial_agreement_signing: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
       retry_pdf_dead_letters: {
         Args: { p_tenant_id?: string }
         Returns: number
@@ -29787,6 +31566,15 @@ export type Database = {
         Args: { p_is_default?: boolean; p_template_id: string }
         Returns: string
       }
+      set_commercial_document_external_ref: {
+        Args: {
+          p_document_id: string
+          p_external_id?: string
+          p_external_number: string
+          p_provider?: string
+        }
+        Returns: undefined
+      }
       set_commercial_pdf_job: {
         Args: { p_document_id: string; p_pdf_job_id: string }
         Returns: undefined
@@ -29948,6 +31736,10 @@ export type Database = {
         }
         Returns: Json
       }
+      set_project_material_amounts: {
+        Args: { p_material_id: string; p_patch: Json }
+        Returns: undefined
+      }
       set_project_service_mode: {
         Args: { p_id: string; p_mode: string }
         Returns: undefined
@@ -30004,6 +31796,10 @@ export type Database = {
           p_document_id: string
           p_signature: Json
         }
+        Returns: string
+      }
+      skip_agreement_billing_period: {
+        Args: { p_client_op_id?: string; p_notes?: string; p_period_id: string }
         Returns: string
       }
       stage_attendance_protocol_publish: {
@@ -30130,6 +31926,14 @@ export type Database = {
           p_to: string
         }
         Returns: Json
+      }
+      suspend_commercial_agreement: {
+        Args: {
+          p_agreement_id: string
+          p_client_op_id: string
+          p_reason?: string
+        }
+        Returns: string
       }
       switch_work_log: {
         Args: {
@@ -30331,6 +32135,10 @@ export type Database = {
           p_client_op_id: string
           p_project_id: string
         }
+        Returns: undefined
+      }
+      unlink_delivery_note_from_invoice: {
+        Args: { p_delivery_note_id: string }
         Returns: undefined
       }
       unpublish_public_site: { Args: { p_id: string }; Returns: undefined }
@@ -30613,6 +32421,15 @@ export type Database = {
           p_requires_document?: boolean
         }
         Returns: string
+      }
+      upsert_accounting_review: {
+        Args: {
+          p_client_op_id?: string
+          p_comment?: string
+          p_document_id: string
+          p_status: string
+        }
+        Returns: Json
       }
       upsert_ai_chat_preset: {
         Args: {

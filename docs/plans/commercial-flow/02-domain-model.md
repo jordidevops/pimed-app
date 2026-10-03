@@ -13,8 +13,8 @@ El que **ja existeix** al codi i sobre el qual es construeix:
 | RPCs de línia | mateixa migració | `upsert_project_line`, `delete_project_line` |
 | Seed «Desplaçament» | [`20260503000008_sector_profiles.sql`](../../../supabase/migrations/20260503000008_sector_profiles.sql) | `kind = product`, `unit = 'km'`, 0,35 |
 | `data.work_logs` | [`20260506000005_work_logs.sql`](../../../supabase/migrations/20260506000005_work_logs.sql) | `duration_minutes` calculat a `api.work_logs` |
-| `data.project_materials` | mateixa migració | `unit_price_cents` nul·lable i ambigu; `catalog_item_id` **sense FK**; la UI només desa nom, quantitat i unitat |
-| `data.project_expenses` | mateixa migració | `amount_cents`, `category`, `receipt_document_id`; **sense `is_billable` ni `paid_by`** |
+| `data.project_materials` | mateixa migració + gate 2026-10 | PVP a `unit_price_cents`; **cost** a `data.project_material_costs` (privat, `commercial.costs.view`); `catalog_item_id` sense FK; alta de camp: nom/qty/unit |
+| `data.project_expenses` | mateixa migració + gate 2026-10 | `amount_cents`, `category`, `receipt_document_id`, **`is_billable`**, **`paid_by`**; UI mínima a l’ordre; sense workflow EXP |
 | Butlletí (CIR) | [`20261159000025_customer_intervention_reports_cpa1.sql`](../../../supabase/migrations/20261159000025_customer_intervention_reports_cpa1.sql) | Patró draft mutable → versió immutable; projecció client sense costos |
 | Plantilles de document | [`20260522000001_dms_templates_signing_core.sql`](../../../supabase/migrations/20260522000001_dms_templates_signing_core.sql) | `variables_schema`; motor DOCX/HTML/PDF |
 | Cost laboral | [`20261101000001_ec_wfm_p2_baseline_balance_cost.sql`](../../../supabase/migrations/20261101000001_ec_wfm_p2_baseline_balance_cost.sql) | `resolve_contract_planning_cost`, `planning_cost_snapshots` |
@@ -69,9 +69,9 @@ Línies snapshot de la versió emesa: `name`, `description`, `unit`, `quantity`,
 
 Append-only. Cobreix el que d'altres models parteixen en dues taules:
 
-`issued` · `sent` · `viewed` · `accepted` · `rejected` · `signed` · `superseded` · `cancelled`
+`issued` · `sent` · `viewed` · `accepted` · `rejected` · `signed` · `superseded` · `cancelled` · `invoice_cancelled` · `payment_recorded` (+ accounting/export)
 
-Cada esdeveniment desa qui, quan, canal, dispositiu, signatura si n'hi ha i `content_hash` acceptat.
+Cada esdeveniment desa qui, quan, canal, dispositiu, signatura si n'hi ha i `content_hash` acceptat. El cobrament (`payment_recorded`) és narratiu: la font de veritat dels imports és `payments` / `payment_allocations`. Un subset d’events es projecta a `audit_logs` com a `PROJECT_COMMERCIAL_*` per a l’Activity de l’OS (no és un segon ledger).
 
 ### `data.document_number_counters`
 
@@ -85,9 +85,9 @@ Renúncia signada al pressupost previ: `project_id`, `client_id`, text legal apl
 
 ### `data.payments`
 
-`document_id`, `amount_cents`, `method` (efectiu, targeta, transferència, Bizum, enllaç), `reference`, `collected_by`, `occurred_at`, `client_op_id`. Els parcials i les bestretes surten de sumar registres; l'albarà **no té cap camp `paid`**.
+`document_id`, `amount_cents`, `method` (efectiu, targeta, transferència, Bizum, enllaç), `reference`, `collected_by`, `occurred_at`, `client_op_id`, `external_invoice_id` opcional. Els parcials i les bestretes surten de sumar registres; l'albarà **no té cap camp `paid`**.
 
-`external_invoice_ref` és un camp de l'albarà fins que calgui una taula pròpia.
+Una factura externa (`data.external_invoices`) agrupa un o més albarans del mateix client. El número és únic per empresa. `external_invoice_ref` a l'albarà és la còpia d'aquest número. PiMed no emet la factura fiscal. Detall: [`07-collections-and-ar-hub.md`](./07-collections-and-ar-hub.md).
 
 ## Import autoritzat
 
@@ -103,6 +103,7 @@ Regles:
 - es recalcula **dins de la mateixa transacció** que accepta, refusa o anul·la un document;
 - si no hi ha pressupost però hi ha renúncia signada, el sostre és el que descriu l'ordre i el bloqueig passa a avís;
 - en emetre un albarà valorat es compara el total amb `authorized_total`;
+- després d’acceptar una ampliació, el camí de facturació/cobrament és **Entregar → emetre albarà** (snapshot de `project_lines`); l’ampliació només puja el sostre, no és un document d’entrega;
 - si el supera i `is_consumer = true`, **l'emissió es bloqueja** i s'ofereix crear l'ampliació;
 - si `is_consumer = false`, s'avisa i es demana motiu.
 

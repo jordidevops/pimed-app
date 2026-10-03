@@ -1,4 +1,8 @@
-import type { CommercialPayment, PaymentMethod } from '../api/commercialFlowService'
+import type {
+  CommercialPayment,
+  DeliveryNoteCollectionDetail,
+  PaymentMethod,
+} from '../api/commercialFlowService'
 import type { CommercialDocumentDetail } from './commercialDocumentModel'
 import {
   formatMoney,
@@ -34,9 +38,35 @@ export function sumPaymentsCents(payments: CommercialPayment[]): number {
   return payments.reduce((sum, p) => sum + Number(p.amount_cents ?? 0), 0)
 }
 
+function balanceLines(
+  doc: CommercialDocumentDetail,
+  balance: DeliveryNoteCollectionDetail | null | undefined,
+): Array<string | null> {
+  if (doc.doc_type !== 'delivery_note') return []
+  const invoiceRef = balance?.external_invoice_ref ?? doc.external_invoice_ref
+  if (invoiceRef) {
+    return [`Inclòs a la factura ${invoiceRef}`]
+  }
+  if (!balance) return []
+  const currency = doc.currency
+  const remaining =
+    balance.remaining_cents <= 0
+      ? 'Pagat'
+      : `Pendent: ${formatMoney(centsToEuros(balance.remaining_cents), currency)}`
+  return [
+    `Total: ${formatMoney(centsToEuros(balance.total_cents), currency)}`,
+    balance.advance_applied_cents > 0
+      ? `Bestreta aplicada: ${formatMoney(centsToEuros(balance.advance_applied_cents), currency)}`
+      : null,
+    `Cobrat: ${formatMoney(centsToEuros(balance.paid_cents), currency)}`,
+    remaining,
+  ]
+}
+
 export function buildPaymentReceiptText(
   payment: CommercialPayment,
   doc: CommercialDocumentDetail,
+  balance?: DeliveryNoteCollectionDetail | null,
 ): string {
   const amount = formatMoney(centsToEuros(payment.amount_cents), doc.currency)
   return [
@@ -46,6 +76,7 @@ export function buildPaymentReceiptText(
     `Import: ${amount}`,
     `Mètode: ${paymentMethodLabel(payment.method)}`,
     payment.reference ? `Referència: ${payment.reference}` : null,
+    ...balanceLines(doc, balance),
     `Data: ${new Date(payment.occurred_at).toLocaleString('ca-ES')}`,
   ]
     .filter(Boolean)
@@ -63,12 +94,20 @@ function escapeHtml(value: string): string {
 export function buildPaymentReceiptHtml(
   payment: CommercialPayment,
   doc: CommercialDocumentDetail,
+  balance?: DeliveryNoteCollectionDetail | null,
 ): string {
   const amount = formatMoney(centsToEuros(payment.amount_cents), doc.currency)
   const seller = partyDisplayName(doc.seller_snapshot)
   const buyer = partyDisplayName(doc.buyer_snapshot)
   const when = new Date(payment.occurred_at).toLocaleString('ca-ES')
   const ref = payment.reference?.trim()
+  const balances = balanceLines(doc, balance)
+    .filter(Boolean)
+    .map(
+      (line) =>
+        `<div class="row"><span>Saldo</span><strong>${escapeHtml(String(line))}</strong></div>`,
+    )
+    .join('')
 
   return `<!DOCTYPE html>
 <html lang="ca">
@@ -104,6 +143,7 @@ export function buildPaymentReceiptHtml(
       ? `<div class="row"><span>Referència</span><strong>${escapeHtml(ref)}</strong></div>`
       : ''
   }
+  ${balances}
   <div class="amount">${escapeHtml(amount)}</div>
   <p class="footer">Aquest comprovant acredita el cobrament registrat. No és una factura fiscal.</p>
 </body>
@@ -113,8 +153,9 @@ export function buildPaymentReceiptHtml(
 export function printPaymentReceipt(
   payment: CommercialPayment,
   doc: CommercialDocumentDetail,
+  balance?: DeliveryNoteCollectionDetail | null,
 ): void {
-  const html = buildPaymentReceiptHtml(payment, doc)
+  const html = buildPaymentReceiptHtml(payment, doc, balance)
   const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=520,height=700')
   if (!printWindow) throw new Error('popup_blocked')
   printWindow.document.open()
@@ -129,8 +170,9 @@ export function printPaymentReceipt(
 export function downloadPaymentReceiptHtml(
   payment: CommercialPayment,
   doc: CommercialDocumentDetail,
+  balance?: DeliveryNoteCollectionDetail | null,
 ): void {
-  const html = buildPaymentReceiptHtml(payment, doc)
+  const html = buildPaymentReceiptHtml(payment, doc, balance)
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')

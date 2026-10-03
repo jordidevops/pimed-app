@@ -201,6 +201,12 @@ export function CommercialDocumentShareSheet({
             ) : null}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {doc.status === 'cancelled' ? (
+                <p className="sm:col-span-2 text-sm text-amber-700 dark:text-amber-300">
+                  {t('projects.collections.rectified_no_send', 'Aquest albarà està rectificat i no es pot tornar a enviar.')}
+                </p>
+              ) : (
+              <>
               <Button
                 type="button"
                 disabled={!!busyChannel}
@@ -328,6 +334,8 @@ export function CommercialDocumentShareSheet({
                   </Link>
                 </Button>
               ) : null}
+              </>
+              )}
             </div>
 
             <div className="rounded-lg border border-border p-3 space-y-2">

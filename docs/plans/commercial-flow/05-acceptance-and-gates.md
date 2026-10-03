@@ -105,14 +105,16 @@ La cobertura automàtica no substitueix una UAT offline real en mòbil; fins lla
 
 ## Gate Tall 2 → Tall 3
 
-| Ítem | Requisit |
-|------|----------|
-| Qualitat de dades | Hores, materials, km i despeses registrats de manera fiable a feines reals |
-| Materials | Cost i preu de venda separats i realment omplerts |
-| Despeses | Model ampliat amb `is_billable` i `paid_by` |
-| Permisos | Permís financer definit i provat |
+| Ítem | Requisit | Estat (2026-10-01) |
+|------|----------|--------------------|
+| Qualitat de dades | Hores, materials, km i despeses registrats de manera fiable a feines reals | ⚠️ Infra OK; **UAT observada pendent** |
+| Materials | Cost i preu de venda separats i realment omplerts | ✅ Separats (cost privat + PVP); ⚠️ ompliment real = UAT |
+| Despeses | Model ampliat amb `is_billable` i `paid_by` | ✅ Columnes + UI mínima a l’ordre |
+| Permisos | Permís financer definit i provat | ✅ `commercial.costs.view` + tests SQL |
 
-Sense aquestes quatre condicions, la rendibilitat del Tall 3 donaria xifres falses, cosa pitjor que no donar-ne cap.
+Detall d’implementació, deute i ordre següent: [`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md).
+
+Sense UAT de dades i sense omplir cost/PVP/flags en feines reals, la rendibilitat del Tall 3 (CF-20) donaria xifres falses, cosa pitjor que no donar-ne cap.
 
 ## Acceptació del Tall 3
 

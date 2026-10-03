@@ -53,6 +53,7 @@ import { getContact, getContactSite } from '@/features/contacts/api/contactsServ
 import {
   VisitChecklistSection,
   ProjectMaterialsSection,
+  ProjectExpensesSection,
   ProjectPhotosSection,
   ProjectAttachmentsSection,
   WorkNotesSection,
@@ -97,6 +98,7 @@ import {
   getProjectCommercialInclusion,
 } from '@/features/commercial/api/commercialFlowService'
 import { isAgreementIncluded } from '@/features/commercial/utils/agreementInclusion'
+import { passesGate, useNavGateContext } from '@/features/sidebar-nav'
 import { supabase } from '@/lib/supabase'
 import { DeleteProjectDialog } from './DeleteProjectDialog'
 import {
@@ -125,6 +127,8 @@ export function ProjectDetailPage() {
   const [primaryBusy, setPrimaryBusy] = useState(false)
   const [reissueQuoteOpen, setReissueQuoteOpen] = useState(false)
   const { activeTenant, activeRole, selectedTenantId, tenantScopeReady } = useTenant()
+  const { ctx: navGateCtx, gatesLoading } = useNavGateContext()
+  const isOffice = !gatesLoading && passesGate('isOffice', navGateCtx)
   const { data: effectiveSettings } = useEffectiveSettings(
     { tenantId: activeTenant?.id ?? '' },
     { enabled: !!activeTenant?.id },
@@ -249,6 +253,7 @@ export function ProjectDetailPage() {
         serviceMode: commercialPolicy.service_mode,
         authBeforeWork: commercialPolicy.require_auth_before_work,
         agreementIncluded,
+        isOffice,
       }),
     [
       status,
@@ -264,6 +269,7 @@ export function ProjectDetailPage() {
       commercialPolicy.service_mode,
       commercialPolicy.require_auth_before_work,
       agreementIncluded,
+      isOffice,
     ],
   )
 
@@ -616,7 +622,14 @@ export function ProjectDetailPage() {
       }
       case 'collect':
         setTab('deliver')
-        if (workflow.latestDeliveryId) setForceCollectDocId(workflow.latestDeliveryId)
+        if (workflow.collectDeliveryId) setForceCollectDocId(workflow.collectDeliveryId)
+        return
+      case 'collect_invoice':
+        if (id) {
+          navigate(
+            `/delivery-notes?project_id=${encodeURIComponent(id)}&surface=invoices&status=open`,
+          )
+        }
         return
       case 'send_receipt':
         setTab('deliver')
@@ -751,6 +764,11 @@ export function ProjectDetailPage() {
               <ProjectMaterialsSection projectId={project.id!} readOnly={fieldWorkLocked} />
             </section>
           )}
+          {workExtra === 'expenses' && (
+            <section id="work-expenses" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
+              <ProjectExpensesSection projectId={project.id!} readOnly={fieldWorkLocked} />
+            </section>
+          )}
           {workExtra === 'tasks' && (
             <section id="work-tasks" className="scroll-mt-36 rounded-xl border border-border p-4 sm:p-5">
               <h3 className="text-sm font-semibold mb-3">
@@ -827,7 +845,22 @@ export function ProjectDetailPage() {
               </Badge>
             )}
             {isFieldService && (
-              <PaymentPendingChip pending={workflow.paymentPending} />
+              isOffice && workflow.paymentPending && project.id ? (
+                <Link
+                  to={`/delivery-notes?project_id=${encodeURIComponent(project.id)}&status=open`}
+                  className="inline-flex"
+                  title={t('projects.collections.open_hub', 'Veure a Cobraments')}
+                >
+                  <PaymentPendingChip pending={workflow.paymentPending} />
+                </Link>
+              ) : (
+                <PaymentPendingChip
+                  pending={workflow.paymentPending}
+                  pendingOnInvoice={
+                    workflow.paymentPending && !workflow.collectDeliveryId
+                  }
+                />
+              )
             )}
             {isFieldService && (
               <Select

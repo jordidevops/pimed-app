@@ -1,7 +1,8 @@
 # Despeses d’empleat — pla de producte
 
-> **Estat:** pla de producte / arquitectura — **sense implementació** (revisió 2026-07-23b: retenció purge-on, OCR/SCC, k-anonymity, FX BCE).  
-> **Objectiu:** controlar, assignar i reemborsar despeses de treballadors (ticket → revisió → pagament/agrupació), amb personalització per vertical i modes mixtos dins el mateix tenant.
+> **Estat:** pla de producte / arquitectura — **EX0… no implementat**.  
+> **Gate comercial (2026-10-01):** a `project_expenses` ja hi ha `is_billable` + `paid_by` i una alta mínima a l’ordre de servei. Això **no** tanca aquest pla; cobreix només l’ítem del gate Tall 2→3. Detall: [`../commercial-flow/08-gate-tall2-tall3.md`](../commercial-flow/08-gate-tall2-tall3.md).  
+> **Objectiu d’aquest pla:** controlar, assignar i reemborsar despeses de treballadors (ticket → revisió → pagament/agrupació), amb personalització per vertical i modes mixtos dins el mateix tenant.
 
 | Document | Contingut |
 |----------|-----------|
@@ -10,6 +11,17 @@
 | [03-integrations-ai-comms.md](./03-integrations-ai-comms.md) | Export/nòmina, IA/OCR, aclariments MVP, límit amb comunicació |
 | [04-compliance-retention-gdpr.md](./04-compliance-retention-gdpr.md) | Retenció fiscal, RGPD, IBAN/pagament, DPA export |
 | [prompt-internal-comms.md](./prompt-internal-comms.md) | Prompt per planificar la comunicació interna en una altra conversa |
+
+### Què ja existeix al schema / UI (gate, no EXP)
+
+| Camp / peça | Estat |
+|-------------|--------|
+| `is_billable` | ✅ DEFAULT `false`; UI a l’alta de despesa a l’OS |
+| `paid_by` (`company` \| `employee`) | ✅ DEFAULT `company`; mateix vocabulari que EXP-9 |
+| `api.add_project_expense` | ✅ Online; sense `client_op_id` / offline |
+| Workflow, IVA, mileage, informes, portal, OCR | ❌ Seguir EX0a… d’aquest pla |
+
+**Quan obrir EX0:** quan el producte necessiti reemborsament, cua admin o portal empleat — **no** com a bloqueig de CF-19. Reutilitzar les columnes ja presents; afegir `expense_scope` / `employee_id` / FSM sense reanomenar `paid_by` / `is_billable`.
 
 ---
 

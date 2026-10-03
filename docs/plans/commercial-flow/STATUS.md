@@ -1,8 +1,15 @@
 # Flux comercial — Estat d'implementació
 
-> **Última actualització:** 2026-09-18
+> **Última actualització:** 2026-10-03
 > **Propòsit:** seguir el desenvolupament dels epics CF i deixar constància honesta del que falta.
-> **Pla:** [`README.md`](./README.md) · backlog [`04-phases-and-backlog.md`](./04-phases-and-backlog.md) · ordre [`EXECUTION.md`](./EXECUTION.md)
+> **Pla:** [`README.md`](./README.md) · backlog [`04-phases-and-backlog.md`](./04-phases-and-backlog.md) · ordre [`EXECUTION.md`](./EXECUTION.md) · gate Tall 2→3 [`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md)
+
+## Novetat 2026-10-01 — Gate Tall 2 → Tall 3 (talls tècnics)
+
+- **Permís** `commercial.costs.view` (manager per defecte; member concedible) + cost de material a `project_material_costs` separat del PVP.
+- **Despeses:** `is_billable` + `paid_by` a `project_expenses` + pestanya Despeses a l’ordre.
+- **Gate encara ⚠️:** falta UAT de registre fiable a feines reals i ompliment sistemàtic de cost/PVP/flags. Detall: [`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md).
+- Següent epic de producte: **CF-19**. EXP (mòdul despeses complet) és pista separada.
 
 ## Novetat 2026-09-18 — Règim comercial OS + visita d’avaluació
 
@@ -26,7 +33,7 @@
 
 ## Resum
 
-**Tall 1 espina comercial tancable** (tècnicament). **CF-13…CF-15, CF-17 i CF-18 tancats**, **CF-16 implementat (UAT offline pendent)**. Deute: UAT Tall 1, regenerar `database.types.ts`, polish de signatura amb el dit, Stripe/Holded 📦, signatura formal comercial 📦.
+**Tall 1 espina comercial tancable** (tècnicament). **CF-13…CF-15, CF-17, CF-18, CF-26 i CF-27 tancats**. **CF-16** implementat (UAT offline pendent). Gate Tall 2→3: model de permís/cost materials/despeses flags ✅; UAT dades ❌ → **CF-19**. Deute: UAT Tall 1, polish de signatura amb el dit, Stripe/Holded 📦, signatura formal comercial 📦, EXP 📦, CF-25-b 📦.
 
 ## Tall 1 — Espina legal i de camp
 
@@ -57,11 +64,30 @@
 | CF-16 | Offline d'actuals | ⚠️ | Ledger/RPC idempotent, outbox amb dependències, snapshots, actuals/materials/tancament local i estats honestos; UAT offline real pendent. L'albarà continua manual online |
 | CF-17 | Cobraments avançats | ✅ | Parcials/saldo honest + ref. factura text; Stripe i Holded API 📦 |
 | CF-18 | Render amb plantilles | ✅ | PDF de marca via camí propi (HTML snapshot + Gotenberg + DMS); TAP sense Gotenberg; signatura formal 📦. Follow-up: carpetes client visibles a `/documents`, dates al document, Descartar, bug «Cobrat». PDF comercial no esborrable al DMS + enllaç al pressupost/OT |
+| CF-25 | Hub d'Albarans (CF-26) | ✅ | Hub `/sales/delivery-notes` + UAT oficina/camp (2026-10-03). Spec: [`07`](./07-collections-and-ar-hub.md). CF-25-b (acords) 📦 |
+| CF-27 | Comercial `/sales` | ✅ | Factures natives, allocations, sèries/FY, gestoria, export ZIP client, fitxes/PDF, RBAC JWT claims. Log: [`IMPLEMENTATION-LOG`](./09-sales-comercial/IMPLEMENTATION-LOG.md). Opcional: sèries write UI, adaptadors ERP, worker storage. |
+| — | Gate Tall 2 → Tall 3 | ⚠️ | Permís + cost material + despeses flags ✅; UAT ompliment ❌ — [`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md) |
+
+## Tall 3 — Costos i rendibilitat (pendent)
+
+| Epic | Nom | Estat | Notes |
+|------|-----|-------|-------|
+| CF-19 | Costos privats | ❌ | Catàleg/línies; no confondre amb el tall de gate de materials |
+| CF-20 | Rendibilitat | ❌ | Després CF-19 + UAT gate |
 
 ## Changelog
 
 | Data | Canvi |
 |------|-------|
+| 2026-10-03 | **CF-27** tancat: migracions `000001`–`000009`, UAT oficina/gestoria/camp, `getSessionAppMetadata`, types regenerats, ZIP PizZip. Següent: UAT CF-26 o gate Tall 2→3 / CF-19. |
+| 2026-10-02 | **CF-27** frontend wired: sales list RPCs, InvoicesPage, SalesAccountingPage export, Settings Comercial, detail collect/cancel/links. Docs 03–07 parcials. |
+| 2026-10-02 | **CF-27** implementat al codi: migracions 000001–000006, `/sales`, allocations, export JSON, Settings Comercial, preset Gestoria. UAT/types pendents. |
+| 2026-10-02 | Pla **CF-27** documentat a [`09-sales-comercial/`](./09-sales-comercial/README.md) (fases 0–7, gestoria/export, checklist). |
+| 2026-10-02 | CF-26 correcció: 11 forats (rectify+preview, summary bestreta, FIFO clock, list scoped, CTA factura oficina-only, dates, comprovant, remediació legacy manual). Doc 07 amb fet/pendent |
+| 2026-10-02 | CF-26: hub d'Albarans a `/delivery-notes` (tots els albarans, factura externa, rectificació FIFO). `/cobraments` redirigeix |
+| 2026-10-01 | Gate Tall 2→3 talls: `commercial.costs.view` + cost material privat; despeses `is_billable`/`paid_by` + UI; doc [`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md) |
+| 2026-10-01 | CF-25 obert: hub oficina `/cobraments`, últim albarà, ledger únic; sense factura fiscal ni pestanya acords al v1 |
+| 2026-10-01 | CF-25 tancat: `list_delivery_collection_page`, `CobramentsPage`, nav `isOffice`, ponts quotes/contacte/OS oficina, copy badge pressupost |
 | 2026-09-10 | Pla documental |
 | 2026-09-10 | CF-0…CF-4 schema + panell mínim |
 | 2026-09-10 | CF-6/7/8/9: renúncia UI, desviacions close-out, ampliació |

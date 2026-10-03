@@ -30,6 +30,7 @@ import { TemplatesPage as SettingsTemplatesPage } from './pages/settings/Templat
 import { OperationsPage } from './pages/settings/OperationsPage'
 import { CustomerPortalSettingsPage } from './pages/settings/CustomerPortalSettingsPage'
 import { LegalSettingsPage } from './pages/settings/LegalSettingsPage'
+import { CommercialSettingsPage } from './pages/settings/CommercialSettingsPage'
 import { NotificationsPage } from './pages/settings/NotificationsPage'
 import { WebhooksPage } from './pages/settings/WebhooksPage'
 import { SecretsPage } from './pages/settings/SecretsPage'
@@ -63,6 +64,18 @@ import { DocumentsPage, ArchivedDocumentsPage, DocumentDetailPage, DocumentsStor
 import { TemplatesPage, TemplateDetailPage, SigningCenterPage, SigningSubmissionDetail } from './features/signing'
 import { ProjectsPage, ProjectDetailPage } from './features/projects'
 import { QuotesPage } from './features/commercial/components/QuotesPage'
+import {
+  CobramentsRedirect,
+  DeliveryNotesPage,
+  DeliveryNotesRedirect,
+  QuotesRedirect,
+} from './features/commercial/components/DeliveryNotesPage'
+import { SalesLayout } from './features/commercial/components/SalesLayout'
+import { SalesDashboardPage } from './features/commercial/components/SalesDashboardPage'
+import { SalesAccountingPage } from './features/commercial/components/SalesAccountingPage'
+import { InvoicesPage } from './features/commercial/components/InvoicesPage'
+import { DeliveryNoteDetailPage } from './features/commercial/components/DeliveryNoteDetailPage'
+import { InvoiceDetailPage } from './features/commercial/components/InvoiceDetailPage'
 import { AgreementsPage } from './features/commercial/components/AgreementsPage'
 import {
   FieldServiceLayout,
@@ -177,7 +190,18 @@ export default function App() {
           <Route path="/files" element={<FilesPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/contacts/:id" element={<ContactDetailPage />} />
-          <Route path="/quotes" element={<QuotesPage />} />
+          <Route path="/quotes" element={<QuotesRedirect />} />
+          <Route path="/delivery-notes" element={<DeliveryNotesRedirect />} />
+          <Route path="/cobraments" element={<CobramentsRedirect />} />
+          <Route path="/sales" element={<SalesLayout />}>
+            <Route index element={<SalesDashboardPage />} />
+            <Route path="quotes" element={<QuotesPage />} />
+            <Route path="delivery-notes" element={<DeliveryNotesPage />} />
+            <Route path="delivery-notes/:id" element={<DeliveryNoteDetailPage />} />
+            <Route path="invoices" element={<InvoicesPage />} />
+            <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+            <Route path="accounting" element={<SalesAccountingPage />} />
+          </Route>
           <Route path="/agreements" element={<AgreementsPage />} />
           <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/departments" element={<DepartmentsPage />} />
@@ -283,6 +307,7 @@ export default function App() {
             <Route path="maps" element={<MapsSettingsPage />} />
             <Route path="customer-portal" element={<CustomerPortalSettingsPage />} />
             <Route path="legal" element={<LegalSettingsPage />} />
+            <Route path="commercial" element={<CommercialSettingsPage />} />
             <Route path="operations" element={<OperationsPage />} />
           </Route>
           <Route path="/profile" element={<ProfilePage />} />

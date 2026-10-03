@@ -2,7 +2,8 @@
   "settings": {
     "tabs": {
       "customer_portal": "Portal de clientes",
-      "legal": "Legal"
+      "legal": "Legal",
+      "commercial": "Comercial"
     }
   },
   "legal": {
@@ -140,5 +141,27 @@
     "profileSaving": "Guardando…",
     "profileSaved": "Información pública guardada",
     "profileSaveError": "No se ha podido guardar la información pública"
+  },
+  "commercial": {
+    "subtitle": "Series de numeración (solo lectura) y cierre/reapertura de ejercicio natural.",
+    "forbidden": "Se necesita permiso de facturas para ver series y ejercicios.",
+    "series_title": "Series",
+    "preview_date": "Fecha orientativa",
+    "next_number": "Siguiente número (orientativo)",
+    "inactive": "Inactiva",
+    "preview": "Vista previa",
+    "preview_failed": "No se ha podido previsualizar",
+    "series_readonly_help": "La serie se configura en el servidor; la UI no escribe el contador.",
+    "fiscal_years_title": "Ejercicios fiscales",
+    "fiscal_years_help": "Año natural (1 ene – 31 dic). Independiente del calendario laboral de asistencia.",
+    "year": "Año",
+    "close_year": "Cerrar ejercicio",
+    "reopen_year": "Reabrir",
+    "year_closed": "Ejercicio cerrado",
+    "year_reopened": "Ejercicio reabierto",
+    "year_action_failed": "Error de ejercicio",
+    "no_closed_years": "Ningún ejercicio cerrado todavía.",
+    "closed": "Cerrado",
+    "open": "Abierto"
   }
 }

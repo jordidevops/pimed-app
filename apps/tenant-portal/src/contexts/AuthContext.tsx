@@ -34,10 +34,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === 'SIGNED_IN' && session) {
         const key = `login_recorded_${session.user.id}`
         if (!sessionStorage.getItem(key)) {
-          sessionStorage.setItem(key, '1')
-          supabase.rpc('record_login').then(() => {
-            // silent — non-critical
-          })
+          // Defer: calling rpc inside onAuthStateChange can run before the
+          // client attaches the session, so PostgREST sees role anon and
+          // record_login (authenticated only) returns 42501.
+          window.setTimeout(() => {
+            void supabase.rpc('record_login').then(({ error }) => {
+              if (!error) sessionStorage.setItem(key, '1')
+            })
+          }, 0)
         }
       } else if (event === 'SIGNED_OUT') {
         Object.keys(sessionStorage)

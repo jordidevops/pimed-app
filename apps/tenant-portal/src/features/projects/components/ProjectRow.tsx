@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Pencil, Trash2, ChevronRight, Loader2, Pause, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useTenant } from '@/contexts/TenantContext'
 import type { Project, ProjectListItem } from '../api/projectsService'
 import { getProjectStatusClass, getProjectStatusLabel, getProjectStatusVariant } from '../projectStatus'
 import { useIsFieldService } from '@/hooks/useSectorLabel'
@@ -48,7 +49,9 @@ export function ProjectRow({
   workedSeconds = 0,
 }: ProjectRowProps) {
   const { t } = useTranslation(['projects', 'field-service'])
+  const { activeRole } = useTenant()
   const isFieldService = useIsFieldService()
+  const canLinkCollections = activeRole === 'owner' || activeRole === 'manager'
   const [startOpen, setStartOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
@@ -119,7 +122,17 @@ export function ProjectRow({
                 {statusLabel}
               </Badge>
             )}
-            <PaymentPendingChip pending={paymentPending} />
+            {canLinkCollections && paymentPending && project.id ? (
+              <Link
+                to={`/delivery-notes?project_id=${encodeURIComponent(project.id)}&status=open`}
+                className="inline-flex"
+                title={t('projects.collections.open_hub', 'Veure a Cobraments')}
+              >
+                <PaymentPendingChip pending={paymentPending} />
+              </Link>
+            ) : (
+              <PaymentPendingChip pending={paymentPending} />
+            )}
           </div>
         </td>
         <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground">

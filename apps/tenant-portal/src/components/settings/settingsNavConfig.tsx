@@ -21,6 +21,7 @@ import {
   PanelLeft,
   ListChecks,
   ListTree,
+  Receipt,
 } from 'lucide-react'
 import type { TenantTimelineFeatures } from '@/features/entity-timeline/api/tenantFeaturesService'
 
@@ -149,6 +150,14 @@ export function buildSettingsNavItems({
       icon: Scale,
       group: 'docs',
       show: canManageSettings,
+    },
+    {
+      to: '/settings/commercial',
+      labelKey: 'tabs.commercial',
+      labelDefault: 'Comercial',
+      icon: Receipt,
+      group: 'docs',
+      show: isManagerOrOwner,
     },
     {
       to: '/settings/activity',

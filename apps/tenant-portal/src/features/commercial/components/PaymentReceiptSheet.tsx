@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import {
   getCommercialDocumentDetail,
+  getDeliveryNoteCollectionDetail,
   getPayment,
   type CommercialPayment,
+  type DeliveryNoteCollectionDetail,
 } from '../api/commercialFlowService'
 import type { CommercialDocumentDetail } from '../utils/commercialDocumentModel'
 import { formatMoney, partyDisplayName } from '../utils/commercialDocumentModel'
@@ -28,6 +30,7 @@ export function PaymentReceiptSheet({ paymentId, open, onClose }: PaymentReceipt
   const { toast } = useToast()
   const [payment, setPayment] = useState<CommercialPayment | null>(null)
   const [doc, setDoc] = useState<CommercialDocumentDetail | null>(null)
+  const [balance, setBalance] = useState<DeliveryNoteCollectionDetail | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -38,9 +41,14 @@ export function PaymentReceiptSheet({ paymentId, open, onClose }: PaymentReceipt
       try {
         const pay = await getPayment(paymentId)
         const detail = await getCommercialDocumentDetail(pay.document_id)
+        const collection =
+          detail.doc_type === 'delivery_note'
+            ? await getDeliveryNoteCollectionDetail(pay.document_id)
+            : null
         if (!cancelled) {
           setPayment(pay)
           setDoc(detail)
+          setBalance(collection)
         }
       } catch (err) {
         if (!cancelled) {
@@ -68,7 +76,7 @@ export function PaymentReceiptSheet({ paymentId, open, onClose }: PaymentReceipt
 
   async function shareWhatsApp() {
     if (!payment || !doc) return
-    const text = buildPaymentReceiptText(payment, doc)
+    const text = buildPaymentReceiptText(payment, doc, balance)
     const phone = doc.buyer_snapshot.phone?.trim()?.replace(/[^\d+]/g, '').replace(/^\+/, '')
     const url = phone
       ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
@@ -78,7 +86,7 @@ export function PaymentReceiptSheet({ paymentId, open, onClose }: PaymentReceipt
 
   async function shareEmail() {
     if (!payment || !doc) return
-    const text = buildPaymentReceiptText(payment, doc)
+    const text = buildPaymentReceiptText(payment, doc, balance)
     const subject = `Comprovant ${doc.doc_number ?? ''}`.trim()
     const email = doc.buyer_snapshot.email?.trim() ?? ''
     window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`
@@ -93,9 +101,11 @@ export function PaymentReceiptSheet({ paymentId, open, onClose }: PaymentReceipt
     }
     await navigator.share({
       title: t('projects.commercial.receipt_title', 'Comprovant de cobrament'),
-      text: buildPaymentReceiptText(payment, doc),
+      text: buildPaymentReceiptText(payment, doc, balance),
     })
   }
+
+  const invoiceRef = balance?.external_invoice_ref ?? doc?.external_invoice_ref ?? null
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
@@ -140,6 +150,35 @@ export function PaymentReceiptSheet({ paymentId, open, onClose }: PaymentReceipt
               <p className="text-xs text-muted-foreground">
                 {new Date(payment.occurred_at).toLocaleString('ca-ES')}
               </p>
+              {invoiceRef ? (
+                <p className="text-sm text-muted-foreground">
+                  {t('projects.collections.included_in_invoice', 'Inclòs a la factura {{ref}}', {
+                    ref: invoiceRef,
+                  })}
+                </p>
+              ) : balance ? (
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <p>
+                    {t('projects.collections.receipt_total', 'Total')}{' '}
+                    {formatMoney(centsToEuros(balance.total_cents), doc.currency)}
+                  </p>
+                  {balance.advance_applied_cents > 0 ? (
+                    <p>
+                      {t('projects.collections.receipt_advance', 'Bestreta aplicada')}{' '}
+                      {formatMoney(centsToEuros(balance.advance_applied_cents), doc.currency)}
+                    </p>
+                  ) : null}
+                  <p>
+                    {t('projects.collections.receipt_paid', 'Cobrat')}{' '}
+                    {formatMoney(centsToEuros(balance.paid_cents), doc.currency)}
+                  </p>
+                  <p>
+                    {balance.remaining_cents <= 0
+                      ? t('projects.collections.status_paid', 'Pagat')
+                      : `${t('projects.collections.remaining', 'Pendent')} ${formatMoney(centsToEuros(balance.remaining_cents), doc.currency)}`}
+                  </p>
+                </div>
+              ) : null}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -155,7 +194,7 @@ export function PaymentReceiptSheet({ paymentId, open, onClose }: PaymentReceipt
                   )
                 }}
               >
-                {t('projects.commercial.share_whatsapp', 'WhatsApp')}
+                WhatsApp
               </Button>
               <Button
                 type="button"
@@ -170,30 +209,14 @@ export function PaymentReceiptSheet({ paymentId, open, onClose }: PaymentReceipt
                   )
                 }}
               >
-                {t('projects.commercial.share_email', 'Correu')}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  void shareNative().catch((err) => {
-                    if (err instanceof DOMException && err.name === 'AbortError') return
-                    toast({
-                      variant: 'destructive',
-                      title: t('projects.commercial.share_failed', 'Enviament fallit · Reintentar'),
-                      description: err instanceof Error ? err.message : undefined,
-                    })
-                  })
-                }}
-              >
-                {t('projects.commercial.share_native', 'Compartir')}
+                Email
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
                   try {
-                    printPaymentReceipt(payment, doc)
+                    printPaymentReceipt(payment, doc, balance)
                   } catch (err) {
                     toast({
                       variant: 'destructive',
@@ -203,15 +226,40 @@ export function PaymentReceiptSheet({ paymentId, open, onClose }: PaymentReceipt
                   }
                 }}
               >
-                {t('projects.commercial.share_print', 'Imprimir / PDF')}
+                {t('projects.commercial.print_receipt', 'Imprimir')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  try {
+                    downloadPaymentReceiptHtml(payment, doc, balance)
+                  } catch (err) {
+                    toast({
+                      variant: 'destructive',
+                      title: t('projects.commercial.share_failed', 'Enviament fallit · Reintentar'),
+                      description: err instanceof Error ? err.message : undefined,
+                    })
+                  }
+                }}
+              >
+                HTML
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 className="sm:col-span-2"
-                onClick={() => downloadPaymentReceiptHtml(payment, doc)}
+                onClick={() => {
+                  void shareNative().catch((err) =>
+                    toast({
+                      variant: 'destructive',
+                      title: t('projects.commercial.share_failed', 'Enviament fallit · Reintentar'),
+                      description: err instanceof Error ? err.message : undefined,
+                    }),
+                  )
+                }}
               >
-                {t('projects.commercial.receipt_download', 'Descarregar comprovant')}
+                {t('projects.commercial.share_native', 'Compartir')}
               </Button>
             </div>
           </>

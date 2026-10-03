@@ -28,6 +28,7 @@ import { ContactRelationshipsPanel } from './ContactRelationshipsPanel'
 import { ContactDeliveryChannelsPanel } from './ContactDeliveryChannelsPanel'
 import { ContactPortalAccessPanel } from './ContactPortalAccessPanel'
 import { ContactCommercialHistory } from './ContactCommercialHistory'
+import { DeliveryNotesList } from '@/features/commercial/components/DeliveryNotesList'
 import { ContactAgreementsList } from './ContactAgreementsList'
 import { EntityTimeline } from '@/features/entity-timeline'
 import { QuotesPage } from '@/features/commercial/components/QuotesPage'
@@ -65,6 +66,7 @@ const CONTACT_TABS = [
   'contact',
   'projects',
   'quotes',
+  'delivery_notes',
   'agreements',
   'sites',
   'activity',
@@ -329,6 +331,7 @@ export function ContactDetailPage() {
               { id: 'contact', label: t('contacts.detail.tab_contact', 'Contacte') },
               { id: 'projects', label: projectsTabLabel },
               { id: 'quotes', label: t('contacts.detail.tab_quotes', 'Pressupostos') },
+              { id: 'delivery_notes', label: t('contacts.detail.tab_delivery_notes', 'Albarans') },
               { id: 'agreements', label: agreementsTabLabel },
               { id: 'sites', label: t('contacts.detail.tab_sites', "Adreces d'intervenció") },
               { id: 'activity', label: t('contacts.detail.tab_activity', 'Activitat') },
@@ -449,6 +452,10 @@ export function ContactDetailPage() {
             clientName={contact.display_name ?? undefined}
             embedded
           />
+        </TabsContent>
+
+        <TabsContent value="delivery_notes" className="space-y-4">
+          <DeliveryNotesList clientId={contact.id!} embedded defaultStatus="all" />
         </TabsContent>
 
         <TabsContent value="agreements" className="space-y-4">

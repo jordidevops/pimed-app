@@ -271,6 +271,65 @@ describe('deriveOrderWorkflow', () => {
     expect(result.primaryAction).toBe('collect')
   })
 
+  it('collects an older delivery when a newer one is already paid', () => {
+    const older = document('D-1', 'delivery_note', 'issued', 100, '2026-09-13T09:00:00Z')
+    const newer = document('D-2', 'delivery_note', 'issued', 50, '2026-09-14T09:00:00Z')
+    const result = workflow({
+      visitClosed: true,
+      documents: [document('Q-1', 'quote', 'accepted'), newer, older],
+      payments: [payment(newer.id, 5000)],
+    })
+
+    expect(result.paymentPending).toBe(true)
+    expect(result.collectDeliveryId).toBe(older.id)
+    expect(result.latestDeliveryId).toBe(newer.id)
+    expect(result.primaryAction).toBe('collect')
+  })
+
+  it('office gets collect_invoice when remaining is only on invoiced notes', () => {
+    const delivery = {
+      ...document('D-1', 'delivery_note', 'issued', 100),
+      external_invoice_ref: 'F-1',
+    }
+    const result = workflow({
+      visitClosed: true,
+      documents: [document('Q-1', 'quote', 'accepted'), delivery],
+      isOffice: true,
+    })
+
+    expect(result.paymentPending).toBe(true)
+    expect(result.collectDeliveryId).toBeNull()
+    expect(result.primaryAction).toBe('collect_invoice')
+  })
+
+  it('field keeps done when remaining is only on invoiced notes', () => {
+    const delivery = {
+      ...document('D-1', 'delivery_note', 'issued', 100),
+      external_invoice_ref: 'F-1',
+    }
+    const result = workflow({
+      visitClosed: true,
+      documents: [document('Q-1', 'quote', 'accepted'), delivery],
+      isOffice: false,
+    })
+
+    expect(result.paymentPending).toBe(true)
+    expect(result.collectDeliveryId).toBeNull()
+    expect(result.primaryAction).toBe('done')
+  })
+
+  it('field still collects uninvoiced delivery notes', () => {
+    const delivery = document('D-1', 'delivery_note', 'issued', 100)
+    const result = workflow({
+      visitClosed: true,
+      documents: [document('Q-1', 'quote', 'accepted'), delivery],
+      isOffice: false,
+    })
+
+    expect(result.primaryAction).toBe('collect')
+    expect(result.collectDeliveryId).toBe(delivery.id)
+  })
+
   it('assessment skips auth and hands off to office after close', () => {
     const result = workflow({
       documents: [],

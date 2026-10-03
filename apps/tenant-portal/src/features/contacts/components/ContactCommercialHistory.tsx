@@ -243,11 +243,18 @@ export function ContactCommercialHistory({
               )}
             </p>
           </div>
-          {mode === 'summary' && onSeeAll && summary.total > 0 && (
-            <Button type="button" size="sm" variant="outline" onClick={onSeeAll}>
-              {t('contacts.detail.commercial_see_all', 'Veure tots')}
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            {mode === 'summary' && onSeeAll && summary.total > 0 && (
+              <Button type="button" size="sm" variant="outline" onClick={onSeeAll}>
+                {t('contacts.detail.commercial_see_all', 'Veure tots')}
+              </Button>
+            )}
+            <Button type="button" size="sm" variant="outline" asChild>
+              <Link to={`/delivery-notes?client_id=${encodeURIComponent(clientId)}`}>
+                {t('contacts.detail.commercial_cobraments', 'Albarans')}
+              </Link>
             </Button>
-          )}
+          </div>
         </div>
 
         {isLoading ? (

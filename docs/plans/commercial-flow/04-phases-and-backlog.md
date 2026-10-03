@@ -41,6 +41,8 @@ Objectiu: un autònom cobra correctament una feina, amb o sense pressupost, i ma
 | **CF-16** | Offline d'actuals | Esborranys locals d'hores, km, materials i intent de tancament; sincronització idempotent amb estat honest. L'albarà no s'emet al reconnectar: continua sent una acció manual online | CF-8 |
 | **CF-17** | Cobraments avançats | Parcials i bestretes, Stripe amb webhook idempotent, referència de factura externa cap a Holded o Quipu | CF-12 |
 | **CF-18** | Render amb plantilles | `document_template_id` al document comercial; PDF de marca via el motor de `/documents`; desat al DMS; encaminament opcional a signatura formal | CF-11 |
+| **CF-25** | Hub d'Albarans (CF-26) | Vista oficina `/delivery-notes`: tots els albarans, saldo FIFO, factura externa i rectificació. `/cobraments` redirigeix. Spec + **fet/pendent**: [`07-collections-and-ar-hub.md`](./07-collections-and-ar-hub.md). **CF-25-b** (períodes d’acord) diferit | CF-12, CF-17 |
+| **CF-27** | Comercial `/sales` | ✅ Factures natives, allocations, sèries/exercicis, gestoria, export ZIP, taules i fitxes. Pla: [`09-sales-comercial/`](./09-sales-comercial/README.md) · [`LOG`](./09-sales-comercial/IMPLEMENTATION-LOG.md) | CF-26 |
 
 ---
 

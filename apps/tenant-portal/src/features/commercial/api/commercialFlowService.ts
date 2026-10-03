@@ -46,7 +46,7 @@ export type PricingTemplateItem = {
 export type CommercialDocument = {
   id: string
   tenant_id: string
-  doc_type: 'quote' | 'quote_amendment' | 'delivery_note'
+  doc_type: 'quote' | 'quote_amendment' | 'delivery_note' | 'invoice'
   doc_number: string | null
   client_id: string
   project_id: string | null
@@ -362,6 +362,37 @@ export async function savePricingTemplateChecklists(
   if (error) throw error
 }
 
+export type DeliveryNotePreviewLine = {
+  project_line_id: string
+  name: string
+  unit: string
+  quantity: number
+  line_total: number
+}
+
+export type DeliveryNotePreview = {
+  subtotal: number
+  total: number
+  lines: DeliveryNotePreviewLine[]
+}
+
+export async function previewDeliveryNote(projectId: string): Promise<DeliveryNotePreview> {
+  const { data, error } = await supabase.rpc('preview_delivery_note' as never, {
+    p_project_id: projectId,
+  } as never)
+  if (error) throw error
+  const row = (data ?? {}) as {
+    subtotal?: number
+    total?: number
+    lines?: DeliveryNotePreviewLine[]
+  }
+  return {
+    subtotal: Number(row.subtotal ?? 0),
+    total: Number(row.total ?? 0),
+    lines: Array.isArray(row.lines) ? row.lines : [],
+  }
+}
+
 export async function issueCommercialDocument(params: {
   projectId: string
   docType: 'quote' | 'quote_amendment' | 'delivery_note'
@@ -517,6 +548,91 @@ export async function recordPayment(params: {
   return data as string
 }
 
+export type RectifyLinePatch = {
+  project_line_id: string
+  quantity: number
+}
+
+export type RectifyDeliveryPreview = {
+  document_id: string
+  doc_number: string | null
+  project_id: string | null
+  subtotal: number
+  total: number
+  total_cents: number
+  inherited_paid_cents: number
+  payments_exceed_total: boolean
+  lines: Array<{
+    project_line_id: string
+    name: string
+    description: string | null
+    unit: string | null
+    quantity: number
+    os_quantity: number
+    min_os_quantity: number
+    other_delivered_quantity: number
+    unit_price: number
+    discount_pct: number
+    tax_rate: number
+    line_subtotal: number
+    line_tax: number
+    line_total: number
+  }>
+}
+
+export type DeliveryNoteCollectionDetail = {
+  id: string
+  doc_number: string | null
+  status: string
+  total_cents: number
+  direct_paid_cents: number
+  inherited_paid_cents: number
+  advance_applied_cents: number
+  paid_cents: number
+  remaining_cents: number
+  external_invoice_ref: string | null
+  invoiced: boolean
+}
+
+export async function previewRectifyDeliveryNote(params: {
+  documentId: string
+  linePatches?: RectifyLinePatch[]
+}): Promise<RectifyDeliveryPreview> {
+  const { data, error } = await supabase.rpc('preview_rectify_delivery_note' as never, {
+    p_document_id: params.documentId,
+    p_line_patches: params.linePatches ?? [],
+  } as never)
+  if (error) throw error
+  return data as RectifyDeliveryPreview
+}
+
+export async function rectifyCommercialDelivery(params: {
+  documentId: string
+  reason: string
+  linePatches?: RectifyLinePatch[]
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('rectify_delivery_note' as never, {
+    p_document_id: params.documentId,
+    p_reason: params.reason,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+    p_line_patches: params.linePatches ?? [],
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+export async function getDeliveryNoteCollectionDetail(
+  documentId: string,
+): Promise<DeliveryNoteCollectionDetail> {
+  const { data, error } = await supabase.rpc(
+    'get_delivery_note_collection_detail' as never,
+    { p_document_id: documentId } as never,
+  )
+  if (error) throw error
+  return data as DeliveryNoteCollectionDetail
+}
+
 export async function setDeliveryExternalInvoiceRef(params: {
   documentId: string
   ref: string | null
@@ -569,6 +685,914 @@ export async function listPaymentsForDocuments(
     .order('occurred_at', { ascending: false })
   if (error) throw error
   return (data ?? []) as CommercialPayment[]
+}
+
+export type DeliveryCollectionStatus = 'pending' | 'partial' | 'paid'
+
+export type DeliveryCollectionRow = {
+  id: string
+  tenant_id: string
+  doc_number: string | null
+  client_id: string | null
+  client_display_name: string | null
+  project_id: string | null
+  project_name: string | null
+  document_status: string
+  collection_status: DeliveryCollectionStatus
+  total: number
+  total_cents: number
+  paid_cents: number
+  remaining_cents: number
+  own_paid_cents: number
+  advance_cents: number
+  issued_at: string | null
+  created_at: string
+  external_invoice_ref: string | null
+}
+
+export type ListDeliveryCollectionParams = {
+  clientId?: string | null
+  projectId?: string | null
+  statusGroup?: 'open' | 'pending' | 'partial' | 'paid' | 'all'
+  hasExternalRef?: 'all' | 'yes' | 'no'
+  q?: string | null
+  issuedFrom?: string | null
+  issuedTo?: string | null
+  limit?: number
+  offset?: number
+}
+
+export type DeliveryCollectionPage = {
+  items: DeliveryCollectionRow[]
+  totalCount: number
+  totalRemainingCents: number
+}
+
+export type DeliveryNoteListStatus = 'pending' | 'partial' | 'paid' | 'rectified'
+export type SalesBillingStatus = 'to_invoice' | 'draft_invoice' | 'invoiced' | 'rectified'
+
+export type DeliveryNoteListRow = {
+  id: string
+  doc_number: string | null
+  client_id: string | null
+  client_display_name: string | null
+  project_id: string | null
+  project_name: string | null
+  document_status: string
+  collection_status: DeliveryNoteListStatus
+  /** Present on sales-hub rows; drives draft vs invoiced UI. */
+  billing_status?: SalesBillingStatus
+  total: number
+  total_cents: number
+  direct_paid_cents: number
+  inherited_paid_cents: number
+  advance_applied_cents: number
+  paid_cents: number
+  remaining_cents: number
+  issued_at: string | null
+  created_at: string
+  external_invoice_id: string | null
+  external_invoice_ref: string | null
+  supersedes_id: string | null
+  superseded_by_id: string | null
+  superseded_by_number: string | null
+}
+
+export type ListDeliveryNotesParams = ListDeliveryCollectionParams & {
+  includeRectified?: boolean
+}
+
+export type DeliveryNotesPageResult = {
+  items: DeliveryNoteListRow[]
+  totalCount: number
+  totalCents: number
+  totalPaidCents: number
+  totalRemainingCents: number
+}
+
+export async function listDeliveryNotesPage(
+  params: ListDeliveryNotesParams = {},
+): Promise<DeliveryNotesPageResult> {
+  const { data, error } = await supabase.rpc('list_delivery_notes_page' as never, {
+    p_client_id: params.clientId || null,
+    p_project_id: params.projectId || null,
+    p_status_group: params.statusGroup ?? 'open',
+    p_has_external_ref: params.hasExternalRef ?? 'all',
+    p_q: params.q?.trim() || null,
+    p_issued_from: params.issuedFrom || null,
+    p_issued_to: params.issuedTo || null,
+    p_include_rectified: params.includeRectified ?? false,
+    p_limit: params.limit ?? 50,
+    p_offset: params.offset ?? 0,
+  } as never)
+  if (error) throw error
+  const row = (Array.isArray(data) ? data[0] : data) as {
+    items?: DeliveryNoteListRow[] | null
+    total_count?: number | string | null
+    total_cents?: number | string | null
+    total_paid_cents?: number | string | null
+    total_remaining_cents?: number | string | null
+  } | null
+  return {
+    items: (row?.items ?? []) as DeliveryNoteListRow[],
+    totalCount: Number(row?.total_count ?? 0),
+    totalCents: Number(row?.total_cents ?? 0),
+    totalPaidCents: Number(row?.total_paid_cents ?? 0),
+    totalRemainingCents: Number(row?.total_remaining_cents ?? 0),
+  }
+}
+
+export type ExternalInvoiceListRow = {
+  id: string
+  invoice_number: string
+  client_id: string
+  client_display_name: string
+  issued_on: string
+  total_cents: number
+  notes_total_cents: number
+  difference_cents: number
+  delivery_count: number
+  delivery_numbers: string[]
+  paid_cents: number
+  remaining_cents: number
+}
+
+export async function listExternalInvoicesPage(params: {
+  clientId?: string | null
+  projectId?: string | null
+  q?: string | null
+  limit?: number
+  offset?: number
+} = {}): Promise<{ items: ExternalInvoiceListRow[]; totalCount: number; totalRemainingCents: number }> {
+  const { data, error } = await supabase.rpc('list_external_invoices_page' as never, {
+    p_client_id: params.clientId || null,
+    p_project_id: params.projectId || null,
+    p_q: params.q?.trim() || null,
+    p_limit: params.limit ?? 50,
+    p_offset: params.offset ?? 0,
+  } as never)
+  if (error) throw error
+  const row = (Array.isArray(data) ? data[0] : data) as {
+    items?: ExternalInvoiceListRow[] | null
+    total_count?: number | string | null
+    total_remaining_cents?: number | string | null
+  } | null
+  return {
+    items: (row?.items ?? []) as ExternalInvoiceListRow[],
+    totalCount: Number(row?.total_count ?? 0),
+    totalRemainingCents: Number(row?.total_remaining_cents ?? 0),
+  }
+}
+
+export async function createInvoiceDraftFromDeliveryNotes(params: {
+  deliveryNoteIds: string[]
+  issuedOn?: string | null
+  notes?: string | null
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc(
+    'create_invoice_draft_from_delivery_notes' as never,
+    {
+      p_delivery_note_ids: params.deliveryNoteIds,
+      p_client_op_id: params.clientOpId ?? generateClientOpId(),
+      p_issued_on: params.issuedOn ?? null,
+      p_notes: params.notes ?? null,
+    } as never,
+  )
+  if (error) throw error
+  return String(data ?? '')
+}
+
+export async function issueInvoice(params: {
+  invoiceId: string
+  issuedOn?: string | null
+  seriesId?: string | null
+  docNumber?: string | null
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('issue_invoice' as never, {
+    p_invoice_id: params.invoiceId,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+    p_issued_on: params.issuedOn ?? null,
+    p_series_id: params.seriesId ?? null,
+    p_doc_number: params.docNumber ?? null,
+  } as never)
+  if (error) throw error
+  return String(data ?? params.invoiceId)
+}
+
+export async function cancelInvoice(params: {
+  invoiceId: string
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('cancel_invoice' as never, {
+    p_invoice_id: params.invoiceId,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  return String(data ?? params.invoiceId)
+}
+
+/** Create draft then issue (native path replacing register_external_invoice writes). */
+export async function setCommercialDocumentExternalRef(params: {
+  documentId: string
+  externalNumber: string | null
+  provider?: string
+  externalId?: string | null
+}): Promise<void> {
+  const { error } = await supabase.rpc('set_commercial_document_external_ref' as never, {
+    p_document_id: params.documentId,
+    p_external_number: params.externalNumber,
+    p_provider: params.provider ?? 'manual',
+    p_external_id: params.externalId ?? null,
+  } as never)
+  if (error) throw error
+}
+
+function isMissingRpcError(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null) return false
+  const row = err as { code?: unknown; message?: unknown; details?: unknown }
+  if (row.code === 'PGRST202') return true
+  const blob = `${typeof row.message === 'string' ? row.message : ''}\n${
+    typeof row.details === 'string' ? row.details : ''
+  }`
+  return blob.includes('Could not find the function') || blob.includes('schema cache')
+}
+
+export async function issueInvoiceFromDeliveryNotes(params: {
+  deliveryNoteIds: string[]
+  issuedOn: string
+  /** Optional ERP / external reference — does not become PiMed doc_number. */
+  erpReference?: string | null
+  /** @deprecated Prefer erpReference; forced doc numbers skip series allocation. */
+  invoiceNumber?: string | null
+  notes?: string | null
+  allocateNumber?: boolean
+  clientOpId?: string
+}): Promise<{ id: string; differenceCents: number; docNumber?: string | null }> {
+  const clientOpId = params.clientOpId ?? generateClientOpId()
+  const forcedNumber =
+    params.allocateNumber === false || Boolean(params.invoiceNumber)
+      ? (params.invoiceNumber ?? null)
+      : null
+
+  // Forced doc_number is legacy/rare; keep create+issue. Normal path is one TX RPC.
+  if (forcedNumber) {
+    const draftId = await createInvoiceDraftFromDeliveryNotes({
+      deliveryNoteIds: params.deliveryNoteIds,
+      issuedOn: params.issuedOn,
+      notes: params.notes,
+      clientOpId,
+    })
+    try {
+      const issuedId = await issueInvoice({
+        invoiceId: draftId,
+        issuedOn: params.issuedOn,
+        docNumber: forcedNumber,
+        clientOpId,
+      })
+      return { id: issuedId, differenceCents: 0 }
+    } catch (err) {
+      try {
+        await cancelInvoice({ invoiceId: draftId, clientOpId: generateClientOpId() })
+      } catch {
+        // best-effort discard
+      }
+      throw err
+    }
+  }
+
+  const { data, error } = await supabase.rpc('issue_invoice_from_delivery_notes' as never, {
+    p_delivery_note_ids: params.deliveryNoteIds,
+    p_client_op_id: clientOpId,
+    p_issued_on: params.issuedOn || null,
+    p_notes: params.notes ?? null,
+    p_erp_reference: params.erpReference?.trim() || null,
+  } as never)
+  if (error) throw error
+  return { id: String(data ?? ''), differenceCents: 0 }
+}
+
+export async function registerExternalInvoice(params: {
+  invoiceNumber: string
+  issuedOn: string
+  totalCents: number
+  deliveryNoteIds: string[]
+  notes?: string | null
+}): Promise<{ id: string; differenceCents: number }> {
+  // Prefer native draft+issue; fall back to compatibility RPC only if the RPC is missing.
+  try {
+    return await issueInvoiceFromDeliveryNotes({
+      deliveryNoteIds: params.deliveryNoteIds,
+      issuedOn: params.issuedOn,
+      invoiceNumber: params.invoiceNumber,
+      notes: params.notes,
+    })
+  } catch (err) {
+    if (!isMissingRpcError(err)) throw err
+    const { data, error } = await supabase.rpc('register_external_invoice' as never, {
+      p_invoice_number: params.invoiceNumber,
+      p_issued_on: params.issuedOn,
+      p_total_cents: params.totalCents,
+      p_delivery_note_ids: params.deliveryNoteIds,
+      p_client_op_id: generateClientOpId(),
+      p_notes: params.notes ?? null,
+    } as never)
+    if (error) throw error
+    const row = data as { id?: string; difference_cents?: number | string | null }
+    return {
+      id: String(row?.id ?? ''),
+      differenceCents: Number(row?.difference_cents ?? 0),
+    }
+  }
+}
+
+export type InvoicePaymentResult = {
+  paymentId: string
+  amountCents: number
+  allocations: Array<{
+    delivery_note_id: string
+    amount_cents: number
+    position: number
+  }>
+  idempotent: boolean
+}
+
+export async function recordInvoicePayment(params: {
+  invoiceId: string
+  amountCents: number
+  method: string
+  reference?: string | null
+  clientOpId?: string
+}): Promise<InvoicePaymentResult> {
+  const { data, error } = await supabase.rpc('record_invoice_payment' as never, {
+    p_invoice_id: params.invoiceId,
+    p_amount_cents: params.amountCents,
+    p_method: params.method,
+    p_reference: params.reference ?? null,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  if (typeof data === 'string') {
+    return {
+      paymentId: data,
+      amountCents: params.amountCents,
+      allocations: [],
+      idempotent: false,
+    }
+  }
+  const row = (data ?? {}) as {
+    payment_id?: string
+    amount_cents?: number | string
+    allocations?: InvoicePaymentResult['allocations']
+    idempotent?: boolean
+  }
+  return {
+    paymentId: String(row.payment_id ?? ''),
+    amountCents: Number(row.amount_cents ?? params.amountCents),
+    allocations: Array.isArray(row.allocations) ? row.allocations : [],
+    idempotent: Boolean(row.idempotent),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CF-27 Sales list / accounting / numbering RPCs
+// ---------------------------------------------------------------------------
+
+export type SalesCollectionStatus = 'pending' | 'partial' | 'paid'
+export type SalesDocumentStatus = 'draft' | 'issued' | 'cancelled'
+export type SalesReviewStatus = 'pending' | 'reviewed' | 'needs_changes'
+export type SalesExportStatus = 'none' | 'preparing' | 'exported'
+
+export type SalesListCursor = {
+  value: string
+  id: string
+}
+
+export type SalesDeliveryNoteListRow = {
+  id: string
+  doc_number: string | null
+  client_id: string | null
+  client_display_name: string | null
+  project_id: string | null
+  project_name: string | null
+  document_status: string
+  billing_status: SalesBillingStatus
+  collection_status: SalesCollectionStatus
+  total: number
+  total_cents: number
+  paid_cents: number
+  remaining_cents: number
+  issued_at: string | null
+  issued_on: string | null
+  created_at: string
+  invoice_id: string | null
+  invoice_doc_number: string | null
+}
+
+export type SalesInvoiceListRow = {
+  id: string
+  doc_number: string | null
+  client_id: string | null
+  client_display_name: string | null
+  document_status: SalesDocumentStatus | string
+  collection_status: SalesCollectionStatus
+  delivery_count: number
+  delivery_numbers: string[]
+  total: number
+  total_cents: number
+  paid_cents: number
+  remaining_cents: number
+  issued_at: string | null
+  issued_on: string | null
+  created_at: string
+  external_ref: string | null
+  external_provider: string | null
+  review_status: SalesReviewStatus | string
+  export_status: SalesExportStatus | string
+  export_batch_id?: string | null
+}
+
+export type SalesListPageResult<T> = {
+  items: T[]
+  totalCount: number
+  nextCursor: SalesListCursor | null
+  hasMore: boolean
+}
+
+function parseSalesListPage<T>(data: unknown): SalesListPageResult<T> {
+  const row = (Array.isArray(data) ? data[0] : data) as {
+    items?: T[] | null
+    total_count?: number | string | null
+    next_cursor_value?: string | null
+    next_cursor_id?: string | null
+    has_more?: boolean | null
+  } | null
+  const nextValue = row?.next_cursor_value ?? null
+  const nextId = row?.next_cursor_id ?? null
+  return {
+    items: (row?.items ?? []) as T[],
+    totalCount: Number(row?.total_count ?? 0),
+    nextCursor:
+      nextValue != null && nextId != null ? { value: String(nextValue), id: String(nextId) } : null,
+    hasMore: Boolean(row?.has_more),
+  }
+}
+
+export type ListSalesDeliveryNotesParams = {
+  clientId?: string | null
+  projectId?: string | null
+  q?: string | null
+  billingStatus?: SalesBillingStatus[] | null
+  collectionStatus?: SalesCollectionStatus[] | null
+  year?: number | null
+  dateFrom?: string | null
+  dateTo?: string | null
+  sort?: 'issued_at' | 'doc_number' | 'total'
+  dir?: 'asc' | 'desc'
+  cursor?: SalesListCursor | null
+  limit?: number
+}
+
+export async function listSalesDeliveryNotesPage(
+  params: ListSalesDeliveryNotesParams = {},
+): Promise<SalesListPageResult<SalesDeliveryNoteListRow>> {
+  const { data, error } = await supabase.rpc('list_sales_delivery_notes_page' as never, {
+    p_client_id: params.clientId || null,
+    p_project_id: params.projectId || null,
+    p_q: params.q?.trim() || null,
+    p_billing_status: params.billingStatus?.length ? params.billingStatus : null,
+    p_collection_status: params.collectionStatus?.length ? params.collectionStatus : null,
+    p_year: params.year ?? null,
+    p_date_from: params.dateFrom || null,
+    p_date_to: params.dateTo || null,
+    p_sort: params.sort ?? 'issued_at',
+    p_dir: params.dir ?? 'desc',
+    p_cursor_value: params.cursor?.value ?? null,
+    p_cursor_id: params.cursor?.id ?? null,
+    p_limit: params.limit ?? 50,
+  } as never)
+  if (error) throw error
+  const page = parseSalesListPage<SalesDeliveryNoteListRow>(data)
+  return {
+    ...page,
+    items: page.items.map((row) => ({
+      ...row,
+      total: Number(row.total ?? 0),
+      total_cents: Number(row.total_cents ?? 0),
+      paid_cents: Number(row.paid_cents ?? 0),
+      remaining_cents: Number(row.remaining_cents ?? 0),
+    })),
+  }
+}
+
+export type ListSalesInvoicesParams = {
+  clientId?: string | null
+  projectId?: string | null
+  q?: string | null
+  documentStatus?: SalesDocumentStatus[] | null
+  collectionStatus?: SalesCollectionStatus[] | null
+  year?: number | null
+  dateFrom?: string | null
+  dateTo?: string | null
+  sort?: 'issued_at' | 'doc_number' | 'total'
+  dir?: 'asc' | 'desc'
+  cursor?: SalesListCursor | null
+  limit?: number
+}
+
+export async function listSalesInvoicesPage(
+  params: ListSalesInvoicesParams = {},
+): Promise<SalesListPageResult<SalesInvoiceListRow>> {
+  const { data, error } = await supabase.rpc('list_sales_invoices_page' as never, {
+    p_client_id: params.clientId || null,
+    p_project_id: params.projectId || null,
+    p_q: params.q?.trim() || null,
+    p_document_status: params.documentStatus?.length ? params.documentStatus : null,
+    p_collection_status: params.collectionStatus?.length ? params.collectionStatus : null,
+    p_year: params.year ?? null,
+    p_date_from: params.dateFrom || null,
+    p_date_to: params.dateTo || null,
+    p_sort: params.sort ?? 'issued_at',
+    p_dir: params.dir ?? 'desc',
+    p_cursor_value: params.cursor?.value ?? null,
+    p_cursor_id: params.cursor?.id ?? null,
+    p_limit: params.limit ?? 50,
+  } as never)
+  if (error) throw error
+  const page = parseSalesListPage<SalesInvoiceListRow & { delivery_numbers?: unknown }>(data)
+  return {
+    ...page,
+    items: page.items.map((row) => ({
+      ...row,
+      delivery_numbers: Array.isArray(row.delivery_numbers)
+        ? (row.delivery_numbers as string[])
+        : [],
+      total_cents: Number(row.total_cents ?? 0),
+      paid_cents: Number(row.paid_cents ?? 0),
+      remaining_cents: Number(row.remaining_cents ?? 0),
+      delivery_count: Number(row.delivery_count ?? 0),
+      total: Number(row.total ?? 0),
+    })),
+  }
+}
+
+export type SalesDashboardKpis = {
+  toInvoiceCount: number
+  toInvoiceCents: number
+  pendingCollectionCents: number
+  pendingQuotesCount: number
+  year: number
+}
+
+export async function getSalesDashboardKpis(
+  year: number = new Date().getFullYear(),
+): Promise<SalesDashboardKpis> {
+  const { data, error } = await supabase.rpc('get_sales_dashboard_kpis' as never, {
+    p_year: year,
+  } as never)
+  if (error) throw error
+  const row = (data ?? {}) as {
+    to_invoice_count?: number | string | null
+    to_invoice_cents?: number | string | null
+    pending_collection_cents?: number | string | null
+    pending_quotes_count?: number | string | null
+    year?: number | string | null
+  }
+  return {
+    toInvoiceCount: Number(row.to_invoice_count ?? 0),
+    toInvoiceCents: Number(row.to_invoice_cents ?? 0),
+    pendingCollectionCents: Number(row.pending_collection_cents ?? 0),
+    pendingQuotesCount: Number(row.pending_quotes_count ?? 0),
+    year: Number(row.year ?? year),
+  }
+}
+
+export type AccountingReviewResult = {
+  documentId: string
+  status: SalesReviewStatus | string
+  comment: string | null
+  revision: number
+  reviewedBy: string | null
+  reviewedAt: string | null
+  idempotent: boolean
+}
+
+export async function upsertAccountingReview(params: {
+  documentId: string
+  status: SalesReviewStatus
+  comment?: string | null
+  clientOpId?: string
+}): Promise<AccountingReviewResult> {
+  const { data, error } = await supabase.rpc('upsert_accounting_review' as never, {
+    p_document_id: params.documentId,
+    p_status: params.status,
+    p_comment: params.comment ?? null,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  const row = (data ?? {}) as {
+    document_id?: string
+    status?: string
+    comment?: string | null
+    revision?: number | string
+    reviewed_by?: string | null
+    reviewed_at?: string | null
+    idempotent?: boolean
+  }
+  return {
+    documentId: String(row.document_id ?? params.documentId),
+    status: (row.status ?? params.status) as SalesReviewStatus,
+    comment: row.comment ?? null,
+    revision: Number(row.revision ?? 1),
+    reviewedBy: row.reviewed_by ?? null,
+    reviewedAt: row.reviewed_at ?? null,
+    idempotent: Boolean(row.idempotent),
+  }
+}
+
+export type CommercialExportBatchPrepareResult = {
+  batchId: string
+  profileId: string
+  status: string
+  rowCount: number
+  failedCount: number
+  periodFrom: string
+  periodTo: string
+}
+
+export async function prepareCommercialExportBatch(params: {
+  periodFrom: string
+  periodTo: string
+  profileId?: string | null
+  clientOpId?: string
+}): Promise<CommercialExportBatchPrepareResult> {
+  const { data, error } = await supabase.rpc('prepare_commercial_export_batch' as never, {
+    p_period_from: params.periodFrom,
+    p_period_to: params.periodTo,
+    p_profile_id: params.profileId ?? null,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  const row = (data ?? {}) as {
+    batch_id?: string
+    profile_id?: string
+    status?: string
+    row_count?: number | string
+    failed_count?: number | string
+    period_from?: string
+    period_to?: string
+  }
+  return {
+    batchId: String(row.batch_id ?? ''),
+    profileId: String(row.profile_id ?? ''),
+    status: String(row.status ?? 'preparing'),
+    rowCount: Number(row.row_count ?? 0),
+    failedCount: Number(row.failed_count ?? 0),
+    periodFrom: String(row.period_from ?? params.periodFrom),
+    periodTo: String(row.period_to ?? params.periodTo),
+  }
+}
+
+export type CommercialExportBatchFinalizeResult = {
+  batchId: string
+  status: string
+  rowCount: number
+  failedCount: number
+  checksum: string | null
+  finalizedAt: string | null
+  expiresAt?: string | null
+}
+
+export async function finalizeCommercialExportBatch(
+  batchId: string,
+): Promise<CommercialExportBatchFinalizeResult> {
+  const { data, error } = await supabase.rpc('finalize_commercial_export_batch' as never, {
+    p_batch_id: batchId,
+  } as never)
+  if (error) throw error
+  const row = (data ?? {}) as {
+    batch_id?: string
+    status?: string
+    row_count?: number | string
+    failed_count?: number | string
+    checksum?: string | null
+    finalized_at?: string | null
+    expires_at?: string | null
+  }
+  return {
+    batchId: String(row.batch_id ?? batchId),
+    status: String(row.status ?? 'ready'),
+    rowCount: Number(row.row_count ?? 0),
+    failedCount: Number(row.failed_count ?? 0),
+    checksum: row.checksum ?? null,
+    finalizedAt: row.finalized_at ?? null,
+    expiresAt: row.expires_at ?? null,
+  }
+}
+
+export type CommercialExportPackage = {
+  manifest?: Record<string, unknown>
+  checksum?: string
+  files?: Record<string, string>
+}
+
+export type CommercialExportBatchClaimResult = {
+  batchId: string
+  status: string
+  checksum: string | null
+  rowCount: number
+  failedCount: number
+  periodFrom: string | null
+  periodTo: string | null
+  package: CommercialExportPackage | null
+  expiresAt: string | null
+}
+
+export async function claimCommercialExportBatch(
+  batchId: string,
+): Promise<CommercialExportBatchClaimResult> {
+  const { data, error } = await supabase.rpc('claim_commercial_export_batch' as never, {
+    p_batch_id: batchId,
+  } as never)
+  if (error) throw error
+  const row = (data ?? {}) as {
+    batch_id?: string
+    status?: string
+    checksum?: string | null
+    row_count?: number | string
+    failed_count?: number | string
+    period_from?: string | null
+    period_to?: string | null
+    package?: CommercialExportPackage | null
+    expires_at?: string | null
+  }
+  return {
+    batchId: String(row.batch_id ?? batchId),
+    status: String(row.status ?? 'ready'),
+    checksum: row.checksum ?? null,
+    rowCount: Number(row.row_count ?? 0),
+    failedCount: Number(row.failed_count ?? 0),
+    periodFrom: row.period_from ?? null,
+    periodTo: row.period_to ?? null,
+    package: row.package ?? null,
+    expiresAt: row.expires_at ?? null,
+  }
+}
+
+export type CommercialExportBatchListRow = {
+  id: string
+  profile_id: string
+  period_from: string
+  period_to: string
+  status: string
+  schema_version: string
+  row_count: number
+  failed_count: number
+  checksum: string | null
+  created_at: string
+  finalized_at: string | null
+  claimed_at: string | null
+  expires_at: string | null
+  error_text: string | null
+}
+
+export async function listCommercialExportBatches(limit = 20): Promise<CommercialExportBatchListRow[]> {
+  const { data, error } = await supabase
+    .from('commercial_export_batches' as never)
+    .select(
+      'id, profile_id, period_from, period_to, status, schema_version, row_count, failed_count, checksum, created_at, finalized_at, claimed_at, expires_at, error_text',
+    )
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return ((data ?? []) as CommercialExportBatchListRow[]).map((row) => ({
+    ...row,
+    row_count: Number(row.row_count ?? 0),
+    failed_count: Number(row.failed_count ?? 0),
+  }))
+}
+
+export type CommercialDocumentSeries = {
+  id: string
+  tenant_id: string
+  doc_type: string
+  code: string
+  name: string
+  pattern: string
+  reset_policy: string
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export async function listCommercialDocumentSeries(): Promise<CommercialDocumentSeries[]> {
+  const { data, error } = await supabase
+    .from('commercial_document_series' as never)
+    .select('*')
+    .order('doc_type')
+    .order('code')
+  if (error) throw error
+  return (data ?? []) as CommercialDocumentSeries[]
+}
+
+export type CommercialFiscalYear = {
+  tenant_id: string
+  year: number
+  closed_at: string | null
+  closed_by: string | null
+  reopened_at: string | null
+  reopened_by: string | null
+  created_at: string
+}
+
+export async function listCommercialFiscalYears(): Promise<CommercialFiscalYear[]> {
+  const { data, error } = await supabase
+    .from('commercial_fiscal_years' as never)
+    .select('*')
+    .order('year', { ascending: false })
+  if (error) throw error
+  return ((data ?? []) as CommercialFiscalYear[]).map((row) => ({
+    ...row,
+    year: Number(row.year),
+  }))
+}
+
+export async function previewNextDocumentNumber(params: {
+  docType?: string | null
+  seriesId?: string | null
+  issuedOn?: string | null
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('preview_next_document_number' as never, {
+    p_doc_type: params.docType ?? null,
+    p_series_id: params.seriesId ?? null,
+    p_issued_on: params.issuedOn ?? null,
+  } as never)
+  if (error) throw error
+  return String(data ?? '')
+}
+
+export async function closeCommercialFiscalYear(year: number): Promise<void> {
+  const { error } = await supabase.rpc('close_commercial_fiscal_year' as never, {
+    p_year: year,
+  } as never)
+  if (error) throw error
+}
+
+export async function reopenCommercialFiscalYear(year: number): Promise<void> {
+  const { error } = await supabase.rpc('reopen_commercial_fiscal_year' as never, {
+    p_year: year,
+  } as never)
+  if (error) throw error
+}
+
+export type ProjectDeliverySummary = {
+  project_id: string
+  authorized_cents: number
+  billed_cents: number
+  advance_pool_cents: number
+  unapplied_advance_cents: number
+  collected_cents: number
+  remaining_cents: number
+  has_open_delivery: boolean
+}
+
+export async function getProjectDeliverySummary(
+  projectId: string,
+): Promise<ProjectDeliverySummary | null> {
+  const { data, error } = await supabase.rpc('get_project_delivery_summary' as never, {
+    p_project_ids: [projectId],
+  } as never)
+  if (error) throw error
+  const row = (Array.isArray(data) ? data[0] : data) as ProjectDeliverySummary | null
+  return row ?? null
+}
+
+export async function listDeliveryCollectionPage(
+  params: ListDeliveryCollectionParams = {},
+): Promise<DeliveryCollectionPage> {
+  const { data, error } = await supabase.rpc('list_delivery_collection_page' as never, {
+    p_client_id: params.clientId || null,
+    p_project_id: params.projectId || null,
+    p_status_group: params.statusGroup ?? 'open',
+    p_has_external_ref: params.hasExternalRef ?? 'all',
+    p_q: params.q?.trim() || null,
+    p_issued_from: params.issuedFrom || null,
+    p_issued_to: params.issuedTo || null,
+    p_limit: params.limit ?? 50,
+    p_offset: params.offset ?? 0,
+  } as never)
+  if (error) throw error
+  const row = (Array.isArray(data) ? data[0] : data) as {
+    items?: DeliveryCollectionRow[] | null
+    total_count?: number | string | null
+    total_remaining_cents?: number | string | null
+  } | null
+  return {
+    items: (row?.items ?? []) as DeliveryCollectionRow[],
+    totalCount: Number(row?.total_count ?? 0),
+    totalRemainingCents: Number(row?.total_remaining_cents ?? 0),
+  }
 }
 
 export async function getPayment(paymentId: string): Promise<CommercialPayment> {
@@ -759,13 +1783,12 @@ export async function getProjectsPaymentPending(
   if (deliveries.length === 0) return result
 
   const payments = await listPaymentsForDocuments(docs.map((d) => d.id))
-
-  // Latest delivery per project (docs already ordered created_at desc)
-  const seen = new Set<string>()
   for (const doc of deliveries) {
-    if (!doc.project_id || seen.has(doc.project_id)) continue
-    seen.add(doc.project_id)
-    result[doc.project_id] = remainingCentsForDocument(doc, docs, payments) > 0
+    if (!doc.project_id) continue
+    if (!['issued', 'signed', 'accepted'].includes(doc.status)) continue
+    if (remainingCentsForDocument(doc, docs, payments) > 0) {
+      result[doc.project_id] = true
+    }
   }
   return result
 }
@@ -794,7 +1817,7 @@ export async function getCommercialDocumentDetail(
 
   const { data: events, error: eventsError } = await supabase
     .from('commercial_document_events' as never)
-    .select('id, event_type, occurred_at, channel')
+    .select('id, event_type, occurred_at, channel, payload')
     .eq('document_id', documentId)
     .order('occurred_at', { ascending: true })
   if (eventsError) throw eventsError
@@ -832,6 +1855,8 @@ export async function getCommercialDocumentDetail(
       row.formalization_mode === 'separate_agreement' || row.formalization_mode === 'signed_quote'
         ? row.formalization_mode
         : null,
+    external_invoice_ref: (row.external_invoice_ref as string | null | undefined) ?? null,
+    supersedes_id: (row.supersedes_id as string | null | undefined) ?? null,
     lines: (lines ?? []) as CommercialDocumentLine[],
     events: (events ?? []) as CommercialDocumentDetail['events'],
   }

@@ -1,6 +1,7 @@
 import { useAuth } from '../contexts/AuthContext'
 import { useTenant } from '../contexts/TenantContext'
 import { ROLE_LEVELS } from '../lib/permissions'
+import { getSessionAppMetadata } from '../lib/sessionAppMetadata'
 
 export type { Role } from '../lib/permissions'
 
@@ -37,7 +38,7 @@ export function useActiveRole() {
   const { session } = useAuth()
   const { selectedTenantId, selectedSiteId } = useTenant()
 
-  const userTenants = session?.user?.app_metadata?.user_tenants as
+  const userTenants = getSessionAppMetadata(session).user_tenants as
     | Record<string, { global_role: Role | null; sites: Record<string, Role> }>
     | undefined
 

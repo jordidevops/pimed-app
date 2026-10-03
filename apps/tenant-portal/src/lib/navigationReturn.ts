@@ -6,7 +6,10 @@
 const RETURN_TO_PARAM = 'returnTo'
 
 const ALLOWED_PREFIXES = [
+  '/sales',
   '/quotes',
+  '/delivery-notes',
+  '/cobraments',
   '/field/orders',
   '/field/today',
   '/field/agenda',

@@ -36,6 +36,7 @@
       "maps": "Mapes",
       "customer_portal": "Portal de clients",
       "legal": "Legal",
+      "commercial": "Comercial",
       "operations": "Operacions",
       "sidebar": "Menú lateral",
       "checklist_templates": "Plantilles de checklist",
@@ -521,6 +522,8 @@
       "email.send": "Enviar correus",
       "email.manage": "Gestionar correu",
       "invoices.view": "Veure factures",
+      "invoices.review": "Revisió comptable",
+      "invoices.export": "Exportar factures",
       "invoices.edit": "Editar factures",
       "invoices.manage": "Gestionar facturació",
       "members.view": "Veure membres",
@@ -533,7 +536,8 @@
       "settings.manage": "Editar configuració",
       "permissions.manage": "Gestionar permisos",
       "employees.private.reveal": "Revelar IBAN / NSS (auditat)",
-      "commercial.pricing.edit": "Editar preus, descompte i IVA"
+      "commercial.pricing.edit": "Editar preus, descompte i IVA",
+      "commercial.costs.view": "Veure costos i marges"
     },
     "matrix": {
       "title": "Vista general de permisos",
@@ -993,6 +997,28 @@
     "dpaAckSaved": "DPA de plataforma reconeguda",
     "dpaAckError": "No s'ha pogut registrar el reconeixement",
     "dpaAckedAt": "DPA reconeguda"
+  },
+  "commercial": {
+    "subtitle": "Sèries de numeració (només lectura) i tancament d’exercici natural.",
+    "forbidden": "Cal permís de factures per veure sèries i exercicis.",
+    "series_title": "Sèries",
+    "preview_date": "Data orientativa",
+    "next_number": "Següent número (orientatiu)",
+    "inactive": "Inactiva",
+    "preview": "Vista prèvia",
+    "preview_failed": "No s’ha pogut previsualitzar",
+    "series_readonly_help": "La sèrie es configura al servidor; la UI no escriu el comptador.",
+    "fiscal_years_title": "Exercicis fiscals",
+    "fiscal_years_help": "Any natural (1 gen – 31 des). Independent del calendari laboral d’assistència.",
+    "year": "Any",
+    "close_year": "Tancar exercici",
+    "reopen_year": "Reobrir",
+    "year_closed": "Exercici tancat",
+    "year_reopened": "Exercici reobert",
+    "year_action_failed": "Error d’exercici",
+    "no_closed_years": "Cap exercici tancat encara.",
+    "closed": "Tancat",
+    "open": "Obert"
   },
   "notifications": {
     "page_title": "Notificacions",

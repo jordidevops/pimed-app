@@ -27,7 +27,13 @@ const PERMISSION_GROUPS: { key: string; permissions: PermissionKey[] }[] = [
   },
   {
     key: 'invoices',
-    permissions: ['invoices.view', 'invoices.edit', 'invoices.manage'],
+    permissions: [
+      'invoices.view',
+      'invoices.review',
+      'invoices.export',
+      'invoices.edit',
+      'invoices.manage',
+    ],
   },
   {
     key: 'members',
@@ -43,7 +49,7 @@ const PERMISSION_GROUPS: { key: string; permissions: PermissionKey[] }[] = [
   },
   {
     key: 'commercial',
-    permissions: ['commercial.pricing.edit'],
+    permissions: ['commercial.pricing.edit', 'commercial.costs.view'],
   },
 ]
 
@@ -97,6 +103,30 @@ export function RolePermissionsEditor({ isOwner }: RolePermissionsEditorProps) {
 
   function resetToDefaults() {
     setPendingBase({})
+  }
+
+  /** Preset Gestoria: rol viewer amb view/review/export de factures, sense edit/manage. */
+  function applyGestoriaViewerPreset() {
+    const current = getBaseForRole('viewer')
+    const withoutInvoices = current.filter((p) => !p.startsWith('invoices.'))
+    const next: PermissionKey[] = [
+      ...withoutInvoices,
+      'invoices.view',
+      'invoices.review',
+      'invoices.export',
+    ]
+    setShowEditor(true)
+    setPendingBase((prev) => ({
+      ...(prev ?? data?.current_customization ?? {}),
+      viewer: [...new Set(next)],
+    }))
+    toast({
+      title: t('permissions.gestoria_preset_applied', 'Preset Gestoria aplicat'),
+      description: t(
+        'permissions.gestoria_preset_help',
+        'El rol Visualitzador pot veure, revisar i exportar factures. Convida la gestoria com a Visualitzador. Desa per confirmar.',
+      ),
+    })
   }
 
   function cancelEditing() {
@@ -240,6 +270,14 @@ export function RolePermissionsEditor({ isOwner }: RolePermissionsEditorProps) {
               )}
             </p>
           </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={applyGestoriaViewerPreset}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+            >
+              {t('permissions.gestoria_preset', 'Preset Gestoria')}
+            </button>
           {!showEditor && (
             <button
               type="button"
@@ -253,6 +291,7 @@ export function RolePermissionsEditor({ isOwner }: RolePermissionsEditorProps) {
               {t('permissions.editor.title', 'Editar')}
             </button>
           )}
+          </div>
         </div>
 
         {showEditor && (
@@ -386,7 +425,9 @@ function PermissionRow({
           `permissions.permission_labels.${permKey}`,
           permKey === 'commercial.pricing.edit'
             ? 'Editar preus, descompte i IVA'
-            : permKey,
+            : permKey === 'commercial.costs.view'
+              ? 'Veure costos i marges'
+              : permKey,
         )}
       </td>
       {(['viewer', 'member', 'manager', 'owner'] as const).map((role) => (
@@ -459,7 +500,9 @@ function RoleBaseEditor({
                 `permissions.permission_labels.${perm}`,
                 perm === 'commercial.pricing.edit'
                   ? 'Editar preus, descompte i IVA'
-                  : perm,
+                  : perm === 'commercial.costs.view'
+                    ? 'Veure costos i marges'
+                    : perm,
               )}
             </span>
           </label>
