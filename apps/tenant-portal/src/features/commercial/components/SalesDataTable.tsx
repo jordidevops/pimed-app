@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -17,6 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import type { ListDensity } from '@/hooks/useListDensity'
 
 export type SalesDataTableColumn<T> = {
   id: string
@@ -50,6 +51,11 @@ export type SalesDataTableProps<T> = {
   onSort?: (columnId: string) => void
   empty?: ReactNode
   compact?: boolean
+  density?: ListDensity
+  /** Highlighted row (inspector peek). */
+  activeRowId?: string | null
+  /** Row click / Space opens peek (not checkbox). */
+  onRowActivate?: (row: T) => void
   className?: string
 }
 
@@ -69,6 +75,9 @@ export function SalesDataTable<T>({
   onSort,
   empty,
   compact = false,
+  density = 'comfortable',
+  activeRowId = null,
+  onRowActivate,
   className,
 }: SalesDataTableProps<T>) {
   const selectable = Boolean(onToggleRow)
@@ -77,6 +86,15 @@ export function SalesDataTable<T>({
   const allSelected =
     selectableRows.length > 0 && selectableRows.every((row) => selectedSet.has(getRowId(row)))
   const someSelected = selectableRows.some((row) => selectedSet.has(getRowId(row)))
+  const effectiveDensity = compact ? 'compact' : density
+
+  function handleRowKeyDown(event: KeyboardEvent<HTMLTableRowElement>, row: T) {
+    if (!onRowActivate) return
+    if (event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault()
+      onRowActivate(row)
+    }
+  }
 
   return (
     <div className={cn('space-y-3', className)}>
@@ -90,12 +108,15 @@ export function SalesDataTable<T>({
       ) : (
         <div
           className={cn(
-            'overflow-hidden rounded-xl border border-border bg-card',
-            compact && 'rounded-lg',
+            'rounded-xl border border-border bg-card',
+            effectiveDensity === 'compact' && 'rounded-lg',
           )}
         >
-          <Table>
-            <TableHeader>
+          <Table
+            className="app-list-table"
+            data-density={effectiveDensity}
+          >
+            <TableHeader className="[&_tr]:border-b-0">
               <TableRow>
                 {selectable ? (
                   <TableHead className="w-10 px-3">
@@ -107,7 +128,13 @@ export function SalesDataTable<T>({
                   </TableHead>
                 ) : null}
                 {columns.map((col) => (
-                  <TableHead key={col.id} className={col.className}>
+                  <TableHead
+                    key={col.id}
+                    className={cn(
+                      col.className,
+                      effectiveDensity === 'compact' ? '!h-8 !py-1 !px-2.5 text-xs' : '!h-12 !py-3 !px-4',
+                    )}
+                  >
                     {col.sortable && onSort ? (
                       <button
                         type="button"
@@ -122,7 +149,14 @@ export function SalesDataTable<T>({
                     )}
                   </TableHead>
                 ))}
-                {rowActions ? <TableHead className="w-12 px-2" /> : null}
+                {rowActions ? (
+                  <TableHead
+                    className={cn(
+                      'w-12',
+                      effectiveDensity === 'compact' ? '!h-8 !px-1' : '!h-12 !px-2',
+                    )}
+                  />
+                ) : null}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -131,10 +165,35 @@ export function SalesDataTable<T>({
                 const checked = selectedSet.has(id)
                 const canSelect = canSelectRow ? canSelectRow(row) : true
                 const actions = rowActions?.(row) ?? []
+                const isActive = activeRowId === id
                 return (
-                  <TableRow key={id} data-state={checked ? 'selected' : undefined}>
+                  <TableRow
+                    key={id}
+                    data-state={checked ? 'selected' : undefined}
+                    tabIndex={onRowActivate ? 0 : undefined}
+                    className={cn(
+                      onRowActivate && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      isActive && 'bg-accent/60',
+                    )}
+                    onClick={
+                      onRowActivate
+                        ? (event) => {
+                            const target = event.target as HTMLElement
+                            if (
+                              target.closest(
+                                'a,button,input,label,[role="checkbox"],[role="menuitem"]',
+                              )
+                            ) {
+                              return
+                            }
+                            onRowActivate(row)
+                          }
+                        : undefined
+                    }
+                    onKeyDown={(event) => handleRowKeyDown(event, row)}
+                  >
                     {selectable ? (
-                      <TableCell className="px-3">
+                      <TableCell className="px-3" onClick={(e) => e.stopPropagation()}>
                         {canSelect || checked ? (
                           <Checkbox
                             checked={checked}
@@ -145,16 +204,35 @@ export function SalesDataTable<T>({
                       </TableCell>
                     ) : null}
                     {columns.map((col) => (
-                      <TableCell key={col.id} className={col.className}>
+                      <TableCell
+                        key={col.id}
+                        className={cn(
+                          col.className,
+                          effectiveDensity === 'compact'
+                            ? '!py-1 !px-2.5 text-[0.8125rem] leading-snug'
+                            : '!py-3 !px-4',
+                        )}
+                      >
                         {col.cell(row)}
                       </TableCell>
                     ))}
                     {rowActions ? (
-                      <TableCell className="px-2 text-right">
+                      <TableCell
+                        className={cn(
+                          'text-right',
+                          effectiveDensity === 'compact' ? '!py-1 !px-1' : '!py-3 !px-2',
+                        )}
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         {actions.length > 0 ? (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button type="button" size="icon" variant="ghost" className="h-8 w-8">
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className={effectiveDensity === 'compact' ? 'h-6 w-6' : 'h-8 w-8'}
+                              >
                                 <MoreHorizontal className="h-4 w-4" />
                                 <span className="sr-only">Actions</span>
                               </Button>

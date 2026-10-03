@@ -4,5 +4,16 @@
     "quotes": "Presupuestos",
     "delivery_notes": "Albaranes",
     "cobraments": "Albaranes"
+  },
+  "list": {
+    "view_label": "Vista",
+    "view_table": "Tabla",
+    "view_cards": "Tarjetas",
+    "density_label": "Densidad",
+    "density_compact": "Compacta",
+    "density_comfortable": "Cómoda",
+    "clear_filters": "Limpiar filtros",
+    "open_record": "Abrir ficha",
+    "showing_count": "Mostrando {{shown}} de {{total}}"
   }
 }

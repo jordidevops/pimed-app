@@ -5,6 +5,7 @@ import { Plus, ClipboardList, AlertTriangle, Search, X, ChevronLeft, ChevronRigh
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { PageShell } from '@/components/layout/PageShell'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/contexts/TenantContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -465,18 +466,9 @@ export function ProjectsPage({
     )
   }
 
-  return (
-    <div
-      className={cn(
-        'space-y-5',
-        embedded
-          ? ''
-          : cn('mx-auto max-w-7xl', fieldServiceMode ? 'p-4 pb-24' : 'p-6'),
-      )}
-    >
-      {embedded ? (
+  const pageHeader = embedded ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1 min-w-0">
+          <div className="min-w-0 space-y-1">
             <p className="text-sm text-muted-foreground">
               {clientName
                 ? (isFieldService
@@ -498,7 +490,7 @@ export function ProjectsPage({
           </div>
           <Button
             onClick={handleOpenCreate}
-            className="gap-2 shrink-0"
+            className="shrink-0 gap-2"
             disabled={!prereqsReady}
             size="sm"
           >
@@ -508,37 +500,29 @@ export function ProjectsPage({
               : t('projects.list.new', 'Nou projecte')}
           </Button>
         </div>
-      ) : fieldServiceMode ? (
-        <div className="flex items-center justify-between gap-4">
-          <div className="space-y-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">{projectLabelPlural}</h1>
-            <p className="text-sm text-muted-foreground">
-              {t('field-service:orders.subtitle', 'Les teves ordres i visites')}
-            </p>
-          </div>
-          <Button
-            onClick={handleOpenCreate}
-            className="gap-2 hidden sm:inline-flex shrink-0"
-            disabled={!prereqsReady}
-          >
-            <Plus className="h-4 w-4" />
-            {t('field-service:orders.new', 'Nova ordre')}
-          </Button>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold text-foreground">{projectLabelPlural}</h1>
-            <p className="text-sm text-muted-foreground">
-              {t('projects.list.subtitle', 'Gestiona els projectes i ordres de treball')}
-            </p>
-          </div>
-          <Button onClick={handleOpenCreate} className="gap-2 self-start" disabled={!prereqsReady} title={!prereqsReady ? t('projects.prereq.button_disabled_title', 'Cal configurar locals i departaments primer') : undefined}>
-            <Plus className="h-4 w-4" />
-            {t('projects.list.new', 'Nou projecte')}
-          </Button>
-        </div>
-      )}
+      ) : null
+
+  const shellActions = !embedded ? (
+    <Button
+      onClick={handleOpenCreate}
+      className={cn('gap-2 shrink-0', fieldServiceMode && 'hidden sm:inline-flex')}
+      disabled={!prereqsReady}
+      title={
+        !prereqsReady
+          ? t('projects.prereq.button_disabled_title', 'Cal configurar locals i departaments primer')
+          : undefined
+      }
+    >
+      <Plus className="h-4 w-4" />
+      {isFieldService || fieldServiceMode
+        ? t('field-service:orders.new', 'Nova ordre')
+        : t('projects.list.new', 'Nou projecte')}
+    </Button>
+  ) : null
+
+  const listContent = (
+    <>
+      {pageHeader}
 
       {fieldServiceMode && !embedded && (
         <div className="sm:hidden fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-30">
@@ -861,6 +845,26 @@ export function ProjectsPage({
         initialClientId={initialClientId ?? clientId ?? null}
         initialContactSiteId={initialContactSiteId}
       />
-    </div>
+    </>
+  )
+
+  if (embedded) {
+    return <div className="space-y-5">{listContent}</div>
+  }
+
+  return (
+    <PageShell
+      title={projectLabelPlural}
+      subtitle={
+        fieldServiceMode
+          ? t('field-service:orders.subtitle', 'Les teves ordres i visites')
+          : t('projects.list.subtitle', 'Gestiona els projectes i ordres de treball')
+      }
+      icon={<ClipboardList className="h-5 w-5" aria-hidden />}
+      actions={shellActions}
+      className={fieldServiceMode ? 'pb-24' : undefined}
+    >
+      {listContent}
+    </PageShell>
   )
 }

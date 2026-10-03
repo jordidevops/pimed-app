@@ -16,7 +16,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
-import { useIsFieldService } from '@/hooks/useSectorLabel'
+import { useIsFieldService, useSectorLabel } from '@/hooks/useSectorLabel'
+import { useListViewMode } from '@/hooks/useListViewMode'
+import { useListDensity } from '@/hooks/useListDensity'
+import { PageShell } from '@/components/layout/PageShell'
+import { InspectorSheet } from '@/components/layout/InspectorSheet'
+import { ListViewToggle } from '@/components/layout/ListViewToggle'
+import { FilterChips } from '@/components/layout/FilterChips'
+import { SalesDocCard } from './SalesDocCard'
 import { passesGate, useNavGateContext } from '@/features/sidebar-nav'
 import { ClientFilterControl } from '@/features/contacts/components/ClientFilterControl'
 import { generateClientOpId } from '@/features/attendance/api/clientOpId'
@@ -155,6 +162,12 @@ export function DeliveryNotesList({
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const isFieldService = useIsFieldService()
+  const projectLabel = useSectorLabel(
+    'project',
+    isFieldService
+      ? t('field-service:orders.singular', 'OS')
+      : t('projects.list.singular', 'Projecte'),
+  )
   const { ctx, gatesLoading } = useNavGateContext()
   const isOffice = !gatesLoading && passesGate('isOffice', ctx)
   const projectBase = isFieldService ? '/field/orders' : '/projects'
@@ -210,6 +223,12 @@ export function DeliveryNotesList({
 
   const [searchDraft, setSearchDraft] = useState(q)
   const [selected, setSelected] = useState<string[]>([])
+  const [inspectId, setInspectId] = useState<string | null>(null)
+  const { mode: listMode, setMode: setListMode, effectiveMode } = useListViewMode(
+    'sales.delivery-notes',
+    'table',
+  )
+  const { density, setDensity } = useListDensity('sales.delivery-notes', 'compact')
   const [collectRow, setCollectRow] = useState<DeliveryNoteListRow | null>(null)
   const [viewDocId, setViewDocId] = useState<string | null>(null)
 
@@ -218,6 +237,19 @@ export function DeliveryNotesList({
     const view = searchParams.get('view')
     if (view) setViewDocId(view)
   }, [embedded, isSalesHub, searchParams])
+
+  useEffect(() => {
+    if (!isSalesHub || !inspectId) return
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setInspectId(null)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isSalesHub, inspectId])
+
   const [shareDocId, setShareDocId] = useState<string | null>(null)
   const [signDocId, setSignDocId] = useState<string | null>(null)
   const [receiptPaymentId, setReceiptPaymentId] = useState<string | null>(null)
@@ -395,6 +427,140 @@ export function DeliveryNotesList({
   const selectedClientId = selectedRows[0]?.client_id ?? null
   const selectedTotalCents = selectedRows.reduce((sum, row) => sum + row.total_cents, 0)
   const typedInvoiceCents = selectedTotalCents
+  const inspectedRow = items.find((row) => row.id === inspectId) ?? null
+
+  const salesFilterChips = useSalesList
+    ? [
+        ...(q.trim()
+          ? [{ key: 'q', label: q.trim(), onRemove: () => updateParam('q', null) }]
+          : []),
+        ...(billingFilter !== 'all'
+          ? [
+              {
+                key: 'billing',
+                label: billingLabelForSalesRow(billingFilter, t),
+                onRemove: () => updateParam('billing', null),
+              },
+            ]
+          : []),
+        ...(statusGroup !== 'open' && statusGroup !== 'all'
+          ? [
+              {
+                key: 'status',
+                label:
+                  statusGroup === 'pending'
+                    ? t('projects.collections.status_pending', 'Pendent')
+                    : statusGroup === 'partial'
+                      ? t('projects.collections.status_partial', 'Parcial')
+                      : t('projects.collections.status_paid', 'Cobrat'),
+                onRemove: () => updateParam('status', 'open'),
+              },
+            ]
+          : []),
+        ...(clientId
+          ? [
+              {
+                key: 'client',
+                label: t('projects.quotes.client', 'Client'),
+                onRemove: () => updateParam('client_id', null),
+              },
+            ]
+          : []),
+      ]
+    : []
+
+  const salesInspector =
+    useSalesList && inspectedRow ? (
+      <InspectorSheet
+        title={inspectedRow.doc_number ?? inspectedRow.id.slice(0, 8)}
+        subtitle={
+          inspectedRow.client_display_name ||
+          t('projects.quotes.unknown_client', 'Sense client')
+        }
+        badges={
+          <>
+            <Badge variant="outline">
+              {billingLabelForSalesRow(rowBillingStatus(inspectedRow), t)}
+            </Badge>
+            <Badge variant="secondary">
+              {inspectedRow.collection_status === 'paid'
+                ? t('projects.sales.collection_paid', 'Cobrat')
+                : inspectedRow.collection_status === 'partial'
+                  ? t('projects.sales.collection_partial', 'Parcial')
+                  : inspectedRow.collection_status === 'rectified'
+                    ? t('projects.collections.status_rectified', 'Rectificat')
+                    : t('projects.sales.collection_pending', 'Pendent de cobrar')}
+            </Badge>
+          </>
+        }
+        fields={[
+          {
+            label: t('projects.commercial.total', 'Total'),
+            value: `${moneyFmt.format(centsToEuros(inspectedRow.total_cents))} €`,
+          },
+          {
+            label: t('projects.collections.remaining', 'Pendent'),
+            value: `${moneyFmt.format(centsToEuros(inspectedRow.remaining_cents))} €`,
+          },
+          {
+            label: projectLabel,
+            value: inspectedRow.project_id ? (
+              <Link
+                to={commercialDocumentOrderPath(
+                  projectBase,
+                  inspectedRow.project_id,
+                  'delivery_note',
+                )}
+                className="text-primary underline-offset-2 hover:underline"
+              >
+                {inspectedRow.project_name?.trim() || projectLabel}
+              </Link>
+            ) : (
+              inspectedRow.project_name?.trim() || '—'
+            ),
+          },
+          {
+            label: t('projects.collections.issued_on', 'Data'),
+            value: inspectedRow.issued_at
+              ? new Date(inspectedRow.issued_at).toLocaleDateString('ca-ES')
+              : '—',
+          },
+        ]}
+        onClose={() => setInspectId(null)}
+        footer={
+          <>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => void navigate(`/sales/delivery-notes/${inspectedRow.id}`)}
+            >
+              {t('common:list.open_record', 'Obrir fitxa')}
+            </Button>
+            {canCollectOrRectifyDn(inspectedRow) && inspectedRow.remaining_cents > 0 ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setCollectRow(inspectedRow)}
+              >
+                {t('projects.commercial.collect', 'Cobrar')}
+              </Button>
+            ) : null}
+            {inspectedRow.collection_status !== 'rectified' &&
+            inspectedRow.document_status !== 'cancelled' ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setShareDocId(inspectedRow.id)}
+              >
+                {t('projects.commercial.send', 'Enviar')}
+              </Button>
+            ) : null}
+          </>
+        }
+      />
+    ) : null
 
   function openInvoiceModal() {
     const issuedOn = localDateIso()
@@ -526,46 +692,8 @@ export function DeliveryNotesList({
         : notesQuery.error
       : invoicesQuery.error
 
-  if (!embedded && isSalesHub && viewParam) {
-    return <Navigate to={`/sales/delivery-notes/${viewParam}`} replace />
-  }
-
-  return (
-    <div
-      className={
-        embedded || isSalesHub ? 'space-y-3' : 'mx-auto max-w-5xl space-y-5 px-4 py-6'
-      }
-    >
-      {!embedded && !isSalesHub ? (
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              {t('projects.collections.title', 'Albarans')}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t(
-                'projects.collections.subtitle',
-                'Facturació i cobrament d’albarans des de Comercial.',
-              )}
-            </p>
-          </div>
-          <div className="rounded-xl border border-border bg-card px-4 py-3 text-right">
-            <p className="text-xs text-muted-foreground">
-              {t('projects.collections.total_remaining', 'Pendent filtrat')}
-            </p>
-            <p className="text-xl font-semibold tabular-nums">
-              {moneyFmt.format(centsToEuros(totalRemainingCents))} €
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {surface === 'notes'
-                ? t('projects.collections.rows_count', '{{count}} albarans', { count: totalCount })
-                : t('projects.collections.invoice_count', '{{count}} factures', { count: totalCount })}
-            </p>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
+  const filtersBlock = (
+      <div className={useSalesList ? 'space-y-3' : 'space-y-3 rounded-2xl border border-border bg-card p-4'}>
         {!isSalesHub ? (
           <div className="flex flex-wrap gap-2">
             <Button
@@ -586,19 +714,30 @@ export function DeliveryNotesList({
             </Button>
           </div>
         ) : null}
-        <label className="relative block">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            value={searchDraft}
-            onChange={(event) => setSearchDraft(event.target.value)}
-            onBlur={() => updateParam('q', searchDraft.trim() || null)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') updateParam('q', searchDraft.trim() || null)
-            }}
-            placeholder={t('projects.collections.search_placeholder', 'Número, client, OS o factura…')}
-          />
-        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="relative block min-w-[12rem] flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              value={searchDraft}
+              onChange={(event) => setSearchDraft(event.target.value)}
+              onBlur={() => updateParam('q', searchDraft.trim() || null)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') updateParam('q', searchDraft.trim() || null)
+              }}
+              placeholder={t('projects.collections.search_placeholder', 'Número, client, OS o factura…')}
+            />
+          </label>
+          {useSalesList ? (
+            <ListViewToggle
+              mode={listMode}
+              onModeChange={setListMode}
+              density={density}
+              onDensityChange={setDensity}
+              showDensity={effectiveMode === 'table'}
+            />
+          ) : null}
+        </div>
         {surface === 'notes' && useSalesList ? (
           <div className="flex flex-wrap gap-2">
             {BILLING_CHIPS.map((chip) => (
@@ -615,6 +754,19 @@ export function DeliveryNotesList({
               </Button>
             ))}
           </div>
+        ) : null}
+        {useSalesList ? (
+          <FilterChips
+            chips={salesFilterChips}
+            clearAllLabel={t('common:list.clear_filters', 'Netejar filtres')}
+            onClearAll={() => {
+              updateParam('q', null)
+              updateParam('billing', null)
+              updateParam('status', 'open')
+              updateParam('client_id', null)
+              setSearchDraft('')
+            }}
+          />
         ) : null}
         {surface === 'notes' ? (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -683,6 +835,40 @@ export function DeliveryNotesList({
           </label>
         ) : null}
       </div>
+  )
+
+  const listBody = (
+    <>
+      {!embedded && !isSalesHub ? (
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              {t('projects.collections.title', 'Albarans')}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t(
+                'projects.collections.subtitle',
+                'Facturació i cobrament d’albarans des de Comercial.',
+              )}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border bg-card px-4 py-3 text-right">
+            <p className="text-xs text-muted-foreground">
+              {t('projects.collections.total_remaining', 'Pendent filtrat')}
+            </p>
+            <p className="text-xl font-semibold tabular-nums">
+              {moneyFmt.format(centsToEuros(totalRemainingCents))} €
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {surface === 'notes'
+                ? t('projects.collections.rows_count', '{{count}} albarans', { count: totalCount })
+                : t('projects.collections.invoice_count', '{{count}} factures', { count: totalCount })}
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {!useSalesList ? filtersBlock : null}
 
       {selectedRows.length > 0 && isOffice && !isSalesHub ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2">
@@ -705,7 +891,7 @@ export function DeliveryNotesList({
         </p>
       ) : null}
 
-      {surface === 'notes' && isSalesHub && !isLoading ? (
+      {surface === 'notes' && isSalesHub && !isLoading && effectiveMode === 'table' ? (
         <SalesDataTable
           columns={
             [
@@ -783,6 +969,9 @@ export function DeliveryNotesList({
           }
           rows={items}
           getRowId={(row) => row.id}
+          density={density}
+          activeRowId={inspectId}
+          onRowActivate={(row) => setInspectId(row.id)}
           selectedIds={selected}
           onToggleRow={toggleSelected}
           onToggleAll={(checked) =>
@@ -795,7 +984,10 @@ export function DeliveryNotesList({
             )
           }
           canSelectRow={(row) => isOffice && canSelectForInvoice(row, selectedClientId)}
-          countLabel={t('projects.sales.rows_count', '{{count}} files', { count: totalCount })}
+          countLabel={t('common:list.showing_count', 'Mostrant {{shown}} de {{total}}', {
+            shown: items.length,
+            total: totalCount,
+          })}
           bulkBar={
             selectedRows.length > 0 && isOffice ? (
               <Button type="button" size="sm" onClick={openInvoiceModal}>
@@ -809,8 +1001,13 @@ export function DeliveryNotesList({
             const canDnMoneyActions = canCollectOrRectifyDn(row)
             return [
               {
-                key: 'open',
+                key: 'peek',
                 label: t('projects.commercial.view', 'Veure'),
+                onSelect: () => setInspectId(row.id),
+              },
+              {
+                key: 'open',
+                label: t('common:list.open_record', 'Obrir fitxa'),
                 onSelect: () => {
                   void navigate(`/sales/delivery-notes/${row.id}`)
                 },
@@ -856,11 +1053,77 @@ export function DeliveryNotesList({
             ]
           }}
           empty={
-            <p className="text-sm text-muted-foreground">
+            <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
               {t('projects.collections.empty', 'No hi ha albarans amb aquests filtres.')}
             </p>
           }
         />
+      ) : null}
+
+      {surface === 'notes' && isSalesHub && !isLoading && effectiveMode === 'cards' ? (
+        items.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            {t('projects.collections.empty', 'No hi ha albarans amb aquests filtres.')}
+          </p>
+        ) : (
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {items.map((row) => {
+              const billing = rowBillingStatus(row)
+              const tone =
+                row.collection_status === 'paid'
+                  ? 'paid'
+                  : row.collection_status === 'partial'
+                    ? 'partial'
+                    : billing === 'rectified'
+                      ? 'danger'
+                      : billing === 'to_invoice'
+                        ? 'pending'
+                        : 'neutral'
+              return (
+                <li key={row.id}>
+                  <SalesDocCard
+                    title={row.doc_number ?? row.id.slice(0, 8)}
+                    subtitle={
+                      row.client_display_name ||
+                      t('projects.quotes.unknown_client', 'Sense client')
+                    }
+                    amount={`${moneyFmt.format(centsToEuros(row.total_cents))} €`}
+                    amountHint={
+                      row.remaining_cents > 0
+                        ? `${t('projects.collections.remaining', 'Pendent')} ${moneyFmt.format(centsToEuros(row.remaining_cents))} €`
+                        : undefined
+                    }
+                    tone={tone}
+                    active={inspectId === row.id}
+                    onClick={() => setInspectId(row.id)}
+                    badges={
+                      <>
+                        <Badge variant="outline">{billingLabelForSalesRow(billing, t)}</Badge>
+                        <Badge
+                          variant={row.collection_status === 'paid' ? 'default' : 'secondary'}
+                        >
+                          {row.collection_status === 'paid'
+                            ? t('projects.sales.collection_paid', 'Cobrat')
+                            : row.collection_status === 'partial'
+                              ? t('projects.sales.collection_partial', 'Parcial')
+                              : t('projects.sales.collection_pending', 'Pendent de cobrar')}
+                        </Badge>
+                      </>
+                    }
+                    meta={
+                      <>
+                        {row.project_name || '—'}
+                        {row.issued_at
+                          ? ` · ${new Date(row.issued_at).toLocaleDateString('ca-ES')}`
+                          : null}
+                      </>
+                    }
+                  />
+                </li>
+              )
+            })}
+          </ul>
+        )
       ) : null}
 
       {surface === 'notes' && !isSalesHub && !isLoading && items.length === 0 ? (
@@ -1091,7 +1354,11 @@ export function DeliveryNotesList({
           </Button>
         </div>
       ) : null}
+    </>
+  )
 
+  const dialogs = (
+    <>
       {collectRow ? (
         <CollectPaymentDialog
           open
@@ -1282,6 +1549,38 @@ export function DeliveryNotesList({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </>
+  )
+
+  if (!embedded && isSalesHub && viewParam) {
+    return <Navigate to={`/sales/delivery-notes/${viewParam}`} replace />
+  }
+
+  if (useSalesList) {
+    return (
+      <>
+        <PageShell
+          bare
+          toolbar={filtersBlock}
+          inspector={salesInspector}
+          inspectorOpen={Boolean(inspectId)}
+          onInspectorClose={() => setInspectId(null)}
+        >
+          <div className="space-y-3">{listBody}</div>
+        </PageShell>
+        {dialogs}
+      </>
+    )
+  }
+
+  return (
+    <div
+      className={
+        embedded ? 'space-y-3' : 'mx-auto max-w-5xl space-y-5 px-4 py-6'
+      }
+    >
+      {listBody}
+      {dialogs}
     </div>
   )
 }

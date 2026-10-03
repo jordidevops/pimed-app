@@ -245,21 +245,16 @@ export function SalesAccountingPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold">
-          {t('projects.sales.accounting_title', 'Gestoria / export')}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {t(
-            'projects.sales.accounting_help',
-            'Export canònic PiMed (JSON amb CSV). Regenerar crea un lot nou.',
-          )}
-        </p>
-      </div>
+    <div className="app-list-column space-y-6">
+      <p className="text-sm text-muted-foreground">
+        {t(
+          'projects.sales.accounting_help',
+          'Export canònic PiMed (JSON amb CSV). Regenerar crea un lot nou.',
+        )}
+      </p>
 
       <section className="space-y-3 rounded-xl border border-border bg-card p-4">
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="sticky top-0 z-10 -mx-1 mb-1 grid gap-3 rounded-lg bg-card/95 px-1 py-1 backdrop-blur sm:grid-cols-2">
           <label className="space-y-1 text-xs text-muted-foreground">
             <span>{t('projects.collections.filter_issued_from', 'Des de')}</span>
             <Input

@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { PageShell } from '@/components/layout/PageShell'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
@@ -766,23 +767,20 @@ export function MaintenancePlansPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 pb-24">
-      <div>
+    <PageShell
+      className="pb-24"
+      title={t('maintenance.title', 'Plans de manteniment')}
+      subtitle={t(
+        'maintenance.subtitle',
+        'Periodicitat i assignació. El contingut de la visita ve de les plantilles de checklist enganxades al pla.',
+      )}
+      icon={<CalendarClock className="h-5 w-5" aria-hidden />}
+      actions={
         <Link to="/field/more" className="text-sm text-muted-foreground hover:underline">
           ← {t('more.title', 'Més')}
         </Link>
-        <h1 className="mt-1 text-2xl font-bold flex items-center gap-2">
-          <CalendarClock className="h-6 w-6" />
-          {t('maintenance.title', 'Plans de manteniment')}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {t(
-            'maintenance.subtitle',
-            'Periodicitat i assignació. El contingut de la visita ve de les plantilles de checklist enganxades al pla.',
-          )}
-        </p>
-      </div>
-
+      }
+    >
       {!canAssign && !tenantPlansQuery.isLoading && (
         <div className="rounded-xl border border-amber-300/60 bg-amber-50 p-4 dark:bg-amber-950/30">
           <p className="flex items-center gap-2 text-sm font-medium">
@@ -1140,7 +1138,7 @@ export function MaintenancePlansPage() {
           </ul>
         </section>
       )}
-    </div>
+    </PageShell>
   )
 }
 

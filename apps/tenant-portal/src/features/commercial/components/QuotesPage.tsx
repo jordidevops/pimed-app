@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { PageShell } from '@/components/layout/PageShell'
+import { ListViewToggle } from '@/components/layout/ListViewToggle'
+import { FilterChips } from '@/components/layout/FilterChips'
+import { useListViewMode } from '@/hooks/useListViewMode'
+import { useListDensity } from '@/hooks/useListDensity'
+import { SalesDocCard } from './SalesDocCard'
 import { useToast } from '@/hooks/use-toast'
 import { useIsFieldService } from '@/hooks/useSectorLabel'
+import { SalesDataTable, type SalesDataTableColumn } from './SalesDataTable'
 import {
   listPaymentsForDocuments,
   listPrimaryLineNames,
@@ -102,19 +110,31 @@ export function QuotesPage({
   clientName?: string
   embedded?: boolean
 } = {}) {
-  const { t } = useTranslation('projects')
+  const { t } = useTranslation(['projects', 'common'])
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { activeTenant } = useTenant()
   const { data: templates = [] } = useDocumentTemplates(activeTenant?.id)
   const isFieldService = useIsFieldService()
   const projectBase = isFieldService ? '/field/orders' : '/projects'
+  const location = useLocation()
+  const isSalesHub = location.pathname.startsWith('/sales')
   const [searchParams, setSearchParams] = useSearchParams()
+  const { mode: listMode, setMode: setListMode, effectiveMode } = useListViewMode(
+    'sales.quotes',
+    'cards',
+  )
+  const { density, setDensity } = useListDensity('sales.quotes', 'comfortable')
 
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebouncedValue(search, 250)
   const [docType, setDocType] = useState<(typeof DOC_TYPES)[number]>('all')
-  const [status, setStatus] = useState<(typeof STATUSES)[number]>('all')
+  const statusFromUrl = searchParams.get('status')
+  const [status, setStatus] = useState<(typeof STATUSES)[number]>(() =>
+    STATUSES.includes(statusFromUrl as (typeof STATUSES)[number])
+      ? (statusFromUrl as (typeof STATUSES)[number])
+      : 'all',
+  )
   const [issuedFrom, setIssuedFrom] = useState('')
   const [issuedTo, setIssuedTo] = useState('')
   const [expiredOnly, setExpiredOnly] = useState(false)
@@ -153,6 +173,13 @@ export function QuotesPage({
     if (q && !search) setSearch(q)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    const next = searchParams.get('status')
+    if (next && STATUSES.includes(next as (typeof STATUSES)[number])) {
+      setStatus(next as (typeof STATUSES)[number])
+    }
+  }, [searchParams])
 
   function closeView() {
     setViewDocId(null)
@@ -365,77 +392,81 @@ export function QuotesPage({
     }
   }
 
-  return (
-    <div className={embedded ? 'space-y-5' : 'mx-auto max-w-4xl space-y-5 px-4 py-6'}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          {embedded ? (
-            <>
-              <p className="text-sm text-muted-foreground">
-                {clientName
-                  ? t('projects.quotes.scoped_subtitle', 'Documents comercials de {{name}}', {
-                      name: clientName,
-                    })
-                  : t(
-                      'projects.quotes.scoped_subtitle_generic',
-                      'Documents comercials d’aquest client',
-                    )}
-              </p>
-              <Link to={globalQuotesHref} className="text-sm text-indigo-600 hover:underline">
-                {t('projects.quotes.see_all_global', 'Veure tots els pressupostos')}
-              </Link>
-            </>
-          ) : (
-            <>
-              <h1 className="text-2xl font-bold text-foreground">
-                {t('projects.quotes.title', 'Pressupostos')}
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t(
-                  'projects.quotes.subtitle',
-                  'Cerca pressupostos i ampliacions per client, número o text de línia.',
-                )}
-              </p>
-              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                <Link to="/delivery-notes" className="text-sm text-indigo-600 hover:underline">
-                  {t('projects.collections.title', 'Albarans')}
-                </Link>
-                <Link to="/agreements" className="text-sm text-indigo-600 hover:underline">
-                  {t('projects.agreements.open', 'Acords comercials')}
-                </Link>
-                <Link to={QUOTE_TEMPLATES_HREF} className="text-sm text-indigo-600 hover:underline">
-                  {t('projects.quotes.templates_link', 'Plantilles de pressupost')}
-                </Link>
-                <Link
-                  to={commercialTemplatesHref('quote', { create: true })}
-                  className="text-sm text-indigo-600 hover:underline"
-                >
-                  {t('projects.quotes.templates_new', 'Nova plantilla')}
-                </Link>
-              </div>
-            </>
-          )}
-        </div>
-        <Button type="button" className="shrink-0" onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-1.5 h-4 w-4" aria-hidden />
-          {t('projects.quotes.create', 'Nou pressupost')}
-        </Button>
-      </div>
+  const quoteFilterChips = [
+    ...(debouncedSearch.trim()
+      ? [{ key: 'q', label: debouncedSearch.trim(), onRemove: () => setSearch('') }]
+      : []),
+    ...(status !== 'all'
+      ? [
+          {
+            key: 'status',
+            label: statusLabel(status, t),
+            onRemove: () => setStatus('all'),
+          },
+        ]
+      : []),
+    ...(docType !== 'all'
+      ? [
+          {
+            key: 'type',
+            label: docTypeLabel(docType, t),
+            onRemove: () => setDocType('all'),
+          },
+        ]
+      : []),
+    ...(expiredOnly
+      ? [
+          {
+            key: 'expired',
+            label: t('projects.quotes.filter_expired', 'Només caducats'),
+            onRemove: () => setExpiredOnly(false),
+          },
+        ]
+      : []),
+  ]
 
-      <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
-        <label className="relative block">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t(
-              'projects.quotes.search_placeholder',
-              'Client, número, OS o text de línia…',
-            )}
-            aria-label={t('projects.quotes.search_aria', 'Cerca documents comercials')}
+  const quoteToolbar = (
+      <div className={isSalesHub ? 'space-y-3' : 'space-y-3 rounded-2xl border border-border bg-card p-4'}>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="relative block min-w-[12rem] flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t(
+                'projects.quotes.search_placeholder',
+                'Client, número, OS o text de línia…',
+              )}
+              aria-label={t('projects.quotes.search_aria', 'Cerca documents comercials')}
+            />
+          </label>
+          {isSalesHub ? (
+            <ListViewToggle
+              mode={listMode}
+              onModeChange={setListMode}
+              density={density}
+              onDensityChange={setDensity}
+              showDensity={effectiveMode === 'table'}
+            />
+          ) : null}
+          <Button type="button" className="shrink-0" onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" aria-hidden />
+            {t('projects.quotes.create', 'Nou pressupost')}
+          </Button>
+        </div>
+        {isSalesHub ? (
+          <FilterChips
+            chips={quoteFilterChips}
+            clearAllLabel={t('common:list.clear_filters', 'Netejar filtres')}
+            onClearAll={() => {
+              setSearch('')
+              setStatus('all')
+              setDocType('all')
+              setExpiredOnly(false)
+            }}
           />
-        </label>
+        ) : null}
 
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {!embedded && !clientId ? (
@@ -553,7 +584,49 @@ export function QuotesPage({
           {t('projects.quotes.filter_expired', 'Només caducats')}
         </label>
       </div>
+  )
 
+  const quoteColumns = useMemo<SalesDataTableColumn<CommercialDocumentSearchHit>[]>(
+    () => [
+      {
+        id: 'doc',
+        header: t('projects.quotes.title', 'Pressupostos'),
+        cell: (doc) => (
+          <button type="button" className="font-semibold hover:underline" onClick={() => openView(doc.id)}>
+            {docTypeLabel(doc.doc_type, t)} {doc.doc_number ?? '—'}
+          </button>
+        ),
+      },
+      {
+        id: 'client',
+        header: t('projects.quotes.client', 'Client'),
+        cell: (doc) => doc.client_display_name || '—',
+      },
+      {
+        id: 'status',
+        header: t('projects.quotes.filter_status', 'Estat'),
+        cell: (doc) => <Badge variant="outline">{statusLabel(doc.status, t)}</Badge>,
+      },
+      {
+        id: 'total',
+        header: t('projects.commercial.total', 'Total'),
+        className: 'text-right tabular-nums',
+        cell: (doc) => `${moneyFmt.format(Number(doc.total))} €`,
+      },
+      {
+        id: 'date',
+        header: t('projects.collections.issued_on', 'Data'),
+        cell: (doc) => {
+          const dateSource = doc.issued_at ?? doc.created_at
+          return dateSource ? new Date(dateSource).toLocaleDateString('ca-ES') : '—'
+        },
+      },
+    ],
+    [t],
+  )
+
+  const results = (
+    <div className="space-y-4">
       {isLoading && (
         <p className="text-sm text-muted-foreground">
           {t('projects.quotes.loading', 'Carregant…')}
@@ -565,45 +638,153 @@ export function QuotesPage({
         </p>
       )}
       {!isLoading && !error && visibleHits.length === 0 && (
-        <p className="text-sm text-muted-foreground rounded-2xl border border-dashed border-border p-6 text-center">
+        <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
           {t('projects.quotes.empty', 'Cap document no coincideix amb la cerca.')}
         </p>
       )}
 
-      {visibleHits.length > 0 && (
+      {visibleHits.length > 0 && isSalesHub && effectiveMode === 'cards' ? (
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {visibleHits.map((doc) => {
+            const agreement = agreementByQuote.get(doc.id)
+            const tone =
+              doc.status === 'accepted' || doc.status === 'signed'
+                ? 'paid'
+                : doc.status === 'issued'
+                  ? 'pending'
+                  : doc.status === 'rejected' || doc.status === 'cancelled'
+                    ? 'danger'
+                    : doc.status === 'draft'
+                      ? 'draft'
+                      : 'neutral'
+            return (
+              <li key={doc.id}>
+                <SalesDocCard
+                  title={`${docTypeLabel(doc.doc_type, t)} ${doc.doc_number ?? '—'}`}
+                  subtitle={doc.client_display_name || t('projects.quotes.unknown_client', 'Client')}
+                  amount={`${moneyFmt.format(Number(doc.total))} €`}
+                  tone={tone}
+                  onClick={() => openView(doc.id)}
+                  badges={
+                    <>
+                      <Badge variant="outline">{statusLabel(doc.status, t)}</Badge>
+                      <CommercialRelationshipBadges
+                        kinds={commercialRelationshipBadges({
+                          docType: doc.doc_type,
+                          formalizationMode: doc.formalization_mode,
+                          templateId: doc.full_body_template_id,
+                          templateName: doc.full_body_template_id
+                            ? templateNameById.get(doc.full_body_template_id)
+                            : null,
+                          agreementStatus: agreement?.status,
+                          versionStatus: agreement?.versionStatus,
+                        })}
+                      />
+                    </>
+                  }
+                  meta={
+                    <>
+                      {lineNames.get(doc.id) ? `${lineNames.get(doc.id)} · ` : null}
+                      {doc.project_name || '—'}
+                    </>
+                  }
+                  footer={
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openView(doc.id)
+                        }}
+                      >
+                        {t('projects.commercial.view', 'Veure')}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShareDocId(doc.id)
+                        }}
+                      >
+                        {t('projects.commercial.send', 'Enviar')}
+                      </Button>
+                    </div>
+                  }
+                />
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
+
+      {visibleHits.length > 0 && !isSalesHub ? (
         <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
           {visibleHits.map((doc) => {
             const agreement = agreementByQuote.get(doc.id)
             return (
-            <QuoteRow
-              key={doc.id}
-              doc={doc}
-              lineName={lineNames.get(doc.id) ?? null}
-              paidCents={accountedPaidCents(doc, hits, payments)}
-              projectBase={projectBase}
-              badges={commercialRelationshipBadges({
-                docType: doc.doc_type,
-                formalizationMode: doc.formalization_mode,
-                templateId: doc.full_body_template_id,
-                templateName: doc.full_body_template_id
-                  ? templateNameById.get(doc.full_body_template_id)
-                  : null,
-                agreementStatus: agreement?.status,
-                versionStatus: agreement?.versionStatus,
-              })}
-              onView={openView}
-              onShare={setShareDocId}
-              onDuplicate={
-                isCommercialQuoteReissuable(doc)
-                  ? () => setReissueDocId(doc.id)
-                  : undefined
-              }
-            />
+              <QuoteRow
+                key={doc.id}
+                doc={doc}
+                lineName={lineNames.get(doc.id) ?? null}
+                paidCents={accountedPaidCents(doc, hits, payments)}
+                projectBase={projectBase}
+                badges={commercialRelationshipBadges({
+                  docType: doc.doc_type,
+                  formalizationMode: doc.formalization_mode,
+                  templateId: doc.full_body_template_id,
+                  templateName: doc.full_body_template_id
+                    ? templateNameById.get(doc.full_body_template_id)
+                    : null,
+                  agreementStatus: agreement?.status,
+                  versionStatus: agreement?.versionStatus,
+                })}
+                onView={openView}
+                onShare={setShareDocId}
+                onDuplicate={
+                  isCommercialQuoteReissuable(doc)
+                    ? () => setReissueDocId(doc.id)
+                    : undefined
+                }
+              />
             )
           })}
         </ul>
-      )}
+      ) : null}
 
+      {isSalesHub && visibleHits.length > 0 && effectiveMode === 'table' ? (
+        <SalesDataTable
+          columns={quoteColumns}
+          rows={visibleHits}
+          getRowId={(doc) => doc.id}
+          density={density}
+          onRowActivate={(doc) => openView(doc.id)}
+          countLabel={t('common:list.showing_count', 'Mostrant {{shown}} de {{total}}', {
+            shown: visibleHits.length,
+            total: visibleHits.length,
+          })}
+          rowActions={(doc) => [
+            {
+              key: 'view',
+              label: t('projects.commercial.view', 'Veure'),
+              onSelect: () => openView(doc.id),
+            },
+            {
+              key: 'send',
+              label: t('projects.commercial.send', 'Enviar'),
+              onSelect: () => setShareDocId(doc.id),
+            },
+          ]}
+        />
+      ) : null}
+    </div>
+  )
+
+  const dialogs = (
+    <>
       <CreateQuoteDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
@@ -651,6 +832,75 @@ export function QuotesPage({
           onClose={() => setShareDocId(null)}
         />
       )}
+    </>
+  )
+
+  if (isSalesHub) {
+    return (
+      <>
+        <PageShell bare toolbar={quoteToolbar}>
+          {results}
+        </PageShell>
+        {dialogs}
+      </>
+    )
+  }
+
+  return (
+    <div className={embedded ? 'space-y-5' : 'mx-auto max-w-4xl space-y-5 px-4 py-6'}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          {embedded ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                {clientName
+                  ? t('projects.quotes.scoped_subtitle', 'Documents comercials de {{name}}', {
+                      name: clientName,
+                    })
+                  : t(
+                      'projects.quotes.scoped_subtitle_generic',
+                      'Documents comercials d’aquest client',
+                    )}
+              </p>
+              <Link to={globalQuotesHref} className="text-sm text-indigo-600 hover:underline">
+                {t('projects.quotes.see_all_global', 'Veure tots els pressupostos')}
+              </Link>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold text-foreground">
+                {t('projects.quotes.title', 'Pressupostos')}
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t(
+                  'projects.quotes.subtitle',
+                  'Cerca pressupostos i ampliacions per client, número o text de línia.',
+                )}
+              </p>
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                <Link to="/delivery-notes" className="text-sm text-indigo-600 hover:underline">
+                  {t('projects.collections.title', 'Albarans')}
+                </Link>
+                <Link to="/agreements" className="text-sm text-indigo-600 hover:underline">
+                  {t('projects.agreements.open', 'Acords comercials')}
+                </Link>
+                <Link to={QUOTE_TEMPLATES_HREF} className="text-sm text-indigo-600 hover:underline">
+                  {t('projects.quotes.templates_link', 'Plantilles de pressupost')}
+                </Link>
+                <Link
+                  to={commercialTemplatesHref('quote', { create: true })}
+                  className="text-sm text-indigo-600 hover:underline"
+                >
+                  {t('projects.quotes.templates_new', 'Nova plantilla')}
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+      {quoteToolbar}
+      {results}
+      {dialogs}
     </div>
   )
 }

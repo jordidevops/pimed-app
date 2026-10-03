@@ -259,5 +259,16 @@
     "mark_all_read": "Marcar tot llegit",
     "loading": "Carregant...",
     "empty": "Cap notificació"
+  },
+  "list": {
+    "view_label": "Vista",
+    "view_table": "Taula",
+    "view_cards": "Targetes",
+    "density_label": "Densitat",
+    "density_compact": "Compacta",
+    "density_comfortable": "Còmoda",
+    "clear_filters": "Netejar filtres",
+    "open_record": "Obrir fitxa",
+    "showing_count": "Mostrant {{shown}} de {{total}}"
   }
 }

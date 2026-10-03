@@ -1,33 +1,43 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { ScrollableTabBar } from '@/components/ui/scrollable-tab-bar'
+import { underlineTabClass } from '@/components/layout/UnderlineTabs'
 
-const pillClass = ({ isActive }: { isActive: boolean }) =>
-  `rounded-full px-3.5 py-1 text-sm font-medium transition-colors ${
-    isActive
-      ? 'bg-primary text-primary-foreground'
-      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-  }`
+const DOC_TABS = [
+  { key: 'documents', to: '/documents', end: true, labelKey: 'subnav.documents', fallback: 'Documents' },
+  { key: 'signing', to: '/documents/signing', labelKey: 'subnav.signing', fallback: 'Signatures' },
+  { key: 'templates', to: '/documents/templates', labelKey: 'subnav.templates', fallback: 'Plantilles' },
+  { key: 'archived', to: '/documents/archived', labelKey: 'subnav.archived', fallback: 'Arxivats' },
+  { key: 'storage', to: '/documents/storage', labelKey: 'subnav.storage', fallback: 'Emmagatzematge' },
+] as const
 
 export function DocumentsSubNav() {
   const { t } = useTranslation('documents')
+  const { pathname } = useLocation()
+  const activeKey =
+    DOC_TABS.find((tab) =>
+      tab.end
+        ? pathname === tab.to
+        : pathname === tab.to || pathname.startsWith(`${tab.to}/`),
+    )?.key ?? 'documents'
 
   return (
-    <div className="flex gap-1.5 border-b pb-3">
-      <NavLink end to="/documents" className={pillClass}>
-        {t('subnav.documents', 'Documents')}
-      </NavLink>
-      <NavLink to="/documents/signing" className={pillClass}>
-        {t('subnav.signing', 'Signatures')}
-      </NavLink>
-      <NavLink to="/documents/templates" className={pillClass}>
-        {t('subnav.templates', 'Plantilles')}
-      </NavLink>
-      <NavLink to="/documents/archived" className={pillClass}>
-        {t('subnav.archived', 'Arxivats')}
-      </NavLink>
-      <NavLink to="/documents/storage" className={pillClass}>
-        {t('subnav.storage', 'Emmagatzematge')}
-      </NavLink>
-    </div>
+    <ScrollableTabBar
+      activeKey={activeKey}
+      aria-label={t('subnav.label', 'Seccions de documents')}
+      className="border-b border-border"
+    >
+      {DOC_TABS.map((tab) => (
+        <NavLink
+          key={tab.key}
+          to={tab.to}
+          end={'end' in tab ? Boolean(tab.end) : false}
+          data-tab-key={tab.key}
+          className={({ isActive }) => underlineTabClass(isActive)}
+        >
+          {t(tab.labelKey, tab.fallback)}
+        </NavLink>
+      ))}
+    </ScrollableTabBar>
   )
 }

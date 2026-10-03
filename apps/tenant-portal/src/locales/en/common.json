@@ -4,5 +4,16 @@
     "quotes": "Quotes",
     "delivery_notes": "Delivery notes",
     "cobraments": "Delivery notes"
+  },
+  "list": {
+    "view_label": "View",
+    "view_table": "Table",
+    "view_cards": "Cards",
+    "density_label": "Density",
+    "density_compact": "Compact",
+    "density_comfortable": "Comfortable",
+    "clear_filters": "Clear filters",
+    "open_record": "Open record",
+    "showing_count": "Showing {{shown}} of {{total}}"
   }
 }
