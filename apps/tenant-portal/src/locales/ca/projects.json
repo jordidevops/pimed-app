@@ -224,6 +224,9 @@
         "quantity_label": "Quantitat",
         "unit_label": "Unitat",
         "unit_price_label": "Preu unitari",
+        "unit_cost_label": "Cost unitari (€)",
+        "unit_cost_help": "Només visible amb permís de costos. No surt al pressupost ni al PDF.",
+        "cost_invalid": "Cost no vàlid",
         "discount_label": "Descompte (%)",
         "tax_rate_label": "IVA (%)",
         "pricing_locked": "Només l’oficina pot canviar preus, descompte i IVA.",
@@ -233,6 +236,28 @@
         "cancel": "Cancel·lar",
         "save": "Desar"
       }
+    },
+    "profitability": {
+      "title": "Resultat brut",
+      "help": "Ingressos i costos sense IVA. Només visible amb permís de costos.",
+      "load_failed": "No s’ha pogut carregar el resultat brut",
+      "revenue_estimated": "Ingressos estimats",
+      "revenue_real": "Ingressos reals",
+      "gross_estimated": "Resultat brut estimat",
+      "gross_real": "Resultat brut real",
+      "basis_accepted": "Pressupost acceptat (base)",
+      "basis_lines": "Full de preus",
+      "cost_total": "Costos totals",
+      "cost_lines": "Línies (sense hores)",
+      "cost_materials": "Materials",
+      "cost_labor": "Mà d’obra",
+      "cost_expenses": "Despeses",
+      "billed": "Albaranat (info)",
+      "warn_lines_missing": "{{count}} línies sense cost",
+      "warn_materials_missing": "{{count}} materials sense cost",
+      "warn_labor_unavailable": "{{count}} fitxatges sense cost laboral",
+      "warn_open_logs": "{{count}} fitxatges oberts (encara no congelats)",
+      "warn_hour_excluded": "Les línies d’hores no sumen al cost de línies; el cost ve dels fitxatges."
     },
     "commercial": {
       "title": "Documents comercials",

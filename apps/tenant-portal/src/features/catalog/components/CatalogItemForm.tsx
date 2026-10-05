@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -6,17 +6,26 @@ import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { createCatalogItem, updateCatalogItem, type CatalogItem } from '../api/catalogService'
+import {
+  centsToEuros,
+  createCatalogItem,
+  eurosToCents,
+  getCatalogItemFinancials,
+  marginBpsToPercent,
+  percentToMarginBps,
+  setCatalogItemFinancials,
+  suggestPvpEurosFromCost,
+  updateCatalogItem,
+  type CatalogItem,
+} from '../api/catalogService'
 import { unitSelectOptions } from '../unitOptions'
 import { useToast } from '@/hooks/use-toast'
-
-// ─── Schema ───────────────────────────────────────────────────────────────────
+import { usePermission } from '@/hooks/usePermission'
 
 const catalogItemSchema = z.object({
   kind: z.enum(['service', 'product']),
@@ -31,8 +40,6 @@ const catalogItemSchema = z.object({
 
 type CatalogItemFormValues = z.infer<typeof catalogItemSchema>
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
 interface CatalogItemFormProps {
   open: boolean
   onClose: () => void
@@ -43,8 +50,6 @@ interface CatalogItemFormProps {
 
 const TAX_RATE_OPTIONS = [0, 4, 10, 21] as const
 
-// ─── CatalogItemForm ──────────────────────────────────────────────────────────
-
 export function CatalogItemForm({
   open,
   onClose,
@@ -54,6 +59,13 @@ export function CatalogItemForm({
 }: CatalogItemFormProps) {
   const { t } = useTranslation('catalog')
   const { toast } = useToast()
+  const canSeeCost = usePermission('commercial.costs.view', null)
+  const canEditPricing = usePermission('commercial.pricing.edit', null)
+  const [costEuros, setCostEuros] = useState('')
+  const [marginPercent, setMarginPercent] = useState('')
+  const [financialsLoaded, setFinancialsLoaded] = useState(false)
+  const [financialsDirty, setFinancialsDirty] = useState(false)
+  const [financialsLoadFailed, setFinancialsLoadFailed] = useState(false)
 
   const {
     register,
@@ -101,16 +113,74 @@ export function CatalogItemForm({
         category: '',
       })
     }
+    setCostEuros('')
+    setMarginPercent('')
+    setFinancialsLoaded(false)
+    setFinancialsDirty(false)
+    setFinancialsLoadFailed(false)
   }, [open, item, defaultKind, reset])
+
+  useEffect(() => {
+    if (!open || !canSeeCost || !item?.id) {
+      setFinancialsLoaded(true)
+      setFinancialsLoadFailed(false)
+      return
+    }
+    let cancelled = false
+    void getCatalogItemFinancials(item.id)
+      .then((row) => {
+        if (cancelled) return
+        if (row) {
+          setCostEuros(centsToEuros(row.unit_cost_cents))
+          setMarginPercent(marginBpsToPercent(row.target_margin_bps))
+        }
+        setFinancialsLoadFailed(false)
+        setFinancialsLoaded(true)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFinancialsLoadFailed(true)
+          setFinancialsLoaded(true)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, canSeeCost, item?.id])
 
   const kind = watch('kind')
   const unit = watch('unit')
   const unitOptions = unitSelectOptions(unit)
 
+  function handleSuggestPvp() {
+    const cents = eurosToCents(costEuros)
+    const bps = percentToMarginBps(marginPercent)
+    if (cents == null || bps == null) {
+      toast({
+        variant: 'destructive',
+        title: t(
+          'catalog.form.suggest_pvp_need_cost_margin',
+          'Cal cost i marge (0–99%) per suggerir el PVP',
+        ),
+      })
+      return
+    }
+    const suggested = suggestPvpEurosFromCost(cents, bps)
+    if (suggested == null) {
+      toast({
+        variant: 'destructive',
+        title: t('catalog.form.suggest_pvp_failed', 'No s’ha pogut calcular el PVP'),
+      })
+      return
+    }
+    setValue('unit_price', suggested, { shouldDirty: true, shouldValidate: true })
+  }
+
   async function onSubmit(values: CatalogItemFormValues) {
     try {
-      if (item?.id) {
-        await updateCatalogItem(item.id, {
+      let itemId = item?.id ?? null
+      if (itemId) {
+        await updateCatalogItem(itemId, {
           kind: values.kind,
           name: values.name,
           description: values.description || null,
@@ -121,7 +191,7 @@ export function CatalogItemForm({
           category: values.category || null,
         })
       } else {
-        await createCatalogItem({
+        itemId = await createCatalogItem({
           p_kind: values.kind,
           p_name: values.name,
           p_description: values.description || undefined,
@@ -132,6 +202,58 @@ export function CatalogItemForm({
           p_category: values.category || undefined,
         })
       }
+
+      if (canSeeCost && itemId && financialsDirty) {
+        if (financialsLoadFailed && item?.id) {
+          toast({
+            variant: 'destructive',
+            title: t(
+              'catalog.form.financials_load_failed',
+              'No s’han pogut carregar els costos; no s’han modificat',
+            ),
+          })
+          return
+        }
+        const costTrim = costEuros.trim()
+        const marginTrim = marginPercent.trim()
+        if (!costTrim && !marginTrim) {
+          await setCatalogItemFinancials(itemId, { unit_cost_cents: null })
+        } else if (!costTrim) {
+          toast({
+            variant: 'destructive',
+            title: t(
+              'catalog.form.cost_required_for_margin',
+              'El marge requereix un cost unitari',
+            ),
+          })
+          return
+        } else {
+          const cents = eurosToCents(costTrim)
+          if (cents == null) {
+            toast({
+              variant: 'destructive',
+              title: t('catalog.form.cost_invalid', 'Cost no vàlid'),
+            })
+            return
+          }
+          let bps: number | null = null
+          if (marginTrim) {
+            bps = percentToMarginBps(marginTrim)
+            if (bps == null) {
+              toast({
+                variant: 'destructive',
+                title: t('catalog.form.margin_invalid', 'Marge no vàlid (0–99%)'),
+              })
+              return
+            }
+          }
+          await setCatalogItemFinancials(itemId, {
+            unit_cost_cents: cents,
+            target_margin_bps: bps,
+          })
+        }
+      }
+
       toast({ title: t('catalog.form.save', 'Desar') })
       reset()
       onSaved()
@@ -160,7 +282,6 @@ export function CatalogItemForm({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
-          {/* Kind */}
           <div>
             <label className="text-sm font-medium text-foreground block mb-1.5">
               {t('catalog.form.kind_label', 'Tipus')}
@@ -185,7 +306,6 @@ export function CatalogItemForm({
             </div>
           </div>
 
-          {/* Name */}
           <div>
             <label className="text-sm font-medium text-foreground block mb-1.5">
               {t('catalog.form.name_label', 'Nom')}
@@ -199,7 +319,6 @@ export function CatalogItemForm({
             )}
           </div>
 
-          {/* Description */}
           <div>
             <label className="text-sm font-medium text-foreground block mb-1.5">
               {t('catalog.form.description_label', 'Descripció')}
@@ -211,7 +330,6 @@ export function CatalogItemForm({
             />
           </div>
 
-          {/* SKU + Unit in a row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-foreground block mb-1.5">
@@ -236,7 +354,6 @@ export function CatalogItemForm({
             </div>
           </div>
 
-          {/* Unit price + Tax rate in a row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-foreground block mb-1.5">
@@ -247,6 +364,7 @@ export function CatalogItemForm({
                 type="number"
                 step="0.01"
                 min="0"
+                disabled={!canEditPricing && !!item}
                 {...register('unit_price', { valueAsNumber: true })}
               />
               {errors.unit_price && (
@@ -272,7 +390,6 @@ export function CatalogItemForm({
             </div>
           </div>
 
-          {/* Category */}
           <div>
             <label className="text-sm font-medium text-foreground block mb-1.5">
               {t('catalog.form.category_label', 'Categoria')}
@@ -280,7 +397,55 @@ export function CatalogItemForm({
             <Input {...register('category')} />
           </div>
 
-          {/* Actions */}
+          {canSeeCost && financialsLoaded ? (
+            <div className="space-y-3 rounded-lg border border-border p-3">
+              <p className="text-sm font-medium text-foreground">
+                {t('catalog.form.financials_title', 'Costos privats')}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  'catalog.form.financials_hint',
+                  'Només visible amb permís financer. El marge és sobre el preu de venda.',
+                )}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-1.5">
+                    {t('catalog.form.unit_cost_label', 'Cost unitari (€)')}
+                  </label>
+                  <Input
+                    inputMode="decimal"
+                    value={costEuros}
+                    onChange={(e) => {
+                      setCostEuros(e.target.value)
+                      setFinancialsDirty(true)
+                    }}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-1.5">
+                    {t('catalog.form.target_margin_label', 'Marge objectiu (%)')}
+                  </label>
+                  <Input
+                    inputMode="decimal"
+                    value={marginPercent}
+                    onChange={(e) => {
+                      setMarginPercent(e.target.value)
+                      setFinancialsDirty(true)
+                    }}
+                    placeholder="0–99"
+                  />
+                </div>
+              </div>
+              {canEditPricing ? (
+                <Button type="button" variant="outline" size="sm" onClick={handleSuggestPvp}>
+                  {t('catalog.form.suggest_pvp', 'Suggerir PVP')}
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
               {t('catalog.form.cancel', 'Cancel·lar')}

@@ -423,7 +423,7 @@ Partir d’aquest nucli, **no** d’una taula nova `contracte`.
 | **CF-21-e** | ✅ | Vigència operativa: firma → `finalize`; activació per `starts_on`; expire/renew + `auto_renew`; crons | SLA; facturació periòdica; plantilla legal de manteniment; emails d’avís |
 | **CF-21-f** | ✅ | SLA a versions; plantilla «Acord de manteniment»; emails d’avís (`notify_expiring_commercial_agreements`) | Facturació periòdica |
 | **CF-21-g** | ✅ | Regla de facturació + períodes `due`/`invoiced` amb `external_invoice_ref` (sense factura fiscal) | Connector Holded/Quipu (CF-17 📦) |
-| **CF-21-h** | 🔄 | Hardening h0…h7: baseline, idempotència, firma immutable, cicles, billing/jobs, inclusió/render, UX operable | Holded fiscal |
+| **CF-21-h** | ✅ | Hardening h0…h7: baseline, idempotència, firma immutable, cicles, billing/jobs, inclusió/render, UX operable. Reset + suite SQL + smoke TS (2026-10-05) | Holded fiscal (CF-17 📦) |
 
 Checklist original (§11.2, referent):
 
@@ -482,9 +482,10 @@ No cal un epic «finalment fem el PDF QT-D6 amb `contract_document_id` al quote�
 | 2026-09-30 | CF-21-f | SLA + plantilla manteniment + emails d’avís (`20261196000001`). | CF-21-g+ (facturació periòdica) |
 | 2026-10-01 | CF-21-g | Facturació periòdica (`20261197000001`): cadència/import, períodes, mark invoiced amb ref. externa. | CF-21-h (hardening) |
 | 2026-10-01 | CF-21-h0 | Baseline: literals TS, UUIDs SQL, tests d’identitat/context, script `run_commercial_agreement_tests`. | CF-21-h1…h7 |
-| 2026-10-01 | CF-21-h1…h7 | Idempotència tipada + unique quote; firma immutable; cicles operatius; billing race-safe; jobs justos + digests; inclusió determinista + render compensat; cancel/suspend/resume + paginació UI. | Connector fiscal Holded |
+| 2026-10-01 | CF-21-h1…h7 | Idempotència tipada + unique quote; firma immutable; cicles operatius; billing race-safe; jobs justos + digests; inclusió determinista + render compensat; cancel/suspend/resume + paginació UI. | Reset + suite per tancar |
+| 2026-10-05 | CF-21-h | Tancat: `supabase db reset` + `run_commercial_agreement_tests.ps1` (19 SQL PASS, incl. fair jobs multi-tenant) + vitest smoke acords (21). Epic **CF-21** ✅. | CF-22 (obra) o gate/CF-19 al flux; Holded 📦 |
 
-**Fase activa:** CF-21 **hardening en curs** (h0…h7 implementats; cal reset + suite SQL + smoke multi-tenant abans de tancar). Factura fiscal segueix fora (CF-17 📦). Fora: tipus/tags de tenant.
+**Fase activa (pista acords):** **CF-21 tancat**. Següent epic d’aquesta pista: **CF-22** Obra. Factura fiscal Holded segueix fora (CF-17 📦). Fora: tipus/tags de tenant. Producte principal del flux comercial: gate Tall 2→3 / CF-19 (`EXECUTION.md`).
 
 ---
 

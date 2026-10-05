@@ -34,11 +34,12 @@ const moneyFmt = new Intl.NumberFormat('ca-ES', {
 
 interface ProjectLinesSectionProps {
   projectId: string
+  siteId?: string | null
 }
 
 // ─── ProjectLinesSection ──────────────────────────────────────────────────────
 
-export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
+export function ProjectLinesSection({ projectId, siteId }: ProjectLinesSectionProps) {
   const { t } = useTranslation('projects')
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -288,6 +289,7 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
         <div className="rounded-xl border border-border bg-card p-4">
           <ProjectLineForm
             projectId={projectId}
+            siteId={siteId}
             onSaved={handleLineSaved}
             onCancel={() => setAddingLine(false)}
           />
@@ -326,6 +328,7 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
                 <div key={line.id} className="rounded-xl border border-border bg-card p-4">
                   <ProjectLineForm
                     projectId={projectId}
+                    siteId={siteId}
                     line={editLine}
                     onSaved={handleLineSaved}
                     onCancel={() => setEditLine(null)}
@@ -441,6 +444,7 @@ export function ProjectLinesSection({ projectId }: ProjectLinesSectionProps) {
                     <td colSpan={9} className="px-4 py-3">
                       <ProjectLineForm
                         projectId={projectId}
+                        siteId={siteId}
                         line={editLine}
                         onSaved={handleLineSaved}
                         onCancel={() => setEditLine(null)}

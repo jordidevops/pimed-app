@@ -3,18 +3,18 @@
 > **Propòsit:** què s’ha fet als talls de gate (permís financer, cost de materials, despeses `is_billable`/`paid_by`), què falta i **quan** obrir cada peça.
 > **Font del requisit:** [`05-acceptance-and-gates.md`](./05-acceptance-and-gates.md) § Gate Tall 2 → Tall 3.
 > **Ordre global:** [`EXECUTION.md`](./EXECUTION.md).  
-> **Última actualització:** 2026-10-01.
+> **Última actualització:** 2026-10-05.
 
 ## Criteri del gate (quatre ítems)
 
 | Ítem | Requisit | Estat tècnic | Estat d’ús real |
 |------|----------|--------------|-----------------|
-| Qualitat de dades | Hores, materials, km i despeses registrats de manera fiable a feines reals | Parcial (infra OK; falta UAT) | ❌ UAT observada |
-| Materials | Cost i preu de venda separats i **realment omplerts** | ✅ Model + UI | ⚠️ Cal omplir en feines reals |
-| Despeses | Model ampliat amb `is_billable` i `paid_by` | ✅ Model + UI mínima | ⚠️ Cal omplir en feines reals |
+| Qualitat de dades | Hores, materials, km i despeses registrats de manera fiable a feines reals | ✅ Infra + smoke E2E online | ⚠️ Smoke online 2 OS PASS (2026-10-05); multi-dia humà + offline mòbil real + km close-out encara deute |
+| Materials | Cost i preu de venda separats i **realment omplerts** | ✅ Model + UI | ✅ Ompliment PVP+cost verificat a smoke UAT (`gate-tall2-tall3-uat.spec.ts`) |
+| Despeses | Model ampliat amb `is_billable` i `paid_by` | ✅ Model + UI mínima | ✅ Flags omplerts a smoke UAT (imputable + paga empleat) |
 | Permisos | Permís financer definit i provat | ✅ `commercial.costs.view` + tests SQL | ✅ |
 
-El gate **no** es marca ✅ a EXECUTION fins que la qualitat de dades (UAT) i l’ompliment real de cost/PVP/despeses estiguin comprovats. Sense això, CF-20 donaria xifres falses.
+El gate **no** es marca ✅ a EXECUTION fins que la qualitat de dades (UAT) i l’ompliment real de cost/PVP/despeses estiguin comprovats. **2026-10-05:** ompliment ✅; qualitat = smoke online ✅ amb deute multi-dia/offline/km → gate global segueix **⚠️**. Sense això, CF-20 donaria xifres falses.
 
 ---
 
@@ -60,11 +60,17 @@ El gate **no** es marca ✅ a EXECUTION fins que la qualitat de dades (UAT) i l�
 
 ### A. UAT de qualitat de dades (ítem 1 del gate)
 
+**Estat 2026-10-05 — smoke online:** PASS a Volt Serveis (Alice owner), 2 OS, fitxatge iniciar/aturar, material + PVP/cost, despesa imputable + paga empleat, reload sense pèrdua. Artifact: `apps/tenant-portal/tests/gate-tall2-tall3-uat.spec.ts`. SQL: `commercial_costs_material_tests.sql` + `project_expenses_billable_paid_by_tests.sql` PASS.
+
+**Deute residual (no bloqueja CF-19; sí abans de confiar en CF-20):** O5 km close-out; F1–F6 offline mòbil real; observació humana ≥2 dies.
+
+**Guia humana pas a pas (replicar):** [`08b-gate-tall2-tall3-human-uat.md`](./08b-gate-tall2-tall3-human-uat.md) — comptes seed, O1–O7, F1–F6, Dia 2 i full de resultats.
+
 **Què:** En feines reals (o staging amb dades de producció-like), comprovar que hores, materials, km i despeses es registren sense pèrdues ni duplicats; offline de materials/tancament (CF-16) en mòbil real.
 
-**Com:** Checklist manual amb tècnic + oficina (secció següent). No és un epic de schema. Revisar també que cost/PVP de materials i `is_billable`/`paid_by` de despeses s’omplen quan toca (no només que existeixen els camps).
+**Com:** Seguir [`08b`](./08b-gate-tall2-tall3-human-uat.md). Smoke E2E només com a regressió. No és un epic de schema.
 
-**Quan:** **Abans** d’obrir CF-20 (rendibilitat) i preferiblement abans de confiar en CF-19 per decisions de marge. Es pot fer en parallel amb CF-19 si CF-19 no consumeix despeses encara no omplertes.
+**Quan:** **Abans** d’obrir CF-20 (rendibilitat). CF-19 es pot obrir en parallel (ompliment cost/PVP/flags ja verificat al smoke).
 
 #### Checklist UAT (copiar a un ticket / full)
 
@@ -72,48 +78,52 @@ El gate **no** es marca ✅ a EXECUTION fins que la qualitat de dades (UAT) i l�
 
 | # | Pas | Fet |
 |---|-----|-----|
-| P1 | Tenant de camp (p. ex. Volt / Acme staging), 1 owner/manager oficina + 1 member tècnic | ☐ |
-| P2 | 2–3 OS reals o realistes (`work_order`, client + seu, estat executable) | ☐ |
-| P3 | Tècnic amb mòbil (Chrome/PWA); oficina amb escriptori | ☐ |
-| P4 | Anotar hora d’inici de cada sessió i IDs d’OS al full | ☐ |
+| P1 | Tenant de camp (p. ex. Volt / Acme staging), 1 owner/manager oficina + 1 member tècnic | [x] Volt Alice (smoke); humà tècnic+oficina ☐ |
+| P2 | 2–3 OS reals o realistes (`work_order`, client + seu, estat executable) | [x] 2 OS smoke |
+| P3 | Tècnic amb mòbil (Chrome/PWA); oficina amb escriptori | ☐ (smoke = Chromium desktop) |
+| P4 | Anotar hora d’inici de cada sessió i IDs d’OS al full | [x] report Playwright |
 
 **On es registra cada actual avui**
 
 | Actual | On a la UI | Persistència | Nota UAT |
 |--------|------------|--------------|----------|
 | Hores | Fitxar / `WorkLogCard` (iniciar–aturar visita) | `work_logs` (+ cua CF-16 offline) | Durada = check-out − check-in |
-| Km | Close-out / desviacions: línia amb `unit = km` (catals) | `project_lines` via apply actuals | No és EXP mileage; sol ser «Desplaçament» |
+| Km | Close-out / desviacions: línia amb `unit = km` (actuals) | `project_lines` via apply actuals | No és EXP mileage; sol ser «Desplaçament» |
 | Materials | Fer → Materials | `project_materials` (+ cua offline CF-16) | Cost/PVP: oficina amb `costs.view` / `pricing.edit` |
 | Despeses | Fer → Despeses | `project_expenses` via `add_project_expense` | **Només online** en aquest tall |
 
 **Passada online (obligatòria) — 1 OS completa**
 
-| # | Actor | Acció | Criteri d’èxit |
-|---|-------|-------|----------------|
-| O1 | Tècnic | Obrir OS → Fer → Iniciar feina / fitxar | Work log obert visible; timer avança |
-| O2 | Tècnic | Afegir ≥1 material (nom, qty, unitat) | Apareix a la llista; després de refresh segueix |
-| O3 | Tècnic | Afegir ≥1 despesa (import, descripció; provar billable + paid_by empleat) | Llista amb badges; refresh OK |
-| O4 | Tècnic | Aturar fitxatge / tancar interval | Hores acumulades coherents amb el rellotge |
-| O5 | Tècnic | Tancar visita (close-out): aplicar hores i **km** si el flux ho demana | Línies `h` / `km` actualitzades; sense error silenciós |
-| O6 | Oficina | Obrir la mateixa OS: materials (PVP + cost si manager), despeses, temps | Mateixes quantitats; cost només si té `costs.view` |
-| O7 | Qualsevol | Recarregar pàgina / altra pestanya | Cap pèrdua ni duplicat de material/despesa/work log |
+| # | Actor | Acció | Criteri d’èxit | 2026-10-05 |
+|---|-------|-------|----------------|------------|
+| O1 | Tècnic | Obrir OS → Fer → Iniciar feina / fitxar | Work log obert visible; timer avança | [x] smoke |
+| O2 | Tècnic | Afegir ≥1 material (nom, qty, unitat) | Apareix a la llista; després de refresh segueix | [x] smoke |
+| O3 | Tècnic | Afegir ≥1 despesa (import, descripció; provar billable + paid_by empleat) | Llista amb badges; refresh OK | [x] smoke |
+| O4 | Tècnic | Aturar fitxatge / tancar interval | Hores acumulades coherents amb el rellotge | [x] smoke |
+| O5 | Tècnic | Tancar visita (close-out): aplicar hores i **km** si el flux ho demana | Línies `h` / `km` actualitzades; sense error silenciós | ☐ |
+| O6 | Oficina | Obrir la mateixa OS: materials (PVP + cost si manager), despeses, temps | Mateixes quantitats; cost només si té `costs.view` | [x] Alice owner |
+| O7 | Qualsevol | Recarregar pàgina / altra pestanya | Cap pèrdua ni duplicat de material/despesa/work log | [x] smoke |
 
 **Passada offline (recomanada; tanca també deute CF-16)** — veure també gate CF-16 a [`05-acceptance-and-gates.md`](./05-acceptance-and-gates.md)
 
-| # | Acció | Criteri d’èxit |
-|---|-------|----------------|
-| F1 | Online: obrir OS; després mode avió / tallar xarxa | UI honest (pending / no promet sync impossible) |
-| F2 | Registrar material i/o actuals km/hores segons el que CF-16 cobreixi | Op local visible; no esborra al refresh soft |
-| F3 | Intentar despesa offline | Ha de **fallar clar** o no oferir-se (encara no hi ha cua); no inventar fila fantasma |
-| F4 | Tancar visita offline si el producte ho permet | Estat `local_pending` / similar; sense albarà creat |
-| F5 | Recuperar xarxa + Forçar sync / drain | Una sola aplicació per `client_op_id`; sense duplicats |
-| F6 | Dues pestanyes / reintent | Idempotència: mateix material no es crea dues vegades |
+| # | Acció | Criteri d’èxit | 2026-10-05 |
+|---|-------|----------------|------------|
+| F1 | Online: obrir OS; després mode avió / tallar xarxa | UI honest (pending / no promet sync impossible) | ☐ |
+| F2 | Registrar material i/o actuals km/hores segons el que CF-16 cobreixi | Op local visible; no esborra al refresh soft | ☐ |
+| F3 | Intentar despesa offline | Ha de **fallar clar** o no oferir-se (encara no hi ha cua); no inventar fila fantasma | ☐ |
+| F4 | Tancar visita offline si el producte ho permet | Estat `local_pending` / similar; sense albarà creat | ☐ |
+| F5 | Recuperar xarxa + Forçar sync / drain | Una sola aplicació per `client_op_id`; sense duplicats | ☐ |
+| F6 | Dues pestanyes / reintent | Idempotència: mateix material no es crea dues vegades | ☐ |
 
-**Fiabilitat = passar tot això en ≥2 OS i ≥2 dies** (no només un demo feliç).
+**Fiabilitat = passar tot això en ≥2 OS i ≥2 dies** (no només un demo feliç). Smoke: **2 OS / 1 dia**.
 
 **Registre del resultat**
 
-Anota al ticket (o a STATUS): data, tenants, IDs d’OS, dispositiu, bugs trobats, i si el gate passa a ✅ o queda ⚠️ amb deute explícit. Quan passi: actualitzar la fila «Qualitat de dades» a aquest fitxer i a [`05-acceptance-and-gates.md`](./05-acceptance-and-gates.md).
+| Data | Tenant | Actor | Resultat | Bugs |
+|------|--------|-------|----------|------|
+| 2026-10-05 | Volt Serveis | Alice (E2E Chromium) | Online O1–O4, O6–O7 PASS ×2 OS; O5/F*/multi-dia pendent | Cap |
+
+Quan el deute residual passi: actualitzar la fila «Qualitat de dades» a aquest fitxer i a [`05-acceptance-and-gates.md`](./05-acceptance-and-gates.md) i marcar el gate ✅ a EXECUTION.
 
 **Què no cal per aquesta UAT**
 
@@ -123,17 +133,19 @@ Anota al ticket (o a STATUS): data, tenants, IDs d’OS, dispositiu, bugs trobat
 
 ### B. CF-19 — Costos privats de catàleg / línies
 
+**Estat:** ✅ (2026-10-05)
+
 **Què:** `catalog_item_financials` i `project_line_financials`; marge objectiu com a suggeriment de PVP; mai columnes de cost a vistes obertes (CF-D7). Reutilitza `commercial.costs.view`.
 
-**Com:** Epic a [`04-phases-and-backlog.md`](./04-phases-and-backlog.md); el tall de materials del gate **no** tanca CF-19.
-
-**Quan:** Següent epic de Tall 3 quan el gate estigui prou verd (permís + materials + despeses model ✅; UAT en curs o acordada). No bloquejar CF-19 només perquè EXP no existeixi.
+**Fet:** migració `20261221000001`; helper DEFINER `copy_catalog_cost_to_line` des d’apply/upsert; RPCs patch INVOKER; UI formulari catàleg (cost+marge+suggest PVP) i línia (cost amb `costs.view`+seu); SQL `commercial_cf19_financials_tests.sql`; types regenerats. El tall de materials del gate **no** substitueix CF-19.
 
 ### C. CF-20 — Resultat brut
 
-**Què:** Resultat brut estimat/real; cost laboral congelat; agregació materials (cost vs PVP) + despeses billable.
+**Estat:** ✅ (2026-10-05) — codi; confiar xifres quan UAT residual ✅
 
-**Quan:** **Després** de CF-19 i amb dades d’execució fiables (UAT A). Sense `is_billable`/`paid_by` i cost separat, les xifres serien falses — ja cobert al model; falta l’ompliment real.
+**Què:** Resultat brut estimat/real; cost laboral congelat; agregació materials (cost vs PVP) + despeses (regla 2A).
+
+**Fet:** `20261223000001` — `work_log_labor_costs` + freeze a `stop_work_log` + backfill; RPC `get_project_profitability_summary` (ingressos ex-VAT; cost línies exclou `unit=h`; despeses company / employee no-billable); UI card gated; SQL tests. Hardening `20261224000001` (Madrid TZ, accepted docs, coverage missing freeze, immutable). El deute residual de qualitat (km/offline/multi-dia) segueix abans de confiar les xifres en producció.
 
 ### D. Mòdul EXP (despeses d’empleat)
 
@@ -157,10 +169,10 @@ Anota al ticket (o a STATUS): data, tenants, IDs d’OS, dispositiu, bugs trobat
 ## Ordre recomanat d’ara endavant
 
 ```text
-1. UAT gate (hores/materials/km/despeses + omplir cost/PVP i flags despesa)   ← pot ser paral·lel
-2. CF-19 costos de catàleg/línia                                              ← següent epic producte
-3. CF-20 resultat brut                                                        ← després CF-19 + UAT
-4. EXP EX0…                                                                   ← pista separada, quan calgui producte despeses
+1. UAT gate residual (O5 km + offline mòbil + multi-dia)   ← per confiar xifres CF-20
+2. CF-19 costos de catàleg/línia                            ← ✅
+3. CF-20 resultat brut                                      ← ✅
+4. EXP EX0… / CF-22                                         ← pistes separades
 ```
 
 ## Fitxers clau
@@ -172,4 +184,6 @@ Anota al ticket (o a STATUS): data, tenants, IDs d’OS, dispositiu, bugs trobat
 | Despeses UI | `apps/tenant-portal/src/features/field-service/components/ProjectExpensesSection.tsx` |
 | Migració costs | `supabase/migrations/20261213000001_commercial_costs_view_material_costs.sql` |
 | Migració despeses | `supabase/migrations/20261215000001_project_expenses_billable_paid_by.sql` |
+| Smoke UAT E2E | `apps/tenant-portal/tests/gate-tall2-tall3-uat.spec.ts` |
+| Guia UAT humana | [`08b-gate-tall2-tall3-human-uat.md`](./08b-gate-tall2-tall3-human-uat.md) |
 | Pla EXP (futur) | `docs/plans/expenses/` |

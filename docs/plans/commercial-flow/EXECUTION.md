@@ -3,9 +3,9 @@
 > **Rol:** única font de veritat de l'ordre d'implementació i del treball pendent
 > **Creat:** 2026-09-10
 > **Pla:** [`README.md`](./README.md) · estat per epic: [`STATUS.md`](./STATUS.md)
-> **Fase activa (producte en curs):** Gate Tall 2→3 UAT dades / **CF-19** Costos privats — [`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md).
+> **Fase activa (producte en curs):** Gate Tall 2→3 UAT residual ⚠️ / pista acords **CF-22** — CF-20 ✅ ([`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md)).
 > **Anterior:** **CF-26** + **CF-27** ✅ — hub Albarans + Comercial `/sales` ([`07`](./07-collections-and-ar-hub.md), [`09`](./09-sales-comercial/README.md))
-> **Altres:** **CF-19** (gate parcial — [`08`](./08-gate-tall2-tall3.md)); Gate Tall 1→2 diferit; CF-16 UAT offline; Stripe/Holded API 📦; signatura formal 📦; modes quote-first 📦 [`06`](./06-sales-entry-modes-quote-first.md); **CF-25-b** 📦
+> **Altres:** **CF-21** ✅ (pista acords); **CF-22** ❌; Gate Tall 1→2 diferit; CF-16 UAT offline; Stripe/Holded API 📦; signatura formal 📦; modes quote-first 📦 [`06`](./06-sales-entry-modes-quote-first.md); **CF-25-b** 📦
 
 ## Disciplina
 
@@ -44,10 +44,10 @@
 | 19 | **CF-18** Render amb plantilles | ✅ | PDF de marca via camí propi; signatura formal 📦 |
 | 19b | **CF-26** Hub d'Albarans | ✅ | UAT oficina/camp OK. Spec [`07`](./07-collections-and-ar-hub.md). CF-25-b 📦 |
 | 19c | **CF-27** Comercial `/sales` | ✅ | Factures natives, sèries, gestoria, export ZIP, UAT 3 perfils. [`09`](./09-sales-comercial/README.md) · [`LOG`](./09-sales-comercial/IMPLEMENTATION-LOG.md) |
-| — | *Gate Tall 2 → Tall 3* | ⚠️ | Model: permís + cost material + despeses flags ✅; UAT dades ❌ — [`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md) |
-| 20 | **CF-19** Costos privats | ❌ | Catàleg/línies; reutilitza `commercial.costs.view` |
-| 21 | **CF-20** Rendibilitat | ❌ | |
-| 22 | **CF-21** Manteniment contractual | ⚠️ | **CF-21-a…g** implementats; **CF-21-h** hardening en curs (baseline, idempotència, cicles, billing/jobs, seguretat, UX). Factura fiscal Holded 📦 |
+| — | *Gate Tall 2 → Tall 3* | ⚠️ | Model + ompliment smoke ✅; UAT residual (km/offline/multi-dia) ❌ — [`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md) |
+| 20 | **CF-19** Costos privats | ✅ | `catalog_item_financials` / `project_line_financials`; copy DEFINER; UI formulari + suggest PVP; SQL `commercial_cf19_financials_tests.sql` |
+| 21 | **CF-20** Rendibilitat | ✅ | `work_log_labor_costs` + freeze; `get_project_profitability_summary` ex-VAT; UI card; SQL `commercial_cf20_profitability_tests.sql` |
+| 22 | **CF-21** Manteniment contractual | ✅ | a…h tancats (2026-10-05): reset + suite SQL + smoke TS. Factura fiscal Holded 📦. Pla: [`commercial-agreements`](../commercial-agreements/pla-pressupost-contracte-acords.md) |
 | 23 | **CF-22** Obra i instal·lació | ❌ | |
 
 ---
@@ -114,7 +114,31 @@ Cada epic tancat afegeix aquí una entrada amb data, abast real i desviacions re
 | 2026-10-03 | CF-27 | `/sales` factures natives, allocations, sèries/FY, gestoria+export ZIP, fitxes/PDF, `getSessionAppMetadata`, migracions `000001`–`000009`, UAT oficina/gestoria/camp | Sèries write UI; adaptadors ERP; worker storage ZIP; escala EXPLAIN documentada |
 | 2026-10-03 | CF-26 UAT + fix | Cobrament camp, factura `F-2026-0019`, Rectificar al menú hub; `000010` draft sense línies + cancel draft | Seeds A-CF25-* amb línies; CF-25-b |
 | 2026-10-03 | CF-27 bugfix | `000011`: issue atòmic + orphan resume; export `client_op_id`; member sense `invoices.*` heretat; badge draft; `clientOpId` per intent | Re-login JWT members; UAT anul·lar/FY diferits |
+| 2026-10-05 | CF-21-h | Reset local + suite `run_commercial_agreement_tests` (19 SQL PASS) + vitest smoke acords (21). Epic CF-21 tancat | Holded 📦; CF-22 |
+| 2026-10-05 | Gate T2→T3 UAT | Smoke online Volt 2 OS (`gate-tall2-tall3-uat.spec.ts`) + SQL costs/despeses PASS; ompliment PVP/cost/flags ✅ | O5 km; F*; multi-dia humà — guia [`08b`](./08b-gate-tall2-tall3-human-uat.md) |
+| 2026-10-05 | **CF-19** | `20261221000001` financials + copy DEFINER; UI catàleg/línies `costs.view`; suggest PVP; SQL `commercial_cf19_financials_tests.sql`; types regenerats | **CF-20**; UAT gate residual ⚠️ |
+| 2026-10-05 | **CF-19** fix | `20261222000001`: cost a copy/IA paths; harden copy; upsert retry; UI dirty; tests ampliat + vitest | — |
+| 2026-10-05 | **CF-20** | `20261223000001`: labor freeze + summary 1A/2A ex-VAT (línies `h` excloses del cost de línies); UI Resultat brut; SQL PASS; types | UAT gate residual per confiar xifres |
+| 2026-10-05 | **CF-20 hardening** | `20261224000001`: freeze date Europe/Madrid; `real_basis` per docs acceptats (incl. subtotal 0); coverage closed sense freeze; REVOKE freeze helpers; UPDATE immutable | — |
 
+
+## Fase tancada: CF-20 Rendibilitat
+
+Fet: migració `20261223000001` — `work_log_labor_costs` + `freeze_work_log_labor_cost` a `stop_work_log` (incl. duplicate) + backfill; `get_project_profitability_summary` (ingressos ex-VAT: `line_net` / subtotals acceptats; cost línies exclou `unit=h`; despeses 2A; coverage); UI `ProjectProfitabilityCard` gated; SQL `commercial_cf20_profitability_tests.sql`; types. Copy: «resultat brut», mai «benefici net». Cost d’execució únic per estimat/real (diferència = ingressos). Hardening `20261224000001`: data freeze Europe/Madrid; `real_basis` per existència de docs acceptats; coverage inclou closed sense fila; helpers freeze sense EXECUTE a authenticated; UPDATE immutable.
+
+**Fora d'abast:** EXP, cost a PDF, backfill materials, offline cost snapshot. UAT gate residual ⚠️ abans de confiar xifres en producció.
+
+## Fase tancada: CF-19 Costos privats
+
+Fet: migració `20261221000001` + fix `20261222000001` (`catalog_item_financials`, `project_line_financials`, RLS/vistas `api.*`, patch INVOKER, copy DEFINER a apply/upsert/**copy_project_lines**/**apply_price_sheet**); UI formulari catàleg (dirty-check, sense wipe accidental) i línia (cost amb `costs.view` + seu); conversió €↔cents + vitest; SQL ampliat (member upsert, cross-tenant, copy paths); types portal + `_shared`. Cap leak a vistes obertes / PDF (CF-D7).
+
+**Fora d'abast:** EXP, offline materials, backfill històric, cost a documents comercials.
+
+## Fase tancada: CF-21 Manteniment contractual
+
+Fet (a…h): vigència, cobertura/plans, inclusió OS, framework, cicles, SLA/emails, billing periòdic (ref. externa), hardening h0…h7 (`20261198`–`20261204`). Verificat 2026-10-05 amb `db reset` + suite SQL completa + smoke TS. Detall: [`../commercial-agreements/pla-pressupost-contracte-acords.md`](../commercial-agreements/pla-pressupost-contracte-acords.md).
+
+**Fora d'abast (📦):** connector fiscal Holded/Quipu (CF-17).
 
 ## Fase tancada: CF-27 Comercial `/sales`
 
@@ -139,6 +163,8 @@ Fet: `20261196000001` SLA a versions, plantilla manteniment, `notify_expiring_co
 
 Fet: `20261197000001` cadència/import a versions, ledger de períodes, cron `generate_due_agreement_billing_periods`, mark/skip amb `external_invoice_ref`. Sense factura fiscal a PiMed.
 
-## CF-21-h (hardening)
+## Fase tancada: CF-21-h (hardening)
 
-Implementat h0…h7 (migracions `20261198`–`20261204`): baseline, idempotència/unicitat, evidència de firma, cicles operatius, billing race-safe, jobs multi-tenant + digest, inclusió/render, lifecycle UI + paginació. Script: `supabase/tests/run_commercial_agreement_tests.{sh,ps1}`. CF-21 resta ⚠️ fins passar reset + suite completa.
+Fet h0…h7 (migracions `20261198`–`20261204`): baseline, idempotència/unicitat, evidència de firma, cicles operatius, billing race-safe, jobs multi-tenant + digest, inclusió/render, lifecycle UI + paginació.
+
+**Verificació (2026-10-05):** `npx supabase db reset` + `supabase/tests/run_commercial_agreement_tests.ps1` → 19 fitxers SQL PASS (incl. fair jobs multi-tenant); vitest smoke acords 21/21. Epic **CF-21** ✅.

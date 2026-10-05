@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { Database } from '@/types/database.types'
+import type { Database, Json } from '@/types/database.types'
 
 export type CatalogItem = Database['api']['Views']['catalog_items']['Row']
 
@@ -72,3 +72,42 @@ export async function deactivateCatalogItem(id: string): Promise<void> {
   const { error } = await supabase.rpc('deactivate_catalog_item', { p_id: id })
   if (error) throw error
 }
+
+// ─── CF-19 private financials ─────────────────────────────────────────────────
+
+export type CatalogItemFinancials =
+  Database['api']['Views']['catalog_item_financials']['Row']
+
+export async function getCatalogItemFinancials(
+  catalogItemId: string,
+): Promise<CatalogItemFinancials | null> {
+  const { data, error } = await supabase
+    .from('catalog_item_financials')
+    .select('catalog_item_id, tenant_id, unit_cost_cents, target_margin_bps, updated_at')
+    .eq('catalog_item_id', catalogItemId)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
+export async function setCatalogItemFinancials(
+  catalogItemId: string,
+  patch: { unit_cost_cents?: number | null; target_margin_bps?: number | null },
+): Promise<void> {
+  const body: Record<string, number | null> = {}
+  if ('unit_cost_cents' in patch) body.unit_cost_cents = patch.unit_cost_cents ?? null
+  if ('target_margin_bps' in patch) body.target_margin_bps = patch.target_margin_bps ?? null
+  const { error } = await supabase.rpc('set_catalog_item_financials', {
+    p_catalog_item_id: catalogItemId,
+    p_patch: body as Json,
+  })
+  if (error) throw error
+}
+
+export {
+  centsToEuros,
+  eurosToCents,
+  marginBpsToPercent,
+  percentToMarginBps,
+  suggestPvpEurosFromCost,
+} from './catalogMoney'

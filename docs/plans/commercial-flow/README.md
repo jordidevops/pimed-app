@@ -17,6 +17,7 @@
 | [07-collections-and-ar-hub.md](./07-collections-and-ar-hub.md) | **CF-26:** hub d'Albarans `/delivery-notes` — comportament + **taula fet/pendent** (UAT i types encara oberts) |
 | [07b-albara-out-of-scope.md](./07b-albara-out-of-scope.md) | **CF-26 fora d’abast** (actualitzat amb què entra a CF-27): Verifactu, selector quantitats, crèdit post-rectify, API Holded/Quipu, adaptadors Sage sense fixture |
 | [08-gate-tall2-tall3.md](./08-gate-tall2-tall3.md) | Gate Tall 2→3: permís, cost materials, despeses flags — fet / pendent / quan |
+| [08b-gate-tall2-tall3-human-uat.md](./08b-gate-tall2-tall3-human-uat.md) | **UAT humana pas a pas** (comptes, O1–O7, offline F*, Dia 2, full de resultats) |
 | [09-sales-comercial/](./09-sales-comercial/README.md) | **CF-27 ✅:** `/sales` factures natives, sèries, gestoria, export ZIP — [`LOG`](./09-sales-comercial/IMPLEMENTATION-LOG.md) |
 | [EXECUTION.md](./EXECUTION.md) | Font de veritat de l'ordre real de treball |
 | [STATUS.md](./STATUS.md) | Estat per epic; actualitzar durant la implementació |

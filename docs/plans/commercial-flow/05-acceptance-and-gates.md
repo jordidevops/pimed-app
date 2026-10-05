@@ -105,16 +105,17 @@ La cobertura automàtica no substitueix una UAT offline real en mòbil; fins lla
 
 ## Gate Tall 2 → Tall 3
 
-| Ítem | Requisit | Estat (2026-10-01) |
+| Ítem | Requisit | Estat (2026-10-05) |
 |------|----------|--------------------|
-| Qualitat de dades | Hores, materials, km i despeses registrats de manera fiable a feines reals | ⚠️ Infra OK; **UAT observada pendent** |
-| Materials | Cost i preu de venda separats i realment omplerts | ✅ Separats (cost privat + PVP); ⚠️ ompliment real = UAT |
-| Despeses | Model ampliat amb `is_billable` i `paid_by` | ✅ Columnes + UI mínima a l’ordre |
+| Qualitat de dades | Hores, materials, km i despeses registrats de manera fiable a feines reals | ⚠️ Smoke online 2 OS PASS; multi-dia/offline/km pendent — [`08`](./08-gate-tall2-tall3.md) |
+| Materials | Cost i preu de venda separats i realment omplerts | ✅ Separats + ompliment smoke UAT |
+| Despeses | Model ampliat amb `is_billable` i `paid_by` | ✅ Columnes + UI + flags omplerts al smoke |
 | Permisos | Permís financer definit i provat | ✅ `commercial.costs.view` + tests SQL |
 
-Detall d’implementació, deute i ordre següent: [`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md).
+Detall d’implementació, deute i ordre següent: [`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md).  
+Passada humana pas a pas: [`08b-gate-tall2-tall3-human-uat.md`](./08b-gate-tall2-tall3-human-uat.md).
 
-Sense UAT de dades i sense omplir cost/PVP/flags en feines reals, la rendibilitat del Tall 3 (CF-20) donaria xifres falses, cosa pitjor que no donar-ne cap.
+Ompliment cost/PVP/flags verificat (smoke). Sense tancar el deute residual de qualitat, la rendibilitat del Tall 3 (CF-20) encara pot mentir; CF-19 es pot obrir.
 
 ## Acceptació del Tall 3
 

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -7,7 +8,13 @@ import { useTenant } from '@/contexts/TenantContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { getCatalogItems, type CatalogItem } from '@/features/catalog/api/catalogService'
+import {
+  centsToEuros,
+  eurosToCents,
+  getCatalogItemFinancials,
+  getCatalogItems,
+  type CatalogItem,
+} from '@/features/catalog/api/catalogService'
 import {
   DISCOUNT_CHIPS,
   formatQuantityChip,
@@ -18,6 +25,10 @@ import { generateClientOpId } from '@/features/attendance/api/clientOpId'
 import { usePermission } from '@/hooks/usePermission'
 import { usePriceSheetTitle } from '@/hooks/useSectorLabel'
 import { priceSheetRpcErrorCopy, priceSheetRpcErrorTitle } from '@/features/commercial/utils/rpcError'
+import {
+  getProjectLineFinancials,
+  setProjectLineFinancials,
+} from '@/features/projects/api/lineFinancialsService'
 import type { Database } from '@/types/database.types'
 
 type ProjectLine = Database['api']['Views']['project_lines']['Row']
@@ -42,6 +53,7 @@ type LineFormValues = z.infer<typeof lineSchema>
 
 interface ProjectLineFormProps {
   projectId: string
+  siteId?: string | null
   line?: ProjectLine | null
   onSaved: () => void
   onCancel: () => void
@@ -63,12 +75,22 @@ const moneyFmt = new Intl.NumberFormat('ca-ES', { minimumFractionDigits: 2, maxi
 
 // ─── ProjectLineForm ──────────────────────────────────────────────────────────
 
-export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectLineFormProps) {
+export function ProjectLineForm({
+  projectId,
+  siteId,
+  line,
+  onSaved,
+  onCancel,
+}: ProjectLineFormProps) {
   const { t } = useTranslation('projects')
   const { toast } = useToast()
   const { activeTenant } = useTenant()
   const canEditPricing = usePermission('commercial.pricing.edit')
+  const canSeeCost = usePermission('commercial.costs.view', siteId ?? null)
   const priceSheetTitle = usePriceSheetTitle()
+  const [costEuros, setCostEuros] = useState('')
+  const [costDirty, setCostDirty] = useState(false)
+  const [costLoaded, setCostLoaded] = useState(!line?.id)
 
   const { data: catalogItems = [] } = useQuery<CatalogItem[]>({
     queryKey: ['catalog_items', activeTenant?.id],
@@ -108,6 +130,26 @@ export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectL
         },
   })
 
+  useEffect(() => {
+    setCostEuros('')
+    setCostDirty(false)
+    setCostLoaded(!line?.id || !canSeeCost)
+    if (!line?.id || !canSeeCost) return
+    let cancelled = false
+    void getProjectLineFinancials(line.id)
+      .then((row) => {
+        if (cancelled) return
+        if (row) setCostEuros(centsToEuros(row.unit_cost_cents))
+        setCostLoaded(true)
+      })
+      .catch(() => {
+        if (!cancelled) setCostLoaded(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [line?.id, canSeeCost])
+
   const watchedValues = watch()
   const unitOptions = unitSelectOptions(watchedValues.unit)
   const quantityChips = quantityChipsForUnit(watchedValues.unit)
@@ -132,6 +174,22 @@ export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectL
         if (found.tax_rate != null) setValue('tax_rate', found.tax_rate)
         if (found.kind) setValue('kind', found.kind)
       }
+      // Preview catalog cost for office; do not mark dirty — DEFINER copy seeds on insert.
+      if (canSeeCost && !line?.id) {
+        void getCatalogItemFinancials(selectedId)
+          .then((row) => {
+            if (row) setCostEuros(centsToEuros(row.unit_cost_cents))
+            else setCostEuros('')
+            setCostDirty(false)
+            setCostLoaded(true)
+          })
+          .catch(() => {
+            /* keep empty preview */
+          })
+      }
+    } else if (canSeeCost && !line?.id) {
+      setCostEuros('')
+      setCostDirty(false)
     }
   }
 
@@ -152,6 +210,25 @@ export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectL
       })
       return
     }
+
+    let costPatch: { unit_cost_cents: number | null } | null = null
+    if (canSeeCost && costDirty) {
+      const trim = costEuros.trim()
+      if (!trim) {
+        costPatch = { unit_cost_cents: null }
+      } else {
+        const cents = eurosToCents(trim)
+        if (cents == null) {
+          toast({
+            variant: 'destructive',
+            title: t('projects.lines.form.cost_invalid', 'Cost no vàlid'),
+          })
+          return
+        }
+        costPatch = { unit_cost_cents: cents }
+      }
+    }
+
     try {
       const { supabase } = await import('@/lib/supabase')
       const params = {
@@ -170,8 +247,12 @@ export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectL
         p_notes: values.notes ?? undefined,
         p_client_op_id: line?.id ? undefined : generateClientOpId(),
       }
-      const { error } = await supabase.rpc('upsert_project_line', params)
+      const { data: lineId, error } = await supabase.rpc('upsert_project_line', params)
       if (error) throw error
+      const savedLineId = (lineId as string | null) ?? line?.id ?? null
+      if (costPatch && savedLineId) {
+        await setProjectLineFinancials(savedLineId, costPatch)
+      }
       onSaved()
     } catch (err) {
       const copy = priceSheetRpcErrorCopy(err, priceSheetTitle)
@@ -324,6 +405,36 @@ export function ProjectLineForm({ projectId, line, onSaved, onCancel }: ProjectL
           )}
         </div>
       </div>
+
+      {/* Cost (office only — never on list/PDF) */}
+      {canSeeCost && costLoaded ? (
+        <div>
+          <label
+            htmlFor="pf-unit-cost"
+            className="text-sm font-medium text-foreground block mb-1.5"
+          >
+            {t('projects.lines.form.unit_cost_label', 'Cost unitari (€)')}
+          </label>
+          <Input
+            id="pf-unit-cost"
+            type="number"
+            step="0.01"
+            min="0"
+            value={costEuros}
+            onChange={(e) => {
+              setCostEuros(e.target.value)
+              setCostDirty(true)
+            }}
+            placeholder="0.00"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t(
+              'projects.lines.form.unit_cost_help',
+              'Només visible amb permís de costos. No surt al pressupost ni al PDF.',
+            )}
+          </p>
+        </div>
+      ) : null}
 
       {/* Discount + Tax rate */}
       <div className="grid grid-cols-2 gap-3">

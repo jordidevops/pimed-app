@@ -88,6 +88,7 @@ import {
   type ServiceMode,
 } from '@/features/commercial/utils/commercialRegimePolicy'
 import { ProjectCommercialPanel } from '@/features/commercial/components/ProjectCommercialPanel'
+import { ProjectProfitabilityCard } from '@/features/commercial/components/ProjectProfitabilityCard'
 import {
   ProjectAgreementsSection,
   useProjectAgreementGate,
@@ -1409,8 +1410,9 @@ export function ProjectDetailPage() {
 
         <TabsContent value="prepare" className="space-y-4">
           <section className="rounded-xl border border-border p-4 sm:p-5">
-            <ProjectLinesSection projectId={project.id!} />
+            <ProjectLinesSection projectId={project.id!} siteId={project.site_id} />
           </section>
+          <ProjectProfitabilityCard projectId={project.id!} siteId={project.site_id} />
           {isFieldService && (
             <ProjectCommercialPanel
               projectId={project.id!}
