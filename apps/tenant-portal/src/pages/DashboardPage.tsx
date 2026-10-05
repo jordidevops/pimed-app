@@ -1,7 +1,8 @@
 import { useAuth } from '../contexts/AuthContext'
 import { useTenant } from '../contexts/TenantContext'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useIsFieldService } from '@/hooks/useSectorLabel'
+import { usePermission } from '@/hooks/usePermission'
 import { useNotes } from '../hooks/useNotes'
 import { useTranslation } from 'react-i18next'
 import { CalendarWidget } from '../features/calendar'
@@ -26,6 +27,7 @@ export function DashboardPage() {
   const { user } = useAuth()
   const { tenants, tenantsLoading, selectedTenantId, selectedSiteId, activeTenant, activeRole, sites } = useTenant()
   const isFieldService = useIsFieldService()
+  const canViewCalendar = usePermission('calendar.view')
   const canViewOperations = activeRole === 'owner' || activeRole === 'manager'
   const { data: features } = useTenantFeatures()
   const fsHome = useFieldServiceHome()
@@ -163,19 +165,39 @@ export function DashboardPage() {
           )}
         </section>
 
-        {/* Calendar section */}
-        {selectedTenantId ? (
+        {/* Calendar section — gated by calendar.view */}
+        {canViewCalendar && selectedTenantId ? (
           <section className="bg-card rounded-2xl border border-border p-4 shadow-sm">
-            <h3 className="mb-3 text-lg font-semibold text-foreground">
-              {t('dashboard.calendar', 'Calendari')}
-            </h3>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-lg font-semibold text-foreground">
+                {t('dashboard.calendar', 'Calendari')}
+              </h3>
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  to="/calendar"
+                  className="text-sm font-medium text-primary hover:underline"
+                  data-testid="dashboard-open-company-calendar"
+                >
+                  {t('dashboard.open_company_calendar', 'Veure calendari')}
+                </Link>
+                {isFieldService && (
+                  <Link
+                    to="/field/agenda?view=week"
+                    className="text-sm font-medium text-muted-foreground hover:text-primary hover:underline"
+                    data-testid="dashboard-open-field-agenda"
+                  >
+                    {t('dashboard.field_agenda_link', 'Veure agenda de visites')}
+                  </Link>
+                )}
+              </div>
+            </div>
             <CalendarWidget siteId={selectedSiteId} />
           </section>
-        ) : (
+        ) : canViewCalendar && !selectedTenantId ? (
           <section className="bg-card rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">
             {t('dashboard.selectTenantForCalendar', 'Selecciona un tenant per veure el calendari.')}
           </section>
-        )}
+        ) : null}
     </div>
   )
 }

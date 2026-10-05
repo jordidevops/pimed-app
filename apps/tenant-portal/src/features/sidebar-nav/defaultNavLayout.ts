@@ -31,6 +31,10 @@ export function buildDefaultNavLayout(): SidebarNavV1 {
           { id: 'contacts' },
           { id: 'sales' },
           { id: 'field_orders' },
+          { id: 'field_agenda' },
+          { id: 'company_calendar' },
+          { id: 'ai_chat' },
+          { id: 'field_device' },
           { id: 'maintenance_plans' },
           { id: 'projects' },
           { id: 'documents' },
@@ -41,7 +45,7 @@ export function buildDefaultNavLayout(): SidebarNavV1 {
       {
         id: DEFAULT_GROUP_IDS.personal,
         label: 'Jo',
-        items: [{ id: 'attendance' }, { id: 'attendance_calendar' }, { id: 'ai_chat' }],
+        items: [{ id: 'attendance' }, { id: 'attendance_calendar' }],
       },
       {
         id: DEFAULT_GROUP_IDS.automation,

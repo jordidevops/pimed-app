@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Pencil, Trash2, ChevronRight, Loader2, Pause, Play } from 'lucide-react'
+import { toUiLocale } from '@/features/calendar/calendarDateUtils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useTenant } from '@/contexts/TenantContext'
@@ -48,17 +49,26 @@ export function ProjectRow({
   stopPunchBusy = false,
   workedSeconds = 0,
 }: ProjectRowProps) {
-  const { t } = useTranslation(['projects', 'field-service'])
+  const { t, i18n } = useTranslation(['projects', 'field-service'])
   const { activeRole } = useTenant()
   const isFieldService = useIsFieldService()
   const canLinkCollections = activeRole === 'owner' || activeRole === 'manager'
   const [startOpen, setStartOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const uiLocale = toUiLocale(i18n.resolvedLanguage)
 
   const statusLabel = getProjectStatusLabel(t, project.status, { fieldService: isFieldService })
 
   const typeLabel = project.type
     ? t(`projects.type.${project.type}`, TYPE_LABELS[project.type] ?? project.type)
+    : '—'
+
+  const plannedLabel = project.planned_start
+    ? new Date(project.planned_start).toLocaleDateString(uiLocale, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      })
     : '—'
 
   const isPunchActive = !!project.id && project.id === activePunchProjectId
@@ -95,6 +105,10 @@ export function ProjectRow({
                   {project.client_display_name}
                 </span>
               ) : null}
+              {/* Full date under the title on narrow screens (column is hidden / clipped). */}
+              <span className="mt-0.5 block text-xs font-normal text-muted-foreground sm:hidden">
+                {plannedLabel}
+              </span>
               {(isPunchActive || workedSeconds > 0) && (
                 <span className={`block text-xs font-normal tabular-nums ${isPunchActive ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'}`}>
                   {isPunchActive
@@ -105,6 +119,9 @@ export function ProjectRow({
             </span>
             <ChevronRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-60 transition-opacity shrink-0" />
           </Link>
+        </td>
+        <td className="hidden px-3 py-3 text-xs text-muted-foreground whitespace-nowrap sm:table-cell">
+          {plannedLabel}
         </td>
         <td className="px-4 py-3 hidden md:table-cell">
           <Badge variant="outline" className="text-xs font-normal">

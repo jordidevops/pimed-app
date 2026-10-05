@@ -19,6 +19,7 @@ import {
   Wrench,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PageShell } from '@/components/layout/PageShell'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import {
@@ -1334,13 +1335,16 @@ export function LocationsPage() {
 
   if (!activeTenant && tenants.length > 1) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
-          <p className="text-sm text-amber-800 font-medium">
+      <PageShell
+        title={t('locations.title', 'Ubicacions')}
+        icon={<MapPin className="h-5 w-5" aria-hidden />}
+      >
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
+          <p className="text-sm font-medium text-amber-800">
             {t('locations.errors.no_tenant', 'Selecciona una organització per veure les ubicacions')}
           </p>
         </div>
-      </div>
+      </PageShell>
     )
   }
 
@@ -1348,13 +1352,16 @@ export function LocationsPage() {
 
   if (error) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <div className="bg-destructive/10 border border-destructive/30 rounded-2xl p-6 text-center">
-          <p className="text-sm text-destructive font-medium">
+      <PageShell
+        title={t('locations.title', 'Ubicacions')}
+        icon={<MapPin className="h-5 w-5" aria-hidden />}
+      >
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-center">
+          <p className="text-sm font-medium text-destructive">
             {t('locations.errors.load_failed', 'Error en carregar les ubicacions')}
           </p>
         </div>
-      </div>
+      </PageShell>
     )
   }
 
@@ -1528,21 +1535,19 @@ export function LocationsPage() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-350 mx-auto px-4 py-6 space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <MapPin className="h-6 w-6 text-primary" aria-hidden />
-          <h1 className="text-2xl font-bold text-foreground">
-            {t('locations.title', 'Ubicacions')}
-          </h1>
-        </div>
+    <PageShell
+      flush
+      title={t('locations.title', 'Ubicacions')}
+      subtitle={t('locations.subtitle', 'Espais i centres de treball')}
+      icon={<MapPin className="h-5 w-5" aria-hidden />}
+      actions={
         <Button onClick={handleOpenCreate} disabled={!activeSite}>
           <Plus className="h-4 w-4 mr-1.5" />
           {t('locations.new_location', 'Nova ubicació')}
         </Button>
-      </div>
-
+      }
+    >
+      <div className="space-y-5">
       {activeSite ? (
         <>
       {/* Selected path */}
@@ -2224,6 +2229,7 @@ export function LocationsPage() {
         onSubmit={handleCreateFloorplan}
         isLoading={updateMutation.isPending}
       />
-    </div>
+      </div>
+    </PageShell>
   )
 }

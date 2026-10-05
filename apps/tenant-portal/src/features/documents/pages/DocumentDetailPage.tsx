@@ -585,7 +585,10 @@ export function DocumentDetailPage() {
     if (returnTo.startsWith('/contacts/')) {
       return t('detail.backToContact', 'Tornar al contacte')
     }
-    if (returnTo.startsWith('/agreements')) {
+    if (
+      returnTo.startsWith('/agreements') ||
+      returnTo.startsWith('/sales/agreements')
+    ) {
       return t('detail.backToAgreement', 'Tornar a l’acord')
     }
     return t('detail.backToPrevious', 'Tornar')
@@ -596,7 +599,7 @@ export function DocumentDetailPage() {
       ? entityLinkFor(doc.entity_type, doc.entity_id)
       : null
   const commercialQuoteHref = commercialLink
-    ? `/quotes?view=${commercialLink.id}`
+    ? `/sales/quotes/${commercialLink.id}`
     : null
   const commercialOrderHref =
     commercialLink?.project_id

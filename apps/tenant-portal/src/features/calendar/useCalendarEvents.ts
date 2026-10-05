@@ -19,12 +19,15 @@ interface UseCalendarEventsOptions {
   rangeEnd: Date
   /** Si s'especifica, filtra per un site concret. null = tots els sites del tenant */
   siteId?: string | null
+  /** When false, skip the query (e.g. search pool idle). */
+  enabled?: boolean
 }
 
 export function useCalendarEvents({
   rangeStart,
   rangeEnd,
   siteId,
+  enabled = true,
 }: UseCalendarEventsOptions) {
   const { selectedTenantId } = useTenant()
   const projectSectorLabel = useSectorLabel('project', '')
@@ -41,7 +44,7 @@ export function useCalendarEvents({
       normalizedRangeEnd.toISOString(),
       projectSectorLabel ?? '',
     ],
-    enabled: !!selectedTenantId,
+    enabled: !!selectedTenantId && enabled,
     queryFn: async () => {
       if (!selectedTenantId) return []
 

@@ -192,3 +192,24 @@ export function googleMapsUrlFromGeo(geo: GeoCoordinates | null | undefined): st
   if (lat === null || lng === null) return null
   return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
 }
+
+/** Directions without origin → Maps uses the device current location. */
+export function googleMapsDrivingDirectionsUrl(
+  destination: string | { lat: number; lng: number },
+): string | null {
+  const dest =
+    typeof destination === 'string'
+      ? destination.trim()
+      : (() => {
+          const lat = asFiniteNumber(destination.lat)
+          const lng = asFiniteNumber(destination.lng)
+          return lat === null || lng === null ? '' : `${lat},${lng}`
+        })()
+  if (!dest) return null
+  const params = new URLSearchParams({
+    api: '1',
+    destination: dest,
+    travelmode: 'driving',
+  })
+  return `https://www.google.com/maps/dir/?${params.toString()}`
+}

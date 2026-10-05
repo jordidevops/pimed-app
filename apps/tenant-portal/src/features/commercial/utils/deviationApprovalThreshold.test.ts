@@ -6,6 +6,7 @@ import {
   commercialSettingsPatchWithThreshold,
   parseCommercialSettingId,
   parseFormalizationModeDefault,
+  resolveActiveCommercialFullBodyTemplateId,
 } from './deviationApprovalThreshold'
 
 describe('commercial full-body settings patch', () => {
@@ -74,5 +75,53 @@ describe('commercial full-body settings patch', () => {
       'signed_quote',
     )
     expect(parseFormalizationModeDefault(null)).toBe('signed_quote')
+  })
+
+  it('resolves the active quote template like the SQL resolver', () => {
+    const tenantId = 't1'
+    const templates = [
+      {
+        id: 'old',
+        category: 'quote',
+        tenant_id: tenantId,
+        template_type: 'html',
+        created_at: '2020-01-01',
+      },
+      {
+        id: 'new',
+        category: 'quote',
+        tenant_id: tenantId,
+        template_type: 'html',
+        created_at: '2024-01-01',
+      },
+      {
+        id: 'configured',
+        category: 'quote',
+        tenant_id: tenantId,
+        template_type: 'html',
+        created_at: '2023-01-01',
+      },
+    ]
+    expect(
+      resolveActiveCommercialFullBodyTemplateId(
+        { commercial: { quote_template_id: 'configured' } },
+        'quote_template_id',
+        'quote',
+        templates,
+        tenantId,
+      ),
+    ).toBe('configured')
+    expect(
+      resolveActiveCommercialFullBodyTemplateId(
+        { commercial: { quote_template_id: COMMERCIAL_FULL_BODY_TEMPLATE_NONE } },
+        'quote_template_id',
+        'quote',
+        templates,
+        tenantId,
+      ),
+    ).toBeNull()
+    expect(
+      resolveActiveCommercialFullBodyTemplateId(null, 'quote_template_id', 'quote', templates, tenantId),
+    ).toBe('old')
   })
 })

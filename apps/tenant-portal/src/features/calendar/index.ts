@@ -13,11 +13,25 @@
 import './modules/tasks.calendar'
 import './modules/projects.calendar'
 import './modules/shifts.calendar'
+import './modules/manual.calendar'
 
 // Exports públics del mòdul
 export { CalendarWidget }      from './CalendarWidget'
+export { CompanyCalendarPage } from './CompanyCalendarPage'
+export { EventDetailSheet, DefaultEventDetail } from './EventDetailSheet'
+export { CreateEventForm } from './CreateEventForm'
+export { CalendarGrid }        from './CalendarGrid'
+export type { CalendarGridEvent, CalendarGridView } from './CalendarGrid'
+export { CalendarTimeGrid } from './CalendarTimeGrid'
+export type { CalendarTimeGridView } from './CalendarTimeGrid'
+export * from './calendarTimeGridLayout'
 export { CalendarRegistry }    from './CalendarRegistry'
 export { useCalendarEvents }   from './useCalendarEvents'
+export * from './calendarDateUtils'
+export * from './projectEventsOntoDays'
+export * from './companyCalendarUrlState'
+export * from './matchCalendarEvents'
+export * from './mineCalendarEvents'
 export type {
   CalendarEventRow,
   CalendarResolvedEvent,

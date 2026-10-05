@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Outlet, Navigate, useLocation } from 'react-router-dom'
+import { Settings } from 'lucide-react'
+import { PageShell } from '@/components/layout/PageShell'
 import { useTenant } from '../contexts/TenantContext'
 import { useUnresolvedOperationCount } from '../hooks/useUnresolvedOperationCount'
 import { useTenantFeatures } from '../features/entity-timeline/api/useTenantFeatures'
@@ -25,28 +27,33 @@ export function SettingsPage() {
     return <Navigate to="/settings/config" replace />
   }
 
-  return (
-    <div className="w-full max-w-6xl xl:max-w-7xl mx-auto px-4 lg:px-6 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">
-          {t('nav.settings', 'Configuració')}
-        </h1>
-        {activeTenant && (
-          <p className="text-sm text-muted-foreground mt-1">{activeTenant.name}</p>
-        )}
-      </div>
+  const subtitle = pathname.startsWith('/settings/config')
+    ? t(
+        'settings:settings.config.page_description',
+        "Paràmetres generals de l'organització heretats per tots els membres i locals.",
+      )
+    : (activeTenant?.name ?? undefined)
 
+  return (
+    <PageShell
+      title={t('nav.settings', 'Configuració')}
+      subtitle={subtitle}
+      icon={<Settings className="h-5 w-5" aria-hidden />}
+    >
       {tenantsLoading && (
-        <div className="rounded-2xl border p-6 animate-pulse space-y-3">
-          <div className="h-4 bg-muted rounded w-1/3" />
-          <div className="h-4 bg-muted rounded w-1/2" />
+        <div className="animate-pulse space-y-3 rounded-2xl border p-6">
+          <div className="h-4 w-1/3 rounded bg-muted" />
+          <div className="h-4 w-1/2 rounded bg-muted" />
         </div>
       )}
 
       {!tenantsLoading && !activeTenant && tenants.length > 1 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
-          <p className="text-sm text-amber-800 font-medium">
-            {t('settings.no_tenant_selected', 'Selecciona una organització a la barra lateral per veure la configuració.')}
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
+          <p className="text-sm font-medium text-amber-800">
+            {t(
+              'settings.no_tenant_selected',
+              'Selecciona una organització a la barra lateral per veure la configuració.',
+            )}
           </p>
         </div>
       )}
@@ -60,8 +67,8 @@ export function SettingsPage() {
       )}
 
       {activeTenant && (
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-          <aside className="lg:w-56 shrink-0">
+        <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
+          <aside className="shrink-0 lg:w-56">
             <SettingsNav
               activeRole={activeRole}
               canViewOperations={canViewOperations}
@@ -69,11 +76,11 @@ export function SettingsPage() {
               features={features}
             />
           </aside>
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <Outlet />
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

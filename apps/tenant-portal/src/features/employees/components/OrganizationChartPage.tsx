@@ -13,6 +13,7 @@ import {
   Network,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PageShell } from '@/components/layout/PageShell'
 import { cn } from '@/lib/utils'
 import { useTenant } from '@/contexts/TenantContext'
 import { useDepartments } from '@/features/departments/api/useDepartments'
@@ -530,28 +531,18 @@ export function OrganizationChartPage() {
               'Jerarquia de reporting (qui reporta a qui)',
             )
 
-  return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-            <GitBranch className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold" data-testid="org-chart-title">
-              {t('employees.org.chart_title', 'Organigrama')}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {subtitle}
-              {selectedSiteName
-                ? ` · ${t('employees.org.scoped_site', 'Centre: {{name}}', {
-                    name: selectedSiteName,
-                  })}`
-                : ''}
-            </p>
-          </div>
-        </div>
+  const fullSubtitle = `${subtitle}${
+    selectedSiteName
+      ? ` · ${t('employees.org.scoped_site', 'Centre: {{name}}', { name: selectedSiteName })}`
+      : ''
+  }`
 
+  return (
+    <PageShell
+      title={<span data-testid="org-chart-title">{t('employees.org.chart_title', 'Organigrama')}</span>}
+      subtitle={fullSubtitle}
+      icon={<GitBranch className="h-5 w-5" aria-hidden />}
+      actions={
         <div className="flex flex-wrap items-center gap-2">
           <div
             className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5"
@@ -636,8 +627,8 @@ export function OrganizationChartPage() {
             </div>
           ) : null}
         </div>
-      </div>
-
+      }
+    >
       {viewMode === 'departments' ? (
         <DepartmentsView siteId={selectedSiteId} />
       ) : isLoading ? (
@@ -683,6 +674,6 @@ export function OrganizationChartPage() {
           {t('employees.org.back', 'Tornar a empleats')}
         </Link>
       </div>
-    </div>
+    </PageShell>
   )
 }

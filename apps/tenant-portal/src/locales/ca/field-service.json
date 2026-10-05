@@ -3,6 +3,7 @@
     "today": "Avui",
     "orders": "Ordres",
     "agenda": "Agenda",
+    "device": "Dispositiu",
     "attendance": "Horari",
     "more": "Més",
     "field": "Camp"
@@ -32,6 +33,7 @@
     "title": "Ordres de servei",
     "subtitle": "Les teves ordres i visites",
     "new": "Nova ordre",
+    "new_short": "Nova",
     "empty": "Encara no tens cap ordre de servei",
     "filter_mine": "Les meves",
     "filter_open": "Obertes",
@@ -55,8 +57,44 @@
   },
   "agenda": {
     "title": "Agenda",
-    "subtitle": "Visites planificades (14 dies)",
-    "open_calendar": "Obrir calendari"
+    "subtitle": "Visites planificades",
+    "open_calendar": "Obrir calendari",
+    "all_day": "Tot el dia",
+    "today": "Avui",
+    "prev_day": "Dia anterior",
+    "next_day": "Dia següent",
+    "view": {
+      "list": "Llista",
+      "day": "Dia",
+      "week": "Setmana",
+      "month": "Mes"
+    },
+    "scope": {
+      "mine": "Les meves",
+      "all": "Totes"
+    },
+    "filters": {
+      "open": "Filtres",
+      "type": "Tipus",
+      "work_order": "Ordre de servei",
+      "maintenance": "Manteniment",
+      "status": "Estat",
+      "technician": "Tècnic",
+      "technician_help": "Mantén Ctrl/Cmd per seleccionar-ne més d’un.",
+      "clear": "Netejar filtres"
+    },
+    "unscheduled": {
+      "title": "Sense planificar",
+      "short": "Safata",
+      "empty": "No hi ha ordres sense data",
+      "plan": "Planificar"
+    },
+    "empty": {
+      "filtered": "Cap visita amb aquests filtres",
+      "none": "Cap visita planificada",
+      "from_tray": "Planificar des de la safata",
+      "orders": "Veure ordres"
+    }
   },
   "more": {
     "title": "Més",
@@ -89,6 +127,7 @@
   },
   "detail": {
     "maps": "Obrir a Maps",
+    "directions": "Ruta en cotxe",
     "address": "Adreça",
     "client": "Client",
     "checklist": "Checklist",

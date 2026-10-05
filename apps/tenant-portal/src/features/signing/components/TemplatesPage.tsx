@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Copy, FilePlus2, Trash2, ChevronRight, FileText, Globe, AlertTriangle, Search, X, Tag } from 'lucide-react'
+import { Copy, FilePlus2, Trash2, ChevronRight, Globe, AlertTriangle, Search, X, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -16,7 +16,6 @@ import {
   useDeleteTemplateMutation,
 } from '../api/useDocumentTemplateMutations'
 import { TemplateFormModal } from './TemplateFormModal'
-import { DocumentsSubNav } from '@/features/documents/components/DocumentsSubNav'
 import type { DocumentTemplateWithLocales } from '../api/signingService'
 import {
   isFullBodyTemplateCategory,
@@ -133,14 +132,13 @@ function TemplateCard({
 // ─── TemplatesPage ─────────────────────────────────────────────────────────────
 
 export function TemplatesPage() {
-  const { t }   = useTranslation('signing')
-  const { t: tDocuments } = useTranslation('documents')
+  const { t } = useTranslation('signing')
   const { toast } = useToast()
   const { activeTenant, activeRole } = useTenant()
   const tenantId = activeTenant?.id ?? ''
   const canWrite = activeRole === 'owner' || activeRole === 'manager'
-  const tenantArchetype   = activeTenant?.archetype ?? null
-  const tenantVertical    = activeTenant?.sector_vertical ?? null
+  const tenantArchetype = activeTenant?.archetype ?? null
+  const tenantVertical = activeTenant?.sector_vertical ?? null
 
   const { data: templates = [], isLoading } = useDocumentTemplates(tenantId || undefined)
   const cloneMutation  = useCloneTemplateMutation(tenantId)
@@ -264,28 +262,14 @@ export function TemplatesPage() {
   if (!activeTenant) return null
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center gap-2">
-        <FileText className="h-6 w-6 text-primary" />
-        <h1 className="text-xl font-semibold">{tDocuments('page.title', 'Documents')}</h1>
-      </div>
-
-      {/* Sub-navegació */}
-      <DocumentsSubNav />
-
-      <div className="max-w-5xl mx-auto space-y-6">
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h2 className="text-lg font-semibold">{t('page.title', 'Plantilles de documents')}</h2>
-          {(tenantArchetype || tenantVertical) && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-              <Tag className="h-2.5 w-2.5" />
-              {tenantVertical ?? tenantArchetype}
-            </span>
-          )}
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-end gap-2 flex-wrap">
+        {(tenantArchetype || tenantVertical) && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+            <Tag className="h-2.5 w-2.5" />
+            {tenantVertical ?? tenantArchetype}
+          </span>
+        )}
         {canWrite && (
           <Button onClick={() => setFormMode({ kind: 'create_template', category: catFilter || undefined })}>
             <FilePlus2 className="h-4 w-4 mr-2" />
@@ -450,9 +434,6 @@ export function TemplatesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      </div>
-
     </div>
   )
 }

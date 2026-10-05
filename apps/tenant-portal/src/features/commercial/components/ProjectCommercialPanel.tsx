@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -41,6 +41,7 @@ import {
   resolveCommercialDocumentBadges,
 } from './CommercialDocumentStatusBadge'
 import { CommercialDocumentView } from './CommercialDocumentView'
+import { commercialSalesDetailHref } from '../utils/commercialSigningHub'
 import { CommercialNativeSignDialog } from './CommercialNativeSignDialog'
 import { PaymentReceiptSheet } from './PaymentReceiptSheet'
 import { QuoteWaiverDialog } from './QuoteWaiverDialog'
@@ -117,8 +118,9 @@ export function ProjectCommercialPanel({
   onForceCollectHandled,
   onForceReceiptHandled,
 }: ProjectCommercialPanelProps) {
-  const { t } = useTranslation('projects')
+  const { t } = useTranslation(['projects', 'common'])
   const { toast } = useToast()
+  const navigate = useNavigate()
   const { activeTenant } = useTenant()
   const queryClient = useQueryClient()
   const canEditPricing = usePermission('commercial.pricing.edit')
@@ -140,6 +142,15 @@ export function ProjectCommercialPanel({
     documentId: string
     action: CommercialNativeSignAction
   } | null>(null)
+
+  function openDocument(doc: Pick<CommercialDocument, 'id' | 'doc_type'>) {
+    const href = commercialSalesDetailHref(doc.id, doc.doc_type)
+    if (href) {
+      void navigate(href)
+      return
+    }
+    setViewDocId(doc.id)
+  }
 
   const effectiveViewId = forceViewDocId ?? viewDocId
   const effectiveCollectId = forceCollectDocId ?? collectDocId
@@ -887,7 +898,7 @@ export function ProjectCommercialPanel({
                       {agreementStates.some((row) => row.sourceQuoteId === doc.id) ? (
                         <>
                           {' · '}
-                          <Link to="/agreements" className="text-indigo-600 hover:underline">
+                          <Link to="/sales/agreements" className="text-indigo-600 hover:underline">
                             {t('projects.commercial.prepare_agreement_open_list', 'Veure a Acords comercials')}
                           </Link>
                         </>
@@ -916,9 +927,9 @@ export function ProjectCommercialPanel({
                         size="sm"
                         variant="outline"
                         disabled={busy}
-                        onClick={() => setViewDocId(doc.id)}
+                        onClick={() => openDocument(doc)}
                       >
-                        {t('projects.commercial.view', 'Veure')}
+                        {t('common:list.open_record', 'Obrir fitxa')}
                       </Button>
                       <Button
                         type="button"
@@ -1062,9 +1073,9 @@ export function ProjectCommercialPanel({
                   type="button"
                   size="sm"
                   variant="outline"
-                  onClick={() => setViewDocId(doc.id)}
+                  onClick={() => openDocument(doc)}
                 >
-                  {t('projects.commercial.view', 'Veure')}
+                  {t('common:list.open_record', 'Obrir fitxa')}
                 </Button>
               </li>
             ))}

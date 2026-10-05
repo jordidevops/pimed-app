@@ -1001,11 +1001,6 @@ export function DeliveryNotesList({
             const canDnMoneyActions = canCollectOrRectifyDn(row)
             return [
               {
-                key: 'peek',
-                label: t('projects.commercial.view', 'Veure'),
-                onSelect: () => setInspectId(row.id),
-              },
-              {
                 key: 'open',
                 label: t('common:list.open_record', 'Obrir fitxa'),
                 onSelect: () => {

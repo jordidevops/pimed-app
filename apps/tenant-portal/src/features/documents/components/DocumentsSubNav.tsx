@@ -15,11 +15,12 @@ export function DocumentsSubNav() {
   const { t } = useTranslation('documents')
   const { pathname } = useLocation()
   const activeKey =
-    DOC_TABS.find((tab) =>
-      tab.end
+    DOC_TABS.find((tab) => {
+      const exact = 'end' in tab && tab.end
+      return exact
         ? pathname === tab.to
-        : pathname === tab.to || pathname.startsWith(`${tab.to}/`),
-    )?.key ?? 'documents'
+        : pathname === tab.to || pathname.startsWith(`${tab.to}/`)
+    })?.key ?? 'documents'
 
   return (
     <ScrollableTabBar
@@ -31,7 +32,7 @@ export function DocumentsSubNav() {
         <NavLink
           key={tab.key}
           to={tab.to}
-          end={'end' in tab ? Boolean(tab.end) : false}
+          end={'end' in tab && Boolean(tab.end)}
           data-tab-key={tab.key}
           className={({ isActive }) => underlineTabClass(isActive)}
         >

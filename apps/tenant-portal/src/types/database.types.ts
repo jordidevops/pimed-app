@@ -29731,6 +29731,33 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: Json
       }
+      list_field_visits: {
+        Args: {
+          p_from?: string
+          p_limit?: number
+          p_member_ids?: string[]
+          p_open_only?: boolean
+          p_statuses?: string[]
+          p_tenant_id: string
+          p_to?: string
+          p_types?: string[]
+          p_unscheduled?: boolean
+        }
+        Returns: {
+          client_display_name: string
+          commercial_regime: string
+          contact_site_city: string
+          contact_site_name: string
+          id: string
+          members: Json
+          name: string
+          planned_end: string
+          planned_start: string
+          service_mode: string
+          status: string
+          type: string
+        }[]
+      }
       list_projects_paginated: {
         Args: {
           p_client_id?: string

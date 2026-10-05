@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,7 @@ import { CommercialDocumentStatusBadges } from '@/features/commercial/components
 import { accountedPaidCents } from '@/features/commercial/utils/paymentAllocation'
 import { summarizeClientCommercialHistory } from '@/features/commercial/utils/pendingCommercialAction'
 import { formatAgreementIdentityFromState } from '@/features/commercial/utils/agreementIdentity'
+import { commercialSalesDetailHref } from '@/features/commercial/utils/commercialSigningHub'
 
 type Mode = 'summary' | 'full'
 
@@ -71,7 +72,7 @@ function DocumentRow({
   paidCents: number
   projectDetailBase: string
   agreement: QuoteAgreementState | null
-  onView: (id: string) => void
+  onView: (doc: CommercialDocument) => void
 }) {
   const { t } = useTranslation(['contacts', 'projects'])
   const dateSource = doc.issued_at ?? doc.created_at
@@ -107,7 +108,7 @@ function DocumentRow({
               <>
                 {t('contacts.detail.commercial_agreement_linked', 'Acord')}:{' '}
                 <Link
-                  to={`/agreements?view=${agreement.id}`}
+                  to={`/sales/agreements?view=${agreement.id}`}
                   className="text-indigo-600 hover:underline"
                 >
                   {agreementLine}
@@ -139,7 +140,7 @@ function DocumentRow({
         <span className="text-sm font-medium tabular-nums text-foreground">
           {moneyFmt.format(Number(doc.total))} €
         </span>
-        <Button type="button" size="sm" onClick={() => onView(doc.id)}>
+        <Button type="button" size="sm" onClick={() => onView(doc)}>
           {viewLabel(doc.doc_type, t)}
         </Button>
         {doc.project_id ? (
@@ -163,7 +164,17 @@ export function ContactCommercialHistory({
 }: ContactCommercialHistoryProps) {
   const { t } = useTranslation(['contacts', 'projects'])
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [viewDocId, setViewDocId] = useState<string | null>(null)
+
+  function openDocument(doc: CommercialDocument) {
+    const href = commercialSalesDetailHref(doc.id, doc.doc_type)
+    if (href) {
+      void navigate(href)
+      return
+    }
+    setViewDocId(doc.id)
+  }
 
   const { data: docs = [], isLoading } = useQuery({
     queryKey: ['commercial_documents', 'by-client', clientId],
@@ -311,7 +322,7 @@ export function ContactCommercialHistory({
                   paidCents={accountedPaidCents(doc, docs, payments)}
                   projectDetailBase={projectDetailBase}
                   agreement={agreementByQuote.get(doc.id) ?? null}
-                  onView={setViewDocId}
+                  onView={openDocument}
                 />
               ))}
             </ul>

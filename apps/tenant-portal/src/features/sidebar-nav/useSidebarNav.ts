@@ -43,6 +43,7 @@ export function useNavGateContext(): { ctx: NavGateContext; gatesLoading: boolea
   const canViewInvoices = usePermission('invoices.view')
   const isOffice = !isFieldService || isManager
   const canViewSales = isOffice || canViewInvoices
+  const canViewCalendar = usePermission('calendar.view')
   const { path: homePath, ready: homeReady } = useFieldServiceHome()
 
   const ctx = useMemo(
@@ -53,6 +54,7 @@ export function useNavGateContext(): { ctx: NavGateContext; gatesLoading: boolea
       showRecruitment,
       isFieldService,
       canViewSales,
+      canViewCalendar,
       homePath,
     }),
     [
@@ -62,6 +64,7 @@ export function useNavGateContext(): { ctx: NavGateContext; gatesLoading: boolea
       showRecruitment,
       isFieldService,
       canViewSales,
+      canViewCalendar,
       homePath,
     ],
   )

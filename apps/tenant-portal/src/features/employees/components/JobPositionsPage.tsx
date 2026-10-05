@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Briefcase, Loader2, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PageShell } from '@/components/layout/PageShell'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/contexts/TenantContext'
@@ -53,19 +54,12 @@ export function JobPositionsPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Briefcase className="h-5 w-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold">{t('employees.positions.title', 'Llocs de treball')}</h1>
-          <p className="text-sm text-muted-foreground">
-            {t('employees.positions.subtitle', 'Catàleg de llocs de treball estructurats')}
-          </p>
-        </div>
-      </div>
-
+    <PageShell
+      title={t('employees.positions.title', 'Llocs de treball')}
+      subtitle={t('employees.positions.subtitle', 'Catàleg de llocs de treball estructurats')}
+      icon={<Briefcase className="h-5 w-5" aria-hidden />}
+    >
+      <div className="space-y-6">
       <div className="rounded-xl border p-4 space-y-3">
         <h2 className="text-sm font-medium">{t('employees.positions.new', 'Nou lloc de treball')}</h2>
         <div className="grid gap-2 sm:grid-cols-3">
@@ -170,6 +164,7 @@ export function JobPositionsPage() {
       <Link to="/employees" className="text-sm text-primary hover:underline">
         {t('employees.positions.back', 'Tornar a empleats')}
       </Link>
-    </div>
+      </div>
+    </PageShell>
   )
 }

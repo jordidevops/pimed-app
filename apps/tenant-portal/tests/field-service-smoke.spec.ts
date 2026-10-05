@@ -212,6 +212,27 @@ test.describe('Field Service smoke', () => {
     await expect(page.getByRole('link', { name: /Clients?/i }).first()).toBeVisible()
     await expect(page.locator('main').getByRole('link', { name: /Fitxatge|Horari/i })).toHaveCount(0)
   })
+
+  test('Volt owner: agenda views + unscheduled tray', async ({ page }) => {
+    await pinVoltTenant(page)
+
+    await page.goto('/field/agenda')
+    await expect(page.getByRole('heading', { name: /Agenda/i })).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByRole('button', { name: /^Llista$/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Dia$/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Setmana$/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Mes$/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Nova ordre|Nueva orden|New order/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Totes|Todas|All/i })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: /Sense planificar|Sin planificar|Unscheduled/i }),
+    ).toBeVisible()
+
+    await page.getByRole('button', { name: /^Dia$/i }).click()
+    await expect(page).toHaveURL(/view=day/)
+    await page.getByRole('button', { name: /^Mes$/i }).click()
+    await expect(page).toHaveURL(/view=month/)
+  })
 })
 
 test.describe('Field Service mobile attendance navigation', () => {
@@ -246,6 +267,40 @@ test.describe('Field Service mobile attendance navigation', () => {
     await expect(page.getByRole('link', { name: /Clients?/i })).toBeVisible()
     await expect(page.getByRole('link', { name: /Pressupostos|Catàleg|Configuració/i })).toHaveCount(0)
     await expect(page.locator('main').getByRole('link', { name: /Fitxatge|Horari/i })).toHaveCount(0)
+  })
+
+  test('member desktop sidebar shows Agenda and Device', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.goto('/field/today')
+    const mainNav = page.getByRole('navigation', { name: /Navegació principal|Main navigation/i })
+    await expect(mainNav).toBeVisible({ timeout: 20_000 })
+    await expect(mainNav.getByRole('link', { name: /Agenda/i })).toBeVisible()
+    await expect(
+      mainNav.getByRole('link', { name: /Dispositiu|Device|sincronitz/i }),
+    ).toBeVisible()
+  })
+
+  test('member landscape phone sidebar still shows nav entries', async ({ page }) => {
+    await page.setViewportSize({ width: 844, height: 390 })
+    await page.goto('/field/today')
+    await expect(page.getByRole('navigation', { name: /Camp|Campo|Field/i })).toBeVisible({
+      timeout: 20_000,
+    })
+    await page.getByRole('button', { name: /Obre el menú|Open menu/i }).click()
+    const mainNav = page.getByRole('navigation', { name: /Navegació principal|Main navigation/i })
+    await expect(mainNav.getByRole('link', { name: /Agenda/i })).toBeVisible({ timeout: 10_000 })
+    await expect(mainNav.getByRole('link', { name: /Ordres|Orders/i })).toBeVisible()
+  })
+
+  test('member agenda has no company scope or unscheduled tray', async ({ page }) => {
+    await page.goto('/field/agenda')
+    await expect(page.getByRole('heading', { name: /Agenda/i })).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByRole('button', { name: /^Llista$/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Dia$/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Totes|Todas|^All$/i })).toHaveCount(0)
+    await expect(
+      page.getByRole('button', { name: /Sense planificar|Safata|Unscheduled/i }),
+    ).toHaveCount(0)
   })
 })
 

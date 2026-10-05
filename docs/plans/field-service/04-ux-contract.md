@@ -17,11 +17,24 @@
 |---------|-----------|
 | Home **Avui** | Ordres/visites amb `planned_start` avui: client, adreça, estat, hora |
 | FAB | Iniciar visita → `start_work_log` + geo (RPCs existents) |
-| Bottom nav | **Avui** \| **Ordres** \| **Agenda** \| **Més** |
+| Bottom nav | **Avui** \| **Ordres** \| **Horari** (si aplica) \| **Agenda** \| **Més** (`lg:hidden`, &lt;1024px; ≤5 slots) |
+| Sidebar ≥ `lg` | Clúster **Camp** dins Operativa: Avui, Ordres, Agenda, Dispositiu (sync badge), Horari (si `canUseAttendance`) |
+| Alçada curta | Sidebar compacta (context en popover, peu d’icones, **un sol scroll** al `aside`) perquè la nav mai col·lapsi a 0px |
+| Agenda | `PageShell` (header sticky + tabs de vista); calendari/llista a l’esquerra; **Eines** a la dreta (Nova ordre, filtres, safata); mòbil: sheet d’eines |
+| Agenda scope / safata | «Les meves / Totes» i safata sense planificar: només `owner`/`manager`; membres sempre `mine` |
 | Detall ordre | Adreça + Maps, tasques/checklist, materials, worklog, timeline, close-out |
-| Més | Clients, catàleg, settings, mòduls HR amagats o secundaris per recepta Tier A |
+| Més | Clients, catàleg, settings, sync; mòduls HR amagats o secundaris per recepta Tier A |
 
 El tècnic ha de poder fer el dia **sense** obrir la llista genèrica “Projectes” d’oficina.
+
+`/field/calendar` redirigeix a `/field/agenda?view=week`. Inici manté el calendari genèric + enllaç a l’agenda de visites.
+
+**Mes (mòbil vertical):** només punts de color per dia (OS / manteniment); tap → llista del dia.  
+**Mes (apaisat / desktop):** targetes compactes (màx. 2) + `+N`.  
+**Toolbar apaisada:** títol + controls en columnes; labels curts si `max-height` baixa.  
+**Llista / Ordres:** dates amb locale de l’app (`ca-ES` / `es-ES` / `en-US`); Ordres ordenables per `planned_start`.
+
+Estat fet vs fora d’abast: [`STATUS.md`](./STATUS.md) § Agenda de visites.
 
 ## Close-out (Epic FS-3)
 

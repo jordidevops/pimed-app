@@ -7,10 +7,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/contexts/TenantContext'
-import { DocumentsSubNav } from './DocumentsSubNav'
 import { useArchivedDocuments } from '../api/useArchivedDocuments'
 import { useUnarchiveDocument } from '../api/useUnarchiveDocument'
 import { useDeleteDocumentAll } from '../api/useDeleteDocumentAll'
+import type { ArchivedDocument } from '../api/documentsService'
 import { isCommercialDmsArtifact } from '../utils/commercialDmsArtifact'
 
 function formatDateTime(iso: string | null): string | null {
@@ -160,43 +160,40 @@ export function ArchivedDocumentsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <DocumentsSubNav />
-
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* Icona d'avís amb tooltip i drawer */}
-        <div className="flex justify-end">
-          <Drawer>
-            <div className="relative group">
-              <DrawerTrigger asChild>
-                <button
-                  type="button"
-                  className="p-1.5 rounded-md text-amber-600 hover:bg-amber-50 transition-colors"
-                  aria-label={t('archived.bannerAria', 'Avís sobre eliminació permanent')}
-                >
-                  <AlertTriangle className="h-4 w-4" />
-                </button>
-              </DrawerTrigger>
-              <div className="pointer-events-none absolute right-0 top-full mt-1.5 z-50 w-72 rounded-md border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
-                {t('archived.banner', "Eliminar documents arxivats és una acció irreversible. Els fitxers s'esborraran definitivament.")}
-              </div>
+    <div className="space-y-6">
+      {/* Icona d'avís amb tooltip i drawer */}
+      <div className="flex justify-end">
+        <Drawer>
+          <div className="relative group">
+            <DrawerTrigger asChild>
+              <button
+                type="button"
+                className="p-1.5 rounded-md text-amber-600 hover:bg-amber-50 transition-colors"
+                aria-label={t('archived.bannerAria', 'Avís sobre eliminació permanent')}
+              >
+                <AlertTriangle className="h-4 w-4" />
+              </button>
+            </DrawerTrigger>
+            <div className="pointer-events-none absolute right-0 top-full mt-1.5 z-50 w-72 rounded-md border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
+              {t('archived.banner', "Eliminar documents arxivats és una acció irreversible. Els fitxers s'esborraran definitivament.")}
             </div>
-            <DrawerContent>
-              <DrawerHeader>
-                <DrawerTitle className="flex items-center gap-2 text-amber-700">
-                  <AlertTriangle className="h-4 w-4" />
-                  {t('archived.bannerTitle', 'Acció irreversible')}
-                </DrawerTitle>
-                <DrawerDescription>
-                  {t('archived.banner', "Eliminar documents arxivats és una acció irreversible. Els fitxers s'esborraran definitivament.")}
-                </DrawerDescription>
-              </DrawerHeader>
-            </DrawerContent>
-          </Drawer>
-        </div>
+          </div>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle className="flex items-center gap-2 text-amber-700">
+                <AlertTriangle className="h-4 w-4" />
+                {t('archived.bannerTitle', 'Acció irreversible')}
+              </DrawerTitle>
+              <DrawerDescription>
+                {t('archived.banner', "Eliminar documents arxivats és una acció irreversible. Els fitxers s'esborraran definitivament.")}
+              </DrawerDescription>
+            </DrawerHeader>
+          </DrawerContent>
+        </Drawer>
+      </div>
 
-        {/* Cerca */}
-        <div className="relative">
+      {/* Cerca */}
+      <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             value={searchTerm}
@@ -282,7 +279,6 @@ export function ArchivedDocumentsPage() {
             ))}
           </div>
         )}
-      </div>
 
       {/* Diàleg: Desarxivar */}
       <Dialog open={!!unarchiveTarget} onOpenChange={(v) => { if (!v) setUnarchiveTarget(null) }}>

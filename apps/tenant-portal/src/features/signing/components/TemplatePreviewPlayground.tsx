@@ -18,6 +18,8 @@ interface TemplatePreviewPlaygroundProps {
   className?: string
   /** Només iframe renderitzat (p. ex. referència d'un altre idioma). */
   previewOnly?: boolean
+  /** Compact preview height (inline under form fields). */
+  compact?: boolean
   /** Context niuat (p. ex. sample_values de plantilles quote/delivery_note). */
   sampleValues?: Record<string, unknown> | null
 }
@@ -38,6 +40,7 @@ export function TemplatePreviewPlayground({
   blocks,
   className,
   previewOnly = false,
+  compact = false,
   sampleValues,
 }: TemplatePreviewPlaygroundProps) {
   const { t } = useTranslation('signing')
@@ -157,7 +160,11 @@ export function TemplatePreviewPlayground({
       )}
       <div className={cn(
         'w-full rounded-lg border bg-white overflow-hidden flex flex-col',
-        previewOnly ? 'min-h-[45vh] h-[45vh]' : 'lg:flex-1 min-h-[52vh] h-[52vh]',
+        compact
+          ? 'h-48 min-h-48'
+          : previewOnly
+            ? 'min-h-[45vh] h-[45vh]'
+            : 'lg:flex-1 min-h-[52vh] h-[52vh]',
       )}>
         {renderError ? (
           <p className="p-4 text-sm text-red-600">{t('aiWizard.previewError', 'Error en generar la vista prèvia')}: {renderError}</p>
@@ -167,7 +174,7 @@ export function TemplatePreviewPlayground({
             sandbox=""
             title={t('aiWizard.previewTitle', 'Vista prèvia')}
             className="w-full flex-1 border-0 bg-white"
-            style={{ minHeight: previewOnly ? '45vh' : '52vh' }}
+            style={{ minHeight: compact ? '12rem' : previewOnly ? '45vh' : '52vh' }}
           />
         ) : (
           <p className="p-4 text-sm text-muted-foreground">{t('aiWizard.previewEmpty', 'Sense contingut HTML per previsualitzar.')}</p>

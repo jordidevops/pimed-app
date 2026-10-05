@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -5,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -36,13 +38,20 @@ interface CatalogItemFormProps {
   onClose: () => void
   onSaved: () => void
   item?: CatalogItem | null
+  defaultKind?: 'service' | 'product'
 }
 
 const TAX_RATE_OPTIONS = [0, 4, 10, 21] as const
 
 // ─── CatalogItemForm ──────────────────────────────────────────────────────────
 
-export function CatalogItemForm({ open, onClose, onSaved, item }: CatalogItemFormProps) {
+export function CatalogItemForm({
+  open,
+  onClose,
+  onSaved,
+  item,
+  defaultKind = 'service',
+}: CatalogItemFormProps) {
   const { t } = useTranslation('catalog')
   const { toast } = useToast()
 
@@ -55,28 +64,44 @@ export function CatalogItemForm({ open, onClose, onSaved, item }: CatalogItemFor
     formState: { errors, isSubmitting },
   } = useForm<CatalogItemFormValues>({
     resolver: zodResolver(catalogItemSchema),
-    defaultValues: item
-      ? {
-          kind: item.kind ?? 'service',
-          name: item.name ?? '',
-          description: item.description ?? '',
-          sku: item.sku ?? '',
-          unit: item.unit ?? 'u',
-          unit_price: item.unit_price ?? 0,
-          tax_rate: item.tax_rate ?? 21,
-          category: item.category ?? '',
-        }
-      : {
-          kind: 'service',
-          name: '',
-          description: '',
-          sku: '',
-          unit: 'u',
-          unit_price: 0,
-          tax_rate: 21,
-          category: '',
-        },
+    defaultValues: {
+      kind: defaultKind,
+      name: '',
+      description: '',
+      sku: '',
+      unit: 'u',
+      unit_price: 0,
+      tax_rate: 21,
+      category: '',
+    },
   })
+
+  useEffect(() => {
+    if (!open) return
+    if (item) {
+      reset({
+        kind: item.kind ?? defaultKind,
+        name: item.name ?? '',
+        description: item.description ?? '',
+        sku: item.sku ?? '',
+        unit: item.unit ?? 'u',
+        unit_price: item.unit_price ?? 0,
+        tax_rate: item.tax_rate ?? 21,
+        category: item.category ?? '',
+      })
+    } else {
+      reset({
+        kind: defaultKind,
+        name: '',
+        description: '',
+        sku: '',
+        unit: 'u',
+        unit_price: 0,
+        tax_rate: 21,
+        category: '',
+      })
+    }
+  }, [open, item, defaultKind, reset])
 
   const kind = watch('kind')
   const unit = watch('unit')

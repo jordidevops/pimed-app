@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { NAV_CATALOG_BY_ID } from './navCatalog'
-import { mergeMissingDefaultNavItems, passesGate, pickSidebarLayout, resolveItemLabel, type NavGateContext } from './resolveNav'
+import { buildDefaultNavLayout } from './defaultNavLayout'
+import {
+  mergeMissingDefaultNavItems,
+  passesGate,
+  pickSidebarLayout,
+  resolveItemLabel,
+  resolveSidebarNav,
+  type NavGateContext,
+} from './resolveNav'
 import type { SidebarNavV1 } from './sidebarNavSchema'
 
 const officeDesktop: NavGateContext = {
@@ -10,6 +18,7 @@ const officeDesktop: NavGateContext = {
   showRecruitment: false,
   isFieldService: true,
   canViewSales: true,
+  canViewCalendar: true,
   homePath: '/dashboard',
 }
 
@@ -20,6 +29,7 @@ const fieldMember: NavGateContext = {
   showRecruitment: false,
   isFieldService: true,
   canViewSales: false,
+  canViewCalendar: true,
   homePath: '/field/today',
 }
 
@@ -45,12 +55,75 @@ describe('mergeMissingDefaultNavItems', () => {
       'contacts',
       'sales',
       'field_orders',
+      'field_agenda',
+      'company_calendar',
+      'ai_chat',
+      'field_device',
       'maintenance_plans',
       'projects',
       'documents',
       'files',
       'public_portal',
     ])
+    const personal = merged.groups.find((g) => g.id === 'personal')
+    expect(personal?.items.map((i) => i.id)).toEqual([
+      'attendance',
+      'attendance_calendar',
+    ])
+  })
+
+  it('relocates Horari to Jo and Assistent IA to Operativa from legacy layouts', () => {
+    const saved: SidebarNavV1 = {
+      version: 2,
+      pinned: { visible: true, items: [{ id: 'home' }] },
+      groups: [
+        {
+          id: 'operations',
+          label: 'Operativa',
+          items: [{ id: 'contacts' }, { id: 'attendance' }, { id: 'field_orders' }],
+        },
+        {
+          id: 'personal',
+          label: 'Jo',
+          items: [{ id: 'attendance_calendar' }, { id: 'ai_chat' }],
+        },
+      ],
+    }
+    const merged = mergeMissingDefaultNavItems(saved)
+    const ops = merged.groups.find((g) => g.id === 'operations')?.items.map((i) => i.id) ?? []
+    const personal = merged.groups.find((g) => g.id === 'personal')?.items.map((i) => i.id) ?? []
+    expect(ops).toContain('ai_chat')
+    expect(ops).not.toContain('attendance')
+    expect(personal).toContain('attendance')
+    expect(personal).not.toContain('ai_chat')
+    expect(personal.indexOf('attendance')).toBeLessThan(personal.indexOf('attendance_calendar'))
+  })
+
+  it('inserts company_calendar after field_agenda in a saved operations layout', () => {
+    const saved: SidebarNavV1 = {
+      version: 2,
+      pinned: { visible: true, items: [{ id: 'home' }] },
+      groups: [
+        {
+          id: 'operations',
+          label: 'Operativa',
+          items: [
+            { id: 'contacts' },
+            { id: 'field_orders' },
+            { id: 'field_agenda' },
+            { id: 'field_device' },
+            { id: 'documents' },
+          ],
+        },
+      ],
+    }
+    const merged = mergeMissingDefaultNavItems(saved)
+    const ops = merged.groups.find((g) => g.id === 'operations')
+    const ids = ops?.items.map((i) => i.id) ?? []
+    const agendaIdx = ids.indexOf('field_agenda')
+    const calendarIdx = ids.indexOf('company_calendar')
+    expect(agendaIdx).toBeGreaterThanOrEqual(0)
+    expect(calendarIdx).toBe(agendaIdx + 1)
   })
 
   it('aliases quotes, delivery_notes and cobraments to a single sales item', () => {
@@ -158,6 +231,13 @@ describe('passesGate field-service office vs member', () => {
     expect(passesGate('isOffice', gestoria)).toBe(false)
     expect(passesGate('canViewSales', gestoria)).toBe(true)
   })
+
+  it('gates company calendar on canViewCalendar', () => {
+    expect(passesGate('canViewCalendar', fieldMember)).toBe(true)
+    expect(
+      passesGate('canViewCalendar', { ...fieldMember, canViewCalendar: false }),
+    ).toBe(false)
+  })
 })
 
 describe('resolveItemLabel', () => {
@@ -179,5 +259,56 @@ describe('resolveItemLabel', () => {
     expect(resolveItemLabel(NAV_CATALOG_BY_ID.field_orders, '  Manual  ', labels, officeDesktop)).toBe(
       'Manual',
     )
+  })
+})
+
+describe('resolveSidebarNav field agenda + device', () => {
+  const labels = {
+    t: (_key: string, fallback: string) => fallback,
+    contactLabel: 'Clients',
+    projectLabel: 'Ordre de servei',
+    projectLabelPlural: 'Ordres',
+    agreementLabelPlural: 'Acords comercials',
+  }
+
+  function operativaIds(ctx: NavGateContext) {
+    const resolved = resolveSidebarNav(buildDefaultNavLayout(), ctx, labels)
+    return resolved.groups.find((g) => g.id === 'operations')?.items.map((i) => i.id) ?? []
+  }
+
+  it('shows Agenda and Dispositiu for field members (not maintenance plans)', () => {
+    const ids = operativaIds(fieldMember)
+    expect(ids).toContain('field_orders')
+    expect(ids).toContain('field_agenda')
+    expect(ids).toContain('company_calendar')
+    expect(ids).toContain('ai_chat')
+    expect(ids).toContain('field_device')
+    expect(ids).toContain('contacts')
+    expect(ids).not.toContain('attendance')
+    expect(ids).not.toContain('maintenance_plans')
+    expect(ids.indexOf('company_calendar')).toBe(ids.indexOf('field_agenda') + 1)
+    expect(ids.indexOf('ai_chat')).toBe(ids.indexOf('company_calendar') + 1)
+  })
+
+  it('hides company_calendar when canViewCalendar is false', () => {
+    const ids = operativaIds({ ...fieldMember, canViewCalendar: false })
+    expect(ids).not.toContain('company_calendar')
+    expect(ids).toContain('field_agenda')
+  })
+
+  it('shows Agenda, Dispositiu and maintenance plans for field managers', () => {
+    const ids = operativaIds(officeDesktop)
+    expect(ids).toContain('field_agenda')
+    expect(ids).toContain('field_device')
+    expect(ids).toContain('ai_chat')
+    expect(ids).not.toContain('attendance')
+    expect(ids).toContain('maintenance_plans')
+  })
+
+  it('puts Horari under Jo for attendance-capable members', () => {
+    const resolved = resolveSidebarNav(buildDefaultNavLayout(), fieldMember, labels)
+    const personal =
+      resolved.groups.find((g) => g.id === 'personal')?.items.map((i) => i.id) ?? []
+    expect(personal).toEqual(['attendance', 'attendance_calendar'])
   })
 })

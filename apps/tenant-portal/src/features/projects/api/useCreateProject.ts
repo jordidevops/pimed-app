@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { invalidateFieldVisitQueries } from '@/features/field-service/api/fieldVisitsService'
 import { projectsKeys } from './projectsKeys'
 import { createProject } from './projectsService'
 import type { CreateProjectParams } from './projectsService'
@@ -14,6 +15,7 @@ export function useCreateProject() {
       queryClient.invalidateQueries({
         queryKey: projectsKeys.all(activeTenant?.id ?? ''),
       })
+      invalidateFieldVisitQueries(queryClient, activeTenant?.id)
     },
   })
 }

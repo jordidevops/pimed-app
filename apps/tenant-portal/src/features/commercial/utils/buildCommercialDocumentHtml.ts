@@ -388,3 +388,65 @@ export function buildCommercialDocumentHtml(
 </body>
 </html>`
 }
+
+/** Sample QT-D1 HTML for template-picker preview when no full-body template is resolved. */
+export function buildSampleCommercialDocumentHtml(
+  docType: 'quote' | 'delivery_note' = 'quote',
+  seller?: { display_name?: string | null; logo_url?: string | null },
+): string {
+  const isDelivery = docType === 'delivery_note'
+  const sample: CommercialDocumentDetail = {
+    id: 'sample',
+    tenant_id: 'sample',
+    doc_type: isDelivery ? 'delivery_note' : 'quote',
+    doc_number: isDelivery ? 'ALB-2026-0001' : 'PRE-2026-0001',
+    client_id: 'sample-client',
+    project_id: null,
+    status: 'issued',
+    seller_snapshot: {
+      display_name: seller?.display_name?.trim() || 'La teva empresa',
+      tax_id: 'B00000000',
+      logo_url: seller?.logo_url ?? null,
+    },
+    buyer_snapshot: {
+      display_name: 'Client d’exemple',
+      tax_id: '12345678Z',
+    },
+    service_address_snapshot: {
+      line1: 'Carrer Exemple 1',
+      city: 'Barcelona',
+      postal_code: '08001',
+    },
+    terms_text: isDelivery ? null : 'Condicions d’exemple per a la vista prèvia.',
+    locale: 'ca',
+    currency: 'EUR',
+    subtotal: 100,
+    tax_breakdown: [{ tax_rate: 21, tax_amount: 21 }],
+    total: 121,
+    show_prices: !isDelivery,
+    issued_at: '2026-09-16T10:00:00.000Z',
+    valid_until: isDelivery ? null : '2026-10-16',
+    parent_document_id: null,
+    created_at: '2026-09-16T10:00:00.000Z',
+    lines: [
+      {
+        id: 'sample-line-1',
+        document_id: 'sample',
+        kind: 'service',
+        name: 'Servei d’exemple',
+        description: 'Línia de mostra per a la vista prèvia',
+        unit: 'u',
+        quantity: 2,
+        unit_price: 50,
+        discount_pct: 0,
+        tax_rate: 21,
+        line_subtotal: 100,
+        line_tax: 21,
+        line_total: 100,
+        position: 0,
+      },
+    ],
+    events: [],
+  }
+  return buildCommercialDocumentHtml(sample)
+}

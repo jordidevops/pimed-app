@@ -12,6 +12,7 @@ import {
   Globe,
   Clock,
   CalendarDays,
+  CalendarRange,
   ListChecks,
   Sparkles,
   Zap,
@@ -31,6 +32,7 @@ export type NavItemId =
   | 'office_dashboard'
   | 'attendance'
   | 'attendance_calendar'
+  | 'company_calendar'
   | 'ai_chat'
   | 'employees'
   | 'hr_reporting'
@@ -49,6 +51,8 @@ export type NavItemId =
   | 'agreements'
   | 'maintenance_plans'
   | 'field_orders'
+  | 'field_agenda'
+  | 'field_device'
   | 'projects'
   | 'documents'
   | 'files'
@@ -68,6 +72,7 @@ export type NavGate =
   | 'notFieldService'
   | 'isOffice'
   | 'canViewSales'
+  | 'canViewCalendar'
   | 'showFieldTodayNav'
   | 'showOfficeDashboardNav'
 
@@ -137,12 +142,23 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
   {
     id: 'attendance_calendar',
     labelKey: 'nav.attendance_calendar',
-    labelFallback: 'Calendari',
+    labelFallback: 'El meu calendari',
     labelKind: 'i18n',
     icon: CalendarDays,
     gate: 'canUseAttendance',
     to: '/attendance/calendar',
     kind: 'link',
+  },
+  {
+    id: 'company_calendar',
+    labelKey: 'nav.company_calendar',
+    labelFallback: 'Calendari',
+    labelKind: 'i18n',
+    icon: CalendarRange,
+    gate: 'canViewCalendar',
+    to: '/calendar',
+    kind: 'link',
+    match: (path) => path === '/calendar' || path.startsWith('/calendar/'),
   },
   {
     id: 'ai_chat',
@@ -308,8 +324,9 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     labelKind: 'sector_agreement',
     icon: FileSignature,
     gate: 'isOffice',
-    to: '/agreements',
+    to: '/sales/agreements',
     kind: 'link',
+    match: (path) => path.startsWith('/sales/agreements') || path.startsWith('/agreements'),
   },
   {
     id: 'maintenance_plans',
@@ -332,6 +349,28 @@ export const NAV_CATALOG: NavCatalogEntry[] = [
     to: '/field/orders',
     kind: 'link',
     match: (path) => path.startsWith('/field/orders') || path.startsWith('/projects'),
+  },
+  {
+    id: 'field_agenda',
+    labelKey: 'nav.agenda',
+    labelFallback: 'Agenda',
+    labelKind: 'i18n',
+    icon: CalendarDays,
+    gate: 'isFieldService',
+    to: '/field/agenda',
+    kind: 'link',
+    match: (path) => path.startsWith('/field/agenda') || path.startsWith('/field/calendar'),
+  },
+  {
+    id: 'field_device',
+    labelKey: 'nav.field_device',
+    labelFallback: 'Dispositiu i sincronització',
+    labelKind: 'i18n',
+    icon: LayoutGrid,
+    gate: 'isFieldService',
+    to: '/field/more',
+    kind: 'link',
+    match: (path) => path.startsWith('/field/more'),
   },
   {
     id: 'projects',

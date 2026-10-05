@@ -183,16 +183,6 @@ export function ConfigPage() {
 
   return (
     <div className="space-y-6">
-      {/* ── Header ── */}
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">
-          {t('tabs.config', 'Configuració')}
-        </h2>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {t('config.page_description', "Paràmetres generals de l'organització heretats per tots els membres i locals.")}
-        </p>
-      </div>
-
       {/* ── Info jerarquia i selector de context ── */}
       <div className="rounded-xl border bg-muted/40 px-4 py-3 space-y-3">
         <div className="flex items-start gap-2 text-sm text-muted-foreground">

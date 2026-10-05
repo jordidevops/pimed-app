@@ -424,14 +424,14 @@ export function ProjectAgreementsSection({
                     {agreement.sourceQuoteId ? (
                       <Link
                         className="text-indigo-600 hover:underline"
-                        to={`/quotes?view=${agreement.sourceQuoteId}`}
+                        to={`/sales/quotes/${agreement.sourceQuoteId}`}
                       >
                         {t('projects.agreements.open_quote', 'Pressupost origen')}
                       </Link>
                     ) : null}
                     <Link
                       className="text-indigo-600 hover:underline"
-                      to={`/agreements?view=${agreement.id}`}
+                      to={`/sales/agreements?view=${agreement.id}`}
                     >
                       {t('projects.commercial.prepare_agreement_open_list', 'Veure a Acords comercials')}
                     </Link>

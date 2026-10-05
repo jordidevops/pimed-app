@@ -28,9 +28,22 @@ export function CobramentsRedirect() {
   return <Navigate to={{ pathname: '/sales/delivery-notes', search }} replace />
 }
 
-/** Legacy `/quotes` → `/sales/quotes` preserving query. */
+/** Legacy `/quotes` → `/sales/quotes`, mapping `?view=` to detail. */
 export function QuotesRedirect() {
   const { search } = useLocation()
+  const [searchParams] = useSearchParams()
+  const view = searchParams.get('view')
+  if (view) {
+    const next = new URLSearchParams(searchParams)
+    next.delete('view')
+    const rest = next.toString()
+    return (
+      <Navigate
+        to={{ pathname: `/sales/quotes/${view}`, search: rest ? `?${rest}` : '' }}
+        replace
+      />
+    )
+  }
   return <Navigate to={{ pathname: '/sales/quotes', search }} replace />
 }
 
@@ -51,4 +64,10 @@ export function DeliveryNotesRedirect() {
   }
   const { search } = useLocation()
   return <Navigate to={{ pathname: '/sales/delivery-notes', search }} replace />
+}
+
+/** Legacy `/agreements` → `/sales/agreements` (keeps `?view=` and other query). */
+export function AgreementsRedirect() {
+  const { search } = useLocation()
+  return <Navigate to={{ pathname: '/sales/agreements', search }} replace />
 }

@@ -21,6 +21,10 @@
     "projects": "Projectes",
     "field": "Camp",
     "field_today": "Avui",
+    "agenda": "Agenda",
+    "company_calendar": "Calendari",
+    "field_device": "Dispositiu i sincronització",
+    "context_selector": "Organització i local",
     "departments": "Departaments",
     "locations": "Ubicacions",
     "employees": "Empleats",
@@ -32,7 +36,7 @@
     "recruitment_rights": "Drets RGPD",
     "attendance": "Horari",
     "attendance_record": "Historial",
-    "attendance_calendar": "Calendari",
+    "attendance_calendar": "El meu calendari",
     "attendance_absences": "Absències",
     "attendance_shifts": "Planificador",
     "attendances": "Fitxatges equip",
@@ -246,7 +250,9 @@
     "notes": "Notes",
     "loading": "Carregant...",
     "emptyNotes": "Sense notes per mostrar.",
-    "pinned": "📌 Fixada"
+    "pinned": "📌 Fixada",
+    "open_company_calendar": "Veure calendari",
+    "field_agenda_link": "Veure agenda de visites"
   },
   "errors": {
     "unexpectedTitle": "S'ha produït un error inesperat",

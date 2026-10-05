@@ -11,6 +11,7 @@ import {
   RefreshCw,
   MapPin,
   ExternalLink,
+  Navigation,
   CheckCircle2,
   Trash2,
   FileSignature,
@@ -49,7 +50,13 @@ import { useFieldSync, enqueueFieldOp } from '@/hooks/useFieldSync'
 import { EntityTimeline } from '@/features/entity-timeline'
 import { useIsFieldService } from '@/hooks/useSectorLabel'
 import { readReturnTo } from '@/lib/navigationReturn'
-import { getContact, getContactSite } from '@/features/contacts/api/contactsService'
+import {
+  formatContactSiteAddress,
+  getContact,
+  getContactSite,
+  googleMapsDrivingDirectionsUrlForSite,
+  googleMapsUrlForSite,
+} from '@/features/contacts/api/contactsService'
 import {
   VisitChecklistSection,
   ProjectMaterialsSection,
@@ -115,6 +122,7 @@ export function ProjectDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const highlightCommentId = searchParams.get('comment')
   const tabParam = searchParams.get('tab')
+  const focusPlannedStart = searchParams.get('focus') === 'planned_start'
   const [editOpen, setEditOpen] = useState(false)
   const [closeOutOpen, setCloseOutOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -293,10 +301,16 @@ export function ProjectDetailPage() {
     )
   })()
 
+  useEffect(() => {
+    if (focusPlannedStart) setEditOpen(true)
+  }, [focusPlannedStart, project?.id])
+
   // Canonicalize legacy links and persist the first suggested phase. Once a
   // user clicks a phase, the explicit URL value always wins over the workflow.
+  // Skip while focusing planned_start so the edit dialog is not raced by tab redirects.
   useEffect(() => {
     if (!isFieldService || !project?.id) return
+    if (focusPlannedStart) return
     const desired = tabToSearchParam(
       resolveOrderTab(
         tabParam,
@@ -316,6 +330,7 @@ export function ProjectDetailPage() {
     workflow.suggestedTab,
     searchParams,
     setSearchParams,
+    focusPlannedStart,
   ])
 
   function setTab(next: string) {
@@ -421,11 +436,9 @@ export function ProjectDetailPage() {
     maintenance: t('projects.type.maintenance', 'Manteniment'),
   }
 
-  const siteAddress = contactSite
-    ? [contactSite.address, contactSite.city, contactSite.postal_code].filter(Boolean).join(', ')
-    : ''
-  const mapsQuery = encodeURIComponent(siteAddress || contactSite?.name || '')
-  const mapsUrl = mapsQuery ? `https://maps.google.com/?q=${mapsQuery}` : null
+  const siteAddress = contactSite ? formatContactSiteAddress(contactSite) : ''
+  const mapsUrl = contactSite ? googleMapsUrlForSite(contactSite) : null
+  const directionsUrl = contactSite ? googleMapsDrivingDirectionsUrlForSite(contactSite) : null
 
   const showClosedWorkReview =
     isFieldService && visitClosed && (fieldWorkLocked || !workEditing)
@@ -1023,16 +1036,31 @@ export function ProjectDetailPage() {
                   <span>{siteAddress}</span>
                 </p>
               )}
-              {mapsUrl && (
-                <a
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:underline"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  {t('field-service:detail.maps', 'Obrir a Maps')}
-                </a>
+              {(mapsUrl || directionsUrl) && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5">
+                  {mapsUrl ? (
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:underline"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      {t('field-service:detail.maps', 'Obrir a Maps')}
+                    </a>
+                  ) : null}
+                  {directionsUrl ? (
+                    <a
+                      href={directionsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:underline"
+                    >
+                      <Navigation className="h-3.5 w-3.5" />
+                      {t('field-service:detail.directions', 'Ruta en cotxe')}
+                    </a>
+                  ) : null}
+                </div>
               )}
             </div>
           )}
@@ -1244,7 +1272,7 @@ export function ProjectDetailPage() {
           </p>
           {commercialInclusion.agreementId ? (
             <Link
-              to={`/agreements?view=${commercialInclusion.agreementId}`}
+              to={`/sales/agreements?view=${commercialInclusion.agreementId}`}
               className="mt-1 inline-block text-emerald-800 underline dark:text-emerald-200"
             >
               {t('projects.commercial.inclusion_open_agreement', 'Veure l’acord')}
@@ -1500,8 +1528,16 @@ export function ProjectDetailPage() {
 
       <ProjectForm
         open={editOpen}
-        onClose={() => setEditOpen(false)}
+        onClose={() => {
+          setEditOpen(false)
+          if (focusPlannedStart) {
+            const next = new URLSearchParams(searchParams)
+            next.delete('focus')
+            setSearchParams(next, { replace: true })
+          }
+        }}
         editProject={project}
+        focusPlannedStart={focusPlannedStart}
       />
 
       {isFieldService && (

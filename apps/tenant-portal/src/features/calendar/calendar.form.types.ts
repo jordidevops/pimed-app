@@ -79,6 +79,6 @@ export interface CreateEventRpcResponse {
  * Error de validació del formulari.
  */
 export interface FormValidationError {
-  field: 'title' | 'start_at' | 'end_at' | 'reminders' | 'general'
+  field: 'title' | 'start_at' | 'end_at' | 'reminders' | 'general' | 'scope'
   message: string // Clau i18n com 'calendar.validation.titleRequired'
 }

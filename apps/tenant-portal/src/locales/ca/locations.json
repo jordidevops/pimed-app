@@ -4,6 +4,7 @@
       "not_available": "N/D"
     },
     "title": "Ubicacions",
+    "subtitle": "Espais i centres de treball",
     "new_location": "Nova ubicació",
     "breadcrumb_root": "Totes les ubicacions",
     "children_count": "{{count}} sububicacions",

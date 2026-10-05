@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -128,6 +128,8 @@ async function enrichAgreementRows(rows: AgreementListPageRow[]): Promise<Enrich
 
 export function AgreementsPage() {
   const { t } = useTranslation('projects')
+  const location = useLocation()
+  const isSalesHub = location.pathname.startsWith('/sales')
   const { toast } = useToast()
   const { activeTenant, activeRole } = useTenant()
   const canManage = activeRole === 'owner' || activeRole === 'manager'
@@ -151,12 +153,13 @@ export function AgreementsPage() {
     rawValidity === 'active' || rawValidity === 'expiring' || rawValidity === 'finished'
       ? rawValidity
       : 'all'
+  const statusFilter = searchParams.get('status') === 'suspended' ? 'suspended' : null
 
   const signatureFilter =
     signature === 'none' ? 'draft' : signature === 'all' ? 'all' : signature
 
   const listQuery = useInfiniteQuery({
-    queryKey: ['commercial_agreements', tenantId, 'list', signatureFilter, validity],
+    queryKey: ['commercial_agreements', tenantId, 'list', signatureFilter, validity, statusFilter],
     enabled: !!tenantId,
     initialPageParam: null as { createdAt: string; id: string } | null,
     queryFn: async ({ pageParam }) => {
@@ -172,10 +175,11 @@ export function AgreementsPage() {
     getNextPageParam: (last) => last.nextCursor,
   })
 
-  const rows = useMemo(
-    () => listQuery.data?.pages.flatMap((page) => page.rows) ?? [],
-    [listQuery.data],
-  )
+  const rows = useMemo(() => {
+    const all = listQuery.data?.pages.flatMap((page) => page.rows) ?? []
+    if (statusFilter === 'suspended') return all.filter((row) => row.status === 'suspended')
+    return all
+  }, [listQuery.data, statusFilter])
 
   const selected = useMemo(
     () => (viewId ? rows.find((row) => row.id === viewId) ?? null : null),
@@ -192,6 +196,7 @@ export function AgreementsPage() {
     const params = new URLSearchParams(searchParams)
     if (next === 'all') params.delete('signature')
     else params.set('signature', next)
+    params.delete('status')
     setSearchParams(params, { replace: true })
   }
 
@@ -199,6 +204,13 @@ export function AgreementsPage() {
     const params = new URLSearchParams(searchParams)
     if (next === 'all') params.delete('validity')
     else params.set('validity', next)
+    params.delete('status')
+    setSearchParams(params, { replace: true })
+  }
+
+  function clearStatusFilter() {
+    const params = new URLSearchParams(searchParams)
+    params.delete('status')
     setSearchParams(params, { replace: true })
   }
 
@@ -279,20 +291,32 @@ export function AgreementsPage() {
   const operationalEnds = selected?.cycleEndsOn ?? selected?.endsOn ?? null
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5 px-4 py-6">
+    <div
+      className={
+        isSalesHub
+          ? 'space-y-5'
+          : 'mx-auto max-w-4xl space-y-5 px-4 py-6'
+      }
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{agreementsLabel}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t(
-              'projects.agreements.subtitle',
-              'Contractes preparats a partir d’un pressupost acceptat, o acords marc sense pressupost.',
-            )}
-          </p>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-            <Link to="/quotes" className="text-sm text-indigo-600 hover:underline">
-              {t('projects.quotes.title', 'Pressupostos')}
-            </Link>
+          {!isSalesHub ? (
+            <>
+              <h1 className="text-2xl font-bold text-foreground">{agreementsLabel}</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t(
+                  'projects.agreements.subtitle',
+                  'Contractes preparats a partir d’un pressupost acceptat, o acords marc sense pressupost.',
+                )}
+              </p>
+            </>
+          ) : null}
+          <div className={`flex flex-wrap gap-x-3 gap-y-1 ${isSalesHub ? '' : 'mt-1'}`}>
+            {!isSalesHub ? (
+              <Link to="/sales/quotes" className="text-sm text-indigo-600 hover:underline">
+                {t('projects.quotes.title', 'Pressupostos')}
+              </Link>
+            ) : null}
             <Link to={AGREEMENT_TEMPLATES_HREF} className="text-sm text-indigo-600 hover:underline">
               {t('projects.agreements.templates_link', 'Plantilles de contracte')}
             </Link>
@@ -358,6 +382,16 @@ export function AgreementsPage() {
             </option>
           </select>
         </label>
+        {statusFilter === 'suspended' ? (
+          <div className="flex items-end gap-2">
+            <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-foreground">
+              {t('projects.agreements.filter_suspended_active', 'Filtre: suspesos')}
+            </p>
+            <Button type="button" size="sm" variant="ghost" onClick={clearStatusFilter}>
+              {t('projects.quotes.filter_all', 'Tots')}
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       {selected ? (
@@ -523,7 +557,7 @@ export function AgreementsPage() {
             {selected.sourceQuoteId ? (
               <Link
                 className="text-indigo-600 hover:underline"
-                to={`/quotes?view=${selected.sourceQuoteId}`}
+                to={`/sales/quotes/${selected.sourceQuoteId}`}
               >
                 {t('projects.agreements.open_quote', 'Pressupost origen')}
               </Link>
@@ -622,7 +656,7 @@ export function AgreementsPage() {
                   {row.sourceQuoteId ? (
                     <Link
                       className="text-indigo-600 hover:underline"
-                      to={`/quotes?view=${row.sourceQuoteId}`}
+                      to={`/sales/quotes/${row.sourceQuoteId}`}
                     >
                       {t('projects.agreements.open_quote', 'Pressupost origen')}
                     </Link>

@@ -3,6 +3,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useDismissGracePeriod } from './dismissGrace'
 
 const Sheet = DialogPrimitive.Root
 const SheetTrigger = DialogPrimitive.Trigger
@@ -51,24 +52,36 @@ type SheetContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.C
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   SheetContentProps
->(({ side = 'right', className, children, showClose = true, ...props }, ref) => (
-  <SheetPortal>
-    <SheetOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(sheetVariants({ side }), className)}
-      {...props}
-    >
-      {children}
-      {showClose ? (
-        <DialogPrimitive.Close className="absolute right-3 top-3 rounded-md p-1 text-muted-foreground opacity-70 ring-offset-background transition-opacity hover:bg-accent hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
-      ) : null}
-    </DialogPrimitive.Content>
-  </SheetPortal>
-))
+>(({ side = 'right', className, children, showClose = true, onPointerDownOutside, onInteractOutside, ...props }, ref) => {
+  const guardDismiss = useDismissGracePeriod()
+
+  return (
+    <SheetPortal>
+      <SheetOverlay />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(sheetVariants({ side }), className)}
+        onPointerDownOutside={(event) => {
+          guardDismiss(event)
+          onPointerDownOutside?.(event)
+        }}
+        onInteractOutside={(event) => {
+          guardDismiss(event)
+          onInteractOutside?.(event)
+        }}
+        {...props}
+      >
+        {children}
+        {showClose ? (
+          <DialogPrimitive.Close className="absolute right-3 top-3 rounded-md p-1 text-muted-foreground opacity-70 ring-offset-background transition-opacity hover:bg-accent hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </DialogPrimitive.Close>
+        ) : null}
+      </DialogPrimitive.Content>
+    </SheetPortal>
+  )
+})
 SheetContent.displayName = DialogPrimitive.Content.displayName
 
 function SheetHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

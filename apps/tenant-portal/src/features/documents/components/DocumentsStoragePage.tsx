@@ -2,16 +2,13 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useTenant } from '@/contexts/TenantContext'
-import { useSectorLabel } from '@/hooks/useSectorLabel'
 import { getTenantStorageBreakdown } from '@/features/storage/api/storageService'
 import { formatBytes } from '@/features/storage/utils/fileUtils'
 import type { TenantStorageBreakdown } from '@/features/storage/types/storage.types'
-import { DocumentsSubNav } from './DocumentsSubNav'
 
 export function DocumentsStoragePage() {
   const { t } = useTranslation('documents')
   const { activeTenant } = useTenant()
-  const projectLabel = useSectorLabel('project', t('storage.project_fallback', 'Projecte'))
   const [breakdown, setBreakdown] = useState<TenantStorageBreakdown | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -46,21 +43,7 @@ export function DocumentsStoragePage() {
   const drivePct = 100 - docsPct
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6">
-      <DocumentsSubNav />
-      <div>
-        <h1 className="text-xl font-semibold">
-          {t('storage.title', 'Emmagatzematge')}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t(
-            'storage.hint',
-            "Ús de Documents (DMS) vs Fitxers (Drive). Els arxius de {{project}} van a Fitxers.",
-            { project: projectLabel },
-          )}
-        </p>
-      </div>
-
+    <div className="space-y-6">
       {loading ? (
         <p className="text-sm text-muted-foreground">{t('page.loading', 'Carregant...')}</p>
       ) : !breakdown ? (
@@ -70,7 +53,7 @@ export function DocumentsStoragePage() {
       ) : (
         <div className="space-y-4 rounded-xl border border-border p-4">
           <div
-            className="flex h-40 w-40 mx-auto overflow-hidden rounded-full"
+            className="flex h-40 w-40 overflow-hidden rounded-full"
             style={{
               background: `conic-gradient(hsl(var(--primary)) 0 ${docsPct}%, hsl(var(--muted)) ${docsPct}% 100%)`,
             }}

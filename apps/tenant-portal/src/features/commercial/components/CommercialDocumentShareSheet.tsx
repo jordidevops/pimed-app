@@ -50,7 +50,7 @@ export function CommercialDocumentShareSheet({
   const locationReturn = `${location.pathname}${location.search}`
   const resolvedDmsReturn =
     dmsReturnTo ??
-    (isAllowedReturnTo(locationReturn) ? locationReturn : `/quotes?view=${documentId}`)
+    (isAllowedReturnTo(locationReturn) ? locationReturn : `/sales/quotes/${documentId}`)
   const dmsHref = (docId: string) => documentPathWithReturn(docId, resolvedDmsReturn)
   const { toast } = useToast()
   const [doc, setDoc] = useState<CommercialDocumentDetail | null>(null)

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   commercialQuoteViewHref,
+  commercialSalesDetailHref,
   commercialSignedPdfDocumentId,
   commercialSigningCentreHref,
   commercialSigningHubTitle,
@@ -12,7 +13,10 @@ import {
 describe('commercialSigningHub', () => {
   it('builds Centre and quotes hrefs', () => {
     expect(commercialSigningCentreHref('sub-1')).toBe('/documents/signing/sub-1')
-    expect(commercialQuoteViewHref('doc-1')).toBe('/quotes?view=doc-1')
+    expect(commercialQuoteViewHref('doc-1')).toBe('/sales/quotes/doc-1')
+    expect(commercialSalesDetailHref('dn-1', 'delivery_note')).toBe('/sales/delivery-notes/dn-1')
+    expect(commercialSalesDetailHref('q-1', 'quote')).toBe('/sales/quotes/q-1')
+    expect(commercialSalesDetailHref('x', 'invoice')).toBeNull()
   })
 
   it('titles a commercial hub row like the DMS commercial link', () => {

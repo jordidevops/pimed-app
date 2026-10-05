@@ -20,6 +20,7 @@ import {
   useApplyChatProposal,
   useSendChatTurn,
 } from '@/features/ai-chat/api/chatApi'
+import { ChatSetupGuide } from '@/features/ai-chat/components/ChatSetupGuide'
 import { ChatSidebar } from '@/features/ai-chat/components/ChatSidebar'
 import { ChatThread } from '@/features/ai-chat/components/ChatThread'
 import { ChatComposer } from '@/features/ai-chat/components/ChatComposer'
@@ -592,6 +593,11 @@ export function ChatPage() {
   }
 
   if (!canChat) {
+    if (!access?.configured) {
+      return (
+        <ChatSetupGuide canConfigure={activeRole === 'owner' || activeRole === 'manager'} />
+      )
+    }
     return (
       <div className="p-6 max-w-lg">
         <h1 className="text-2xl font-semibold flex items-center gap-2 mb-2">
@@ -599,9 +605,7 @@ export function ChatPage() {
           {t('title', 'Assistent IA')}
         </h1>
         <p className="text-muted-foreground">
-          {!access?.configured
-            ? t('notConfigured', 'La IA no està configurada per a aquest tenant. Configura-la a Configuració → IA.')
-            : t('noAccess', 'No tens accés a la IA. Contacta amb l\'administrador del tenant.')}
+          {t('noAccess', 'No tens accés a la IA. Contacta amb un administrador.')}
         </p>
       </div>
     )

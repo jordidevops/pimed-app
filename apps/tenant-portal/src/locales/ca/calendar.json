@@ -7,6 +7,12 @@
     "loading": "Carregant events…",
     "empty": "Sense events aquest mes",
     "emptyDay": "No hi ha events per aquest dia",
+    "today": "Avui",
+    "prev": "Anterior",
+    "next": "Següent",
+    "add": "Afegir",
+    "all_day": "Tot el dia",
+    "empty_day": "—",
     "addonInactive": "Mòdul inactiu",
     "addonUpgrade": "Aquest mòdul no està actiu al teu pla. Actualitza el pla per gestionar aquest event.",
     "untitled": "(Sense títol)",
@@ -16,6 +22,43 @@
     "readOnly": "Mode només lectura",
     "mobileAgendaTitle": "Agenda del dia",
     "desktopAgendaTitle": "Events del dia seleccionat",
+    "page": {
+      "title": "Calendari",
+      "subtitle": "Events de l’empresa",
+      "stub": "La vista completa del calendari s’està preparant. Mentrestant pots veure un resum al tauler.",
+      "forbidden": "No tens permís per veure el calendari d’empresa.",
+      "viewLabel": "Vista",
+      "views": {
+        "list": "Llista",
+        "day": "Dia",
+        "week": "Setmana",
+        "month": "Mes"
+      },
+      "filtersOpen": "Filtres",
+      "panelTitle": "Filtres",
+      "filters": {
+        "type": "Tipus",
+        "allTypes": "Tots",
+        "site": "Àmbit",
+        "siteAll": "Tots els centres",
+        "clear": "Netejar filtres",
+        "mineLabel": "Personal",
+        "mine": "Els meus",
+        "mineHint": "Manuals teus, tasques assignades i els teus torns. Sense projectes d’empresa."
+      },
+      "listRange": "{{from}} – {{to}}",
+      "emptyList": "No hi ha events en aquest període",
+      "emptyFiltered": "Cap event amb aquests filtres",
+      "moreDays": "Més 14 dies",
+      "addAllDay": "Afegir event de tot el dia",
+      "addAtTime": "Afegir event a {{time}}",
+      "searchPlaceholder": "Cerca events…",
+      "searchClear": "Netejar cerca",
+      "searchResults": "Resultats",
+      "searchCount": "{{count}} trobats",
+      "searchEmpty": "Cap event coincideix amb la cerca",
+      "searchScopeHint": "Cerca dins els darrers i propers 6 mesos (amb els filtres actius)."
+    },
     "detail": {
       "start": "Inici",
       "end": "Fi",
@@ -38,7 +81,7 @@
       "work_order": "Ordre de treball",
       "maintenance": "Manteniment",
       "invoice": "Factura",
-      "manual": "Event personal"
+      "manual": "Event"
     },
     "weekdays": {
       "mon": "Dl",
@@ -57,7 +100,13 @@
       "descriptionPlaceholder": "Afegir més detalls...",
       "startDateLabel": "Data i hora inici *",
       "endDateLabel": "Data i hora fi",
+      "startDateOnlyLabel": "Data inici *",
+      "endDateOnlyLabel": "Data fi",
       "allDayLabel": "Event de tot el dia",
+      "scopeLabel": "Àmbit *",
+      "scopePlaceholder": "Selecciona àmbit…",
+      "scopeCompany": "Tots els centres",
+      "deleteConfirm": "Segur que vols eliminar aquest event?",
       "colorLabel": "Color",
       "remindersSection": "Recordatoris",
       "addReminder": "Afegir recordatori",
@@ -77,7 +126,10 @@
       "channelSms": "SMS (properament)",
       "maxReminders": "Màxim 5 recordatoris",
       "title": "Recordatoris",
-      "noReminders": "Sense recordatoris"
+      "noReminders": "Sense recordatoris",
+      "addReminder": "Afegir recordatori",
+      "offsetTitle": "Selecciona quan vols ser recordat",
+      "channelTitle": "Selecciona el canal de recordatori"
     },
     "validation": {
       "titleRequired": "El títol és obligatori",
@@ -86,7 +138,8 @@
       "endBeforeStart": "La data de fi no pot ser anterior a l'inici",
       "offsetInvalid": "Els minuts han de ser entre 0 i 10080 (7 dies)",
       "noPermission": "No tens permís per crear events",
-      "maxRemindersExceeded": "Has superat el límit de recordatoris"
+      "maxRemindersExceeded": "Has superat el límit de recordatoris",
+      "scopeRequired": "Cal triar l’àmbit de l’event"
     },
     "success": {
       "eventCreated": "Event creat correctament",
@@ -94,7 +147,8 @@
     },
     "error": {
       "createFailed": "Error en crear l'event",
-      "saveFailed": "Error en desar l'event",
+      "saveFailed": "No s’ha pogut desar l’event",
+      "deleteFailed": "No s’ha pogut eliminar l’event",
       "unknown": "Error desconegut"
     }
   }

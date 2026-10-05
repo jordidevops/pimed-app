@@ -5,6 +5,8 @@ import { Plus, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -284,23 +286,22 @@ export function PricingTemplateForm({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogHeader className="shrink-0 space-y-1.5 border-b border-border px-6 py-4 text-left">
           <DialogTitle>
             {template
               ? t('catalog.packs.form_edit', 'Editar servei habitual')
               : t('catalog.packs.form_create', 'Nou servei habitual')}
           </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4 pt-2">
-          <p className="text-sm text-muted-foreground">
+          <DialogDescription>
             {t(
               'catalog.packs.form_help',
               'Un pack de línies del catàleg (p. ex. Visita estàndard) per aplicar-lo ràpidament a una OS. Pots vincular-hi checklists de visita.',
             )}
-          </p>
+          </DialogDescription>
+        </DialogHeader>
 
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
           <div className="rounded-lg border border-dashed border-border p-3 space-y-2">
             <Textarea
               value={aiPrompt}
@@ -534,18 +535,18 @@ export function PricingTemplateForm({
               </ul>
             )}
           </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
-              {t('catalog.form.cancel', 'Cancel·lar')}
-            </Button>
-            <Button type="button" onClick={() => void handleSave()} disabled={submitting}>
-              {submitting
-                ? t('catalog.packs.saving', 'Desant…')
-                : t('catalog.packs.save', 'Desar')}
-            </Button>
-          </div>
         </div>
+
+        <DialogFooter className="shrink-0 border-t border-border px-6 py-4 sm:justify-end">
+          <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
+            {t('catalog.form.cancel', 'Cancel·lar')}
+          </Button>
+          <Button type="button" onClick={() => void handleSave()} disabled={submitting}>
+            {submitting
+              ? t('catalog.packs.saving', 'Desant…')
+              : t('catalog.packs.save', 'Desar')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

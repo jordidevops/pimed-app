@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { buildCommercialDocumentHtml } from './buildCommercialDocumentHtml'
+import {
+  buildCommercialDocumentHtml,
+  buildSampleCommercialDocumentHtml,
+} from './buildCommercialDocumentHtml'
 import type { CommercialDocumentDetail, CommercialDocumentLine } from './commercialDocumentModel'
 
 function line(partial: Partial<CommercialDocumentLine> & { name: string }): CommercialDocumentLine {
@@ -115,5 +118,15 @@ describe('buildCommercialDocumentHtml', () => {
     expect(html).not.toContain('>Preu<')
     expect(html).not.toContain('<span>Base</span>')
     expect(html).not.toContain('<span>Total</span>')
+  })
+
+  it('builds a sample QT-D1 quote preview for the template picker', () => {
+    const html = buildSampleCommercialDocumentHtml('quote', {
+      display_name: 'Empresa Demo',
+    })
+    expect(html).toContain('Pressupost PRE-2026-0001')
+    expect(html).toContain('Empresa Demo')
+    expect(html).toContain('Client d’exemple')
+    expect(html).toContain('Servei d’exemple')
   })
 })

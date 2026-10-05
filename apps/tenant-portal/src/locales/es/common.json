@@ -3,7 +3,12 @@
     "sales": "Comercial",
     "quotes": "Presupuestos",
     "delivery_notes": "Albaranes",
-    "cobraments": "Albaranes"
+    "cobraments": "Albaranes",
+    "agenda": "Agenda",
+    "company_calendar": "Calendario",
+    "attendance_calendar": "Mi calendario",
+    "field_device": "Dispositivo y sincronización",
+    "context_selector": "Organización y local"
   },
   "list": {
     "view_label": "Vista",
@@ -15,5 +20,10 @@
     "clear_filters": "Limpiar filtros",
     "open_record": "Abrir ficha",
     "showing_count": "Mostrando {{shown}} de {{total}}"
+  },
+  "dashboard": {
+    "calendar": "Calendario",
+    "open_company_calendar": "Ver calendario",
+    "field_agenda_link": "Ver agenda de visitas"
   }
 }

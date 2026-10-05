@@ -4,6 +4,7 @@
     "orders": "Órdenes",
     "attendance": "Horario",
     "agenda": "Agenda",
+    "device": "Dispositivo",
     "more": "Más",
     "field": "Campo"
   },
@@ -32,6 +33,7 @@
     "title": "Órdenes de servicio",
     "subtitle": "Tus órdenes y visitas",
     "new": "Nueva orden",
+    "new_short": "Nueva",
     "empty": "Aún no tienes ninguna orden de servicio",
     "filter_mine": "Las mías",
     "filter_open": "Abiertas",
@@ -55,7 +57,44 @@
   },
   "agenda": {
     "title": "Agenda",
-    "subtitle": "Visitas planificadas"
+    "subtitle": "Visitas planificadas",
+    "open_calendar": "Abrir calendario",
+    "all_day": "Todo el día",
+    "today": "Hoy",
+    "prev_day": "Día anterior",
+    "next_day": "Día siguiente",
+    "view": {
+      "list": "Lista",
+      "day": "Día",
+      "week": "Semana",
+      "month": "Mes"
+    },
+    "scope": {
+      "mine": "Las mías",
+      "all": "Todas"
+    },
+    "filters": {
+      "open": "Filtros",
+      "type": "Tipo",
+      "work_order": "Orden de servicio",
+      "maintenance": "Mantenimiento",
+      "status": "Estado",
+      "technician": "Técnico",
+      "technician_help": "Mantén Ctrl/Cmd para seleccionar más de uno.",
+      "clear": "Limpiar filtros"
+    },
+    "unscheduled": {
+      "title": "Sin planificar",
+      "short": "Bandeja",
+      "empty": "No hay órdenes sin fecha",
+      "plan": "Planificar"
+    },
+    "empty": {
+      "filtered": "Ninguna visita con estos filtros",
+      "none": "Ninguna visita planificada",
+      "from_tray": "Planificar desde la bandeja",
+      "orders": "Ver órdenes"
+    }
   },
   "more": {
     "title": "Más",
@@ -88,6 +127,7 @@
   },
   "detail": {
     "maps": "Abrir en Maps",
+    "directions": "Ruta en coche",
     "address": "Dirección",
     "client": "Cliente",
     "checklist": "Checklist",

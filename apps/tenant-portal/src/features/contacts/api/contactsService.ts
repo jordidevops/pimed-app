@@ -4,6 +4,7 @@ import {
   parseGeoCoordinates,
   formatAddressLine,
   googleMapsUrlFromGeo,
+  googleMapsDrivingDirectionsUrl,
   type GeoCoordinates,
   type GeoProvider,
   type GeoSource,
@@ -135,6 +136,20 @@ export function googleMapsUrlForSite(site: Pick<
   const q = formatContactSiteAddress(site).trim()
   if (!q) return null
   return `https://maps.google.com/?q=${encodeURIComponent(q)}`
+}
+
+/** Driving route to the site; Maps fills origin from the device location. */
+export function googleMapsDrivingDirectionsUrlForSite(site: Pick<
+  ContactSite,
+  'address' | 'city' | 'postal_code' | 'name' | 'street' | 'street_number' | 'province' | 'geo_coordinates'
+>): string | null {
+  const geo = parseGeoCoordinates(site.geo_coordinates)
+  if (geo.point) {
+    const fromPoint = googleMapsDrivingDirectionsUrl(geo.point)
+    if (fromPoint) return fromPoint
+  }
+  const q = formatContactSiteAddress(site).trim()
+  return q ? googleMapsDrivingDirectionsUrl(q) : null
 }
 
 export interface CreateContactParams {

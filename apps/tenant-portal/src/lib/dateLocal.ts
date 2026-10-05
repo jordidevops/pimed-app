@@ -12,6 +12,13 @@ export function localDateIso(d = new Date()): string {
   return localDateString(d)
 }
 
+/** Local midnight ISO for a YYYY-MM-DD calendar day (or today). */
+export function localDayStartIso(day?: string): string {
+  const base = day ?? localDateString()
+  const [y, m, d] = base.split('-').map(Number)
+  return new Date(y, m - 1, d, 0, 0, 0, 0).toISOString()
+}
+
 /** Inclusive local-day range as ISO timestamptz bounds. */
 export function localDayRange(day?: string): { from: string; to: string; day: string } {
   const base = day ?? localDateString()
@@ -19,6 +26,21 @@ export function localDayRange(day?: string): { from: string; to: string; day: st
   const start = new Date(y, m - 1, d, 0, 0, 0, 0)
   const end = new Date(y, m - 1, d, 23, 59, 59, 999)
   return { from: start.toISOString(), to: end.toISOString(), day: base }
+}
+
+/**
+ * Half-open `[from, to)` covering `dayCount` local calendar days starting at `fromDay`.
+ * Matches RPC filters that use `planned_start >= from AND planned_start < to`.
+ */
+export function localDaysHalfOpenRange(
+  dayCount: number,
+  fromDay?: string,
+): { from: string; to: string; day: string } {
+  const day = fromDay ?? localDateString()
+  const [y, m, d] = day.split('-').map(Number)
+  const start = new Date(y, m - 1, d, 0, 0, 0, 0)
+  const end = new Date(y, m - 1, d + dayCount, 0, 0, 0, 0)
+  return { from: start.toISOString(), to: end.toISOString(), day }
 }
 
 /** Start of local day for `day` through end of local day `day + daysAhead`. */

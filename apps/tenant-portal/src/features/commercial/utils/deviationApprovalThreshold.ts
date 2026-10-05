@@ -102,6 +102,73 @@ export function parseCommercialSettingId(
   return trimmed
 }
 
+/** Raw commercial setting string (keeps explicit «none»). */
+export function readCommercialSettingRaw(
+  effective: Record<string, unknown> | null | undefined,
+  key: string,
+): string | null {
+  const commercial = effective?.commercial
+  let raw: unknown
+  if (commercial && typeof commercial === 'object' && !Array.isArray(commercial)) {
+    raw = (commercial as Record<string, unknown>)[key]
+  }
+  if (raw == null) {
+    raw = effective?.[`commercial.${key}`]
+  }
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  return trimmed || null
+}
+
+export type ResolveActiveCommercialTemplateInput = {
+  id: string
+  category?: string | null
+  tenant_id?: string | null
+  is_platform_default?: boolean | null
+  is_active?: boolean | null
+  template_type?: string | null
+  created_at?: string | null
+}
+
+/**
+ * Mirrors data.resolve_commercial_full_body_template_id for quote/delivery_note:
+ * settings uuid → that template; settings «none» → null (QT-D1); unset → oldest own.
+ */
+export function resolveActiveCommercialFullBodyTemplateId(
+  effective: Record<string, unknown> | null | undefined,
+  settingsKey: typeof COMMERCIAL_QUOTE_TEMPLATE_ID_KEY | typeof COMMERCIAL_DELIVERY_NOTE_TEMPLATE_ID_KEY,
+  category: 'quote' | 'delivery_note',
+  templates: ResolveActiveCommercialTemplateInput[],
+  tenantId: string | null | undefined,
+): string | null {
+  if (!tenantId) return null
+  const raw = readCommercialSettingRaw(effective, settingsKey)
+  if (raw && raw.toLowerCase() === COMMERCIAL_FULL_BODY_TEMPLATE_NONE) return null
+
+  const eligible = (tpl: ResolveActiveCommercialTemplateInput) =>
+    tpl.is_active !== false &&
+    (tpl.template_type === 'html' || tpl.template_type === 'docx') &&
+    (tpl.category ?? '').toLowerCase() === category &&
+    (tpl.tenant_id === tenantId ||
+      (tpl.tenant_id == null && tpl.is_platform_default === true))
+
+  if (raw) {
+    const configured = templates.find((tpl) => tpl.id === raw && eligible(tpl))
+    if (configured) return configured.id
+  }
+
+  const own = templates
+    .filter(
+      (tpl) =>
+        tpl.tenant_id === tenantId &&
+        tpl.is_active !== false &&
+        (tpl.template_type === 'html' || tpl.template_type === 'docx') &&
+        (tpl.category ?? '').toLowerCase() === category,
+    )
+    .sort((a, b) => String(a.created_at ?? '').localeCompare(String(b.created_at ?? '')))
+  return own[0]?.id ?? null
+}
+
 export function commercialFullBodyTemplateSettingValue(id: string | null | undefined): string {
   const trimmed = (id ?? '').trim()
   return trimmed || COMMERCIAL_FULL_BODY_TEMPLATE_NONE

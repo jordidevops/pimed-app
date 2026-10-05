@@ -13,6 +13,7 @@ import { AppLayout } from './components/AppLayout'
 import { LoginPage } from './pages/LoginPage'
 import { PublicSignPage } from './pages/PublicSignPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { CompanyCalendarPage } from './features/calendar'
 import { ProfilePage } from './pages/ProfilePage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ConfigPage } from './pages/settings/ConfigPage'
@@ -44,7 +45,9 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { ContactsPage } from './features/contacts/components/ContactsPage'
 import { ContactDetailPage } from './features/contacts/components/ContactDetailPage'
-import { CatalogPage } from './features/catalog/components/CatalogPage'
+import { CatalogLayout } from './features/catalog/components/CatalogLayout'
+import { CatalogItemsPage } from './features/catalog/components/CatalogItemsPage'
+import { CatalogPacksPage } from './features/catalog/components/CatalogPacksPage'
 import { DepartmentsPage } from './features/departments'
 import { LocationsPage } from './features/locations'
 import { EmployeesPage, EmployeeDetailPage, JobPositionsPage, OrganizationChartPage } from './features/employees'
@@ -60,11 +63,18 @@ import {
   RecruitmentInboundInboxPage,
 } from './features/recruitment'
 import { SkillCatalogPage } from './features/employee-skills'
-import { DocumentsPage, ArchivedDocumentsPage, DocumentDetailPage, DocumentsStoragePage } from './features/documents'
+import {
+  DocumentsPage,
+  ArchivedDocumentsPage,
+  DocumentDetailPage,
+  DocumentsStoragePage,
+  DocumentsLayout,
+} from './features/documents'
 import { TemplatesPage, TemplateDetailPage, SigningCenterPage, SigningSubmissionDetail } from './features/signing'
 import { ProjectsPage, ProjectDetailPage } from './features/projects'
 import { QuotesPage } from './features/commercial/components/QuotesPage'
 import {
+  AgreementsRedirect,
   CobramentsRedirect,
   DeliveryNotesPage,
   DeliveryNotesRedirect,
@@ -75,6 +85,7 @@ import { SalesDashboardPage } from './features/commercial/components/SalesDashbo
 import { SalesAccountingPage } from './features/commercial/components/SalesAccountingPage'
 import { InvoicesPage } from './features/commercial/components/InvoicesPage'
 import { DeliveryNoteDetailPage } from './features/commercial/components/DeliveryNoteDetailPage'
+import { QuoteDetailPage } from './features/commercial/components/QuoteDetailPage'
 import { InvoiceDetailPage } from './features/commercial/components/InvoiceDetailPage'
 import { AgreementsPage } from './features/commercial/components/AgreementsPage'
 import {
@@ -187,6 +198,7 @@ export default function App() {
           <Route path="/app" element={<AppIndexPage />} />
           <Route path="/app/sidebar" element={<SidebarEditorPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/calendar" element={<CompanyCalendarPage />} />
           <Route path="/files" element={<FilesPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/contacts/:id" element={<ContactDetailPage />} />
@@ -196,14 +208,20 @@ export default function App() {
           <Route path="/sales" element={<SalesLayout />}>
             <Route index element={<SalesDashboardPage />} />
             <Route path="quotes" element={<QuotesPage />} />
+            <Route path="quotes/:id" element={<QuoteDetailPage />} />
+            <Route path="agreements" element={<AgreementsPage />} />
             <Route path="delivery-notes" element={<DeliveryNotesPage />} />
             <Route path="delivery-notes/:id" element={<DeliveryNoteDetailPage />} />
             <Route path="invoices" element={<InvoicesPage />} />
             <Route path="invoices/:id" element={<InvoiceDetailPage />} />
             <Route path="accounting" element={<SalesAccountingPage />} />
           </Route>
-          <Route path="/agreements" element={<AgreementsPage />} />
-          <Route path="/catalog" element={<CatalogPage />} />
+          <Route path="/agreements" element={<AgreementsRedirect />} />
+          <Route path="/catalog" element={<CatalogLayout />}>
+            <Route index element={<CatalogItemsPage key="services" />} />
+            <Route path="products" element={<CatalogItemsPage key="products" />} />
+            <Route path="packs" element={<CatalogPacksPage />} />
+          </Route>
           <Route path="/departments" element={<DepartmentsPage />} />
           <Route path="/locations" element={<LocationsPage />} />
           <Route path="/employees" element={<EmployeesPage />} />
@@ -222,14 +240,16 @@ export default function App() {
             <Route path="settings" element={<RecruitmentSettingsPage />} />
           </Route>
           <Route path="/recruitment/postings/:id" element={<JobPostingDetailPage />} />
-          <Route path="/documents" element={<DocumentsPage />} />
-          <Route path="/documents/archived" element={<ArchivedDocumentsPage />} />
-          <Route path="/documents/storage" element={<DocumentsStoragePage />} />
-          <Route path="/documents/templates" element={<TemplatesPage />} />
-          <Route path="/documents/templates/:id" element={<TemplateDetailPage />} />
-          <Route path="/documents/signing" element={<SigningCenterPage />} />
-          <Route path="/documents/signing/:id" element={<SigningSubmissionDetail />} />
-          <Route path="/documents/:id" element={<DocumentDetailPage />} />
+          <Route path="/documents" element={<DocumentsLayout />}>
+            <Route index element={<DocumentsPage />} />
+            <Route path="archived" element={<ArchivedDocumentsPage />} />
+            <Route path="storage" element={<DocumentsStoragePage />} />
+            <Route path="templates" element={<TemplatesPage />} />
+            <Route path="templates/:id" element={<TemplateDetailPage />} />
+            <Route path="signing" element={<SigningCenterPage />} />
+            <Route path="signing/:id" element={<SigningSubmissionDetail />} />
+            <Route path=":id" element={<DocumentDetailPage />} />
+          </Route>
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/field" element={<FieldServiceLayout />}>
@@ -237,6 +257,7 @@ export default function App() {
             <Route path="orders" element={<FieldOrdersPage />} />
             <Route path="orders/:id" element={<ProjectDetailPage />} />
             <Route path="agenda" element={<FieldAgendaPage />} />
+            <Route path="calendar" element={<Navigate to="/field/agenda?view=week" replace />} />
             <Route path="more" element={<FieldMorePage />} />
             <Route path="checklist-templates" element={<ChecklistTemplatesPage />} />
             <Route path="checklist-points" element={<ChecklistPointsPage />} />

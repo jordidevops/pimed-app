@@ -160,8 +160,18 @@ export function ProjectsPage({
   const plannedStartFrom = searchParams.get('plannedStartFrom') ?? ''
   const plannedStartTo = searchParams.get('plannedStartTo') ?? ''
   const dateRange = searchParams.get('dateRange') ?? ''
-  const sortField = parseSortField(searchParams.get('sortField'))
-  const sortDirection = parseSortDirection(searchParams.get('sortDirection'))
+  const sortFieldParam = searchParams.get('sortField')
+  const sortDirectionParam = searchParams.get('sortDirection')
+  const sortField = sortFieldParam
+    ? parseSortField(sortFieldParam)
+    : fieldServiceMode
+      ? 'planned_start'
+      : 'created_at'
+  const sortDirection = sortDirectionParam
+    ? parseSortDirection(sortDirectionParam)
+    : fieldServiceMode && !sortFieldParam
+      ? 'asc'
+      : parseSortDirection(sortDirectionParam)
   const debouncedSearch = useDebounce(searchDraft, 300)
   const urlFilterClientId = !embedded && !clientId
     ? (searchParams.get('client_id')?.trim() || '')
@@ -549,6 +559,25 @@ export function ProjectsPage({
               {t(`field-service:orders.filter_${filter}`, filter)}
             </FilterPill>
           ))}
+          <div className="sm:hidden">
+            <FilterPill
+              active={sortField === 'planned_start'}
+              onClick={() => toggleSort('planned_start')}
+            >
+              <span className="inline-flex items-center">
+                {t('projects.list.col_planned_start', 'Data')}
+                {sortField === 'planned_start' ? (
+                  sortDirection === 'asc' ? (
+                    <ArrowUp className="ml-1 h-3.5 w-3.5" />
+                  ) : (
+                    <ArrowDown className="ml-1 h-3.5 w-3.5" />
+                  )
+                ) : (
+                  <ArrowUpDown className="ml-1 h-3.5 w-3.5 opacity-60" />
+                )}
+              </span>
+            </FilterPill>
+          </div>
         </div>
       )}
 
@@ -775,6 +804,12 @@ export function ProjectsPage({
                 <th className="px-4 py-3 text-left font-medium">
                   <SortButton field="name" label={t('projects.list.col_name', 'Nom')} />
                 </th>
+                <th className="hidden px-3 py-3 text-left font-medium sm:table-cell">
+                  <SortButton
+                    field="planned_start"
+                    label={t('projects.list.col_planned_start', 'Data')}
+                  />
+                </th>
                 <th className="px-4 py-3 text-left font-medium hidden md:table-cell">
                   <SortButton field="type" label={t('projects.list.col_type', 'Tipus')} />
                 </th>
@@ -844,6 +879,11 @@ export function ProjectsPage({
         editProject={editTarget}
         initialClientId={initialClientId ?? clientId ?? null}
         initialContactSiteId={initialContactSiteId}
+        initialType={
+          (PROJECT_TYPES as readonly string[]).includes(type)
+            ? (type as (typeof PROJECT_TYPES)[number])
+            : null
+        }
       />
     </>
   )

@@ -7,7 +7,7 @@
     "self_service": {
       "nav": "Horari personal",
       "punch": "Fitxar",
-      "calendar": "Calendari",
+      "calendar": "El meu calendari",
       "absences": "Absències"
     },
     "today_card": {

@@ -242,7 +242,7 @@ export function CreateQuoteDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
-      <DialogContent className="flex max-h-[90vh] max-w-md flex-col gap-0 overflow-hidden p-0">
+      <DialogContent className="flex max-h-[90vh] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
         <div className="shrink-0 space-y-1 border-b border-border px-6 pb-4 pt-6 pr-12">
           <DialogHeader>
             <DialogTitle>

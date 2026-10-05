@@ -3,7 +3,17 @@
     "sales": "Sales",
     "quotes": "Quotes",
     "delivery_notes": "Delivery notes",
-    "cobraments": "Delivery notes"
+    "cobraments": "Delivery notes",
+    "agenda": "Agenda",
+    "company_calendar": "Calendar",
+    "attendance_calendar": "My calendar",
+    "field_device": "Device and sync",
+    "context_selector": "Organization and site"
+  },
+  "dashboard": {
+    "calendar": "Calendar",
+    "open_company_calendar": "View calendar",
+    "field_agenda_link": "View visit agenda"
   },
   "list": {
     "view_label": "View",

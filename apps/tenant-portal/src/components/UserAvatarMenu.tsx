@@ -6,9 +6,12 @@ import { cn } from '@/lib/utils'
 
 export function UserAvatarMenu({
   menuUp = false,
+  compact = false,
   itemClassName,
 }: {
   menuUp?: boolean
+  /** Icon-only trigger for short-height sidebars. */
+  compact?: boolean
   /** Classes de hover/estat idle del sidebar (mateix estil que els NavLink). */
   itemClassName?: string
 }) {
@@ -47,14 +50,21 @@ export function UserAvatarMenu({
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          'tp-nav-item focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          compact
+            ? 'tp-nav-item tp-nav-item-compact justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+            : 'tp-nav-item focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           itemClassName,
         )}
         aria-label={t('nav.user_menu', "Menú d'usuari")}
         aria-expanded={open}
       >
-        <span className="min-w-0 flex-1 truncate text-left">{label}</span>
-        <span className="h-8 w-8 shrink-0 rounded-full overflow-hidden bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs">
+        {!compact && <span className="min-w-0 flex-1 truncate text-left">{label}</span>}
+        <span
+          className={cn(
+            'shrink-0 rounded-full overflow-hidden bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs',
+            compact ? 'h-7 w-7' : 'h-8 w-8',
+          )}
+        >
           {avatarUrl ? (
             <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
           ) : (

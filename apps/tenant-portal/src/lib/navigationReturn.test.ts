@@ -12,6 +12,8 @@ describe('navigationReturn', () => {
     expect(isAllowedReturnTo('/sales')).toBe(true)
     expect(isAllowedReturnTo('/sales/delivery-notes/abc')).toBe(true)
     expect(isAllowedReturnTo('/sales/invoices/abc')).toBe(true)
+    expect(isAllowedReturnTo('/sales/agreements?view=abc')).toBe(true)
+    expect(isAllowedReturnTo('/agreements?view=abc')).toBe(true)
     expect(isAllowedReturnTo('/quotes?view=abc')).toBe(true)
     expect(isAllowedReturnTo('/cobraments?view=abc&status=open')).toBe(true)
     expect(isAllowedReturnTo('/delivery-notes?view=abc&status=open')).toBe(true)

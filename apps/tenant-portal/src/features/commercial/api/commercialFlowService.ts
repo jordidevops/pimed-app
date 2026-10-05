@@ -1245,27 +1245,160 @@ export type SalesDashboardKpis = {
   year: number
 }
 
-export async function getSalesDashboardKpis(
-  year: number = new Date().getFullYear(),
-): Promise<SalesDashboardKpis> {
-  const { data, error } = await supabase.rpc('get_sales_dashboard_kpis' as never, {
-    p_year: year,
-  } as never)
-  if (error) throw error
-  const row = (data ?? {}) as {
+export type SalesDashboardAttentionReason =
+  | 'needs_prepare'
+  | 'pending_signature'
+  | 'draft'
+  | 'expiring'
+  | 'suspended'
+
+export type SalesDashboardAttentionItem = {
+  kind: 'agreement' | 'quote_prepare'
+  id: string
+  clientId: string | null
+  clientName: string
+  label: string
+  reason: SalesDashboardAttentionReason
+}
+
+export type SalesDashboardOverview = {
+  year: number
+  cash: SalesDashboardKpis
+  agreements: {
+    signature: { draft: number; pending: number; signed: number }
+    lifecycle: { active: number; expiring: number; suspended: number; finished: number }
+    needsPrepareCount: number
+    attention: SalesDashboardAttentionItem[]
+  }
+  series: {
+    months: Array<{
+      month: number
+      quotesIssued: number
+      deliveryNotesIssued: number
+      invoicedCents: number
+    }>
+  }
+}
+
+function mapSalesDashboardCash(
+  cash: {
     to_invoice_count?: number | string | null
     to_invoice_cents?: number | string | null
     pending_collection_cents?: number | string | null
     pending_quotes_count?: number | string | null
-    year?: number | string | null
-  }
+  },
+  year: number,
+): SalesDashboardKpis {
   return {
-    toInvoiceCount: Number(row.to_invoice_count ?? 0),
-    toInvoiceCents: Number(row.to_invoice_cents ?? 0),
-    pendingCollectionCents: Number(row.pending_collection_cents ?? 0),
-    pendingQuotesCount: Number(row.pending_quotes_count ?? 0),
-    year: Number(row.year ?? year),
+    toInvoiceCount: Number(cash.to_invoice_count ?? 0),
+    toInvoiceCents: Number(cash.to_invoice_cents ?? 0),
+    pendingCollectionCents: Number(cash.pending_collection_cents ?? 0),
+    pendingQuotesCount: Number(cash.pending_quotes_count ?? 0),
+    year,
   }
+}
+
+export async function getSalesDashboardOverview(
+  year: number = new Date().getFullYear(),
+): Promise<SalesDashboardOverview> {
+  const { data, error } = await supabase.rpc('get_sales_dashboard_overview' as never, {
+    p_year: year,
+  } as never)
+  if (error) throw error
+  const row = (data ?? {}) as {
+    year?: number | string | null
+    cash?: {
+      to_invoice_count?: number | string | null
+      to_invoice_cents?: number | string | null
+      pending_collection_cents?: number | string | null
+      pending_quotes_count?: number | string | null
+    } | null
+    agreements?: {
+      signature?: {
+        draft?: number | string | null
+        pending?: number | string | null
+        signed?: number | string | null
+      } | null
+      lifecycle?: {
+        active?: number | string | null
+        expiring?: number | string | null
+        suspended?: number | string | null
+        finished?: number | string | null
+      } | null
+      needs_prepare_count?: number | string | null
+      attention?: Array<{
+        kind?: string | null
+        id?: string | null
+        client_id?: string | null
+        client_name?: string | null
+        label?: string | null
+        reason?: string | null
+      }> | null
+    } | null
+    series?: {
+      months?: Array<{
+        month?: number | string | null
+        quotes_issued?: number | string | null
+        delivery_notes_issued?: number | string | null
+        invoiced_cents?: number | string | null
+      }> | null
+    } | null
+  }
+
+  const resolvedYear = Number(row.year ?? year)
+  const attention = Array.isArray(row.agreements?.attention) ? row.agreements!.attention! : []
+  const months = Array.isArray(row.series?.months) ? row.series!.months! : []
+
+  return {
+    year: resolvedYear,
+    cash: mapSalesDashboardCash(row.cash ?? {}, resolvedYear),
+    agreements: {
+      signature: {
+        draft: Number(row.agreements?.signature?.draft ?? 0),
+        pending: Number(row.agreements?.signature?.pending ?? 0),
+        signed: Number(row.agreements?.signature?.signed ?? 0),
+      },
+      lifecycle: {
+        active: Number(row.agreements?.lifecycle?.active ?? 0),
+        expiring: Number(row.agreements?.lifecycle?.expiring ?? 0),
+        suspended: Number(row.agreements?.lifecycle?.suspended ?? 0),
+        finished: Number(row.agreements?.lifecycle?.finished ?? 0),
+      },
+      needsPrepareCount: Number(row.agreements?.needs_prepare_count ?? 0),
+      attention: attention
+        .filter((item): item is NonNullable<typeof item> & { id: string; reason: string } =>
+          Boolean(item?.id && item?.reason),
+        )
+        .map((item) => ({
+          kind: item.kind === 'quote_prepare' ? 'quote_prepare' : 'agreement',
+          id: item.id,
+          clientId: item.client_id ?? null,
+          clientName: item.client_name ?? '',
+          label: item.label ?? '',
+          reason: item.reason as SalesDashboardAttentionReason,
+        })),
+    },
+    series: {
+      months: Array.from({ length: 12 }, (_, index) => {
+        const month = index + 1
+        const found = months.find((m) => Number(m.month) === month)
+        return {
+          month,
+          quotesIssued: Number(found?.quotes_issued ?? 0),
+          deliveryNotesIssued: Number(found?.delivery_notes_issued ?? 0),
+          invoicedCents: Number(found?.invoiced_cents ?? 0),
+        }
+      }),
+    },
+  }
+}
+
+/** @deprecated Prefer getSalesDashboardOverview; thin alias of overview.cash */
+export async function getSalesDashboardKpis(
+  year: number = new Date().getFullYear(),
+): Promise<SalesDashboardKpis> {
+  const overview = await getSalesDashboardOverview(year)
+  return overview.cash
 }
 
 export type AccountingReviewResult = {

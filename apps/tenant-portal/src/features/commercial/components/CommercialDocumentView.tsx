@@ -59,7 +59,7 @@ interface CommercialDocumentViewProps {
   onClose: () => void
   onChanged?: () => void
   onShare?: () => void
-  /** Where DMS “back” should return (defaults to current location or /quotes?view=). */
+  /** Where DMS “back” should return (defaults to current location or /sales/quotes/:id). */
   dmsReturnTo?: string | null
 }
 
@@ -81,7 +81,7 @@ export function CommercialDocumentView({
   const locationReturn = `${location.pathname}${location.search}`
   const resolvedDmsReturn =
     dmsReturnTo ??
-    (isAllowedReturnTo(locationReturn) ? locationReturn : `/quotes?view=${documentId}`)
+    (isAllowedReturnTo(locationReturn) ? locationReturn : `/sales/quotes/${documentId}`)
   const dmsHref = (docId: string) => documentPathWithReturn(docId, resolvedDmsReturn)
   const [doc, setDoc] = useState<CommercialDocumentDetail | null>(null)
   const [loading, setLoading] = useState(false)
@@ -385,7 +385,7 @@ export function CommercialDocumentView({
                   </p>
                   {agreement ? (
                     <Link
-                      to={`/agreements?view=${agreement.id}`}
+                      to={`/sales/agreements?view=${agreement.id}`}
                       className="text-indigo-600 hover:underline"
                     >
                       {t('projects.commercial.prepare_agreement_open_list', 'Veure a Acords comercials')}
@@ -602,13 +602,69 @@ export function CommercialDocumentView({
             ) : null}
           </TabsContent>
           <TabsContent value="document" className="flex-1 min-h-0 mt-0 flex flex-col">
-            {preview?.kind === 'docx' ? (
+            {pdf.status === 'ready' && pdf.downloadUrl ? (
+              <object
+                data={pdf.downloadUrl}
+                type="application/pdf"
+                className="w-full flex-1 min-h-[32rem]"
+                aria-label={t('projects.commercial.view_tab_document', 'Document')}
+              >
+                <div className="px-4 py-5 space-y-2 text-sm text-muted-foreground">
+                  <p>
+                    {t(
+                      'projects.commercial.pdf_inline_unavailable',
+                      'No es pot previsualitzar el PDF en aquest navegador.',
+                    )}
+                  </p>
+                  <Button type="button" size="sm" variant="outline" asChild>
+                    <a href={pdf.downloadUrl} target="_blank" rel="noreferrer">
+                      {t('projects.commercial.share_pdf', 'Descarregar PDF')}
+                    </a>
+                  </Button>
+                </div>
+              </object>
+            ) : pdf.status === 'pending' || pdf.status === 'loading' ? (
               <div className="px-4 py-5 space-y-3 max-w-3xl w-full mx-auto">
                 <p className="text-sm text-muted-foreground">
+                  {t('projects.commercial.pdf_generating', 'Generant PDF…')}
+                </p>
+                {preview?.kind === 'html' ? (
+                  <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
+                    <iframe
+                      title={t('projects.commercial.view_html_draft', 'Esborrany HTML')}
+                      srcDoc={preview.html}
+                      className="block min-h-[24rem] w-full rounded-md border border-border/60 bg-white"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ) : preview?.kind === 'html' ? (
+              <div className="flex min-h-0 flex-1 flex-col overflow-auto bg-muted/30">
+                <p className="px-4 pt-3 text-sm text-muted-foreground sm:px-6">
                   {t(
-                    'projects.commercial.view_docx_use_pdf',
-                    'Aquesta plantilla és DOCX: el PDF és la còpia fidel. L’HTML per defecte no s’hi mostra.',
+                    'projects.commercial.pdf_unavailable_html_fallback',
+                    'PDF no disponible; es mostra l’esborrany HTML.',
                   )}
+                </p>
+                <div className="flex flex-1 justify-center p-4 sm:p-6">
+                  <div className="w-full max-w-[52rem] rounded-lg border border-border bg-white p-4 shadow-sm sm:p-6">
+                    <iframe
+                      title={t('projects.commercial.view_html_draft', 'Esborrany HTML')}
+                      srcDoc={preview.html}
+                      className="block h-[min(70dvh,48rem)] min-h-[28rem] w-full rounded-md border border-border/60 bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="px-4 py-5 space-y-3 max-w-3xl w-full mx-auto">
+                <p className="text-sm text-muted-foreground">
+                  {preview?.kind === 'docx'
+                    ? t(
+                        'projects.commercial.view_docx_use_pdf',
+                        'Aquesta plantilla és DOCX: el PDF és la còpia fidel. L’HTML per defecte no s’hi mostra.',
+                      )
+                    : t('projects.commercial.share_loading', 'Carregant…')}
                 </p>
                 {signedPdfId ? (
                   <Button type="button" size="sm" variant="outline" asChild>
@@ -616,32 +672,8 @@ export function CommercialDocumentView({
                       {t('projects.commercial.open_signed_pdf', 'Obrir PDF firmat')}
                     </Link>
                   </Button>
-                ) : pdf.status === 'ready' && pdf.downloadUrl ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      downloadCommercialDocumentPdfFromUrl(
-                        pdf.downloadUrl!,
-                        commercialFilename(doc, 'pdf'),
-                      )
-                    }}
-                  >
-                    {t('projects.commercial.share_pdf', 'Descarregar PDF')}
-                  </Button>
                 ) : null}
               </div>
-            ) : preview?.kind === 'html' ? (
-              <iframe
-                title={t('projects.commercial.view_tab_document', 'Document')}
-                srcDoc={preview.html}
-                className="w-full flex-1 min-h-[32rem] border-0 bg-white"
-              />
-            ) : (
-              <p className="px-4 py-5 text-sm text-muted-foreground">
-                {t('projects.commercial.share_loading', 'Carregant…')}
-              </p>
             )}
           </TabsContent>
         </Tabs>
@@ -712,7 +744,7 @@ export function CommercialDocumentView({
                 {t('projects.commercial.prepare_agreement_footer_send', 'Enviar el contracte a firmar')}
               </Button>
               <Button type="button" size="lg" variant="outline" className="h-12 w-full" asChild>
-                <Link to="/agreements">
+                <Link to="/sales/agreements">
                   {t('projects.commercial.prepare_agreement_open_list', 'Veure a Acords comercials')}
                 </Link>
               </Button>

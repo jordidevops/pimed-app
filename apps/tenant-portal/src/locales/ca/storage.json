@@ -29,6 +29,7 @@
     "delete": "Eliminar"
   },
   "explorer": {
+    "page_subtitle": "Explorador de fitxers",
     "quota_title": "Emmagatzematge",
     "quota_files": "{{count}} fitxers",
     "sidebar_label": "Navegació de fitxers",

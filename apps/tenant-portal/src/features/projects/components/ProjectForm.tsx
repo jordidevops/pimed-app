@@ -29,6 +29,7 @@ import {
   listPricingTemplateItems,
   listPricingTemplates,
 } from '@/features/commercial/api/commercialFlowService'
+import { localDayStartIso } from '@/lib/dateLocal'
 import { cn } from '@/lib/utils'
 
 const projectSchema = z.object({
@@ -48,12 +49,20 @@ const projectSchema = z.object({
 
 type ProjectFormValues = z.infer<typeof projectSchema>
 
+type ProjectType = 'internal' | 'work_order' | 'maintenance'
+
 interface ProjectFormProps {
   open: boolean
   onClose: () => void
   editProject?: Project | null
   initialClientId?: string | null
   initialContactSiteId?: string | null
+  /** Prefill type when creating (e.g. active list filter on /field/orders). */
+  initialType?: ProjectType | null
+  /** Prefill planned_start (YYYY-MM-DD or ISO datetime) when creating. */
+  initialPlannedStart?: string | null
+  /** Focus the planned_start field when the form opens. */
+  focusPlannedStart?: boolean
 }
 
 function normalizeSelectId(value: string | undefined): string | null {
@@ -66,6 +75,42 @@ function normalizeSelectId(value: string | undefined): string | null {
 function toDateInputValue(value: string | null | undefined): string {
   if (!value) return ''
   return value.split('T')[0]
+}
+
+/** Value for `<input type="datetime-local">` in local time. */
+function toDateTimeLocalValue(value: string | null | undefined): string {
+  if (!value) return ''
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) {
+    // Already YYYY-MM-DD or YYYY-MM-DDTHH:mm
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return `${value}T09:00`
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) return value.slice(0, 16)
+    return ''
+  }
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${day}T${hh}:${mm}`
+}
+
+function plannedStartInputValue(
+  value: string | null | undefined,
+  useDateTime: boolean,
+): string {
+  return useDateTime ? toDateTimeLocalValue(value) : toDateInputValue(value)
+}
+
+/** Normalize date / datetime-local form values to ISO for timestamptz columns. */
+function toIsoFromPlannedInput(value: string | null | undefined): string | null {
+  if (!value) return null
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return localDayStartIso(value)
+  }
+  const parsed = new Date(value)
+  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString()
+  return value
 }
 
 function getSubmitErrorMessage(err: unknown): string {
@@ -83,6 +128,9 @@ export function ProjectForm({
   editProject,
   initialClientId,
   initialContactSiteId,
+  initialType,
+  initialPlannedStart,
+  focusPlannedStart = false,
 }: ProjectFormProps) {
   const { t } = useTranslation(['projects', 'field-service'])
   const { toast } = useToast()
@@ -91,6 +139,8 @@ export function ProjectForm({
   const isFieldService = useIsFieldService()
   const isEditing = !!editProject
   const clientLocked = !isEditing && !!initialClientId
+  const defaultCreateType: ProjectType =
+    initialType ?? (isFieldService ? 'work_order' : 'internal')
 
   const { data: departments = [] } = useDepartments()
   const { data: contacts = [] } = useQuery({
@@ -128,7 +178,9 @@ export function ProjectForm({
   })
 
   const selectedClientId = watch('client_id')
-  const projectType = watch('type') ?? (isFieldService ? 'work_order' : 'internal')
+  const projectType = watch('type') ?? defaultCreateType
+  const useDateTimePlanned =
+    isFieldService && (projectType === 'work_order' || projectType === 'maintenance')
   const showSiteSelect = sites.length > 1
   const showDepartmentSelect = departments.length > 1
   const lockedClientLabel =
@@ -144,9 +196,12 @@ export function ProjectForm({
   useEffect(() => {
     if (!open) return
     if (editProject) {
+      const editType = (editProject.type as ProjectType | null) ?? defaultCreateType
+      const editUsesDateTime =
+        isFieldService && (editType === 'work_order' || editType === 'maintenance')
       reset({
         name: editProject.name ?? '',
-        type: editProject.type ?? (isFieldService ? 'work_order' : 'internal'),
+        type: editType,
         description: editProject.description ?? '',
         status: editProject.status ?? 'draft',
         visibility: editProject.visibility ?? 'company',
@@ -154,15 +209,17 @@ export function ProjectForm({
         site_id: editProject.site_id ?? '',
         client_id: editProject.client_id ?? '',
         contact_site_id: editProject.contact_site_id ?? '',
-        planned_start: toDateInputValue(editProject.planned_start),
+        planned_start: plannedStartInputValue(editProject.planned_start, editUsesDateTime),
         planned_end: toDateInputValue(editProject.planned_end),
         service_mode:
           (editProject.service_mode as 'execute' | 'assessment' | null) ?? 'execute',
       })
     } else {
+      const createUsesDateTime =
+        isFieldService && (defaultCreateType === 'work_order' || defaultCreateType === 'maintenance')
       reset({
         name: '',
-        type: isFieldService ? 'work_order' : 'internal',
+        type: defaultCreateType,
         description: '',
         status: 'draft',
         visibility: 'company',
@@ -170,12 +227,31 @@ export function ProjectForm({
         site_id: sites.length === 1 ? (sites[0]?.id ?? '') : '',
         client_id: initialClientId ?? '',
         contact_site_id: initialContactSiteId ?? '',
-        planned_start: '',
+        planned_start: plannedStartInputValue(initialPlannedStart, createUsesDateTime),
         planned_end: '',
         service_mode: 'execute',
       })
     }
-  }, [open, editProject, reset, isFieldService, initialClientId, initialContactSiteId, departments, sites])
+  }, [
+    open,
+    editProject,
+    reset,
+    defaultCreateType,
+    initialClientId,
+    initialContactSiteId,
+    initialPlannedStart,
+    isFieldService,
+    departments,
+    sites,
+  ])
+
+  useEffect(() => {
+    if (!open || !focusPlannedStart) return
+    const id = window.setTimeout(() => {
+      document.getElementById('project-start')?.focus()
+    }, 50)
+    return () => window.clearTimeout(id)
+  }, [open, focusPlannedStart])
 
   useEffect(() => {
     if (!selectedClientId) {
@@ -208,7 +284,7 @@ export function ProjectForm({
       const normalizedClientId = normalizeSelectId(values.client_id)
       const normalizedContactSiteId = normalizeSelectId(values.contact_site_id)
 
-      const projectType = values.type ?? (isFieldService ? 'work_order' : 'internal')
+      const projectType = values.type ?? defaultCreateType
 
       if (isFieldService && projectType === 'work_order') {
         if (!normalizedClientId) {
@@ -253,8 +329,8 @@ export function ProjectForm({
             site_id: normalizedSiteId,
             client_id: normalizedClientId,
             contact_site_id: normalizedContactSiteId,
-            planned_start: values.planned_start || null,
-            planned_end: values.planned_end || null,
+            planned_start: toIsoFromPlannedInput(values.planned_start),
+            planned_end: toIsoFromPlannedInput(values.planned_end),
           },
         })
         if (isFieldService && editProject?.id) {
@@ -287,8 +363,8 @@ export function ProjectForm({
           p_site_id: normalizedSiteId ?? undefined,
           p_client_id: normalizedClientId ?? undefined,
           p_contact_site_id: normalizedContactSiteId ?? undefined,
-          p_planned_start: values.planned_start || undefined,
-          p_planned_end: values.planned_end || undefined,
+          p_planned_start: toIsoFromPlannedInput(values.planned_start) ?? undefined,
+          p_planned_end: toIsoFromPlannedInput(values.planned_end) ?? undefined,
         })
 
         if (isFieldService && id) {
@@ -643,7 +719,11 @@ export function ProjectForm({
               <label className="text-sm font-medium" htmlFor="project-start">
                 {t('projects.form.planned_start', 'Inici previst')}
               </label>
-              <Input id="project-start" type="date" {...register('planned_start')} />
+              <Input
+                id="project-start"
+                type={useDateTimePlanned ? 'datetime-local' : 'date'}
+                {...register('planned_start')}
+              />
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium" htmlFor="project-end">

@@ -27,7 +27,21 @@ export function commercialSignedPdfDocumentId(
 }
 
 export function commercialQuoteViewHref(documentId: string): string {
-  return `/quotes?view=${documentId}`
+  return `/sales/quotes/${documentId}`
+}
+
+/** Hub sales detail path for quote / delivery note documents. */
+export function commercialSalesDetailHref(
+  documentId: string,
+  docType: string | null | undefined,
+): string | null {
+  if (docType === 'quote' || docType === 'quote_amendment') {
+    return `/sales/quotes/${documentId}`
+  }
+  if (docType === 'delivery_note') {
+    return `/sales/delivery-notes/${documentId}`
+  }
+  return null
 }
 
 export function commercialSigningCentreHref(submissionId: string): string {

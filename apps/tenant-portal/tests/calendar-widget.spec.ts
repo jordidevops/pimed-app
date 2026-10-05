@@ -17,6 +17,7 @@ test.describe('Calendar widget', () => {
     await expect(page.getByTestId('calendar-desktop-view')).toBeVisible()
     await expect(page.getByTestId('calendar-nav-prev')).toBeVisible()
     await expect(page.getByTestId('calendar-nav-next')).toBeVisible()
+    await expect(page.getByTestId('dashboard-open-company-calendar')).toBeVisible()
   })
 
   test('mobile renders week strip and agenda panel', async ({ page }) => {

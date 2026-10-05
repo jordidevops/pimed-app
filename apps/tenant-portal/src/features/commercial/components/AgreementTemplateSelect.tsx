@@ -1,15 +1,18 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Input } from '@/components/ui/input'
+import { Search } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  DocumentTemplatePickerDialog,
+  type DocumentTemplatePickerItem,
+} from './DocumentTemplatePickerDialog'
 
-/** Show the search field once the list grows past a plain select. */
-export const DOCUMENT_TEMPLATE_SEARCH_THRESHOLD = 6
+/** @deprecated Prefer always opening the picker; kept for callers. */
+export const DOCUMENT_TEMPLATE_SEARCH_THRESHOLD = 0
+export const AGREEMENT_TEMPLATE_SEARCH_THRESHOLD = DOCUMENT_TEMPLATE_SEARCH_THRESHOLD
 
-export type DocumentTemplateOption = {
-  id: string
-  name: string | null
-  is_platform_default?: boolean | null
-}
+export type DocumentTemplateOption = DocumentTemplatePickerItem
+export type AgreementTemplateOption = DocumentTemplateOption
 
 type DocumentTemplateSelectProps = {
   templates: DocumentTemplateOption[]
@@ -20,11 +23,13 @@ type DocumentTemplateSelectProps = {
   emptyOptionLabel?: string
   noTemplatesLabel?: string
   searchPlaceholder?: string
+  pickerTitle?: string
+  pickerDescription?: string
+  /** Resolved template used when value is empty (tenant active / fallback). */
+  emptyPreviewTemplateId?: string | null
+  emptyPreviewMessage?: string
+  emptySystemDefaultDocType?: 'quote' | 'delivery_note' | null
 }
-
-/** @deprecated Prefer DocumentTemplateSelect — kept as alias for agreement dialogs. */
-export const AGREEMENT_TEMPLATE_SEARCH_THRESHOLD = DOCUMENT_TEMPLATE_SEARCH_THRESHOLD
-export type AgreementTemplateOption = DocumentTemplateOption
 
 export function DocumentTemplateSelect({
   templates,
@@ -34,25 +39,31 @@ export function DocumentTemplateSelect({
   emptyOptionLabel,
   noTemplatesLabel,
   searchPlaceholder,
+  pickerTitle,
+  pickerDescription,
+  emptyPreviewTemplateId,
+  emptyPreviewMessage,
+  emptySystemDefaultDocType,
 }: DocumentTemplateSelectProps) {
   const { t } = useTranslation('projects')
-  const [query, setQuery] = useState('')
+  const [pickerOpen, setPickerOpen] = useState(false)
   const allowEmpty = emptyOptionLabel != null
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return templates
-    return templates.filter((tpl) => (tpl.name ?? '').toLowerCase().includes(q))
-  }, [templates, query])
+  const selected = useMemo(
+    () => templates.find((tpl) => tpl.id === value) ?? null,
+    [templates, value],
+  )
 
-  const showSearch = templates.length > DOCUMENT_TEMPLATE_SEARCH_THRESHOLD
-
-  let selectValue = ''
-  if (value && (filtered.some((tpl) => tpl.id === value) || templates.some((tpl) => tpl.id === value))) {
-    selectValue = value
-  } else if (!allowEmpty && filtered[0]?.id) {
-    selectValue = filtered[0].id
-  }
+  const selectedLabel = selected
+    ? `${selected.name
+        ?? t('projects.commercial.prepare_agreement_template_unnamed', 'Sense nom')}${
+        selected.is_platform_default
+          ? ` (${t('projects.commercial.formalization_template_platform', 'plataforma')})`
+          : ''
+      }`
+    : allowEmpty
+      ? emptyOptionLabel
+      : t('projects.commercial.template_picker_none_selected', 'Cap plantilla seleccionada')
 
   if (templates.length === 0 && !allowEmpty) {
     return (
@@ -63,7 +74,10 @@ export function DocumentTemplateSelect({
       >
         <option value="">
           {noTemplatesLabel
-            ?? t('projects.commercial.prepare_agreement_no_template', 'No hi ha cap plantilla de contracte')}
+            ?? t(
+              'projects.commercial.prepare_agreement_no_template',
+              'No hi ha cap plantilla de contracte',
+            )}
         </option>
       </select>
     )
@@ -71,67 +85,35 @@ export function DocumentTemplateSelect({
 
   return (
     <div className="space-y-1.5">
-      {showSearch ? (
-        <Input
-          type="search"
-          value={query}
-          disabled={disabled}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={
-            searchPlaceholder
-            ?? t('projects.commercial.prepare_agreement_template_search', 'Cerca plantilla per nom…')
-          }
-          className="h-8 text-sm"
-        />
-      ) : null}
-
-      <select
-        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-        value={selectValue}
+      <Button
+        type="button"
+        variant="outline"
         disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
+        onClick={() => setPickerOpen(true)}
+        className="flex h-9 w-full items-center justify-between gap-2 px-3 font-normal"
       >
-        {allowEmpty ? <option value="">{emptyOptionLabel}</option> : null}
-        {value && !filtered.some((tpl) => tpl.id === value) && !allowEmpty ? (
-          <option value={value}>
-            {templates.find((tpl) => tpl.id === value)?.name
-              ?? t('projects.commercial.prepare_agreement_template_selected', 'Plantilla seleccionada')}
-          </option>
-        ) : null}
-        {filtered.map((tpl) => (
-          <option key={tpl.id} value={tpl.id}>
-            {tpl.name
-              ?? t('projects.commercial.prepare_agreement_template_unnamed', 'Sense nom')}
-            {tpl.is_platform_default
-              ? ` (${t('projects.commercial.formalization_template_platform', 'plataforma')})`
-              : ''}
-          </option>
-        ))}
-        {filtered.length === 0 ? (
-          <option value="" disabled>
-            {t(
-              'projects.commercial.prepare_agreement_template_no_match',
-              'Cap plantilla coincideix amb la cerca',
-            )}
-          </option>
-        ) : null}
-      </select>
+        <span className="min-w-0 flex-1 truncate text-left">{selectedLabel}</span>
+        <span className="inline-flex shrink-0 items-center gap-1 text-muted-foreground">
+          <Search className="h-3.5 w-3.5" />
+          {t('projects.commercial.template_picker_browse', 'Cercar')}
+        </span>
+      </Button>
 
-      {showSearch ? (
-        <p className="text-[11px] text-muted-foreground">
-          {filtered.length === templates.length
-            ? t(
-                'projects.commercial.prepare_agreement_template_count',
-                '{{count}} plantilles disponibles',
-                { count: templates.length },
-              )
-            : t(
-                'projects.commercial.prepare_agreement_template_filtered',
-                'Mostrant {{shown}} de {{total}}',
-                { shown: filtered.length, total: templates.length },
-              )}
-        </p>
-      ) : null}
+      <DocumentTemplatePickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        templates={templates}
+        value={value}
+        onSelect={onChange}
+        allowEmpty={allowEmpty}
+        emptyOptionLabel={emptyOptionLabel}
+        title={pickerTitle}
+        description={pickerDescription}
+        searchPlaceholder={searchPlaceholder}
+        emptyPreviewTemplateId={emptyPreviewTemplateId}
+        emptyPreviewMessage={emptyPreviewMessage}
+        emptySystemDefaultDocType={emptySystemDefaultDocType}
+      />
     </div>
   )
 }

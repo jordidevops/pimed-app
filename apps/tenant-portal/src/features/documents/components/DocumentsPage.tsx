@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
@@ -18,7 +18,6 @@ import { DocumentRow } from './DocumentRow'
 import { DocumentUploadModal } from './DocumentUploadModal'
 import { AuditExpeditionModal } from './AuditExpeditionModal'
 import { DocumentShareModal } from './DocumentShareModal'
-import { DocumentsSubNav } from './DocumentsSubNav'
 import { useDocumentTags } from '../api/useDocumentTags'
 import { useUserProfiles } from '../api/useUserProfiles'
 import { supabase } from '@/lib/supabase'
@@ -388,95 +387,42 @@ export function DocumentsPage({ entityFilter, entityLabel, entityEmail }: Docume
     setSelectedCategory(null)
   }
 
-  const stickyChromeRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (isEmbedded) return
-    const el = stickyChromeRef.current
-    if (!el) return
-    const publish = () => {
-      document.documentElement.style.setProperty(
-        '--app-sticky-chrome',
-        `${el.getBoundingClientRect().height}px`,
-      )
-    }
-    publish()
-    const ro = new ResizeObserver(publish)
-    ro.observe(el)
-    return () => {
-      ro.disconnect()
-      document.documentElement.style.removeProperty('--app-sticky-chrome')
-    }
-  }, [isEmbedded])
-
   // ─── Guard (tots els hooks ja s'han executat) ─────────────────────────────
   if (!activeTenant) return null
 
   return (
-    <div className="flex min-h-full w-full max-w-none flex-col">
-      {/* ── Capçalera sticky full-bleed; filtres / llista amb padding ───── */}
-      {!isEmbedded ? (
-        <div
-          ref={stickyChromeRef}
-          className="sticky top-0 z-20 w-full space-y-0 border-b border-border bg-background/95 px-6 pb-0 pt-5 backdrop-blur-md supports-[backdrop-filter]:bg-background/85"
-        >
-          <div className="flex items-center justify-between gap-3 pb-3">
-            <div className="flex items-center gap-2">
-              <FileText className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-semibold">{t('page.title', 'Documents')}</h1>
-            </div>
-            {canWrite && (
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant={expeditionMode ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => (expeditionMode ? exitExpeditionMode() : setExpeditionMode(true))}
-                >
-                  <ClipboardList className="mr-1 h-4 w-4" />
-                  {expeditionMode
-                    ? t('page.exitExpedition', 'Cancel\u00b7lar selecci\u00f3')
-                    : t('page.expedition', 'Expedir per auditoria')}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setEditFolder(null)
-                    setFolderFormOpen(true)
-                  }}
-                >
-                  <FolderPlus className="mr-1 h-4 w-4" />
-                  {t('page.newFolder', 'Nova carpeta')}
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setUploadOpen(true)}>
-                  <Plus className="mr-1 h-4 w-4" />
-                  {t('page.newDocument', 'Nou document')}
-                </Button>
-                <Button size="sm" onClick={() => setOrchestratorOpen(true)}>
-                  <FilePlus2 className="mr-1 h-4 w-4" />
-                  {t('page.prepareDocument', 'Generar document')}
-                </Button>
-              </div>
-            )}
-          </div>
-          <DocumentsSubNav />
-        </div>
-      ) : null}
-
-      <div className="space-y-6 px-6 py-6">
-      {/* ── Mode embedded: botons compactes ───────────────────────────────── */}
-      {isEmbedded && canWrite && (
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" size="sm" onClick={() => { setEditFolder(null); setFolderFormOpen(true) }}>
-            <Plus className="h-4 w-4 mr-1" />
+    <div className="space-y-6">
+      {canWrite && (
+        <div className="flex flex-wrap justify-end gap-2">
+          {!isEmbedded && (
+            <Button
+              variant={expeditionMode ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => (expeditionMode ? exitExpeditionMode() : setExpeditionMode(true))}
+            >
+              <ClipboardList className="mr-1 h-4 w-4" />
+              {expeditionMode
+                ? t('page.exitExpedition', 'Cancel\u00b7lar selecci\u00f3')
+                : t('page.expedition', 'Expedir per auditoria')}
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setEditFolder(null)
+              setFolderFormOpen(true)
+            }}
+          >
+            {isEmbedded ? <Plus className="mr-1 h-4 w-4" /> : <FolderPlus className="mr-1 h-4 w-4" />}
             {t('page.newFolder', 'Nova carpeta')}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setUploadOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="mr-1 h-4 w-4" />
             {t('page.newDocument', 'Nou document')}
           </Button>
           <Button size="sm" onClick={() => setOrchestratorOpen(true)}>
-            <FilePlus2 className="h-4 w-4 mr-1" />
+            <FilePlus2 className="mr-1 h-4 w-4" />
             {t('page.prepareDocument', 'Generar document')}
           </Button>
         </div>
@@ -997,7 +943,6 @@ export function DocumentsPage({ entityFilter, entityLabel, entityEmail }: Docume
           </Button>
         </div>
       )}
-      </div>
     </div>
   )
 }

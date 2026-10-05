@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { invalidateFieldVisitQueries } from '@/features/field-service/api/fieldVisitsService'
 import { projectsKeys } from './projectsKeys'
 import { deleteProject } from './projectsService'
 import { useTenant } from '@/contexts/TenantContext'
@@ -13,6 +14,7 @@ export function useDeleteProject() {
       queryClient.invalidateQueries({
         queryKey: projectsKeys.all(activeTenant?.id ?? ''),
       })
+      invalidateFieldVisitQueries(queryClient, activeTenant?.id)
     },
   })
 }

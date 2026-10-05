@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { Users } from 'lucide-react'
+import { PageShell } from '@/components/layout/PageShell'
+import { UnderlineTabs } from '@/components/layout/UnderlineTabs'
 import { useTenant } from '@/contexts/TenantContext'
 import { usePermission } from '@/hooks/usePermission'
 import { useCanManageEmployeePortal } from '@/features/employee-portal/api/useCanManageEmployeePortal'
@@ -12,7 +14,6 @@ import { EmployeesListTab } from './EmployeesListTab'
 import { EmployeesPortalHubTab } from './EmployeesPortalHubTab'
 import { EmployeesComplianceCatalogTab } from './EmployeesComplianceCatalogTab'
 import { EmployeesAssetTypesTab } from './EmployeesAssetTypesTab'
-import { ScrollableTabBar } from '@/components/ui/scrollable-tab-bar'
 
 type EmployeesPageTab = 'list' | 'portal_hub' | 'compliance' | 'assets'
 
@@ -74,91 +75,65 @@ export function EmployeesPage() {
 
   if (!activeTenant && tenants.length > 1) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
-          <p className="text-sm text-amber-800 font-medium">
+      <PageShell
+        title={t('employees.title', 'Empleats')}
+        icon={<Users className="h-5 w-5" aria-hidden />}
+      >
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
+          <p className="text-sm font-medium text-amber-800">
             {t('employees.errors.no_tenant', 'Selecciona una organització per veure els empleats')}
           </p>
         </div>
-      </div>
+      </PageShell>
     )
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8">
-      <div className="flex flex-wrap items-center gap-3 min-w-0">
-        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-          <Users className="h-5 w-5 text-primary" aria-hidden />
-        </div>
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold text-foreground" data-testid="employees-page-title">
-            {t('employees.title', 'Empleats')}
-          </h1>
-          <p className="text-sm text-muted-foreground">{subtitle}</p>
-        </div>
-      </div>
-
-      <ScrollableTabBar
-        activeKey={activeTab}
-        aria-label={t('employees.tabs_label', "Seccions d'empleats")}
-        className="border-b mb-4"
-      >
-        <button
-          type="button"
-          data-tab-key="list"
-          onClick={() => selectTab('list')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
-            activeTab === 'list'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          {t('employees.tabs.list', 'Empleats')}
-        </button>
-        {canManagePortal ? (
-          <button
-            type="button"
-            data-tab-key="portal_hub"
-            onClick={() => selectTab('portal_hub')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
-              activeTab === 'portal_hub'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {t('employees.tabs.portal_hub', 'Accés al portal')}
-          </button>
-        ) : null}
-        {canViewCompliance ? (
-          <button
-            type="button"
-            data-tab-key="compliance"
-            onClick={() => selectTab('compliance')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
-              activeTab === 'compliance'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {t('employees.tabs.compliance', 'Compliment')}
-          </button>
-        ) : null}
-        {canManageAssets ? (
-          <button
-            type="button"
-            data-tab-key="assets"
-            onClick={() => selectTab('assets')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
-              activeTab === 'assets'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {t('employees.tabs.assets', 'Equipament')}
-          </button>
-        ) : null}
-      </ScrollableTabBar>
-
+    <PageShell
+      title={<span data-testid="employees-page-title">{t('employees.title', 'Empleats')}</span>}
+      subtitle={subtitle}
+      icon={<Users className="h-5 w-5" aria-hidden />}
+      tabs={
+        <UnderlineTabs
+          activeKey={activeTab}
+          aria-label={t('employees.tabs_label', "Seccions d'empleats")}
+          items={[
+            {
+              key: 'list',
+              label: t('employees.tabs.list', 'Empleats'),
+              onSelect: () => selectTab('list'),
+            },
+            ...(canManagePortal
+              ? [
+                  {
+                    key: 'portal_hub',
+                    label: t('employees.tabs.portal_hub', 'Accés al portal'),
+                    onSelect: () => selectTab('portal_hub'),
+                  },
+                ]
+              : []),
+            ...(canViewCompliance
+              ? [
+                  {
+                    key: 'compliance',
+                    label: t('employees.tabs.compliance', 'Compliment'),
+                    onSelect: () => selectTab('compliance'),
+                  },
+                ]
+              : []),
+            ...(canManageAssets
+              ? [
+                  {
+                    key: 'assets',
+                    label: t('employees.tabs.assets', 'Equipament'),
+                    onSelect: () => selectTab('assets'),
+                  },
+                ]
+              : []),
+          ]}
+        />
+      }
+    >
       {activeTab === 'portal_hub' && canManagePortal ? (
         employeePortalEffective === false ? (
           <EmployeePortalActivation />
@@ -172,6 +147,6 @@ export function EmployeesPage() {
       ) : (
         <EmployeesListTab canWrite={canWrite} />
       )}
-    </div>
+    </PageShell>
   )
 }

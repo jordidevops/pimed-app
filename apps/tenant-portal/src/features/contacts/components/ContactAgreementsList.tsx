@@ -204,7 +204,7 @@ export function ContactAgreementsList({ clientId, clientName }: ContactAgreement
             return (
               <li key={row.id} className="space-y-1.5 px-3 py-3">
                 <Link
-                  to={`/agreements?view=${row.id}`}
+                  to={`/sales/agreements?view=${row.id}`}
                   className="block text-sm font-medium text-foreground hover:underline"
                 >
                   {identity}
@@ -251,7 +251,7 @@ export function ContactAgreementsList({ clientId, clientName }: ContactAgreement
                   {row.sourceQuoteId ? (
                     <Link
                       className="text-indigo-600 hover:underline"
-                      to={`/quotes?view=${row.sourceQuoteId}`}
+                      to={`/sales/quotes/${row.sourceQuoteId}`}
                     >
                       {t('projects:projects.agreements.open_quote', 'Pressupost origen')}
                     </Link>

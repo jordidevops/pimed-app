@@ -4,6 +4,7 @@
     "orders": "Orders",
     "attendance": "Hours",
     "agenda": "Agenda",
+    "device": "Device",
     "more": "More",
     "field": "Field"
   },
@@ -32,6 +33,7 @@
     "title": "Work orders",
     "subtitle": "Your orders and visits",
     "new": "New order",
+    "new_short": "New",
     "empty": "You have no work orders yet",
     "filter_mine": "Mine",
     "filter_open": "Open",
@@ -55,7 +57,44 @@
   },
   "agenda": {
     "title": "Agenda",
-    "subtitle": "Scheduled visits"
+    "subtitle": "Scheduled visits",
+    "open_calendar": "Open calendar",
+    "all_day": "All day",
+    "today": "Today",
+    "prev_day": "Previous day",
+    "next_day": "Next day",
+    "view": {
+      "list": "List",
+      "day": "Day",
+      "week": "Week",
+      "month": "Month"
+    },
+    "scope": {
+      "mine": "Mine",
+      "all": "All"
+    },
+    "filters": {
+      "open": "Filters",
+      "type": "Type",
+      "work_order": "Work order",
+      "maintenance": "Maintenance",
+      "status": "Status",
+      "technician": "Technician",
+      "technician_help": "Hold Ctrl/Cmd to select more than one.",
+      "clear": "Clear filters"
+    },
+    "unscheduled": {
+      "title": "Unscheduled",
+      "short": "Tray",
+      "empty": "No orders without a date",
+      "plan": "Schedule"
+    },
+    "empty": {
+      "filtered": "No visits match these filters",
+      "none": "No scheduled visits",
+      "from_tray": "Schedule from the tray",
+      "orders": "View orders"
+    }
   },
   "more": {
     "title": "More",
@@ -88,6 +127,7 @@
   },
   "detail": {
     "maps": "Open in Maps",
+    "directions": "Drive there",
     "address": "Address",
     "client": "Client",
     "checklist": "Checklist",

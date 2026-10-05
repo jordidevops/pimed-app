@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Plus, Search } from 'lucide-react'
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { PageShell } from '@/components/layout/PageShell'
+import { InspectorSheet } from '@/components/layout/InspectorSheet'
 import { ListViewToggle } from '@/components/layout/ListViewToggle'
 import { FilterChips } from '@/components/layout/FilterChips'
 import { useListViewMode } from '@/hooks/useListViewMode'
@@ -118,8 +119,10 @@ export function QuotesPage({
   const isFieldService = useIsFieldService()
   const projectBase = isFieldService ? '/field/orders' : '/projects'
   const location = useLocation()
+  const navigate = useNavigate()
   const isSalesHub = location.pathname.startsWith('/sales')
   const [searchParams, setSearchParams] = useSearchParams()
+  const viewParam = !embedded && isSalesHub ? searchParams.get('view') : null
   const { mode: listMode, setMode: setListMode, effectiveMode } = useListViewMode(
     'sales.quotes',
     'cards',
@@ -144,6 +147,7 @@ export function QuotesPage({
   const [hasAgreement, setHasAgreement] = useState<'all' | 'yes' | 'no'>('all')
   const [signature, setSignature] = useState<'all' | 'none' | 'pending' | 'signed'>('all')
   const [viewDocId, setViewDocId] = useState<string | null>(null)
+  const [inspectId, setInspectId] = useState<string | null>(null)
   const [shareDocId, setShareDocId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [reissueDocId, setReissueDocId] = useState<string | null>(null)
@@ -162,10 +166,10 @@ export function QuotesPage({
   }
 
   useEffect(() => {
-    if (embedded) return
+    if (embedded || isSalesHub) return
     const view = searchParams.get('view')
     if (view) setViewDocId(view)
-  }, [searchParams, embedded])
+  }, [searchParams, embedded, isSalesHub])
 
   useEffect(() => {
     if (embedded || clientId) return
@@ -190,6 +194,10 @@ export function QuotesPage({
   }
 
   function openView(id: string) {
+    if (isSalesHub && !embedded) {
+      void navigate(`/sales/quotes/${id}`)
+      return
+    }
     setViewDocId(id)
     if (embedded) return
     const next = new URLSearchParams(searchParams)
@@ -197,10 +205,31 @@ export function QuotesPage({
     setSearchParams(next, { replace: true })
   }
 
+  function openInspect(id: string) {
+    if (isSalesHub && !embedded) {
+      setInspectId(id)
+      return
+    }
+    openView(id)
+  }
+
+  useEffect(() => {
+    if (!isSalesHub || !inspectId) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setInspectId(null)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isSalesHub, inspectId])
+
   const filters = useMemo(
     () => ({
       q: debouncedSearch,
-      docTypes: docType === 'all' ? null : [docType],
+      // "all" = only quote-like docs (never delivery notes / invoices).
+      docTypes: docType === 'all' ? ['quote', 'quote_amendment'] : [docType],
       statuses: status === 'all' ? null : [status],
       issuedFrom: issuedFrom ? new Date(issuedFrom).toISOString() : null,
       issuedTo: issuedTo ? new Date(`${issuedTo}T23:59:59`).toISOString() : null,
@@ -450,11 +479,34 @@ export function QuotesPage({
               showDensity={effectiveMode === 'table'}
             />
           ) : null}
-          <Button type="button" className="shrink-0" onClick={() => setCreateOpen(true)}>
+          <Button
+            type="button"
+            className="shrink-0"
+            disabled={createOpen}
+            onClick={() => setCreateOpen(true)}
+          >
             <Plus className="mr-1.5 h-4 w-4" aria-hidden />
             {t('projects.quotes.create', 'Nou pressupost')}
           </Button>
         </div>
+        {isSalesHub && !embedded ? (
+          <p className="text-xs text-muted-foreground">
+            <Link to="/sales/agreements" className="text-indigo-600 hover:underline">
+              {t('projects.agreements.open', 'Acords comercials')}
+            </Link>
+            {' · '}
+            <Link to={QUOTE_TEMPLATES_HREF} className="text-indigo-600 hover:underline">
+              {t('projects.quotes.manage_templates', 'Gestionar plantilles')}
+            </Link>
+            {' · '}
+            <Link
+              to={commercialTemplatesHref('quote', { create: true })}
+              className="text-indigo-600 hover:underline"
+            >
+              {t('projects.quotes.templates_new', 'Nova plantilla')}
+            </Link>
+          </p>
+        ) : null}
         {isSalesHub ? (
           <FilterChips
             chips={quoteFilterChips}
@@ -586,13 +638,89 @@ export function QuotesPage({
       </div>
   )
 
+  const inspectedQuote =
+    isSalesHub && !embedded
+      ? (visibleHits.find((doc) => doc.id === inspectId) ?? null)
+      : null
+
+  const salesInspector =
+    inspectedQuote ? (
+      <InspectorSheet
+        title={`${docTypeLabel(inspectedQuote.doc_type, t)} ${inspectedQuote.doc_number ?? inspectedQuote.id.slice(0, 8)}`}
+        subtitle={
+          inspectedQuote.client_display_name ||
+          t('projects.quotes.unknown_client', 'Sense client')
+        }
+        badges={
+          <>
+            <Badge variant="outline">{statusLabel(inspectedQuote.status, t)}</Badge>
+            <CommercialRelationshipBadges
+              kinds={commercialRelationshipBadges({
+                docType: inspectedQuote.doc_type,
+                formalizationMode: inspectedQuote.formalization_mode,
+                templateId: inspectedQuote.full_body_template_id,
+                templateName: inspectedQuote.full_body_template_id
+                  ? templateNameById.get(inspectedQuote.full_body_template_id)
+                  : null,
+                agreementStatus: agreementByQuote.get(inspectedQuote.id)?.status,
+                versionStatus: agreementByQuote.get(inspectedQuote.id)?.versionStatus,
+              })}
+            />
+          </>
+        }
+        fields={[
+          {
+            label: t('projects.commercial.total', 'Total'),
+            value: `${moneyFmt.format(Number(inspectedQuote.total))} €`,
+          },
+          {
+            label: t('projects.quotes.project', 'Projecte'),
+            value: inspectedQuote.project_name || '—',
+          },
+          {
+            label: t('projects.collections.issued_on', 'Data'),
+            value: (() => {
+              const dateSource = inspectedQuote.issued_at ?? inspectedQuote.created_at
+              return dateSource ? new Date(dateSource).toLocaleDateString('ca-ES') : '—'
+            })(),
+          },
+        ]}
+        onClose={() => setInspectId(null)}
+        footer={
+          <>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => void navigate(`/sales/quotes/${inspectedQuote.id}`)}
+            >
+              {t('common:list.open_record', 'Obrir fitxa')}
+            </Button>
+            {inspectedQuote.status !== 'cancelled' ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setShareDocId(inspectedQuote.id)}
+              >
+                {t('projects.commercial.send', 'Enviar')}
+              </Button>
+            ) : null}
+          </>
+        }
+      />
+    ) : null
+
   const quoteColumns = useMemo<SalesDataTableColumn<CommercialDocumentSearchHit>[]>(
     () => [
       {
         id: 'doc',
         header: t('projects.quotes.title', 'Pressupostos'),
         cell: (doc) => (
-          <button type="button" className="font-semibold hover:underline" onClick={() => openView(doc.id)}>
+          <button
+            type="button"
+            className="font-semibold hover:underline"
+            onClick={() => openInspect(doc.id)}
+          >
             {docTypeLabel(doc.doc_type, t)} {doc.doc_number ?? '—'}
           </button>
         ),
@@ -664,7 +792,8 @@ export function QuotesPage({
                   subtitle={doc.client_display_name || t('projects.quotes.unknown_client', 'Client')}
                   amount={`${moneyFmt.format(Number(doc.total))} €`}
                   tone={tone}
-                  onClick={() => openView(doc.id)}
+                  onClick={() => openInspect(doc.id)}
+                  active={inspectId === doc.id}
                   badges={
                     <>
                       <Badge variant="outline">{statusLabel(doc.status, t)}</Badge>
@@ -699,7 +828,7 @@ export function QuotesPage({
                           openView(doc.id)
                         }}
                       >
-                        {t('projects.commercial.view', 'Veure')}
+                        {t('common:list.open_record', 'Obrir fitxa')}
                       </Button>
                       <Button
                         type="button"
@@ -761,15 +890,16 @@ export function QuotesPage({
           rows={visibleHits}
           getRowId={(doc) => doc.id}
           density={density}
-          onRowActivate={(doc) => openView(doc.id)}
+          activeRowId={inspectId}
+          onRowActivate={(doc) => openInspect(doc.id)}
           countLabel={t('common:list.showing_count', 'Mostrant {{shown}} de {{total}}', {
             shown: visibleHits.length,
             total: visibleHits.length,
           })}
           rowActions={(doc) => [
             {
-              key: 'view',
-              label: t('projects.commercial.view', 'Veure'),
+              key: 'open',
+              label: t('common:list.open_record', 'Obrir fitxa'),
               onSelect: () => openView(doc.id),
             },
             {
@@ -792,7 +922,11 @@ export function QuotesPage({
         clientName={clientName}
         onCreated={(documentId) => {
           handleChanged()
-          setViewDocId(documentId)
+          if (isSalesHub && !embedded) {
+            void navigate(`/sales/quotes/${documentId}`)
+          } else {
+            setViewDocId(documentId)
+          }
           toast({
             title: t('projects.commercial.quote_issued', 'Pressupost emès'),
           })
@@ -835,10 +969,20 @@ export function QuotesPage({
     </>
   )
 
+  if (viewParam) {
+    return <Navigate to={`/sales/quotes/${viewParam}`} replace />
+  }
+
   if (isSalesHub) {
     return (
       <>
-        <PageShell bare toolbar={quoteToolbar}>
+        <PageShell
+          bare
+          toolbar={quoteToolbar}
+          inspector={salesInspector}
+          inspectorOpen={Boolean(inspectId)}
+          onInspectorClose={() => setInspectId(null)}
+        >
           {results}
         </PageShell>
         {dialogs}
@@ -881,7 +1025,7 @@ export function QuotesPage({
                 <Link to="/delivery-notes" className="text-sm text-indigo-600 hover:underline">
                   {t('projects.collections.title', 'Albarans')}
                 </Link>
-                <Link to="/agreements" className="text-sm text-indigo-600 hover:underline">
+                <Link to="/sales/agreements" className="text-sm text-indigo-600 hover:underline">
                   {t('projects.agreements.open', 'Acords comercials')}
                 </Link>
                 <Link to={QUOTE_TEMPLATES_HREF} className="text-sm text-indigo-600 hover:underline">

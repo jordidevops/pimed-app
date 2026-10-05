@@ -25,6 +25,8 @@ export interface NavGateContext {
   isFieldService: boolean
   /** Office desktop OR invoices.view (gestoria). */
   canViewSales: boolean
+  /** calendar.view — company events calendar at /calendar. */
+  canViewCalendar: boolean
   /** Resolved landing path for this session (viewport + role + preference). */
   homePath: string
 }
@@ -85,6 +87,8 @@ export function passesGate(gate: NavGate, ctx: NavGateContext): boolean {
       return !ctx.isFieldService || ctx.isManager
     case 'canViewSales':
       return ctx.canViewSales
+    case 'canViewCalendar':
+      return ctx.canViewCalendar
     case 'showFieldTodayNav':
       return ctx.isFieldService && ctx.homePath !== '/field/today'
     case 'showOfficeDashboardNav':
@@ -187,11 +191,85 @@ function aliasSavedSalesNavItems(layout: SidebarNavV1): SidebarNavV1 {
 }
 
 /**
+ * Platform-home group for items we actively relocate when a saved layout still
+ * has them in a superseded section (e.g. Horari was under Operativa).
+ */
+const NAV_ITEM_HOME_GROUP: Partial<Record<NavItemId, string>> = {
+  attendance: DEFAULT_GROUP_IDS.personal,
+  ai_chat: DEFAULT_GROUP_IDS.operations,
+}
+
+function insertItemAtDefaultPosition(
+  target: SidebarNavV1['groups'][number],
+  miss: { id: string },
+  defGroup: SidebarNavV1['groups'][number],
+) {
+  const defIndex = defGroup.items.findIndex((i) => i.id === miss.id)
+  let insertAt = defIndex === 0 ? 0 : target.items.length
+  for (let i = defIndex - 1; i >= 0; i--) {
+    const prevId = defGroup.items[i]?.id
+    const idx = target.items.findIndex((it) => it.id === prevId)
+    if (idx >= 0) {
+      insertAt = idx + 1
+      break
+    }
+  }
+  target.items.splice(insertAt, 0, { id: miss.id })
+}
+
+/** Move misplaced items into their current platform-default group. */
+function relocateNavItemsToHomeGroups(layout: SidebarNavV1): SidebarNavV1 {
+  const platform = buildDefaultNavLayout()
+  const groups = layout.groups.map((g) => ({ ...g, items: [...g.items] }))
+  const pinnedItems = [...layout.pinned.items]
+
+  for (const [itemId, homeGroupId] of Object.entries(NAV_ITEM_HOME_GROUP) as [
+    NavItemId,
+    string,
+  ][]) {
+    const pinnedIdx = pinnedItems.findIndex((i) => i.id === itemId)
+    if (pinnedIdx >= 0) {
+      // User pinned it intentionally — leave alone.
+      continue
+    }
+
+    const currentGroup = groups.find((g) => g.items.some((i) => i.id === itemId))
+    if (!currentGroup || currentGroup.id === homeGroupId) continue
+
+    const [removed] = currentGroup.items.splice(
+      currentGroup.items.findIndex((i) => i.id === itemId),
+      1,
+    )
+    if (!removed) continue
+
+    let target = groups.find((g) => g.id === homeGroupId)
+    if (!target) {
+      const def = platform.groups.find((g) => g.id === homeGroupId)
+      target = { id: homeGroupId, label: def?.label ?? homeGroupId, items: [] }
+      groups.push(target)
+    }
+
+    const defGroup = platform.groups.find((g) => g.id === homeGroupId)
+    if (defGroup) {
+      insertItemAtDefaultPosition(target, removed, defGroup)
+    } else {
+      target.items.push(removed)
+    }
+  }
+
+  return {
+    ...layout,
+    pinned: { ...layout.pinned, items: pinnedItems },
+    groups,
+  }
+}
+
+/**
  * Insert catalog items that exist in the platform default but are absent from a
  * saved user/tenant layout, preserving relative order within each default group.
  */
 export function mergeMissingDefaultNavItems(layout: SidebarNavV1): SidebarNavV1 {
-  const aliased = aliasSavedSalesNavItems(layout)
+  const aliased = relocateNavItemsToHomeGroups(aliasSavedSalesNavItems(layout))
   const platform = buildDefaultNavLayout()
   const present = new Set<string>()
   for (const item of aliased.pinned.items) present.add(item.id)
@@ -215,22 +293,12 @@ export function mergeMissingDefaultNavItems(layout: SidebarNavV1): SidebarNavV1 
     }
 
     for (const miss of missing) {
-      const defIndex = defGroup.items.findIndex((i) => i.id === miss.id)
-      let insertAt = defIndex === 0 ? 0 : target.items.length
-      for (let i = defIndex - 1; i >= 0; i--) {
-        const prevId = defGroup.items[i]?.id
-        const idx = target.items.findIndex((it) => it.id === prevId)
-        if (idx >= 0) {
-          insertAt = idx + 1
-          break
-        }
-      }
-      target.items.splice(insertAt, 0, { id: miss.id })
+      insertItemAtDefaultPosition(target, miss, defGroup)
       present.add(miss.id)
     }
   }
 
-  return     pinItemFirstInGroup(
+  return pinItemFirstInGroup(
     {
       version: 2,
       pinned: aliased.pinned,

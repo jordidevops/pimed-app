@@ -664,7 +664,7 @@ export function PrepareAgreementDialog({
           ) : null}
           {followup ? (
             <Button type="button" variant="outline" asChild>
-              <Link to="/agreements">
+              <Link to="/sales/agreements">
                 {t('projects.commercial.prepare_agreement_open_list', 'Veure a Acords comercials')}
               </Link>
             </Button>

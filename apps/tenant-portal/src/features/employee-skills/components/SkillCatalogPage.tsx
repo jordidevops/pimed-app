@@ -24,6 +24,8 @@ import {
   YAxis,
 } from 'recharts'
 import { Button } from '@/components/ui/button'
+import { PageShell } from '@/components/layout/PageShell'
+import { UnderlineTabs } from '@/components/layout/UnderlineTabs'
 import { Input } from '@/components/ui/input'
 import {
   Dialog,
@@ -471,46 +473,30 @@ export function SkillCatalogPage() {
   ]
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="h-11 w-11 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-            <Sparkles className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {t('employees.skills.catalog_title', 'Skills (talent)')}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-              {t(
-                'employees.skills.catalog_subtitle',
-                'Catàleg intern de capacitats. No afecta compliment ni Readiness.',
-              )}
-            </p>
-          </div>
-        </div>
+    <PageShell
+      title={t('employees.skills.catalog_title', 'Skills (talent)')}
+      subtitle={t(
+        'employees.skills.catalog_subtitle',
+        'Catàleg intern de capacitats. No afecta compliment ni Readiness.',
+      )}
+      icon={<Sparkles className="h-5 w-5" aria-hidden />}
+      actions={
         <Link to="/employees" className="text-sm text-primary hover:underline">
           {t('employees.skills.back', 'Tornar a empleats')}
         </Link>
-      </div>
-
-      <div className="flex gap-1 border-b">
-        {tabs.map((tb) => (
-          <button
-            key={tb.id}
-            type="button"
-            onClick={() => setTab(tb.id)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              tab === tb.id
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {tb.label}
-          </button>
-        ))}
-      </div>
-
+      }
+      tabs={
+        <UnderlineTabs
+          activeKey={tab}
+          aria-label={t('employees.skills.tabs_label', 'Seccions de skills')}
+          items={tabs.map((tb) => ({
+            key: tb.id,
+            label: tb.label,
+            onSelect: () => setTab(tb.id),
+          }))}
+        />
+      }
+    >
       {tab === 'search' ? (
         <div className="space-y-5">
           <section className="rounded-2xl border bg-card/50 p-5 space-y-4">
@@ -1139,7 +1125,7 @@ export function SkillCatalogPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   )
 }
 

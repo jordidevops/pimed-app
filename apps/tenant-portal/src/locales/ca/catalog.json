@@ -1,6 +1,12 @@
 {
   "catalog": {
     "title": "Catàleg",
+    "subtitle": "Serveis, productes i paquets",
+    "services_subtitle": "Serveis del catàleg comercial",
+    "products_subtitle": "Productes del catàleg comercial",
+    "tabs_label": "Tipus de catàleg",
+    "filter_category": "Filtrar per categoria",
+    "filter_all_categories": "Totes les categories",
     "tabs": {
       "services": "Serveis",
       "products": "Productes",
@@ -25,11 +31,16 @@
       "deactivate_confirm": "Confirmes que vols desactivar aquest ítem?"
     },
     "packs": {
+      "subtitle": "Packs de línies del catàleg per aplicar ràpidament a una OS",
       "new": "Nou servei habitual",
       "empty": "Encara no hi ha serveis habituals",
       "lines": "Línies",
       "default": "Per defecte",
       "yes": "Sí",
+      "no": "No",
+      "loading_lines": "Carregant línies…",
+      "no_lines": "Sense línies",
+      "no_checklists": "Sense checklists vinculades",
       "load_failed": "Error en carregar els serveis habituals",
       "load_items_failed": "No s'han pogut carregar les línies",
       "form_create": "Nou servei habitual",

@@ -1,6 +1,7 @@
 {
   "departments": {
     "title": "Departaments",
+    "subtitle": "Estructura organitzativa",
     "new_department": "Nou departament",
     "breadcrumb_root": "Tots els departaments",
     "children_count": "{{count}} subdepartaments",

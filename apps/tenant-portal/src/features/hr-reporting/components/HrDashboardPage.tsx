@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { BarChart3, Loader2 } from 'lucide-react'
+import { PageShell } from '@/components/layout/PageShell'
 import { useTenant } from '@/contexts/TenantContext'
 import { useDepartments } from '@/features/departments/api/useDepartments'
 import { EmployeesComplianceDashboard } from '@/features/employees/components/EmployeesComplianceDashboard'
@@ -95,11 +96,14 @@ export function HrDashboardPage() {
 
   if (!activeTenant) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
+      <PageShell
+        title={t('hr_reporting.title', 'Reporting HR')}
+        icon={<BarChart3 className="h-5 w-5" aria-hidden />}
+      >
+        <p className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center text-sm text-amber-800">
           {t('employees.errors.no_tenant', 'Selecciona una organització')}
         </p>
-      </div>
+      </PageShell>
     )
   }
 
@@ -108,32 +112,20 @@ export function HrDashboardPage() {
   )
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-            <BarChart3 className="h-5 w-5 text-primary" aria-hidden />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-foreground">
-              {t('hr_reporting.title', 'Reporting HR')}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {t(
-                'hr_reporting.subtitle',
-                'Headcount per contracte efectiu, altes/baixes i alertes.',
-              )}
-            </p>
-          </div>
-        </div>
-        <Link
-          to="/employees"
-          className="text-sm text-primary hover:underline shrink-0"
-        >
+    <PageShell
+      title={t('hr_reporting.title', 'Reporting HR')}
+      subtitle={t(
+        'hr_reporting.subtitle',
+        'Headcount per contracte efectiu, altes/baixes i alertes.',
+      )}
+      icon={<BarChart3 className="h-5 w-5" aria-hidden />}
+      actions={
+        <Link to="/employees" className="text-sm text-primary hover:underline shrink-0">
           {t('hr_reporting.back_employees', '← Empleats')}
         </Link>
-      </div>
-
+      }
+    >
+      <div className="space-y-8">
       <div className="flex flex-wrap gap-3 items-end">
         <div>
           <label className="text-xs font-medium text-muted-foreground block mb-1">
@@ -327,6 +319,7 @@ export function HrDashboardPage() {
         </div>
         <EmployeesComplianceDashboard />
       </section>
-    </div>
+      </div>
+    </PageShell>
   )
 }

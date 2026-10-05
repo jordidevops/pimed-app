@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ChevronLeft, ChevronRight, RefreshCw, Search, FileSignature, FileText } from 'lucide-react'
+import { ChevronLeft, ChevronRight, RefreshCw, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
@@ -9,7 +9,6 @@ import { useTenant } from '@/contexts/TenantContext'
 import { useSigningSubmissions, SUBMISSIONS_PAGE_SIZE } from '../api/useSigningSubmissions'
 import { useSigningSubmissionsRealtime } from '../api/useSigningSubmissionsRealtime'
 import { SIGNING_STATUS_CLASSES } from '../signingStatusColors'
-import { DocumentsSubNav } from '@/features/documents/components/DocumentsSubNav'
 import type { SigningStatus } from '../api/signingService'
 import { getSigningProvider } from '../api/signingService'
 import type { SigningSubmissionListItem, SubmissionsFilter } from '../api/useSigningSubmissions'
@@ -55,8 +54,7 @@ function signersSummary(signers: unknown): string {
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export function SigningCenterPage() {
-  const { t }    = useTranslation('signing')
-  const { t: tDocuments } = useTranslation('documents')
+  const { t } = useTranslation('signing')
   const navigate = useNavigate()
   const { toast } = useToast()
   const { activeTenant, selectedTenantId } = useTenant()
@@ -117,28 +115,8 @@ export function SigningCenterPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center gap-2">
-        <FileText className="h-6 w-6 text-primary" />
-        <h1 className="text-xl font-semibold">{tDocuments('page.title', 'Documents')}</h1>
-      </div>
-
-      {/* Sub-navegació */}
-      <DocumentsSubNav />
-
-      <div className="max-w-6xl mx-auto space-y-6">
-
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <FileSignature className="h-5 w-5 text-indigo-500" />
-            {t('center.title', 'Centre de signatures')}
-          </h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {t('center.subtitle', 'Seguiment de totes les sol·licituds de signatura')}
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={() => refetch()}>
           <RefreshCw className="h-4 w-4 mr-1.5" />
           {t('center.refresh', 'Actualitzar')}
@@ -310,8 +288,6 @@ export function SigningCenterPage() {
           </div>
         </div>
       )}
-
-      </div>
     </div>
   )
 }
