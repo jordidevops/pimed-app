@@ -30,7 +30,7 @@ type Props = {
   open: boolean
   busy?: boolean
   onClose: () => void
-  onCompleted: () => void
+  onCompleted: (newDocumentId: string) => void
   onBusyChange?: (busy: boolean) => void
 }
 
@@ -124,12 +124,19 @@ export function RectifyDeliveryNoteDialog({
     setLocalBusy(true)
     onBusyChange?.(true)
     try {
-      await rectifyCommercialDelivery({
+      const newDocumentId = await rectifyCommercialDelivery({
         documentId,
         reason: reason.trim(),
         linePatches: patches,
       })
-      onCompleted()
+      toast({
+        title: t('projects.commercial.rectify_done', 'Albarà rectificat'),
+        description: t(
+          'projects.commercial.rectify_done_hint',
+          'S’ha emès un albarà nou. Aquest queda cancel·lat.',
+        ),
+      })
+      onCompleted(newDocumentId)
       onClose()
     } catch (err: unknown) {
       toast({
@@ -151,7 +158,7 @@ export function RectifyDeliveryNoteDialog({
           <DialogDescription>
             {t(
               'projects.commercial.rectify_help',
-              'S’anul·la i se n’emet un de nou. Pots baixar la quantitat de l’ordre (mínim = ja entregat en altres albarans). Els cobraments es queden a l’original i compten al substitut.',
+              'S’anul·la aquest albarà i se n’emet un de nou (número nou). La quantitat és la de l’ordre, no cal canviar-la si el pendent és correcte. El motiu queda al document cancel·lat.',
             )}
           </DialogDescription>
         </DialogHeader>
@@ -211,6 +218,14 @@ export function RectifyDeliveryNoteDialog({
                 </span>
               ) : null}
             </p>
+            {buildPatches().length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  'projects.commercial.rectify_same_qty_hint',
+                  'No has canviat la quantitat de l’OS: el nou albarà tindrà el mateix pendent.',
+                )}
+              </p>
+            ) : null}
             {preview.payments_exceed_total ? (
               <p className="text-sm text-destructive">
                 {t(

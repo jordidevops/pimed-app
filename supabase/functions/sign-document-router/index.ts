@@ -767,7 +767,11 @@ async function createSubmissionRecord(
     p_metadata:                    options?.metadata ?? body.metadata ?? null,
     p_signing_provider:            options?.signing_provider ?? "docuseal",
     p_native_group_id:             options?.native_group_id ?? null,
-    p_notification_mode:           options?.notification_mode ?? body.notification_mode ?? null,
+    // Column is NOT NULL; never pass explicit null (bypasses DEFAULT).
+    p_notification_mode:
+      options?.notification_mode
+      ?? body.notification_mode
+      ?? "app_auto_sequential",
   });
 
   if (error || !newId)
@@ -2093,7 +2097,10 @@ Deno.serve(async (req: Request) => {
         {
           signing_provider:  "native",
           native_group_id:   groupId,
-          notification_mode: signingType === "remote" ? (body.notification_mode ?? "app_auto_sequential") : null,
+          // Presential: no auto emails → app_manual. Remote: sequential by default.
+          notification_mode: signingType === "remote"
+            ? (body.notification_mode ?? "app_auto_sequential")
+            : (body.notification_mode ?? "app_manual"),
           metadata: {
             native:                   true,
             signing_type:             signingType,

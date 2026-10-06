@@ -1,6 +1,6 @@
 # Flux comercial — Estat d'implementació
 
-> **Última actualització:** 2026-10-05
+> **Última actualització:** 2026-10-06
 > **Propòsit:** seguir el desenvolupament dels epics CF i deixar constància honesta del que falta.
 > **Pla:** [`README.md`](./README.md) · backlog [`04-phases-and-backlog.md`](./04-phases-and-backlog.md) · ordre [`EXECUTION.md`](./EXECUTION.md) · gate Tall 2→3 [`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md)
 
@@ -33,7 +33,7 @@
 
 ## Resum
 
-**Tall 1 espina comercial tancable** (tècnicament). **CF-13…CF-15, CF-17…CF-21, CF-26 i CF-27 tancats**. **CF-16** implementat (UAT offline pendent). Gate Tall 2→3: model + ompliment smoke ✅; UAT residual (km/offline/multi-dia) ⚠️ abans de confiar xifres CF-20. Pista acords: **CF-21** ✅ → següent **CF-22**. Deute: UAT Tall 1, polish de signatura amb el dit, Stripe/Holded 📦, signatura formal comercial 📦, EXP 📦, CF-25-b 📦.
+**Tall 1 espina comercial tancable** (tècnicament). **CF-13…CF-15, CF-17…CF-21, CF-26 i CF-27 tancats**. **CF-16** implementat (UAT offline pendent). Gate Tall 2→3: model + ompliment smoke ✅; UAT residual (km/offline/multi-dia) ⚠️ abans de confiar xifres CF-20. Pista acords: **CF-21** ✅ → següent **CF-22**. Deute: UAT Tall 1, Stripe/Holded 📦, signatura formal (DocuSeal/qualified) 📦, EXP 📦, CF-25-b 📦. Signatura nativa amb el dit a pressupost/albarà ✅ (2026-10-06).
 
 ## Tall 1 — Espina legal i de camp
 
@@ -44,12 +44,12 @@
 | CF-2 | Línies al mòbil / UX OS | ⚠️ | Tests tècnics verds; gate humà de simplicitat pendent |
 | CF-3 | Servei habitual | ✅ | Apply + tab Catàleg |
 | CF-4 | Documents comercials base | ⚠️ | Schema + panell per secció |
-| CF-5 | Pressupost | ⚠️ | Mode client; falta signatura dit |
-| CF-6 | Renúncia al pressupost | ✅ | |
+| CF-5 | Pressupost | ✅ | Emissió + mode client; acceptar/refusar via firma nativa (dit o `/sign`) |
+| CF-6 | Renúncia al pressupost | ✅ | Encara `staff_ui` (no és pressupost/albarà) |
 | CF-7 | Import autoritzat | ✅ | |
 | CF-8 | Revisió de desviacions | ✅ | |
 | CF-9 | Ampliació de pressupost | ✅ | |
-| CF-10 | Albarà | ⚠️ | Emissió; falta signatura |
+| CF-10 | Albarà | ✅ | Emissió + conformitat via firma nativa (dit o `/sign`) |
 | CF-11 | Compartició i PDF simple | ✅ | |
 | CF-12 | Cobrament simple | ✅ | |
 | CF-23 | Servei habitual + checklist | ✅ | Bridge + apply + default create |
@@ -86,6 +86,8 @@
 
 | Data | Canvi |
 |------|-------|
+| 2026-10-06 | Seeds hub durables: Volt `A-2026-9101` + Riera `A-2026-9102` (`commercial_hub_delivery_notes.sql` a `sql_paths`). `A-CF25-*` no es recreen. |
+| 2026-10-06 | **CF-5/CF-10 polish signatura dit:** Pointer Events al pad; diàleg comercial sense PDF a sobre del canvas; confirm sense exigir hub id; hub 1-signant (migrations `20261226*`). Renúncia segueix `staff_ui`. |
 | 2026-10-05 | **CF-20** tancat: `20261223000001` labor freeze + `get_project_profitability_summary` + UI; SQL `commercial_cf20_profitability_tests.sql`; types. UAT gate residual segueix ⚠️. |
 | 2026-10-05 | **CF-20 hardening**: `20261224000001` (Madrid TZ, accepted docs real_basis, coverage missing freeze, immutable UPDATE, REVOKE helpers). |
 | 2026-10-05 | **CF-19** follow-up: `20261222000001` copy a `copy_project_lines`/`apply_price_sheet`, harden DEFINER, upsert retry, UI dirty-check (no wipe), tests cross-tenant/member upsert + vitest €↔cents. |

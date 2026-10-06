@@ -70,6 +70,14 @@ const PAGE_SIZE = 50
 
 type StatusGroup = (typeof STATUS_GROUPS)[number]
 
+function isCancelledDeliveryRow(row: DeliveryNoteListRow): boolean {
+  return (
+    row.document_status === 'cancelled' ||
+    row.collection_status === 'rectified' ||
+    row.billing_status === 'rectified'
+  )
+}
+
 function collectionFilterFromStatusGroup(
   statusGroup: StatusGroup,
 ): Array<'pending' | 'partial' | 'paid'> | null {
@@ -78,6 +86,26 @@ function collectionFilterFromStatusGroup(
     return [statusGroup]
   }
   return null
+}
+
+/** Rectified DNs are `cancelled`; the sales RPC maps them to collection `paid`.
+ * The default «Oberts» filter (pending+partial) would hide every rectified row. */
+function collectionStatusForSalesList(
+  billing: SalesBillingStatus | 'all',
+  statusGroup: StatusGroup,
+): Array<'pending' | 'partial' | 'paid'> | null {
+  if (billing === 'rectified') return null
+  return collectionFilterFromStatusGroup(statusGroup)
+}
+
+function collectionLabelForSalesRow(
+  row: DeliveryNoteListRow,
+  t: (key: string, fallback: string) => string,
+): string {
+  if (isCancelledDeliveryRow(row)) return '—'
+  if (row.collection_status === 'paid') return t('projects.sales.collection_paid', 'Cobrat')
+  if (row.collection_status === 'partial') return t('projects.sales.collection_partial', 'Parcial')
+  return t('projects.sales.collection_pending', 'Pendent de cobrar')
 }
 
 function billingLabelForSalesRow(
@@ -194,7 +222,9 @@ export function DeliveryNotesList({
     ? localStatus
     : STATUS_GROUPS.includes(searchParams.get('status') as StatusGroup)
       ? (searchParams.get('status') as StatusGroup)
-      : defaultStatus
+      : useSalesList
+        ? 'all'
+        : defaultStatus
   const hasExternalRef = embedded
     ? localExt
     : (['all', 'yes', 'no'] as const).includes(searchParams.get('ext_ref') as 'all' | 'yes' | 'no')
@@ -302,34 +332,48 @@ export function DeliveryNotesList({
     setCursorPage(0)
   }
 
-  function updateParam(name: string, value: string | null) {
+  function applyParamLocal(name: string, value: string | null) {
+    if (name === 'status' && value && STATUS_GROUPS.includes(value as StatusGroup)) {
+      setLocalStatus(value as StatusGroup)
+    }
+    if (name === 'ext_ref') setLocalExt((value as 'yes' | 'no' | null) ?? 'all')
+    if (name === 'billing') {
+      setLocalBilling((value as SalesBillingStatus | 'all' | null) ?? 'all')
+    }
+    if (name === 'q') setLocalQ(value ?? '')
+    if (name === 'surface') setLocalView(value === 'invoices' ? 'invoices' : 'notes')
+    if (name === 'issued_from') setLocalIssuedFrom(value ?? '')
+    if (name === 'issued_to') setLocalIssuedTo(value ?? '')
+    if (name === 'page') setLocalPage(Math.max(1, Number(value || '1') || 1))
+  }
+
+  function updateParams(entries: Record<string, string | null>) {
+    const names = Object.keys(entries)
+    const touchesPaging = names.some((name) => name !== 'page')
     if (embedded) {
-      if (name === 'status' && value && STATUS_GROUPS.includes(value as StatusGroup)) {
-        setLocalStatus(value as StatusGroup)
+      for (const [name, value] of Object.entries(entries)) {
+        applyParamLocal(name, value)
       }
-      if (name === 'ext_ref') setLocalExt((value as 'yes' | 'no' | null) ?? 'all')
-      if (name === 'billing') {
-        setLocalBilling((value as SalesBillingStatus | 'all' | null) ?? 'all')
-      }
-      if (name === 'q') setLocalQ(value ?? '')
-      if (name === 'surface') setLocalView(value === 'invoices' ? 'invoices' : 'notes')
-      if (name === 'issued_from') setLocalIssuedFrom(value ?? '')
-      if (name === 'issued_to') setLocalIssuedTo(value ?? '')
-      if (name === 'page') setLocalPage(Math.max(1, Number(value || '1') || 1))
-      else if (name !== 'page') {
+      if (touchesPaging) {
         setLocalPage(1)
         resetCursorPaging()
       }
       return
     }
     const next = new URLSearchParams(searchParams)
-    if (!value) next.delete(name)
-    else next.set(name, value)
-    if (name !== 'page') {
+    for (const [name, value] of Object.entries(entries)) {
+      if (!value) next.delete(name)
+      else next.set(name, value)
+    }
+    if (touchesPaging) {
       next.delete('page')
       resetCursorPaging()
     }
     setSearchParams(next, { replace: true })
+  }
+
+  function updateParam(name: string, value: string | null) {
+    updateParams({ [name]: value })
   }
 
   const noteFilters = useMemo(
@@ -355,7 +399,7 @@ export function DeliveryNotesList({
       q: q.trim().length >= 2 ? q.trim() : null,
       billingStatus:
         billingFilter === 'all' ? null : ([billingFilter] as SalesBillingStatus[]),
-      collectionStatus: collectionFilterFromStatusGroup(statusGroup),
+      collectionStatus: collectionStatusForSalesList(billingFilter, statusGroup),
       dateFrom: issuedFrom ? localDayRange(issuedFrom).from : null,
       dateTo: issuedTo ? localDayRange(issuedTo).to : null,
       cursor: cursorStack[cursorPage] ?? null,
@@ -453,7 +497,7 @@ export function DeliveryNotesList({
                     : statusGroup === 'partial'
                       ? t('projects.collections.status_partial', 'Parcial')
                       : t('projects.collections.status_paid', 'Cobrat'),
-                onRemove: () => updateParam('status', 'open'),
+                onRemove: () => updateParam('status', 'all'),
               },
             ]
           : []),
@@ -478,20 +522,18 @@ export function DeliveryNotesList({
           t('projects.quotes.unknown_client', 'Sense client')
         }
         badges={
-          <>
-            <Badge variant="outline">
-              {billingLabelForSalesRow(rowBillingStatus(inspectedRow), t)}
-            </Badge>
+          isCancelledDeliveryRow(inspectedRow) ? (
             <Badge variant="secondary">
-              {inspectedRow.collection_status === 'paid'
-                ? t('projects.sales.collection_paid', 'Cobrat')
-                : inspectedRow.collection_status === 'partial'
-                  ? t('projects.sales.collection_partial', 'Parcial')
-                  : inspectedRow.collection_status === 'rectified'
-                    ? t('projects.collections.status_rectified', 'Rectificat')
-                    : t('projects.sales.collection_pending', 'Pendent de cobrar')}
+              {t('projects.commercial.status_cancelled', 'Anul·lat')}
             </Badge>
-          </>
+          ) : (
+            <>
+              <Badge variant="outline">
+                {billingLabelForSalesRow(rowBillingStatus(inspectedRow), t)}
+              </Badge>
+              <Badge variant="secondary">{collectionLabelForSalesRow(inspectedRow, t)}</Badge>
+            </>
+          )
         }
         fields={[
           {
@@ -746,9 +788,17 @@ export function DeliveryNotesList({
                 type="button"
                 size="sm"
                 variant={billingFilter === chip.value ? 'default' : 'outline'}
-                onClick={() =>
-                  updateParam('billing', chip.value === 'all' ? null : chip.value)
-                }
+                onClick={() => {
+                  if (chip.value === 'all') {
+                    updateParams({ billing: null, status: 'all' })
+                    return
+                  }
+                  if (chip.value === 'rectified') {
+                    updateParams({ billing: 'rectified', status: 'all' })
+                    return
+                  }
+                  updateParam('billing', chip.value)
+                }}
               >
                 {t(chip.labelKey, chip.labelDefault)}
               </Button>
@@ -760,10 +810,12 @@ export function DeliveryNotesList({
             chips={salesFilterChips}
             clearAllLabel={t('common:list.clear_filters', 'Netejar filtres')}
             onClearAll={() => {
-              updateParam('q', null)
-              updateParam('billing', null)
-              updateParam('status', 'open')
-              updateParam('client_id', null)
+              updateParams({
+                q: null,
+                billing: null,
+                status: 'all',
+                client_id: null,
+              })
               setSearchDraft('')
             }}
           />
@@ -928,19 +980,15 @@ export function DeliveryNotesList({
               {
                 id: 'billing',
                 header: t('projects.sales.billing', 'Facturació'),
-                cell: (row) => billingLabelForSalesRow(rowBillingStatus(row), t),
+                cell: (row) =>
+                  isCancelledDeliveryRow(row)
+                    ? t('projects.commercial.status_cancelled', 'Anul·lat')
+                    : billingLabelForSalesRow(rowBillingStatus(row), t),
               },
               {
                 id: 'collection',
                 header: t('projects.sales.collection', 'Cobrament'),
-                cell: (row) =>
-                  row.collection_status === 'paid'
-                    ? t('projects.sales.collection_paid', 'Cobrat')
-                    : row.collection_status === 'partial'
-                      ? t('projects.sales.collection_partial', 'Parcial')
-                      : row.collection_status === 'rectified'
-                        ? t('projects.collections.status_rectified', 'Rectificat')
-                        : t('projects.sales.collection_pending', 'Pendent de cobrar'),
+                cell: (row) => collectionLabelForSalesRow(row, t),
               },
               {
                 id: 'total',
@@ -1092,18 +1140,20 @@ export function DeliveryNotesList({
                     active={inspectId === row.id}
                     onClick={() => setInspectId(row.id)}
                     badges={
-                      <>
-                        <Badge variant="outline">{billingLabelForSalesRow(billing, t)}</Badge>
-                        <Badge
-                          variant={row.collection_status === 'paid' ? 'default' : 'secondary'}
-                        >
-                          {row.collection_status === 'paid'
-                            ? t('projects.sales.collection_paid', 'Cobrat')
-                            : row.collection_status === 'partial'
-                              ? t('projects.sales.collection_partial', 'Parcial')
-                              : t('projects.sales.collection_pending', 'Pendent de cobrar')}
+                      isCancelledDeliveryRow(row) ? (
+                        <Badge variant="secondary">
+                          {t('projects.commercial.status_cancelled', 'Anul·lat')}
                         </Badge>
-                      </>
+                      ) : (
+                        <>
+                          <Badge variant="outline">{billingLabelForSalesRow(billing, t)}</Badge>
+                          <Badge
+                            variant={row.collection_status === 'paid' ? 'default' : 'secondary'}
+                          >
+                            {collectionLabelForSalesRow(row, t)}
+                          </Badge>
+                        </>
+                      )
                     }
                     meta={
                       <>
@@ -1401,7 +1451,12 @@ export function DeliveryNotesList({
         busy={busy}
         onBusyChange={setBusy}
         onClose={() => setRectifyDocId(null)}
-        onCompleted={invalidate}
+        onCompleted={(newDocumentId) => {
+          invalidate()
+          if (newDocumentId) {
+            void navigate(`/sales/delivery-notes/${newDocumentId}`)
+          }
+        }}
       />
 
       <Dialog

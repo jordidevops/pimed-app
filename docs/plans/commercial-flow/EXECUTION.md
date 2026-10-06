@@ -27,12 +27,12 @@
 | 4b | **CF-23** Servei + checklist | ✅ | Bridge + apply + default a crear OS |
 | — | *Gate: recorregut bàsic de camp provat* | ⚠️ | Avançat per petició explícita |
 | 5 | **CF-4** Documents comercials base | ⚠️ | Schema + RPCs + panell mínim |
-| 6 | **CF-5** Pressupost | ⚠️ | Mode client Veure; falta signatura dit |
+| 6 | **CF-5** Pressupost | ✅ | Mode client + acceptació nativa (dit / remot) |
 | 7 | **CF-6** Renúncia al pressupost | ✅ | QuoteWaiverDialog |
 | 8 | **CF-7** Import autoritzat | ✅ | UX close-out |
 | 9 | **CF-8** Revisió de desviacions | ✅ | CloseOutDeviationsCard |
 | 10 | **CF-9** Ampliació de pressupost | ✅ | CTA tancament |
-| 11 | **CF-10** Albarà | ⚠️ | Emissió; falta signatura |
+| 11 | **CF-10** Albarà | ✅ | Emissió + conformitat nativa (dit / remot) |
 | 12 | **CF-11** Compartició i PDF simple | ✅ | Print/HTML + share sheet |
 | 13 | **CF-12** Cobrament simple | ✅ | Diàleg + comprovant |
 | — | *Gate Tall 1 → Tall 2* | ⚠️ | Deute UAT (autònom + oficina); diferit |
@@ -120,6 +120,7 @@ Cada epic tancat afegeix aquí una entrada amb data, abast real i desviacions re
 | 2026-10-05 | **CF-19** fix | `20261222000001`: cost a copy/IA paths; harden copy; upsert retry; UI dirty; tests ampliat + vitest | — |
 | 2026-10-05 | **CF-20** | `20261223000001`: labor freeze + summary 1A/2A ex-VAT (línies `h` excloses del cost de línies); UI Resultat brut; SQL PASS; types | UAT gate residual per confiar xifres |
 | 2026-10-05 | **CF-20 hardening** | `20261224000001`: freeze date Europe/Madrid; `real_basis` per docs acceptats (incl. subtotal 0); coverage closed sense freeze; REVOKE freeze helpers; UPDATE immutable | — |
+| 2026-10-06 | **CF-5/CF-10 signatura dit** | Pad Pointer Events; diàleg camp per dit; hub 1-signant; smoke accept P-2026-0001 | Renúncia `staff_ui`; UAT humana Tall 1 |
 
 
 ## Fase tancada: CF-20 Rendibilitat
@@ -151,6 +152,8 @@ Fet: migracions `20261217000001`…`000009`, `doc_type=invoice`, `payment_alloca
 Fet: migracions `20261216000001`…`000008`, UI hub/embedded, rectify amb patches i preview de lectura, saldos FIFO amb `clock_timestamp`, gates oficina vs camp, comprovant amb detail RPC, remediació legacy manual. Types regenerats amb CF-27.
 
 **UAT (2026-10-03):** camp cobrar DN+comprovant; oficina facturar + Rectificar al menú. Detall: [`07-collections-and-ar-hub.md`](./07-collections-and-ar-hub.md).
+
+**Seeds hub (2026-10-06):** `commercial_hub_delivery_notes.sql` al `[db.seed] sql_paths` — Volt `A-2026-9101` i Riera `A-2026-9102` (OS setmana vinent, números 91xx). Riera `A-2026-9001` continua al seed d’acords.
 
 **Fora d'abast (📦):** factura fiscal (ara a CF-27 interna no fiscal), Holded/Quipu API, CF-25-b acords al hub, compositor de quantitats en emetre DN nou.
 

@@ -1,4 +1,4 @@
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -18,6 +18,7 @@ import { passesGate, useNavGateContext } from '@/features/sidebar-nav'
 
 export function DeliveryNoteDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { t } = useTranslation(['projects', 'field-service', 'common'])
   const isFieldService = useIsFieldService()
   const projectLabel = useSectorLabel(
@@ -181,7 +182,12 @@ export function DeliveryNoteDetailPage() {
         busy={busy}
         onBusyChange={setBusy}
         onClose={() => setRectifyOpen(false)}
-        onCompleted={refetchAll}
+        onCompleted={(newDocumentId) => {
+          refetchAll()
+          if (newDocumentId && newDocumentId !== id) {
+            void navigate(`/sales/delivery-notes/${newDocumentId}`, { replace: true })
+          }
+        }}
       />
     </>
   )

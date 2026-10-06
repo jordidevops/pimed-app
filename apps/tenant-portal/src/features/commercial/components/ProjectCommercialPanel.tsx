@@ -800,6 +800,7 @@ export function ProjectCommercialPanel({
           void queryClient.invalidateQueries({ queryKey: ['commercial_documents', projectId] })
           void queryClient.invalidateQueries({ queryKey: ['project_delivery_summary', projectId] })
           void queryClient.invalidateQueries({ queryKey: ['delivery_notes'] })
+          void queryClient.invalidateQueries({ queryKey: ['sales_delivery_notes'] })
         }}
       />
 

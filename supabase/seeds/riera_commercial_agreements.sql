@@ -21,6 +21,7 @@
 -- P-2026-9014  Marta Roca, esborrany sense OS (fixture d’estat)
 -- AMP-2026-9001  ampliació acceptada del 9003
 -- A-2026-9001    albarà del 9003, sense distintiu de relació
+-- A-2026-9102    albarà hub UAT (seeds/commercial_hub_delivery_notes.sql; Volt A-2026-9101)
 --
 -- Marta Roca (800…202): habitatge 810…203; ordres 207 (sense pressupost + línies),
 -- 208 (emès 9013), 209 (ordre oberta vinculable / canvi d’aixeta).

@@ -4,6 +4,7 @@ import {
   buildCommercialSigningLinkShareText,
   commercialNativeSignLink,
   commercialSignerRoleForAction,
+  isAlreadyAppliedCommercialSigningError,
 } from './commercialNativeSign'
 
 describe('commercialNativeSign', () => {
@@ -27,6 +28,30 @@ describe('commercialNativeSign', () => {
     expect(payload.signing_session_id).toBe('sess-1')
     expect(payload.signing_group_id).toBe('grp-1')
     expect(payload.role).toBe('client_accept')
+  })
+
+  it('omits submission id when the hub row is missing', () => {
+    const payload = buildCommercialNativeSignaturePayload({
+      action: 'delivery',
+      sessionId: 'sess-3',
+    })
+    expect(payload).not.toHaveProperty('signing_submission_id')
+    expect(payload.signing_session_id).toBe('sess-3')
+    expect(payload.role).toBe('client_delivery')
+  })
+
+  it('treats QT-9 trigger races as already applied', () => {
+    expect(
+      isAlreadyAppliedCommercialSigningError(
+        new Error('document_not_issuable_state:accepted'),
+      ),
+    ).toBe(true)
+    expect(
+      isAlreadyAppliedCommercialSigningError(
+        new Error('document_not_rejectable_state:rejected'),
+      ),
+    ).toBe(true)
+    expect(isAlreadyAppliedCommercialSigningError(new Error('stamp_failed'))).toBe(false)
   })
 
   it('keeps an optional reject reason', () => {

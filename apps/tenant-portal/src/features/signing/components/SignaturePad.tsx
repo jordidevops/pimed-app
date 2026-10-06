@@ -1,9 +1,5 @@
-import { useRef, useEffect, useCallback, useState } from 'react'
+import { useRef, useCallback, useState, useEffect } from 'react'
 import { Eraser, Pen, Check } from 'lucide-react'
-
-// =============================================================================
-// Types
-// =============================================================================
 
 export interface SignaturePadProps {
   /** Callback quan l'usuari accepta la signatura. Rep base64 PNG. */
@@ -14,190 +10,173 @@ export interface SignaturePadProps {
   title?: string
   /** Subtítol/instruccions. */
   subtitle?: string
-  /** Amplada del canvas (px). Default: 600. */
+  /** Amplada lògica del canvas (px). Default: 600. */
   width?: number
-  /** Alçada del canvas (px). Default: 200. */
+  /** Alçada lògica del canvas (px). Default: 220. */
   height?: number
   /** Si true, el botó Confirmar apareix desactivat fins que s'ha dibuixat alguna cosa. */
   requireDraw?: boolean
   /** Color de la línia de signatura. Default: '#111827'. */
   strokeColor?: string
-  /** Amplada de línia. Default: 2. */
+  /** Amplada de línia. Default: 2.5. */
   strokeWidth?: number
   disabled?: boolean
 }
 
-// =============================================================================
-// SignaturePad
-// =============================================================================
+function clientPos(
+  canvas: HTMLCanvasElement,
+  clientX: number,
+  clientY: number,
+): { x: number; y: number } {
+  const rect = canvas.getBoundingClientRect()
+  const scaleX = canvas.width / rect.width
+  const scaleY = canvas.height / rect.height
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY,
+  }
+}
+
+export function canvasPosFromPointer(
+  canvas: HTMLCanvasElement,
+  e: Pick<PointerEvent, 'clientX' | 'clientY'>,
+): { x: number; y: number } {
+  return clientPos(canvas, e.clientX, e.clientY)
+}
 
 export function SignaturePad({
   onConfirm,
   onCancel,
   title = 'Signatura digital',
-  subtitle = 'Dibuixa la teva signatura a l\'àrea inferior',
-  width  = 600,
-  height = 200,
+  subtitle = 'Dibuixa amb el dit, el llapis o el ratolí',
+  width = 600,
+  height = 220,
   requireDraw = true,
   strokeColor = '#111827',
-  strokeWidth = 2,
+  strokeWidth = 2.5,
   disabled = false,
 }: SignaturePadProps) {
-  const canvasRef   = useRef<HTMLCanvasElement>(null)
-  const isDrawing   = useRef(false)
-  const lastPos     = useRef<{ x: number; y: number } | null>(null)
-  const [hasDrawn, setHasDrawn] = useState(false)
-  const [isEmpty, setIsEmpty]   = useState(true)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const isDrawing = useRef(false)
+  const lastPos = useRef<{ x: number; y: number } | null>(null)
+  const [isEmpty, setIsEmpty] = useState(true)
 
-  // ─── Inicialitzar canvas ────────────────────────────────────────────────────
-  const initCanvas = useCallback(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.strokeStyle = strokeColor
-    ctx.lineWidth   = strokeWidth
-    ctx.lineCap     = 'round'
-    ctx.lineJoin    = 'round'
-  }, [strokeColor, strokeWidth])
-
-  useEffect(() => { initCanvas() }, [initCanvas])
-
-  // ─── Obtenir posició relativa al canvas ─────────────────────────────────────
-  const getPos = useCallback((e: MouseEvent | TouchEvent): { x: number; y: number } | null => {
-    const canvas = canvasRef.current
-    if (!canvas) return null
-    const rect = canvas.getBoundingClientRect()
-    const scaleX = canvas.width  / rect.width
-    const scaleY = canvas.height / rect.height
-
-    if (e instanceof TouchEvent) {
-      const touch = e.touches[0] ?? e.changedTouches[0]
-      if (!touch) return null
-      return {
-        x: (touch.clientX - rect.left) * scaleX,
-        y: (touch.clientY - rect.top)  * scaleY,
-      }
-    }
-
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top)  * scaleY,
-    }
-  }, [])
-
-  // ─── Dibuix ─────────────────────────────────────────────────────────────────
-  const startDraw = useCallback((e: MouseEvent | TouchEvent) => {
-    if (disabled) return
-    e.preventDefault()
-    isDrawing.current = true
-    const pos = getPos(e)
-    lastPos.current = pos
-    if (pos) {
-      const ctx = canvasRef.current?.getContext('2d')
-      if (ctx) {
-        ctx.beginPath()
-        ctx.arc(pos.x, pos.y, strokeWidth / 2, 0, 2 * Math.PI)
-        ctx.fillStyle = strokeColor
-        ctx.fill()
-      }
-    }
-  }, [disabled, getPos, strokeColor, strokeWidth])
-
-  const draw = useCallback((e: MouseEvent | TouchEvent) => {
-    if (!isDrawing.current || disabled) return
-    e.preventDefault()
-    const pos = getPos(e)
-    if (!pos || !lastPos.current) return
-
-    const canvas = canvasRef.current
-    const ctx    = canvas?.getContext('2d')
-    if (!ctx) return
-
-    ctx.strokeStyle = strokeColor
-    ctx.lineWidth   = strokeWidth
-    ctx.lineCap     = 'round'
-    ctx.lineJoin    = 'round'
-    ctx.beginPath()
-    ctx.moveTo(lastPos.current.x, lastPos.current.y)
-    ctx.lineTo(pos.x, pos.y)
-    ctx.stroke()
-
-    lastPos.current = pos
-    if (!hasDrawn) {
-      setHasDrawn(true)
-      setIsEmpty(false)
-    }
-  }, [disabled, getPos, hasDrawn, strokeColor, strokeWidth])
-
-  const stopDraw = useCallback(() => {
-    isDrawing.current = false
-    lastPos.current   = null
-  }, [])
-
-  // ─── Event listeners (mouse + touch) ────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    const ctx = canvas?.getContext('2d')
+    if (!canvas || !ctx) return
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+  }, [width, height])
 
-    canvas.addEventListener('mousedown',  startDraw)
-    canvas.addEventListener('mousemove',  draw)
-    canvas.addEventListener('mouseup',    stopDraw)
-    canvas.addEventListener('mouseleave', stopDraw)
-    canvas.addEventListener('touchstart', startDraw,  { passive: false })
-    canvas.addEventListener('touchmove',  draw,       { passive: false })
-    canvas.addEventListener('touchend',   stopDraw)
+  const paintDot = useCallback(
+    (pos: { x: number; y: number }) => {
+      const ctx = canvasRef.current?.getContext('2d')
+      if (!ctx) return
+      ctx.fillStyle = strokeColor
+      ctx.beginPath()
+      ctx.arc(pos.x, pos.y, strokeWidth / 2, 0, 2 * Math.PI)
+      ctx.fill()
+    },
+    [strokeColor, strokeWidth],
+  )
 
-    return () => {
-      canvas.removeEventListener('mousedown',  startDraw)
-      canvas.removeEventListener('mousemove',  draw)
-      canvas.removeEventListener('mouseup',    stopDraw)
-      canvas.removeEventListener('mouseleave', stopDraw)
-      canvas.removeEventListener('touchstart', startDraw)
-      canvas.removeEventListener('touchmove',  draw)
-      canvas.removeEventListener('touchend',   stopDraw)
+  const paintStroke = useCallback(
+    (from: { x: number; y: number }, to: { x: number; y: number }) => {
+      const ctx = canvasRef.current?.getContext('2d')
+      if (!ctx) return
+      ctx.strokeStyle = strokeColor
+      ctx.lineWidth = strokeWidth
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.beginPath()
+      ctx.moveTo(from.x, from.y)
+      ctx.lineTo(to.x, to.y)
+      ctx.stroke()
+    },
+    [strokeColor, strokeWidth],
+  )
+
+  const startDraw = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (disabled) return
+      e.preventDefault()
+      e.currentTarget.setPointerCapture(e.pointerId)
+      isDrawing.current = true
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const pos = canvasPosFromPointer(canvas, e)
+      lastPos.current = pos
+      paintDot(pos)
+      setIsEmpty(false)
+    },
+    [disabled, paintDot],
+  )
+
+  const draw = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (!isDrawing.current || disabled) return
+      e.preventDefault()
+      const canvas = canvasRef.current
+      if (!canvas || !lastPos.current) return
+      const pos = canvasPosFromPointer(canvas, e)
+      paintStroke(lastPos.current, pos)
+      lastPos.current = pos
+    },
+    [disabled, paintStroke],
+  )
+
+  const stopDraw = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId)
     }
-  }, [startDraw, draw, stopDraw])
+    isDrawing.current = false
+    lastPos.current = null
+  }, [])
 
-  // ─── Esborrar ────────────────────────────────────────────────────────────────
   const handleClear = () => {
-    initCanvas()
-    setHasDrawn(false)
+    const canvas = canvasRef.current
+    const ctx = canvas?.getContext('2d')
+    if (!canvas || !ctx) return
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
     setIsEmpty(true)
   }
 
-  // ─── Exportar PNG base64 i confirmar ─────────────────────────────────────────
   const handleConfirm = () => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const dataUrl = canvas.toDataURL('image/png')
-    onConfirm(dataUrl)
+    onConfirm(canvas.toDataURL('image/png'))
   }
-
-  // ─── Exportar PNG (helper per a tests) ──────────────────────────────────────
-  void (canvasRef.current?.toDataURL('image/png') ?? '')
 
   const canConfirm = !requireDraw || !isEmpty
 
   return (
-    <div className="flex flex-col items-center gap-4 select-none">
-      {/* Capçalera */}
+    <div className="flex w-full flex-col items-center gap-4 select-none">
       <div className="text-center">
         <h3 className="text-base font-semibold text-gray-900">{title}</h3>
         <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
       </div>
 
-      {/* Àrea de dibuix */}
-      <div className="relative rounded-lg border-2 border-dashed border-gray-300 bg-white overflow-hidden shadow-inner"
-           style={{ width: Math.min(width, 600), touchAction: 'none' }}>
+      <div
+        className="relative w-full max-w-[600px] rounded-lg border-2 border-dashed border-gray-300 bg-white overflow-hidden shadow-inner"
+        style={{ touchAction: 'none' }}
+      >
         <canvas
           ref={canvasRef}
           width={width}
           height={height}
-          style={{ display: 'block', maxWidth: '100%', cursor: disabled ? 'not-allowed' : 'crosshair' }}
+          className="block w-full"
+          style={{
+            touchAction: 'none',
+            cursor: disabled ? 'not-allowed' : 'crosshair',
+            height: `${Math.min(height, 280)}px`,
+          }}
           aria-label="Àrea de signatura"
+          onPointerDown={startDraw}
+          onPointerMove={draw}
+          onPointerUp={stopDraw}
+          onPointerCancel={stopDraw}
         />
         {isEmpty && !disabled && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -209,8 +188,7 @@ export function SignaturePad({
         )}
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-center gap-3">
         <button
           type="button"
           onClick={handleClear}
@@ -252,5 +230,4 @@ export function SignaturePad({
   )
 }
 
-// Exposar exportAsPng per a tests
 export type { SignaturePadProps as SignaturePadPropsType }

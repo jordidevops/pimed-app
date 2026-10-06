@@ -80,11 +80,11 @@ TS: `commercialErrorMessage`, `resolveNav`, `navigationReturn`, `buildCommercial
 - Oficina: emetre `F-2026-0019` des d’`A-2026-0001`; Rectificar visible al menú hub; preview bloqueja si heretat > total
 - Fix: DN seed sense línies → orphan draft; ara `invoice_delivery_notes_empty_lines` + discard draft
 - LOG: dades UAT `A-CF25-*` locals sense backfill cega de línies
+- Seeds durables (2026-10-06): Volt `A-2026-9101` (2 línies), Riera `A-2026-9102` + existent `A-2026-9001` — `supabase/seeds/commercial_hub_delivery_notes.sql` a `[db.seed] sql_paths`
 
 ## Pendent curt (opcional)
 
 - Edició write de patrons de sèrie
 - Adaptadors Sage/A3/DelSol
 - Worker storage signat (V1: ZIP al navegador)
-- Seeds CF-25 amb línies a `commercial_document_lines` (A-CF25-*)
 - EXPLAIN escala + UAT anul·lar / tancar exercici (diferits; veure fase 7)

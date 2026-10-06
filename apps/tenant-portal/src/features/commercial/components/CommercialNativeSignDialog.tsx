@@ -27,6 +27,7 @@ import {
   buildCommercialSigningLinkShareText,
   commercialNativeSignLink,
   commercialSignerRoleForAction,
+  isAlreadyAppliedCommercialSigningError,
   type CommercialNativeSignAction,
 } from '../utils/commercialNativeSign'
 import { docTypeLabel, partyDisplayName } from '../utils/commercialDocumentModel'
@@ -241,7 +242,7 @@ export function CommercialNativeSignDialog({
   }
 
   async function confirmPresential(signatureBase64: string) {
-    if (!sessionId || !submissionId || !clientOpId) return
+    if (!sessionId || !clientOpId) return
     setBusy(true)
     try {
       await callStampPdfSignatures(
@@ -253,11 +254,15 @@ export function CommercialNativeSignDialog({
       )
       const signature = buildCommercialNativeSignaturePayload({
         action,
-        submissionId,
         sessionId,
+        submissionId,
         reason: rejectReason || null,
       })
-      await applyCommercialOutcome(signature, clientOpId)
+      try {
+        await applyCommercialOutcome(signature, clientOpId)
+      } catch (err) {
+        if (!isAlreadyAppliedCommercialSigningError(err)) throw err
+      }
       toast({
         title:
           action === 'reject'
@@ -318,14 +323,14 @@ export function CommercialNativeSignDialog({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
-      <div className="w-full max-w-lg rounded-t-2xl sm:rounded-xl border border-border bg-background p-4 sm:p-6 shadow-lg max-h-[92vh] overflow-y-auto space-y-4">
+      <div className="w-full max-w-lg rounded-t-2xl sm:rounded-xl border border-border bg-background p-4 sm:p-6 shadow-lg max-h-[92vh] overflow-y-auto overscroll-contain space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold text-foreground">{title}</h3>
             <p className="text-sm text-muted-foreground">
               {t(
                 'projects.commercial.sign_help',
-                'El client signa al dispositiu o amb un enllaç. No es desa com a clic intern.',
+                'El client signa amb el dit al dispositiu o amb un enllaç. No es desa com a clic intern.',
               )}
             </p>
           </div>
@@ -396,25 +401,31 @@ export function CommercialNativeSignDialog({
         ) : null}
 
         {step === 'pad' && sessionId ? (
-          <div className="space-y-3">
+          <div className="space-y-3 overflow-x-hidden">
             {pdfPreviewUrl ? (
-              <object
-                data={pdfPreviewUrl}
-                type="application/pdf"
-                className="h-48 w-full rounded-md border border-border"
-              >
-                <a href={pdfPreviewUrl} target="_blank" rel="noopener noreferrer" className="text-sm underline">
-                  {t('projects.commercial.share_pdf', 'Descarregar PDF')}
-                </a>
-              </object>
+              <details className="rounded-md border border-border px-3 py-2">
+                <summary className="cursor-pointer text-sm text-muted-foreground">
+                  {t('projects.commercial.sign_preview_pdf', 'Veure el PDF abans de signar')}
+                </summary>
+                <object
+                  data={pdfPreviewUrl}
+                  type="application/pdf"
+                  className="mt-2 h-40 w-full rounded-md border border-border"
+                >
+                  <a href={pdfPreviewUrl} target="_blank" rel="noopener noreferrer" className="text-sm underline">
+                    {t('projects.commercial.share_pdf', 'Descarregar PDF')}
+                  </a>
+                </object>
+              </details>
             ) : null}
             <SignaturePad
               title={nativeSignerRoleLabel(role, signerName)}
               subtitle={t(
                 'projects.commercial.sign_pad_help',
-                'La signatura s’estampa a la casella del document',
+                'Dibuixa amb el dit. La signatura s’estampa a la casella del document.',
               )}
-              width={360}
+              width={560}
+              height={240}
               disabled={busy}
               onConfirm={(sig) => void confirmPresential(sig)}
               onCancel={onClose}

@@ -22,7 +22,7 @@ major_version = 15
 
 [db.seed]
 enabled = true
-sql_paths = ["./seed.sql", "./seeds/attendance_demo.sql", "./seeds/riera_commercial_agreements.sql"]
+sql_paths = ["./seed.sql", "./seeds/attendance_demo.sql", "./seeds/riera_commercial_agreements.sql", "./seeds/commercial_hub_delivery_notes.sql"]
 
 [db.pooler]
 enabled = false

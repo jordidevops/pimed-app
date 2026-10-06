@@ -54,6 +54,7 @@ import {
 import { SIGNING_STATUS_CLASSES } from '@/features/signing/signingStatusColors'
 import type { SigningStatus } from '@/features/signing/api/signingService'
 import { cn } from '@/lib/utils'
+import { CommercialDocumentPreviewRibbon } from './CommercialDocumentPreviewRibbon'
 
 export type CommercialDocumentDetailProps = {
   documentId: string
@@ -75,6 +76,7 @@ function PdfPanel({
   showHtmlFallback,
   onToggleHtmlFallback,
   htmlFallbackOpen,
+  ribbon,
 }: {
   doc: DocDetail
   pdf: ReturnType<typeof useCommercialPdf>
@@ -84,13 +86,22 @@ function PdfPanel({
   showHtmlFallback: boolean
   onToggleHtmlFallback: () => void
   htmlFallbackOpen: boolean
+  ribbon?: { label: string; tone: 'cancelled' | 'invoiced' } | null
 }) {
   const { t } = useTranslation('projects')
   const { toast } = useToast()
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
-      <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border px-3 py-2">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
+      {ribbon ? (
+        <CommercialDocumentPreviewRibbon label={ribbon.label} tone={ribbon.tone} />
+      ) : null}
+      <div
+        className={cn(
+          'flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border px-3 py-2',
+          ribbon ? 'pl-24' : null,
+        )}
+      >
         {pdf.status === 'ready' && pdf.downloadUrl ? (
           <Button
             type="button"
@@ -661,6 +672,19 @@ export function CommercialDocumentDetail({
       </div>
     )
 
+  const previewRibbon =
+    deliveryCancelled || doc?.status === 'cancelled'
+      ? {
+          label: t('projects.commercial.status_cancelled', 'Anul·lat'),
+          tone: 'cancelled' as const,
+        }
+      : doc?.doc_type === 'delivery_note' && deliveryInvoiced
+        ? {
+            label: t('projects.sales.billing_invoiced', 'Facturat'),
+            tone: 'invoiced' as const,
+          }
+        : null
+
   const pdfBlock = doc ? (
     <PdfPanel
       doc={doc}
@@ -671,6 +695,7 @@ export function CommercialDocumentDetail({
       showHtmlFallback={showHtmlFallback}
       htmlFallbackOpen={htmlFallbackOpen}
       onToggleHtmlFallback={() => setHtmlFallbackOpen((v) => !v)}
+      ribbon={previewRibbon}
     />
   ) : (
     <div className="rounded-xl border border-border p-6 text-sm text-muted-foreground">

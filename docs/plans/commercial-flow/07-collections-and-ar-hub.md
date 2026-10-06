@@ -1,7 +1,7 @@
 # 07 — Hub d'Albarans (CF-26)
 
 > **Pla:** [`README.md`](./README.md) · backlog [`04-phases-and-backlog.md`](./04-phases-and-backlog.md) · execució [`EXECUTION.md`](./EXECUTION.md) · estat [`STATUS.md`](./STATUS.md)
-> **Estat (2026-10-03):** implementació tècnica del hub + 11 forats. Types regenerats amb CF-27. **UAT navegador pendent.**
+> **Estat (2026-10-06):** hub + UAT oficina/camp ✅ (2026-10-03). Types regenerats amb CF-27. Assert SQL del RAISE `000005` al suite. Fora d’abast: CF-25-b, compositor quantitats, Verifactu/Holded, crèdit post-rectify — [`07b`](./07b-albara-out-of-scope.md).
 > **Evolució producte:** el hub Comercial viu a `/sales` — pla tancat [`09-sales-comercial/`](./09-sales-comercial/README.md) (CF-27). Aquest 07 queda com a històric/spec CF-26 (albarans).
 
 ## Estat: fet / pendent
@@ -34,9 +34,9 @@ El pla de fix demanava `RAISE` també amb `multiple_active_delivery_notes` al ba
 
 | Ítem | Notes |
 |------|-------|
-| UAT navegador | ✅ 2026-10-03: camp cobrar DN+comprovant; oficina facturar (`F-2026-0019`) + Rectificar (preview/bloqueig sobrant); fix draft sense línies (`000010`) |
+| UAT navegador | ✅ 2026-10-03: camp cobrar DN+comprovant; oficina facturar (`F-2026-0019`) + Rectificar (preview/bloqueig sobrant); fix draft sense línies (`000010`). Després de `db reset` no queden `A-CF25-*` (eren dades locals, no seed). Fixtures durables: Volt `A-2026-9101` (2 línies), Riera `A-2026-9102` + `A-2026-9001` — `supabase/seeds/commercial_hub_delivery_notes.sql` (sql_paths). |
 | Regenerar `database.types.ts` | ✅ fet amb CF-27 |
-| Prova SQL explícita del `RAISE` cross-client a `000005` | Cobert per lògica a la migració; falta assert dedicat al suite |
+| Prova SQL explícita del `RAISE` cross-client a `000005` | ✅ `supabase/tests/cf26_external_invoice_backfill_gate_tests.sql` (reprodueix el query de la migració) |
 | **CF-25-b** | Períodes d’acord al hub — [`07b`](./07b-albara-out-of-scope.md) |
 | Compositor de quantitats en emetre DN **nou** | V2 — [`07b`](./07b-albara-out-of-scope.md) |
 | Factura fiscal (Verifactu), Holded/Quipu API | Fora d’abast — [`07b`](./07b-albara-out-of-scope.md) |
