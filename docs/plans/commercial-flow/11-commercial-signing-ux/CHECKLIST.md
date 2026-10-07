@@ -28,7 +28,7 @@
 
 - [x] Requests/deliveries/tokens/events.
 - [x] Token només hashat.
-- [x] Apply first-wins amb prova concurrent.
+- [~] Apply first-wins amb prova concurrent. *(seqüencial ✅; dual-conn F9 `commercial_decision_concurrency_f9.mjs`)*
 - [x] Declined ≠ cancelled.
 - [x] Agreement decline.
 - [x] `separate_agreement` sense doble firma.
@@ -73,15 +73,21 @@
 
 ## Gate F — Escala i operació
 
-- [ ] Dataset sintètic.
-- [ ] EXPLAIN queries crítiques.
-- [ ] SLO o buffers/plans gate.
-- [ ] Cues/dead-letter.
-- [ ] Mètriques/alertes.
-- [x] Job reconciliació. *(F8 `reconcile-docuseal-signed-artifacts`)*
-- [ ] Retenció.
-- [ ] UAT 9xxx.
+> **2026-10-07:** Hotspots DocuSeal mitigats (poll backoff + reconcile `00012`); EXPLAIN mini+medium. **Gate F global OBERT** (SLO staging, full §9.2, UAT 9xxx).
+
+- [~] Dataset sintètic. *(generator mini/medium/full; medium aplicat local; no CI; full staging-only)*
+- [~] EXPLAIN queries crítiques. *(`f9-explain-notes.md` mini+medium; full/SLO residual)*
+- [ ] SLO o buffers/plans gate. *(pendent staging)*
+- [~] Cues/dead-letter. *(Signing Ops PGMQ + PDF DLQ)*
+- [~] Mètriques/alertes. *(«Cal atenció» in-app a Signing Ops; PagerDuty diferit → [`signing-ops-futur.md`](./signing-ops-futur.md))*
+- [x] Job reconciliació artefacte. *(F8 + throughput `00012` cron `*/2`×50, concurrency 5)*
+- [~] Job inconsistències comercials. *(F9 `reconcile-commercial-decision-ops`, detect-only)*
+- [~] Retenció. *(§2ter projection-and-retention.md)*
+- [ ] UAT 9xxx. *(plantilla `f9-uat-matrix.md` buida)*
 - [ ] `db reset` + suites + types + lints.
+- [~] Rate-limit `/sign`. *(edge resolve + decide IP; poll backoff UI; webhook sense throttle producte)*
+- [x] Throughput poll DocuSeal. *(backoff 2→30s + visibility pause; no 40×3s)*
+- [~] Rollout docs. *(`f9-rollout.md`; sense flip prod)*
 
 ## Definició de complet global
 

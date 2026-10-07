@@ -1,6 +1,6 @@
 # CF-28 — Firma comercial i portal del client
 
-> **Estat:** 🔄 F1–F5 core; F6–F8 ✅; CS-D58–D60 ✅; F9 UAT/escala · 2026-10-07  
+> **Estat:** 🔄 F1–F5 core; F6–F8 ✅; CS-D58–D60 ✅; F9 Tall 1–4 parcials; **Gate F obert** · 2026-10-07  
 
 
 > **Objectiu:** enviar, decidir i consultar pressupostos, acords, albarans i factures amb un únic flux comercial  
@@ -209,3 +209,6 @@ Fase 8. DocuSeal usa el mateix domini i no introdueix una segona màquina d'esta
 | 2026-10-07 | F8 tall 3 (`00006`): portal continue grant-only + decline DocuSeal; BFF/CTA/poll; staff sense URL | Canvi provider; reconcile; F9 UAT |
 | 2026-10-07 | F8 tall 4 (`00007`): prepare/switch provider + artifact status/reconcile cron + UI | F9 UAT Gate E residual |
 | 2026-10-07 | F8 review fixes (`00008`) + admin Signing Ops | Auth reconcile; CS-D58 retry URL; bind/UI; F9 escala |
+| 2026-10-07 | F9 Tall 1 (`00009`): edge resolve rate-limit + decide IP + dual-conn test | Tall 2–4 |
+| 2026-10-07 | F9 Tall 2–4: seed generator, EXPLAIN notes, reconcile ops (`00010`), retenció/UAT/rollout docs | Gate F UAT + EXPLAIN en viu residual |
+| 2026-10-07 | F9 scale: poll backoff + reconcile `00012` + medium EXPLAIN/`00013` | Gate F SLO/full/UAT obert |

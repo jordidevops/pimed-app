@@ -284,11 +284,11 @@ Només quan:
 
 ## DoD
 
-- [ ] Integritat concurrent demostrada.
-- [ ] Escala EXPLAIN documentada.
+- [~] Integritat concurrent demostrada. *(dual-conn script F9; Gate B `[~]` fins verd en CI local)*
+- [~] Escala EXPLAIN documentada. *(`f9-explain-notes.md` metodologia; ANALYZE en viu residual)*
 - [ ] SLO o gate de buffers/plans superat.
-- [ ] Observabilitat i reconciliació operatives.
-- [ ] Retenció/legal documentades.
-- [ ] UAT completa.
-- [ ] Rollout/rollback provats.
-- [ ] Legacy no retirat prematurament.
+- [~] Observabilitat i reconciliació operatives. *(Signing Ops + commercial reconcile detect-only)*
+- [~] Retenció/legal documentades. *(§2ter projection-and-retention)*
+- [ ] UAT completa. *(`f9-uat-matrix.md` buida)*
+- [~] Rollout/rollback documentats. *(`f9-rollout.md`; no provats en prod)*
+- [x] Legacy no retirat prematurament.

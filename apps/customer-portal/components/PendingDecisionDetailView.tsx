@@ -10,6 +10,7 @@ import { LocaleSwitcher } from '@/components/LocaleSwitcher'
 import { PortalFooter } from '@/components/PortalFooter'
 import { CookieNotice } from '@/components/CookieNotice'
 import { SignaturePad } from '@/components/SignaturePad'
+import { startProviderWaitPoll } from '@/lib/providerWaitPoll'
 
 const DOCUSEAL_WAIT_PREFIX = 'cp_docuseal_wait_'
 
@@ -127,12 +128,8 @@ export function PendingDecisionDetailView({
 
   useEffect(() => {
     if (!waitingProvider || staffPreview || isTerminal) return
-    let cancelled = false
-    let ticks = 0
-    const maxTicks = 40
-    const timer = window.setInterval(() => {
-      void (async () => {
-        ticks += 1
+    return startProviderWaitPoll({
+      onTick: async () => {
         try {
           const res = await fetch('/api/commercial/decide', {
             method: 'POST',
@@ -142,6 +139,7 @@ export function PendingDecisionDetailView({
               request_id: detail.request_id,
             }),
           })
+          if (res.status === 429) return 'rate_limited'
           const data = (await res.json().catch(() => ({}))) as {
             status?: string
             decided_via?: string | null
@@ -152,9 +150,8 @@ export function PendingDecisionDetailView({
             accept_available?: boolean
             can_decide?: boolean
           }
-          if (cancelled || !res.ok) return
+          if (!res.ok) return 'continue'
           if (data.status === 'accepted' || data.status === 'declined') {
-            window.clearInterval(timer)
             try {
               sessionStorage.removeItem(waitKey(detail.request_id))
             } catch {
@@ -181,7 +178,7 @@ export function PendingDecisionDetailView({
               },
             }))
             router.refresh()
-            return
+            return 'done'
           }
           setDetail((prev) => ({
             ...prev,
@@ -191,30 +188,40 @@ export function PendingDecisionDetailView({
             accept_available: data.accept_available === true,
             can_decide: data.can_decide === true,
           }))
-          if (ticks >= maxTicks) {
-            window.clearInterval(timer)
-            setWaitingProvider(false)
-            try {
-              sessionStorage.removeItem(waitKey(detail.request_id))
-            } catch {
-              /* ignore */
-            }
-            setErrorMsg(
-              t(
-                'pending.waiting_provider_timeout',
-                'Encara processem la resposta. Torna a aquesta pàgina d’aquí uns minuts.',
-              ),
-            )
-          }
+          return 'continue'
         } catch {
-          /* keep polling */
+          return 'continue'
         }
-      })()
-    }, 3000)
-    return () => {
-      cancelled = true
-      window.clearInterval(timer)
-    }
+      },
+      onTimeout: () => {
+        setWaitingProvider(false)
+        try {
+          sessionStorage.removeItem(waitKey(detail.request_id))
+        } catch {
+          /* ignore */
+        }
+        setErrorMsg(
+          t(
+            'pending.waiting_provider_timeout',
+            'Encara processem la resposta. Torna a aquesta pàgina d’aquí uns minuts.',
+          ),
+        )
+      },
+      onRateLimited: () => {
+        setWaitingProvider(false)
+        try {
+          sessionStorage.removeItem(waitKey(detail.request_id))
+        } catch {
+          /* ignore */
+        }
+        setErrorMsg(
+          t(
+            'pending.rate_limited',
+            'Massa intents. Torna-ho a provar d’aquí uns minuts.',
+          ),
+        )
+      },
+    })
   }, [waitingProvider, staffPreview, isTerminal, detail.request_id, router, t])
 
   function requireActorFields(): boolean {

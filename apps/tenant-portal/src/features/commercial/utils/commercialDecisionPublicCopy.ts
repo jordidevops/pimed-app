@@ -55,6 +55,7 @@ type Copy = {
   waitingProvider: string
   providerPending: string
   continueFailed: string
+  rateLimited: string
 }
 
 const CA: Copy = {
@@ -114,6 +115,7 @@ const CA: Copy = {
   waitingProvider: 'Processant la resposta del proveïdor…',
   providerPending: 'L’enllaç de firma encara no està llest. Torna-ho a provar en uns segons.',
   continueFailed: 'No s’ha pogut obrir DocuSeal',
+  rateLimited: 'Massa intents. Torna-ho a provar d’aquí uns minuts.',
 }
 
 const ES: Copy = {
@@ -174,6 +176,7 @@ const ES: Copy = {
   waitingProvider: 'Procesando la respuesta del proveedor…',
   providerPending: 'El enlace de firma aún no está listo. Inténtalo de nuevo en unos segundos.',
   continueFailed: 'No se ha podido abrir DocuSeal',
+  rateLimited: 'Demasiados intentos. Vuelve a probar en unos minutos.',
 }
 
 const EN: Copy = {
@@ -234,6 +237,7 @@ const EN: Copy = {
   waitingProvider: 'Processing the provider response…',
   providerPending: 'The signing link is not ready yet. Try again in a few seconds.',
   continueFailed: 'Could not open DocuSeal',
+  rateLimited: 'Too many attempts. Try again in a few minutes.',
 }
 
 export function commercialDecisionPublicLocale(

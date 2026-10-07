@@ -7,6 +7,7 @@ import {
   commercialDecisionPublicCopy,
   fillCopy,
 } from '../utils/commercialDecisionPublicCopy'
+import { startProviderWaitPoll } from '../utils/providerWaitPoll'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY as string
@@ -119,13 +120,23 @@ async function fetchReceipt(token: string): Promise<CommercialDecisionReceipt | 
 }
 
 async function refreshResolve(token: string): Promise<CommercialDecisionResolve | null> {
-  const { data, error } = await supabase.rpc('resolve_commercial_decision_token' as never, {
-    p_token: token,
-    p_mark_opened: false,
-  } as never)
-  if (error || !data) return null
-  const row = data as { kind?: string } & Partial<CommercialDecisionResolve>
-  if (row.kind !== 'commercial_decision') return null
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/resolve-commercial-decision-token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+    },
+    body: JSON.stringify({ token, mark_opened: false }),
+  })
+  if (res.status === 429) {
+    throw Object.assign(new Error('rate_limited'), { code: 'rate_limited' })
+  }
+  if (!res.ok) return null
+  const row = (await res.json().catch(() => null)) as
+    | ({ kind?: string } & Partial<CommercialDecisionResolve>)
+    | null
+  if (!row || row.kind !== 'commercial_decision') return null
   return row as CommercialDecisionResolve
 }
 
@@ -204,43 +215,51 @@ export function CommercialDecisionPage({
     })()
   }, [pageState, receipt, token])
 
-  // After DocuSeal redirect return: poll until webhook applies decision.
+  // After DocuSeal redirect: backoff poll until webhook applies (not fixed 40×3s).
   useEffect(() => {
     if (pageState !== 'waiting_provider') return
-    let cancelled = false
-    let ticks = 0
-    const maxTicks = 40
-    const timer = window.setInterval(() => {
-      void (async () => {
-        ticks += 1
-        const resolved = await refreshResolve(token)
-        if (cancelled || !resolved) return
-        setPayload(resolved)
-        if (resolved.request_status === 'accepted' || resolved.request_status === 'declined') {
-          window.clearInterval(timer)
-          if (resolved.receipt) setReceipt(resolved.receipt)
-          else {
-            const r = await fetchReceipt(token)
-            if (r) setReceipt(r)
+    const localeHint = payload.snapshot?.locale
+    return startProviderWaitPoll({
+      onTick: async () => {
+        try {
+          const resolved = await refreshResolve(token)
+          if (!resolved) return 'continue'
+          setPayload(resolved)
+          if (
+            resolved.request_status === 'accepted' ||
+            resolved.request_status === 'declined'
+          ) {
+            if (resolved.receipt) setReceipt(resolved.receipt)
+            else {
+              const r = await fetchReceipt(token)
+              if (r) setReceipt(r)
+            }
+            setPageState(
+              resolved.request_status === 'accepted' ? 'accepted' : 'declined',
+            )
+            setShowReceipt(true)
+            return 'done'
           }
-          setPageState(resolved.request_status === 'accepted' ? 'accepted' : 'declined')
-          setShowReceipt(true)
-          return
+          return 'continue'
+        } catch (err) {
+          if ((err as { code?: string })?.code === 'rate_limited') {
+            return 'rate_limited'
+          }
+          return 'continue'
         }
-        if (ticks >= maxTicks) {
-          window.clearInterval(timer)
-          setPageState('ready')
-          setErrorMsg(
-            commercialDecisionPublicCopy(resolved.snapshot?.locale).waitingProvider,
-          )
-        }
-      })()
-    }, 3000)
-    return () => {
-      cancelled = true
-      window.clearInterval(timer)
-    }
-  }, [pageState, token])
+      },
+      onTimeout: () => {
+        setPageState('ready')
+        setErrorMsg(
+          commercialDecisionPublicCopy(localeHint).waitingProvider,
+        )
+      },
+      onRateLimited: () => {
+        setPageState('ready')
+        setErrorMsg(commercialDecisionPublicCopy(localeHint).rateLimited)
+      },
+    })
+  }, [pageState, token, payload.snapshot?.locale])
 
   async function processDecision(body: Record<string, unknown>) {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/process-commercial-decision-token`, {
@@ -259,7 +278,11 @@ export function CommercialDecisionPage({
     })
     const data = (await res.json().catch(() => ({}))) as {
       error?: string
+      code?: string
       success?: boolean
+    }
+    if (res.status === 429 || data.code === 'rate_limited' || data.error === 'rate_limited') {
+      throw Object.assign(new Error('rate_limited'), { code: 'rate_limited' })
     }
     if (!res.ok || data.error) {
       throw new Error(data.error || `HTTP ${res.status}`)
@@ -268,27 +291,34 @@ export function CommercialDecisionPage({
   }
 
   async function loadTerminalState(preferred: 'accepted' | 'declined') {
+    const localeCopy = commercialDecisionPublicCopy(payload.snapshot?.locale)
     for (let i = 0; i < 5; i += 1) {
-      const resolved = await refreshResolve(token)
-      if (resolved?.request_status === 'accepted' || resolved?.request_status === 'declined') {
-        setPayload(resolved)
-        if (resolved.receipt) setReceipt(resolved.receipt)
-        else {
-          const r = await fetchReceipt(token)
-          if (r) setReceipt(r)
+      try {
+        const resolved = await refreshResolve(token)
+        if (resolved?.request_status === 'accepted' || resolved?.request_status === 'declined') {
+          setPayload(resolved)
+          if (resolved.receipt) setReceipt(resolved.receipt)
+          else {
+            const r = await fetchReceipt(token)
+            if (r) setReceipt(r)
+          }
+          setPageState(resolved.request_status === 'accepted' ? 'accepted' : 'declined')
+          setShowReceipt(true)
+          return
         }
-        setPageState(resolved.request_status === 'accepted' ? 'accepted' : 'declined')
-        setShowReceipt(true)
-        return
+      } catch (err) {
+        if ((err as { code?: string })?.code === 'rate_limited') {
+          setPageState('ready')
+          setErrorMsg(localeCopy.rateLimited)
+          return
+        }
       }
       await new Promise((r) => setTimeout(r, 400))
     }
     // Do not fake terminal UI — server still open (B5).
     setPageState('ready')
     setErrorMsg(
-      preferred === 'accepted'
-        ? commercialDecisionPublicCopy(payload.snapshot?.locale).waitingProvider
-        : commercialDecisionPublicCopy(payload.snapshot?.locale).refuseFailed,
+      preferred === 'accepted' ? localeCopy.waitingProvider : localeCopy.refuseFailed,
     )
   }
 
@@ -339,7 +369,14 @@ export function CommercialDecisionPage({
       await loadTerminalState('accepted')
     } catch (err) {
       setPageState('ready')
-      setErrorMsg(err instanceof Error ? err.message : copy.acceptFailed)
+      const code = (err as { code?: string })?.code
+      setErrorMsg(
+        code === 'rate_limited' || (err instanceof Error && err.message === 'rate_limited')
+          ? copy.rateLimited
+          : err instanceof Error
+            ? err.message
+            : copy.acceptFailed,
+      )
     }
   }
 
@@ -354,7 +391,14 @@ export function CommercialDecisionPage({
       await loadTerminalState('declined')
     } catch (err) {
       setPageState('ready')
-      setErrorMsg(err instanceof Error ? err.message : copy.refuseFailed)
+      const code = (err as { code?: string })?.code
+      setErrorMsg(
+        code === 'rate_limited' || (err instanceof Error && err.message === 'rate_limited')
+          ? copy.rateLimited
+          : err instanceof Error
+            ? err.message
+            : copy.refuseFailed,
+      )
     }
   }
 

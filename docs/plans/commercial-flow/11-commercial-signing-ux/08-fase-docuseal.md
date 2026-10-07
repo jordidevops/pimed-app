@@ -1,6 +1,6 @@
 # Fase 8 — DocuSeal comercial
 
-> **Estat 2026-10-07:** Tall 1–4 ✅ + review fixes (`00008`: reconcile auth, CS-D58 artifact URL interna, bind/UI/attach honest). Escala/throughput residual F9. CS-D58–D60.  
+> **Estat 2026-10-07:** Tall 1–4 ✅ + review fixes (`00008`) + throughput poll/reconcile (`00012`, backoff UI). Gate F / SLO / UAT residual. CS-D58–D60.  
 > **Tall:** opcional, després del core natiu i portal  
 > **Prerequisits:** fases 2–5; fase 7 només si es vol entrada des del portal; control d’enllaços CS-D58 ✅  
 > **Cost:** consumeix crèdits; nativa continua sempre disponible si està habilitada
@@ -176,7 +176,17 @@ Migració `20261229000008` + edge/UI:
 - dual-path decline → supersede/cancel DocuSeal best-effort;
 - UI `/sign` no fingeix terminal si el server segueix `open`.
 
-**Gate E:** residual UAT a F9 (escala poll/throughput, rate-limit `/sign`). No marcar escala “neta” només amb aquests fixes.
+**Gate E:** residual UAT a F9 (rate-limit webhook, UAT 9xxx). No marcar escala “neta” només amb aquests fixes.
+
+## Throughput ops (F9 scale tall 1 — 2026-10-07)
+
+Mitigació hotspots (no Gate F / no SLO):
+
+- **Poll `/sign` + portal:** backoff 2→4→8→15→30s + pause si tab hidden (~12–15 resolves/sessió; abans 40×3s). Helpers `providerWaitPoll`.
+- **Reconcile artefacte:** cron `*/2` + batch 50 (`20261229000012`); edge concurrency 5 + soft budget ~22s; `duration_ms` / `detail.backlog_hint` a `signing_ops_job_runs`.
+- Capacitat orientativa (no SLO): centenars–~1k attaches/h si PDF/URL és ràpid; si I/O és lent el time budget talla — Signing Ops backlog + «Run reconcile now» com a escape.
+
+**Residual explícit:** webhook DocuSeal sense throttle producte; NAT/IP compartida al poll; seed full / SLO staging / UAT 9xxx (Gate F obert).
 
 ## Rollback
 

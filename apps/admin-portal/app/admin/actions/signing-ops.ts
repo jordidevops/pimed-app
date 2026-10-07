@@ -277,6 +277,11 @@ export interface SigningOpsAnomalies {
     events_24h: number
     avg_7d: number
   }>
+  already_decided_24h: number
+  rate_limited_24h: number
+  commercial_inconsistency_findings: number
+  commercial_reconcile_last_ok: boolean | null
+  commercial_reconcile_last_at: string | null
 }
 
 export interface SigningOpsDashboard {
@@ -368,6 +373,9 @@ export async function getSigningOpsDashboard(): Promise<SigningOpsDashboard> {
     openNoDelivery,
     openArtifactFailed,
     spike,
+    alreadyDecided24,
+    rateLimited24,
+    commercialReconcileRun,
   ] = await Promise.all([
     prisma.$queryRaw<Array<{ signing_provider: string; n: number | bigint }>>`
       SELECT signing_provider, count(*)::int AS n
@@ -526,6 +534,32 @@ export async function getSigningOpsDashboard(): Promise<SigningOpsDashboard> {
       ORDER BY a.events_24h DESC
       LIMIT 10
     `,
+    prisma.$queryRaw<Array<{ n: number | bigint }>>`
+      SELECT count(*)::int AS n
+      FROM data.commercial_ops_metric_events
+      WHERE metric = 'already_decided'
+        AND created_at >= now() - interval '24 hours'
+    `.catch(() => [{ n: 0 }]),
+    prisma.$queryRaw<Array<{ n: number | bigint }>>`
+      SELECT count(*)::int AS n
+      FROM data.commercial_ops_metric_events
+      WHERE metric = 'rate_limited'
+        AND created_at >= now() - interval '24 hours'
+    `.catch(() => [{ n: 0 }]),
+    prisma.$queryRaw<
+      Array<{
+        started_at: Date
+        finished_at: Date | null
+        ok: boolean | null
+        findings_count: number | null
+      }>
+    >`
+      SELECT started_at, finished_at, ok, findings_count
+      FROM data.commercial_ops_job_runs
+      WHERE job_name = 'reconcile_commercial_decision_inconsistencies'
+      ORDER BY started_at DESC
+      LIMIT 1
+    `.catch(() => []),
   ])
 
   const mapProvider = (rows: Array<{ signing_provider: string; n: number | bigint }>) => ({
@@ -569,13 +603,56 @@ export async function getSigningOpsDashboard(): Promise<SigningOpsDashboard> {
       events_24h: toNumber(r.events_24h),
       avg_7d: toNumber(r.avg_7d),
     })),
+    already_decided_24h: toNumber(alreadyDecided24[0]?.n),
+    rate_limited_24h: toNumber(rateLimited24[0]?.n),
+    commercial_inconsistency_findings: toNumber(
+      commercialReconcileRun[0]?.findings_count,
+    ),
+    commercial_reconcile_last_ok: commercialReconcileRun[0]?.ok ?? null,
+    commercial_reconcile_last_at:
+      toIso(commercialReconcileRun[0]?.finished_at ?? commercialReconcileRun[0]?.started_at) ??
+      null,
   }
 
   return { queues, reconcile, stats, anomalies }
 }
 
+export async function runCommercialDecisionReconcileNow(
+  limit = 50,
+): Promise<{ ok: boolean; message?: string; body?: unknown }> {
+  await assertBackoffice()
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) {
+    return { ok: false, message: 'Missing Supabase admin credentials' }
+  }
+
+  const res = await fetch(`${url}/functions/v1/reconcile-commercial-decision-ops`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ limit: Math.max(1, Math.min(200, limit)) }),
+  })
+
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    return {
+      ok: false,
+      message:
+        typeof (body as { error?: string }).error === 'string'
+          ? (body as { error: string }).error
+          : `HTTP ${res.status}`,
+      body,
+    }
+  }
+  return { ok: true, body }
+}
+
 export async function runSigningArtifactReconcileNow(
-  limit = 20,
+  limit = 50,
 ): Promise<{ ok: boolean; message?: string; body?: unknown }> {
   await assertBackoffice()
 
@@ -591,7 +668,7 @@ export async function runSigningArtifactReconcileNow(
       Authorization: `Bearer ${key}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ limit: Math.max(1, Math.min(50, limit)) }),
+    body: JSON.stringify({ limit: Math.max(1, Math.min(100, limit)) }),
   })
 
   const body = await res.json().catch(() => ({}))

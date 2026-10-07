@@ -597,7 +597,7 @@ Deno.serve(async (req: Request) => {
   const { data: submission, error: subErr } = await adminClient
     .from("signing_submissions_internal")
     .select(
-      "id, tenant_id, status, signers, notification_mode, metadata, result_document_version_id",
+      "id, tenant_id, status, signers, notification_mode, metadata, result_document_version_id, artifact_retry_url",
     )
     .eq("external_id", externalId)
     .maybeSingle();
@@ -673,10 +673,16 @@ Deno.serve(async (req: Request) => {
     if (submission.status === "completed") {
       if (!submission.result_document_version_id) {
         const meta = (submission.metadata ?? {}) as Record<string, unknown>;
-        const storedUrl =
+        // CS-D58: prefer internal column; legacy metadata only as fallback.
+        const retryUrl =
+          typeof submission.artifact_retry_url === "string"
+            ? submission.artifact_retry_url.trim()
+            : "";
+        const legacyMetaUrl =
           typeof meta.artifact_signed_url === "string"
             ? meta.artifact_signed_url.trim()
             : "";
+        const storedUrl = retryUrl || legacyMetaUrl;
         const firstDoc = data.documents?.[0];
         const signedUrl =
           firstDoc?.url ??

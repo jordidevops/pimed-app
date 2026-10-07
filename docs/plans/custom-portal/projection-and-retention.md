@@ -72,6 +72,18 @@ Retenció comercial:
 
 Staff «veure com el client»: mateix allowlist; banner de suport; sessió scoped a un `client_account_contact_id`; audit amb `session_id` staff.
 
+### 2ter. Retenció domini decisió comercial (CF-28 F9 §9.7)
+
+| Artefacte | Retenció | Notes |
+|-----------|----------|-------|
+| `commercial_decision_requests` + snapshot/evidència | Mateixa que el document comercial / obligació legal del tenant | No escurçar per downgrade de pla |
+| Token raw | **Mai** persistit (només hash; raw només `token_once` curt) | CS-D58 |
+| Token hashes expirats/revocats | Purga operativa després del període acordat (`purge_expired_commercial_decision_token_once` + job) | No reutilitzar hash com a secret |
+| Deliveries / email_log ids | Segons política email de plataforma + DSAR | Sense URL DocuSeal a logs tenant |
+| IP / UA a evidence | Mínim necessari per traçabilitat; termini curt operatiu | No analytics de tercers |
+| Signatures / justificants PDF | Política DMS / legal del document | Mateix document DMS V1/V2 |
+| `commercial_ops_metric_events` | Operatiu 90 dies (orientatiu; purge LC-2) | Sense PII de signants |
+
 ---
 
 ## 3. Política de retenció (operativa v1)

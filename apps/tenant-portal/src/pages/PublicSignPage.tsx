@@ -20,6 +20,7 @@ import {
   CommercialDecisionPage,
   type CommercialDecisionResolve,
 } from '../features/commercial/components/CommercialDecisionPage'
+import { commercialDecisionPublicCopy } from '../features/commercial/utils/commercialDecisionPublicCopy'
 import { supabase } from '../lib/supabase'
 
 // ---------------------------------------------------------------------------
@@ -112,16 +113,31 @@ export function PublicSignPage() {
 
     void (async () => {
       try {
-        // CF-28: commercial decision tokens first; fall through to DMS signing.
-        const commercialRes = await supabase.rpc('resolve_commercial_decision_token' as never, {
-          p_token: token,
-          p_mark_opened: true,
-        } as never)
-        if (!commercialRes.error && commercialRes.data) {
-          const commercialPayload = commercialRes.data as {
+        // CF-28 F9: commercial resolve via Edge (IP rate-limit); fall through to DMS.
+        const commercialHttp = await fetch(
+          `${SUPABASE_URL}/functions/v1/resolve-commercial-decision-token`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`,
+            },
+            body: JSON.stringify({ token, mark_opened: true }),
+          },
+        )
+        if (commercialHttp.status === 429) {
+          setPageState('error')
+          setErrorMsg(
+            commercialDecisionPublicCopy(navigator.language).rateLimited,
+          )
+          return
+        }
+        if (commercialHttp.ok) {
+          const commercialPayload = (await commercialHttp.json().catch(() => null)) as {
             kind?: string
-          } & Partial<CommercialDecisionResolve>
-          if (commercialPayload.kind === 'commercial_decision') {
+          } & Partial<CommercialDecisionResolve> | null
+          if (commercialPayload?.kind === 'commercial_decision') {
             setCommercial(commercialPayload as CommercialDecisionResolve)
             setPageState('ready')
             return

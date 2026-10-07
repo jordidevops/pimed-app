@@ -168,6 +168,12 @@ verify_jwt = true
 [functions.process-commercial-decision-token]
 verify_jwt = false
 
+[functions.resolve-commercial-decision-token]
+verify_jwt = false
+
+[functions.reconcile-commercial-decision-ops]
+verify_jwt = true
+
 [functions.create-document-share-link]
 verify_jwt = true
 

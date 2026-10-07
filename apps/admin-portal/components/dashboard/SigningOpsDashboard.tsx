@@ -6,11 +6,16 @@ import {
   getSigningOpsLogs,
   markSigningOpsLogResolved,
   runSigningArtifactReconcileNow,
+  runCommercialDecisionReconcileNow,
   type GetSigningOpsLogsParams,
   type SigningOpsDashboard,
   type SigningOpsLogsResult,
   type TenantOption,
 } from '@/app/admin/actions/signing-ops'
+import {
+  buildSigningOpsAlerts,
+  type SigningOpsAlert,
+} from '@/lib/signingOpsAlerts'
 
 function formatAge(seconds: number | null): string {
   if (seconds == null) return '—'
@@ -45,6 +50,45 @@ function Card({
   )
 }
 
+function AttentionPanel({ alerts }: { alerts: SigningOpsAlert[] }) {
+  if (alerts.length === 0) {
+    return (
+      <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
+        <h2 className="text-sm font-semibold text-emerald-900">Cal atenció</h2>
+        <p className="mt-1 text-sm text-emerald-800">Tot en ordre amb els llindars actuals.</p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
+      <h2 className="text-sm font-semibold text-gray-900">Cal atenció</h2>
+      <p className="mt-1 text-xs text-gray-500">
+        Resum automàtic a partir del dashboard (llindars fixos). No substitueix PagerDuty.
+      </p>
+      <ul className="mt-3 space-y-2">
+        {alerts.map((a) => {
+          const tone =
+            a.severity === 'danger'
+              ? 'border-red-200 bg-red-50 text-red-900'
+              : a.severity === 'warn'
+                ? 'border-amber-200 bg-amber-50 text-amber-950'
+                : 'border-sky-200 bg-sky-50 text-sky-950'
+          return (
+            <li
+              key={a.id}
+              className={`rounded-xl border px-3 py-2 text-sm ${tone}`}
+            >
+              <p className="font-medium">{a.title}</p>
+              <p className="mt-0.5 text-xs opacity-90">{a.hint}</p>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
 type Props = {
   initialDashboard: SigningOpsDashboard
   initialLogs: SigningOpsLogsResult
@@ -71,6 +115,15 @@ export function SigningOpsDashboard({
         ? 'danger'
         : 'ok'
 
+  const attentionAlerts = useMemo(
+    () =>
+      buildSigningOpsAlerts({
+        reconcile: dashboard.reconcile,
+        anomalies: dashboard.anomalies,
+      }),
+    [dashboard.reconcile, dashboard.anomalies],
+  )
+
   const tenantName = useMemo(() => {
     const map = new Map(tenants.map((t) => [t.id, t.name]))
     return (id: string | null | undefined) => (id ? map.get(id) ?? id.slice(0, 8) : '—')
@@ -87,7 +140,7 @@ export function SigningOpsDashboard({
   function onRunReconcile() {
     startTransition(async () => {
       setMsg(null)
-      const res = await runSigningArtifactReconcileNow(20)
+      const res = await runSigningArtifactReconcileNow(50)
       if (!res.ok) {
         setMsg(res.message ?? 'Reconcile failed')
         return
@@ -114,6 +167,8 @@ export function SigningOpsDashboard({
       {msg && (
         <p className="rounded-lg bg-indigo-50 px-3 py-2 text-sm text-indigo-800">{msg}</p>
       )}
+
+      <AttentionPanel alerts={attentionAlerts} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card title="Reconcile artefactes" tone={reconcileTone}>
@@ -192,6 +247,38 @@ export function SigningOpsDashboard({
             Open + artifact failed:{' '}
             <strong>{dashboard.anomalies.open_requests_artifact_failed}</strong>
           </p>
+          <p className="text-xs text-gray-500">
+            already_decided 24h: {dashboard.anomalies.already_decided_24h} · rate_limited
+            24h: {dashboard.anomalies.rate_limited_24h}
+          </p>
+          <p className="text-xs text-gray-500">
+            Commercial reconcile:{' '}
+            {dashboard.anomalies.commercial_reconcile_last_ok == null
+              ? '—'
+              : dashboard.anomalies.commercial_reconcile_last_ok
+                ? 'OK'
+                : 'FAIL'}{' '}
+            · findings {dashboard.anomalies.commercial_inconsistency_findings}
+          </p>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => {
+              startTransition(async () => {
+                setMsg(null)
+                const res = await runCommercialDecisionReconcileNow(50)
+                if (!res.ok) {
+                  setMsg(res.message ?? 'Commercial reconcile failed')
+                  return
+                }
+                setMsg('Commercial reconcile executat')
+                window.location.reload()
+              })
+            }}
+            className="mt-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Run commercial reconcile
+          </button>
         </Card>
       </div>
 

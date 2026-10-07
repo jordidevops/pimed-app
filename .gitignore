@@ -5,6 +5,9 @@ apps/admin-portal/.vercel/
 apps/tenant-portal/.vercel/
 apps/public-portal/.vercel/
 
+# CF-28 F9 generated scale/EXPLAIN artifacts (local only)
+scripts/out/
+
 # =============================================================================
 # Supabase
 # =============================================================================

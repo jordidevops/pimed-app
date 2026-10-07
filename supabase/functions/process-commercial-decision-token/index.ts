@@ -7,19 +7,15 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { createAdminClient, createAdminDataClient } from "../_shared/supabase.ts";
 import { initObservability, captureException } from "../_shared/observability/system-error-tracker.ts";
 import { log } from "../_shared/observability/structured-logger.ts";
+import {
+  checkCommercialSignRateLimit,
+  getClientIp,
+} from "../_shared/commercial-sign-rate-limit.ts";
 
 const FEATURE = "process-commercial-decision-token";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-function getClientIp(req: Request): string | null {
-  return (
-    req.headers.get("CF-Connecting-IP") ??
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    req.headers.get("x-real-ip") ??
-    null
-  );
-}
+const DECIDE_IP_MAX = 30;
 
 type RequestBody = {
   token: string;
@@ -75,6 +71,20 @@ Deno.serve(async (req: Request) => {
   const clientOpId = body.client_op_id ?? crypto.randomUUID();
 
   try {
+    const decideGate = await checkCommercialSignRateLimit(
+      db,
+      "commercial_sign_decide_ip",
+      ipAddress || "unknown",
+      DECIDE_IP_MAX,
+      1,
+    );
+    if (!decideGate.ok) {
+      log("warn", FEATURE, "decide rate_limited", {
+        extra: { code: decideGate.code },
+      });
+      return json(429, { error: "rate_limited", code: "rate_limited" });
+    }
+
     if (action === "decline") {
       const { data: lookup } = await db.rpc("lookup_commercial_decision_native_session", {
         p_token: body.token,

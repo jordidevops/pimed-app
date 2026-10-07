@@ -2,6 +2,10 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { createUserClient, createAdminClient } from "../_shared/supabase.ts";
 import { initObservability, captureException } from "../_shared/observability/system-error-tracker.ts";
 import { log } from "../_shared/observability/structured-logger.ts";
+import {
+  checkCommercialSignRateLimit,
+  getClientIp,
+} from "../_shared/commercial-sign-rate-limit.ts";
 
 const FEATURE = "get-document-url";
 
@@ -157,8 +161,20 @@ async function buildSignedUrlResponse(
 
 async function resolveVersionViaCommercialDecisionToken(
   body: RequestBody,
+  req: Request,
 ): Promise<{ version: VersionRow } | Response> {
   const adminClient = createAdminClient();
+  // F9: IP rate-limit on commercial PDF resolve path (service_role RPC).
+  const ipGate = await checkCommercialSignRateLimit(
+    adminClient,
+    "commercial_sign_pdf_ip",
+    getClientIp(req),
+    60,
+    1,
+  );
+  if (!ipGate.ok) {
+    return jsonError(429, "rate_limited", "Massa intents. Torna-ho a provar més tard.");
+  }
   const { data, error } = await adminClient.rpc("resolve_commercial_decision_token", {
     p_token: body.commercial_decision_token!,
     p_mark_opened: false,
@@ -304,7 +320,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (body.commercial_decision_token) {
-      const resolved = await resolveVersionViaCommercialDecisionToken(body);
+      const resolved = await resolveVersionViaCommercialDecisionToken(body, req);
       if (resolved instanceof Response) return resolved;
       return buildSignedUrlResponse(resolved.version, expiry, null, body.source ?? "download");
     }
