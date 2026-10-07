@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useTransition, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -7,6 +8,7 @@ import {
   deleteFeatureOverride,
 } from '@/app/admin/actions/control-plane'
 import { setTenantSigningAdminDisabled, setTenantSigningCredits } from '@/app/admin/actions/signing'
+import type { TenantSigningOpsSummary } from '@/app/admin/actions/signing-ops'
 
 interface SigningConfig {
   mode: string
@@ -22,6 +24,7 @@ interface Props {
   flagRolloutPct: number
   override: boolean | null
   signingConfig: SigningConfig | null
+  opsSummary?: TenantSigningOpsSummary | null
 }
 
 export function TenantSigningTab({
@@ -30,6 +33,7 @@ export function TenantSigningTab({
   flagRolloutPct,
   override,
   signingConfig,
+  opsSummary = null,
 }: Props) {
   const { t } = useTranslation('tenants')
   const [isPending, startTransition] = useTransition()
@@ -66,6 +70,54 @@ export function TenantSigningTab({
 
   return (
     <div className="space-y-6">
+      {opsSummary && (
+        <section className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-base font-semibold text-gray-900">
+              {t('tenants.signing.ops_title', 'Salut de firmes')}
+            </h3>
+            <Link
+              href={`/dashboard/signing-ops?tenantId=${tenantId}&unresolvedOnly=1`}
+              className="text-sm text-indigo-600 hover:underline"
+            >
+              {t('tenants.signing.ops_link', 'Veure a Signing Ops →')}
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div className="rounded-lg bg-gray-50 px-3 py-2">
+              <p className="text-xs text-gray-500">Fallades 7d</p>
+              <p className="font-semibold">
+                {opsSummary.unresolved_failures_7d}
+                {opsSummary.unresolved_failures_7d > 0 && (
+                  <span className="ml-2 rounded bg-red-50 px-1.5 py-0.5 text-xs text-red-700">
+                    unresolved
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="rounded-lg bg-gray-50 px-3 py-2">
+              <p className="text-xs text-gray-500">Native 30d</p>
+              <p className="font-semibold">{opsSummary.submissions_30d_native}</p>
+            </div>
+            <div className="rounded-lg bg-gray-50 px-3 py-2">
+              <p className="text-xs text-gray-500">DocuSeal 30d</p>
+              <p className="font-semibold">{opsSummary.submissions_30d_docuseal}</p>
+            </div>
+            <div className="rounded-lg bg-gray-50 px-3 py-2">
+              <p className="text-xs text-gray-500">Artifact backlog</p>
+              <p className="font-semibold">
+                {opsSummary.artifact_backlog}
+                {opsSummary.artifact_backlog > 0 && (
+                  <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-700">
+                    &gt;0
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Override section */}
       <section className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-5">
         <div>

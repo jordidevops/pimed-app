@@ -58,9 +58,8 @@ const COPY = {
     conditionsBody:
       "Aquest pressupost té una validesa de 30 dies des de la data d'emissió, llevat que s'indiqui altrament. Els preus inclouen l'IVA aplicable. Qualsevol concepte no inclòs en aquest pressupost que aparegui durant l'execució del servei serà objecte d'una ampliació de pressupost, que haurà de ser acceptada abans de la seva execució i cobrament, d'acord amb la normativa de protecció de les persones consumidores. L'acceptació signada d'aquest pressupost constitueix el contracte de l'encàrrec descrit. Per a qualsevol controvèrsia, les parts se sotmeten als jutjats i tribunals que correspongui per llei.",
     accept: 'Acceptació',
-    acceptHint: 'Cal signar una de les dues caselles (mateixa mida).',
+    acceptHint: 'Cal signar la casella d’acceptació. El refús es fa des de l’enllaç de decisió, sense firma al PDF.',
     acceptLabel: 'Accepto',
-    rejectLabel: 'Refuso',
     privacy: 'Protecció de dades',
     privacyBody:
       "Les dades facilitades es tracten amb la finalitat de gestionar aquest pressupost i, si escau, la relació contractual derivada. Es conserven durant un mínim de sis mesos des de la no-acceptació o des de la fi del servei. Podeu exercir els vostres drets d'accés, rectificació i supressió dirigint-vos a {{ tenant.email }}.",
@@ -91,9 +90,8 @@ const COPY = {
     conditionsBody:
       'Este presupuesto tiene una validez de 30 días desde la fecha de emisión, salvo indicación en contrario. Los precios incluyen el IVA aplicable. Cualquier concepto no incluido en este presupuesto que aparezca durante la ejecución del servicio será objeto de una ampliación de presupuesto, que deberá ser aceptada antes de su ejecución y cobro, de acuerdo con la normativa de protección de las personas consumidoras. La aceptación firmada de este presupuesto constituye el contrato del encargo descrito. Para cualquier controversia, las partes se someten a los juzgados y tribunales que correspondan por ley.',
     accept: 'Aceptación',
-    acceptHint: 'Hay que firmar una de las dos casillas (mismo tamaño).',
+    acceptHint: 'Hay que firmar la casilla de aceptación. El rechazo se hace desde el enlace de decisión, sin firma en el PDF.',
     acceptLabel: 'Acepto',
-    rejectLabel: 'Rechazo',
     privacy: 'Protección de datos',
     privacyBody:
       'Los datos facilitados se tratan con la finalidad de gestionar este presupuesto y, en su caso, la relación contractual derivada. Se conservan durante un mínimo de seis meses desde la no aceptación o desde el fin del servicio. Puede ejercer sus derechos de acceso, rectificación y supresión dirigiéndose a {{ tenant.email }}.',
@@ -261,10 +259,6 @@ export function buildPlatformQuoteHtml(
   <div>
     <div>${t.acceptLabel}</div>
     <signature-field name="Accepto" role="client_accept" style="${COMMERCIAL_SIGNATURE_BOX_STYLE}"></signature-field>
-  </div>
-  <div>
-    <div>${t.rejectLabel}</div>
-    <signature-field name="Refuso" role="client_reject" style="${COMMERCIAL_SIGNATURE_BOX_STYLE}"></signature-field>
   </div>
 </div>
 <h2>${t.privacy}</h2>
@@ -437,7 +431,6 @@ export const QUOTE_REQUIRED_HTML_TOKENS = [
   'document.valid_until',
   'totals.tax_breakdown',
   'role="client_accept"',
-  'role="client_reject"',
 ] as const
 
 export const DELIVERY_REQUIRED_HTML_TOKENS = [
@@ -544,12 +537,6 @@ function signingRolesSchema(kind: 'quote' | 'delivery', locale: CommercialTempla
       entity_type: 'contact',
       label: locale === 'ca' ? 'Accepto' : 'Acepto',
       order: 0,
-      for_signing: true,
-    },
-    client_reject: {
-      entity_type: 'contact',
-      label: locale === 'ca' ? 'Refuso' : 'Rechazo',
-      order: 1,
       for_signing: true,
     },
   })

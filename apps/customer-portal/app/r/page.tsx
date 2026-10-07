@@ -4,7 +4,11 @@ import { I18nProvider } from '@/components/I18nProvider'
 import { BackToListLink } from '@/components/ReportGate'
 import { StaffBulletinList } from '@/components/StaffBulletinList'
 import type { BulletinListItem } from '@/lib/constants'
-import { exchangeStaffToken, resolveShareSession } from '@/lib/resolver'
+import {
+  exchangeStaffToken,
+  resolveCommercialSession,
+  resolveShareSession,
+} from '@/lib/resolver'
 import { uiLocaleFromResolve } from '@/lib/resolve-ui-locale'
 import { readActorCookie, readSessionCookie, readUiLocaleCookie } from '@/lib/session'
 
@@ -85,6 +89,11 @@ export default async function ReaderPage({
       result.requires_report_version_id ||
       result.bulletins
     ) {
+      const commercialSummary = await resolveCommercialSession({
+        sessionToken: session,
+        action: 'list_summary',
+      })
+      const modules = commercialSummary.ok ? commercialSummary.modules : undefined
       return (
         <I18nProvider uiLocale={uiLocale}>
           <StaffBulletinList
@@ -92,6 +101,7 @@ export default async function ReaderPage({
             uiLocale={uiLocale}
             tenantProfile={result.tenant_profile}
             tenantId={result.tenant_id}
+            modules={modules}
           />
         </I18nProvider>
       )

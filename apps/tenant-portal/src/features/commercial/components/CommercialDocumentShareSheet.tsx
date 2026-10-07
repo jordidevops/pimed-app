@@ -57,15 +57,22 @@ export function CommercialDocumentShareSheet({
   const [loading, setLoading] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [busyChannel, setBusyChannel] = useState<string | null>(null)
+  const isDraft = doc?.status === 'draft'
+  const { data: signingHub } = useCommercialDocumentSigningHub(open ? documentId : null)
+  const signedPdfId = commercialSignedPdfDocumentId(signingHub)
+  const signedPreviewVersionId =
+    signingHub?.signingStatus === 'completed' && signingHub.resultDocumentVersionId
+      ? signingHub.resultDocumentVersionId
+      : null
   const pdf = useCommercialPdf({
     documentId,
     tenantId: doc?.tenant_id ?? null,
-    enabled: open && !!doc,
+    // Drafts cannot be rendered to PDF (409 document_not_issued); never retry.
+    enabled: open && !!doc && !isDraft,
     initialRenderedDocumentId: doc?.rendered_document_id,
     initialPdfJobId: doc?.pdf_job_id,
+    preferredVersionId: signedPreviewVersionId,
   })
-  const { data: signingHub } = useCommercialDocumentSigningHub(open ? documentId : null)
-  const signedPdfId = commercialSignedPdfDocumentId(signingHub)
 
   useEffect(() => {
     if (!open) return
@@ -149,12 +156,12 @@ export function CommercialDocumentShareSheet({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold text-foreground">
-              {t('projects.commercial.share_title', 'Enviar document')}
+              {t('projects.commercial.share_title_deliver', 'Només entregar')}
             </h3>
             <p className="text-sm text-muted-foreground">
               {t(
-                'projects.commercial.share_help',
-                'WhatsApp, correu, compartició nativa, PDF i QR. Si falla l’enviament, el document continua emès.',
+                'projects.commercial.share_help_deliver',
+                'Entrega el PDF o l’HTML al client. Això no demana acceptació ni refús.',
               )}
             </p>
           </div>
@@ -173,12 +180,21 @@ export function CommercialDocumentShareSheet({
               {doc.doc_number ?? '—'} · {doc.doc_type} · {Number(doc.total).toFixed(2)} €
             </p>
 
-            {pdf.status === 'loading' ? (
+            {isDraft ? (
+              <p className="text-sm text-amber-800 dark:text-amber-200 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2">
+                {t(
+                  'projects.commercial.share_draft_no_pdf',
+                  'Emet el document per poder-lo entregar o enviar per acceptar. L’esborrany només es pot previsualitzar en HTML.',
+                )}
+              </p>
+            ) : null}
+
+            {!isDraft && pdf.status === 'loading' ? (
               <p className="text-xs text-muted-foreground">
                 {t('projects.commercial.pdf_generating', 'Generant PDF…')}
               </p>
             ) : null}
-            {pdf.status === 'pending' ? (
+            {!isDraft && pdf.status === 'pending' ? (
               <p className="text-xs text-muted-foreground">
                 {t(
                   'projects.commercial.pdf_pending',
@@ -186,7 +202,7 @@ export function CommercialDocumentShareSheet({
                 )}
               </p>
             ) : null}
-            {pdf.status === 'offline' || pdf.status === 'error' ? (
+            {!isDraft && (pdf.status === 'offline' || pdf.status === 'error') ? (
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-xs text-muted-foreground">
                   {t(

@@ -26,6 +26,8 @@ interface RequestBody {
   source?: "preview" | "download";
   /** Public signing flow: validates access via document_signing_sessions.signing_token */
   signing_token?: string;
+  /** CF-28 public commercial decision link */
+  commercial_decision_token?: string;
 }
 
 interface UrlResponse {
@@ -77,11 +79,16 @@ async function parseBody(req: Request): Promise<RequestBody> {
   const signing_token = typeof raw.signing_token === "string" && raw.signing_token.length > 0
     ? raw.signing_token
     : undefined;
+  const commercial_decision_token =
+    typeof raw.commercial_decision_token === "string" && raw.commercial_decision_token.length > 0
+      ? raw.commercial_decision_token
+      : undefined;
   return {
     version_id: raw.version_id as string,
     expiry_seconds: expiry,
     source,
     signing_token,
+    commercial_decision_token,
   };
 }
 
@@ -146,6 +153,50 @@ async function buildSignedUrlResponse(
   return new Response(JSON.stringify(response), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+async function resolveVersionViaCommercialDecisionToken(
+  body: RequestBody,
+): Promise<{ version: VersionRow } | Response> {
+  const adminClient = createAdminClient();
+  const { data, error } = await adminClient.rpc("resolve_commercial_decision_token", {
+    p_token: body.commercial_decision_token!,
+    p_mark_opened: false,
+  });
+  if (error || !data) {
+    return jsonError(404, "token_not_found", "Enllaç comercial no vàlid");
+  }
+  const payload = data as {
+    kind?: string;
+    document_version_id?: string;
+    request_status?: string;
+  };
+  if (payload.kind !== "commercial_decision") {
+    return jsonError(404, "token_not_found", "Enllaç comercial no vàlid");
+  }
+  if (!payload.document_version_id) {
+    return jsonError(404, "version_not_found", "Versió no trobada");
+  }
+  if (payload.document_version_id !== body.version_id) {
+    return jsonError(403, "version_mismatch", "Versió no autoritzada per aquest enllaç");
+  }
+  if (
+    payload.request_status === "revoked" ||
+    payload.request_status === "expired"
+  ) {
+    return jsonError(410, "token_expired", "L'enllaç comercial ha caducat o s'ha revocat");
+  }
+
+  const { data: version, error: versionError } = await adminClient
+    .from("document_versions")
+    .select("id, storage_type, file_path_or_url, document_id")
+    .eq("id", body.version_id)
+    .single();
+
+  if (versionError || !version) {
+    return jsonError(404, "version_not_found", "Versió no trobada");
+  }
+  return { version: version as VersionRow };
 }
 
 async function resolveVersionViaSigningToken(
@@ -248,6 +299,12 @@ Deno.serve(async (req: Request) => {
 
     if (body.signing_token) {
       const resolved = await resolveVersionViaSigningToken(body, expiry);
+      if (resolved instanceof Response) return resolved;
+      return buildSignedUrlResponse(resolved.version, expiry, null, body.source ?? "download");
+    }
+
+    if (body.commercial_decision_token) {
+      const resolved = await resolveVersionViaCommercialDecisionToken(body);
       if (resolved instanceof Response) return resolved;
       return buildSignedUrlResponse(resolved.version, expiry, null, body.source ?? "download");
     }

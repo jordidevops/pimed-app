@@ -23,11 +23,17 @@ export function StaffBulletinList({
   uiLocale,
   tenantProfile,
   tenantId,
+  modules,
 }: {
   bulletins: BulletinListItem[]
   uiLocale: string
   tenantProfile?: TenantPublicProfile | null
   tenantId?: string | null
+  modules?: {
+    quotes_agreements?: boolean
+    delivery_notes?: boolean
+    invoices?: boolean
+  }
 }) {
   const { t } = useTranslation('common')
 
@@ -50,6 +56,35 @@ export function StaffBulletinList({
             {t('nav.logout', 'Tancar sessió')}
           </a>
         </div>
+        <nav className="sans mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+          <span className="text-[var(--accent)]" aria-current="page">
+            {t('nav.bulletins', 'Butlletins')}
+          </span>
+          {modules?.quotes_agreements && (
+            <Link
+              href="/dashboard/quotes"
+              className="text-[var(--muted)] underline-offset-2 hover:underline"
+            >
+              {t('nav.quotes_agreements', 'Pressupostos i acords')}
+            </Link>
+          )}
+          {modules?.delivery_notes && (
+            <Link
+              href="/dashboard/delivery-notes"
+              className="text-[var(--muted)] underline-offset-2 hover:underline"
+            >
+              {t('nav.delivery_notes', 'Albarans')}
+            </Link>
+          )}
+          {modules?.invoices && (
+            <Link
+              href="/dashboard/invoices"
+              className="text-[var(--muted)] underline-offset-2 hover:underline"
+            >
+              {t('nav.invoices', 'Factures')}
+            </Link>
+          )}
+        </nav>
       </header>
 
       {bulletins.length === 0 ? (

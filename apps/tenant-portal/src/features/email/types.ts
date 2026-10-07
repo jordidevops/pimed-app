@@ -153,6 +153,9 @@ export interface EmailLog {
   error_history: Array<{ attempt: number; error: string; at: string }> | null
   html_body: string | null
   text_body: string | null
+  template_id?: string | null
+  /** CS-D58: true when signing/decision template body is redacted for tenant */
+  body_redacted?: boolean | null
 }
 
 

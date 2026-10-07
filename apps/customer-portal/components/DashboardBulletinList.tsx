@@ -3,9 +3,11 @@
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
 import type { BulletinListItem, TenantPublicProfile } from '@/lib/constants'
+import type { PendingDecisionItem } from '@/lib/resolver'
 import { LocaleSwitcher } from '@/components/LocaleSwitcher'
 import { PortalFooter } from '@/components/PortalFooter'
 import { CookieNotice } from '@/components/CookieNotice'
+import { PendingDecisionsSection } from '@/components/PendingDecisionsSection'
 
 function formatDate(iso: string | undefined, locale: string): string {
   if (!iso) return ''
@@ -19,6 +21,12 @@ function formatDate(iso: string | undefined, locale: string): string {
   })
 }
 
+type CommercialModules = {
+  quotes_agreements?: boolean
+  delivery_notes?: boolean
+  invoices?: boolean
+}
+
 type Props = {
   bulletins: BulletinListItem[]
   uiLocale: string
@@ -27,6 +35,9 @@ type Props = {
   accountContactId?: string
   tenantId?: string
   tenantProfile?: TenantPublicProfile | null
+  modules?: CommercialModules
+  pendingItems?: PendingDecisionItem[]
+  pendingCount?: number
 }
 
 export function DashboardBulletinList({
@@ -37,6 +48,9 @@ export function DashboardBulletinList({
   accountContactId,
   tenantId,
   tenantProfile,
+  modules,
+  pendingItems,
+  pendingCount,
 }: Props) {
   const { t } = useTranslation('common')
   const showSwitcher =
@@ -45,6 +59,7 @@ export function DashboardBulletinList({
     Boolean(tenantId) &&
     Array.isArray(supportedLocales) &&
     supportedLocales.length > 1
+  const pendingN = pendingCount ?? pendingItems?.length ?? 0
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8 sm:py-12">
@@ -75,7 +90,52 @@ export function DashboardBulletinList({
             </a>
           </div>
         </div>
+        <nav className="sans mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+          <span className="text-[var(--accent)]" aria-current="page">
+            {t('nav.bulletins', 'Butlletins')}
+          </span>
+          {pendingN > 0 && (
+            <Link
+              href="/dashboard/pending"
+              className="text-[var(--muted)] underline-offset-2 hover:underline"
+            >
+              {t('nav.pending', 'Pendents')}
+              {pendingN > 0 ? ` (${pendingN})` : ''}
+            </Link>
+          )}
+          {modules?.quotes_agreements && (
+            <Link
+              href="/dashboard/quotes"
+              className="text-[var(--muted)] underline-offset-2 hover:underline"
+            >
+              {t('nav.quotes_agreements', 'Pressupostos i acords')}
+            </Link>
+          )}
+          {modules?.delivery_notes && (
+            <Link
+              href="/dashboard/delivery-notes"
+              className="text-[var(--muted)] underline-offset-2 hover:underline"
+            >
+              {t('nav.delivery_notes', 'Albarans')}
+            </Link>
+          )}
+          {modules?.invoices && (
+            <Link
+              href="/dashboard/invoices"
+              className="text-[var(--muted)] underline-offset-2 hover:underline"
+            >
+              {t('nav.invoices', 'Factures')}
+            </Link>
+          )}
+        </nav>
       </header>
+
+      <PendingDecisionsSection
+        items={pendingItems ?? []}
+        count={pendingN}
+        uiLocale={uiLocale}
+        compact
+      />
 
       {bulletins.length === 0 ? (
         <p className="mt-10 text-[var(--muted)]">

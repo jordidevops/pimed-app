@@ -103,6 +103,22 @@
       "openHub": "Abrir hub de acceso"
     },
     "bccTitle": "BCC del boletín",
+    "commercial": {
+      "title": "Documentos comerciales",
+      "hint": "Opt-in: el cliente ve estos documentos en el portal nominativo. Solo con modo portal. No altera estados comerciales.",
+      "quotesAgreements": "Presupuestos y acuerdos",
+      "quotesAgreementsHint": "Números, estados, totales y versiones enviadas o firmadas de la cuenta.",
+      "deliveryNotes": "Albaranes",
+      "deliveryNotesHint": "Albaranes emitidos, firmados o disputados de la cuenta.",
+      "invoices": "Facturas",
+      "invoicesHint": "Facturas emitidas, importes y pagos agregados de la cuenta.",
+      "invoicesConfirmTitle": "¿Exponer facturas en el portal?",
+      "invoicesConfirmBody": "Los clientes con acceso nominativo verán números, líneas, totales y pagos agregados de su cuenta. Confirma para activarlo.",
+      "invoicesConfirmAction": "Activar facturas",
+      "saved": "Documentos comerciales del portal actualizados",
+      "saveError": "No se han podido guardar los documentos comerciales",
+      "requiresPortalMode": "Hace falta modo portal para exponer documentos comerciales"
+    },
     "contentDefaultsTitle": "Contenido del boletín",
     "contentDefaultsHint": "Valores por defecto para nuevos boletines. Cada boletín puede sobrescribirlos.",
     "showChecklistsDefault": "Mostrar checklists",

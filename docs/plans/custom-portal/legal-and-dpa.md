@@ -4,9 +4,9 @@
 > **Contracte CP-0.6** — 2026-08-04.  
 > Pla portal: [`README.md`](./README.md) · Projecció/retenció: [`projection-and-retention.md`](./projection-and-retention.md).  
 > **Mòdul Legal unificat (plataforma):** [`../legal-compliance/README.md`](../legal-compliance/README.md) · execució [`../legal-compliance/EXECUTION.md`](../legal-compliance/EXECUTION.md).  
-> Versió: **1.0** — text orientatiu de producte; el text legal vinculant el valida assessoria.
+> Versió: **1.1** *(CF-28 portal comercial lectura, 2026-10-07)* — text orientatiu de producte; el text legal vinculant el valida assessoria.
 
-Aquest document defineix **qui fa què** i què ha de veure el destinatari en el context del **butlletí / customer-portal**. El catàleg de plantilles, cookie notice, avís LSSI i Legal Center de tenant viuen al pla **legal-compliance**. No substitueix el DPA signat ni la política de privacitat del tenant.
+Aquest document defineix **qui fa què** i què ha de veure el destinatari en el context del **butlletí / customer-portal** (inclòs catàleg comercial opt-in). El catàleg de plantilles, cookie notice, avís LSSI i Legal Center de tenant viuen al pla **legal-compliance**. No substitueix el DPA signat ni la política de privacitat del tenant.
 
 DPA = Data Processing Agreement (Acord de Tractament de Dades)
 
@@ -26,12 +26,13 @@ El tenant és responsable de triar persones destinatàries amb base legítima i 
 
 ## 2. Base jurídica habitual
 
-Per compartir un **part / butlletí d’intervenció** amb el client del servei:
+Per compartir un **part / butlletí d’intervenció** o exposar **documents comercials** al portal nominatiu amb el client del servei:
 
 - Base habitual: **execució del contracte** de prestació de servei (o mesures precontractuals si aplica).
+- Categories comercials tipiques: identificadors de document, estats, imports, línies, evidència de decisió/firma, pagaments agregats (referència emmascarada).
 - Altres bases (consentiment, interès legítim) només si el tenant les documenta; el producte no assumeix consentiment implícit només per tenir un email al CRM.
 
-El tenant ha de poder justificar per què aquella persona concreta rep aquell artefacte (relació empresa-persona activa).
+El tenant ha de poder justificar per què aquella persona concreta rep aquell artefacte (relació empresa-persona activa) i activar explícitament cada mòdul comercial (`commercial_*_enabled`).
 
 ---
 
@@ -55,7 +56,7 @@ La pàgina pública del butlletí (i el portal Fase B) ha d’enllaçar a inform
 Contingut mínim esperat (el tenant el subministra / URL):
 
 - Identitat del responsable (tenant).
-- Finalitat: lliurar el butlletí / accés al portal del servei.
+- Finalitat: lliurar el butlletí / accés al portal del servei (i, si el tenant ho activa, consultar pressupostos, acords, albarans i factures del compte).
 - Base jurídica.
 - Destinataris / encarregats (plataforma).
 - Terminis de conservació (o criteris).
@@ -91,7 +92,7 @@ La supressió del CRM **no** cascada-destruint evidència publicada.
 
 El DPA ha de cobrir, com a mínim:
 
-- Objecte: allotjar i servir butlletins/shares/portal sota instruccions del tenant.
+- Objecte: allotjar i servir butlletins/shares/portal (inclòs catàleg comercial opt-in) sota instruccions del tenant.
 - Mesures tècniques: hash de secrets, rate limit, kill-switch, minimització, logs.
 - Subencargats (hosting, email provider) i transferències.
 - Assistència en drets dels interessats i incidents.

@@ -43,6 +43,7 @@ import {
 import { CommercialDocumentView } from './CommercialDocumentView'
 import { commercialSalesDetailHref } from '../utils/commercialSigningHub'
 import { CommercialNativeSignDialog } from './CommercialNativeSignDialog'
+import { CommercialOfficeRejectDialog } from './CommercialOfficeRejectDialog'
 import { PaymentReceiptSheet } from './PaymentReceiptSheet'
 import { QuoteWaiverDialog } from './QuoteWaiverDialog'
 import { DeliveryNotesList } from './DeliveryNotesList'
@@ -140,8 +141,9 @@ export function ProjectCommercialPanel({
   const [deliveryPreview, setDeliveryPreview] = useState<DeliveryNotePreview | null>(null)
   const [signTarget, setSignTarget] = useState<{
     documentId: string
-    action: CommercialNativeSignAction
+    action: Exclude<CommercialNativeSignAction, 'reject'>
   } | null>(null)
+  const [officeRejectDocId, setOfficeRejectDocId] = useState<string | null>(null)
 
   function openDocument(doc: Pick<CommercialDocument, 'id' | 'doc_type'>) {
     const href = commercialSalesDetailHref(doc.id, doc.doc_type)
@@ -438,9 +440,7 @@ export function ProjectCommercialPanel({
               size="sm"
               variant="outline"
               disabled={busy}
-              onClick={() =>
-                setSignTarget({ documentId: latestQuote.id, action: 'reject' })
-              }
+              onClick={() => setOfficeRejectDocId(latestQuote.id)}
             >
               {t('projects.commercial.reject', 'Refusar')}
             </Button>
@@ -778,6 +778,25 @@ export function ProjectCommercialPanel({
             void refetch()
             queryClient.invalidateQueries({ queryKey: ['projects'] })
             queryClient.invalidateQueries({ queryKey: ['commercial_documents'] })
+            queryClient.invalidateQueries({
+              queryKey: ['commercial', 'signing_hub'],
+            })
+          }}
+        />
+      ) : null}
+
+      {officeRejectDocId ? (
+        <CommercialOfficeRejectDialog
+          documentId={officeRejectDocId}
+          open
+          onClose={() => setOfficeRejectDocId(null)}
+          onCompleted={() => {
+            void refetch()
+            queryClient.invalidateQueries({ queryKey: ['projects'] })
+            queryClient.invalidateQueries({ queryKey: ['commercial_documents'] })
+            queryClient.invalidateQueries({
+              queryKey: ['commercial', 'signing_hub'],
+            })
           }}
         />
       ) : null}
@@ -939,7 +958,7 @@ export function ProjectCommercialPanel({
                         disabled={busy}
                         onClick={() => setShareDocId(doc.id)}
                       >
-                        {t('projects.commercial.send', 'Enviar')}
+                        {t('projects.commercial.share_title_deliver', 'Només entregar')}
                       </Button>
                     </>
                   )}
@@ -963,9 +982,7 @@ export function ProjectCommercialPanel({
                         size="sm"
                         variant="outline"
                         disabled={busy}
-                        onClick={() =>
-                          setSignTarget({ documentId: doc.id, action: 'reject' })
-                        }
+                        onClick={() => setOfficeRejectDocId(doc.id)}
                       >
                         {t('projects.commercial.reject', 'Refusar')}
                       </Button>
@@ -989,7 +1006,7 @@ export function ProjectCommercialPanel({
                   )}
                   {['issued', 'signed', 'accepted'].includes(effectiveStatus(doc)) &&
                     doc.doc_type === 'delivery_note' &&
-                    !doc.external_invoice_ref && (
+                    !doc.invoice_id && (
                     <>
                       {effectiveStatus(doc) === 'issued' && (
                         <Button
@@ -1017,7 +1034,8 @@ export function ProjectCommercialPanel({
                       ) : null}
                     </>
                   )}
-                  {canCollect && !(doc.doc_type === 'delivery_note' && doc.external_invoice_ref) && (
+                  {canCollect &&
+                    !(doc.doc_type === 'delivery_note' && doc.invoice_id) && (
                     <Button
                       type="button"
                       size="sm"

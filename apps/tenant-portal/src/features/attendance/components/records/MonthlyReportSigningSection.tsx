@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AlertCircle, ExternalLink, Loader2, PenLine } from 'lucide-react'
@@ -13,7 +14,10 @@ import { useMonthlyReportSigning } from '../../api/useMonthlyReportSigning'
 import { useMonthlyCloseSettings } from '../../api/useMonthlyCloseSettings'
 import { useMonthlyCloseValidation } from '../../api/useMonthlyCloseValidation'
 import { formatMonthlyCloseIssue } from '../../api/monthlyCloseIssueLabels'
-import { resolveEmployeeSignerLink } from '../../api/monthlyReportSigningUtils'
+import {
+  fetchMyPendingSigningUrl,
+  isCurrentUserPendingSigner,
+} from '../../api/monthlyReportSigningUtils'
 
 interface MonthlyReportSigningSectionProps {
   employeeId: string
@@ -79,7 +83,31 @@ export function MonthlyReportSigningSection({
     !closeValidationLoading
 
   const signingStatus = submission?.status ?? null
-  const employeeSignUrl = resolveEmployeeSignerLink(submission, user?.email)
+  const canSelfSign = isCurrentUserPendingSigner(submission, user?.email)
+  const [employeeSignUrl, setEmployeeSignUrl] = useState<string | null>(null)
+  const [selfSignLoading, setSelfSignLoading] = useState(false)
+
+  useEffect(() => {
+    if (variant !== 'employee' || !submissionId || !canSelfSign) {
+      setEmployeeSignUrl(null)
+      return
+    }
+    let cancelled = false
+    setSelfSignLoading(true)
+    void fetchMyPendingSigningUrl(submissionId)
+      .then((url) => {
+        if (!cancelled) setEmployeeSignUrl(url)
+      })
+      .catch(() => {
+        if (!cancelled) setEmployeeSignUrl(null)
+      })
+      .finally(() => {
+        if (!cancelled) setSelfSignLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [variant, submissionId, canSelfSign, signingStatus])
 
   function renderSigningBlockers() {
     if (!needsCloseValidation || closeValidationLoading) {
@@ -121,7 +149,7 @@ export function MonthlyReportSigningSection({
     }
 
     try {
-      const result = await signingMutation.mutateAsync({
+      await signingMutation.mutateAsync({
         tenantId: selectedTenantId,
         userId: user.id,
         exportData,
@@ -134,16 +162,12 @@ export function MonthlyReportSigningSection({
           null,
       })
 
-      const firstLink = result.signer_links?.[0]?.signing_url ?? result.signing_url
       toast({
         title: t('monthly_report.signing_started', 'Signatura iniciada'),
         description: t('monthly_report.signing_started_desc', {
           defaultValue: "S'han enviat les sol·licituds de signatura a l'empleat i el responsable.",
         }),
       })
-      if (firstLink) {
-        window.open(firstLink, '_blank', 'noopener,noreferrer')
-      }
     } catch (err) {
       toast({
         variant: 'destructive',
@@ -199,7 +223,12 @@ export function MonthlyReportSigningSection({
               </Link>
             </Button>
           </div>
-          {employeeSignUrl ? (
+          {selfSignLoading ? (
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {t('monthly_employee.sign_loading', 'Preparant la teva firma…')}
+            </p>
+          ) : employeeSignUrl ? (
             <Button type="button" size="sm" onClick={openEmployeeSignUrl}>
               <PenLine className="mr-1.5 h-4 w-4" />
               {t('monthly_employee.sign_my_record', 'Signar el meu registre')}
@@ -207,8 +236,8 @@ export function MonthlyReportSigningSection({
           ) : (
             <p className="text-xs text-muted-foreground">
               {t(
-                'monthly_employee.sign_waiting_turn',
-                'Quan sigui el teu torn, apareixerà l’enllaç de signatura aquí.',
+                'monthly_employee.sign_waiting_email',
+                'Quan sigui el teu torn, rebràs el correu de firma o podràs firmar des d’aquí.',
               )}
             </p>
           )}

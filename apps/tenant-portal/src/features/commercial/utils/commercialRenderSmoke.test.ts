@@ -90,12 +90,12 @@ describe('QT-5 render smoke', () => {
       quoteSampleValues('ca'),
     )
     expect(rendered).toContain('role="client_accept"')
-    expect(rendered).toContain('role="client_reject"')
+    expect(rendered).not.toContain('role="client_reject"')
     expect(rendered).not.toContain('[FIRMA:')
 
     const marked = injectIssuedHtmlSignatureMarkers(rendered)
     expect(marked).toContain('[FIRMA:client_accept]')
-    expect(marked).toContain('[FIRMA:client_reject]')
+    expect(marked).not.toContain('[FIRMA:client_reject]')
     expect(marked).toContain('class="sig-slot"')
     expect(marked).toContain('data-sig-role="client_accept"')
     expect(marked).toContain('width:220px;height:70px;')

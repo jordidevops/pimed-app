@@ -60,8 +60,7 @@ export interface SignerSnapshot {
   status?: string
   completed_at?: string | null
   opened_at?: string | null
-  signing_url?: string | null
-  /** signer_order 0-indexed. Extret del external_id (:sN sufix) per DocuSeal. */
+  /** CS-D58: never present on tenant API responses */
   order?: number
 }
 
@@ -146,6 +145,8 @@ export interface SignDocumentInput {
   output_profile?:             'pdf' | 'pdfa2b' | 'pdfa3b'
   native_sign_type?:           'presential' | 'remote'
   use_explicit_fields?:        boolean
+  /** CF-28 / F5: reutilitza el DMS canònic de la decision request (sense segona fila). */
+  commercial_decision_request_id?: string
 }
 
 export interface SignDocumentResult {
@@ -153,7 +154,6 @@ export interface SignDocumentResult {
   output_format?:          'native' | 'pdf'
   submission_id?:          string
   docuseal_submission_id?: string
-  signing_url?:            string | null
   status?:                 string
   idempotent_replay?:      boolean
   document_id?:            string
@@ -166,7 +166,6 @@ export interface SignDocumentResult {
   /** Firma remota: si l'email s'ha encuat correctament */
   email_queued?:           boolean
   email_error?:            string
-  signer_links?:           Array<{ order: number; email: string; role: string; signing_url: string | null }>
   notification_mode?:      NotificationMode
   document?:               { id?: string }
 }
@@ -217,7 +216,9 @@ export interface SigningSessionManagerResult {
   docuseal_submission_id: string | null
   remote_found?: boolean
   remote_deleted?: boolean
-  remote_submission?: Record<string, unknown> | null
+  /** CS-D58: status only — never raw DocuSeal payload with slugs/URLs */
+  remote_status?: string | null
+  remote_submitter_count?: number | null
   audit_storage_path?: string | null
   audit_job_id?: string | null
   message: string

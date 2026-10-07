@@ -361,6 +361,15 @@ Deno.serve(async (req: Request) => {
       const { apiKey, apiUrl } = await resolveDocusealKey(adminClient, userClient, submission.tenant_id)
       const remote = await getDocusealSubmission(apiUrl, apiKey, submission.docuseal_submission_id)
 
+      // CS-D58: never return raw DocuSeal payload (slugs / embed_src / signing URLs)
+      const remoteStatus =
+        remote.payload && typeof remote.payload === 'object'
+          ? String((remote.payload as Record<string, unknown>).status ?? '')
+          : null
+      const submitters = Array.isArray((remote.payload as Record<string, unknown> | null)?.submitters)
+        ? ((remote.payload as Record<string, unknown>).submitters as unknown[]).length
+        : null
+
       return jsonOk({
         action: body.action,
         submission_id: submission.id,
@@ -368,7 +377,8 @@ Deno.serve(async (req: Request) => {
         local_status: submission.status,
         docuseal_submission_id: submission.docuseal_submission_id,
         remote_found: remote.found,
-        remote_submission: remote.payload,
+        remote_status: remoteStatus || null,
+        remote_submitter_count: submitters,
         message: remote.found
           ? 'Consulta de DocuSeal completada correctament.'
           : 'La submissió no existeix a DocuSeal (404).',

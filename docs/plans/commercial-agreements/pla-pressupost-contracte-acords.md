@@ -7,6 +7,7 @@
 > **Depèn de:** [commercial-flow](../commercial-flow/README.md) (Tall 1–2), [commercial-templates](../commercial-templates/README.md) (QT-0…QT-10), [maintenance](../maintenance/README.md) (només encaix; no es toca el cron), [signing](../signing/plan-sistema-firma-propi.md).
 > **Guardrails QT:** llegir [`../commercial-templates/00-agent-instructions-and-guardrails.md`](../commercial-templates/00-agent-instructions-and-guardrails.md) abans de tocar fitxers. Migracions **només additives**. No commitejar tret que l’usuari ho demani.
 > **Avís:** no és assessorament jurídic. El text de plantilles és punt de partida; revisió d’advocat abans de marcar-les com a «recomanades».
+> **Follow-up CF-28 (fase 2 ✅):** [`../commercial-flow/11-commercial-signing-ux/`](../commercial-flow/11-commercial-signing-ux/README.md) — `prepare_agreement_from_quote` admet quote `issued|accepted`; `finalize_commercial_agreement_version` accepta la quote origen si encara és `issued` (`separate_agreement`).
 
 Aquest document és el pla executable fins a completar la **V1**. Inclou el que queda **fora d’abast** (cada punt amb motiu) i **com seguir** un cop tancada la V1 (CF-21, CF-22 i extensions).
 
@@ -17,7 +18,7 @@ Aquest document és el pla executable fins a completar la **V1**. Inclou el que 
 PiMed ha de servir empreses de serveis, reparació, manteniment, instal·lació i despatx **sense forçar un únic ritual**. V1 ha de permetre:
 
 1. **Un sol PDF:** el pressupost emès i acceptat/signat **és** el contracte de l’encàrrec (pràctica habitual d’autònoms i pimes; Codi de consum de Catalunya + oferta/acceptació civil).
-2. **Dos PDF:** pressupost acceptat → l’oficina confirma «Preparar contracte» → acord formal separat, amb clàusules pròpies, el pressupost com a **annex immutable**, i **segona** revisió/firma del client.
+2. **Dos PDF:** as-built CT: pressupost acceptat → preparar acord → segona firma. Target CF-28: pressupost `issued` → l’oficina prepara l’acord → una única firma client de l’acord accepta també la quote origen, que queda com a **annex immutable**.
 
 La distinció no és per sector ni per import automàtic, sinó per **comportament de la relació** i per **política del tenant/encàrrec**.
 
@@ -197,7 +198,7 @@ Vistes `api.*` `security_invoker`. Escriptura **només RPC**. A V1, preparar i e
 ### 5.9 RPCs (noms proposats)
 
 - `api.set_quote_formalization(p_document_id, p_mode, p_client_op_id)` — només draft.
-- `api.prepare_agreement_from_quote(p_document_id, p_template_id, p_work_gate, p_client_op_id)` — quote/ampliació **accepted**; idempotent; no des de `accept_commercial_document`.
+- `api.prepare_agreement_from_quote(p_document_id, p_template_id, p_work_gate, p_client_op_id)` — quote/ampliació `issued|accepted` + `separate_agreement`; la firma de l'acord accepta la quote atòmicament si encara és `issued`. Idempotent; no des de `accept_commercial_document`.
 - `api.send_agreement_for_signature` / reutilitzar `sign-document-router` `source_type='document_existing'` + `sign_native` sobre el PDF de la versió.
 - `api.link_agreement_project` / `api.unlink_agreement_project`.
 - Gate de camp: estendre el punt que ja comprova autorització abans de treballar (`require_auth_before_work` / `commercial_regime`) perquè, si el projecte té un acord amb `work_gate='require_signed_agreement'` no `active`, **bloquegi** iniciar/executar. Si `none`, no bloqueja.
@@ -238,7 +239,7 @@ Clonables. L’arquetip **suggereix**, no bloqueja. Revisió jurídica abans de 
 
 ## 7. UI
 
-- **Draft de pressupost:** selector de formalització + plantilla de cos. Ajuda: «Un document» vs «Després d’acceptar, preparar contracte».
+- **Draft de pressupost:** selector de formalització + plantilla de cos. Ajuda as-built: «Un document» vs «Després d’acceptar, preparar contracte»; CF-28 ho canvia a «Preparar acord i enviar-lo per acceptar» per evitar dues decisions.
 - **Settings comercials:** default de formalització, plantilla d’acord, default de `work_gate`.
 - **`CommercialDocumentView`:** si `accepted` + `separate_agreement` + sense acord → «Preparar contracte» + confirmació. Si hi ha acord: estat, enllaç a firmar / PDF / Centre. Si `signed_quote`: sense CTA de contracte; badge pressupost/pressupost-contracte.
 - **`/documents/templates`:** categoria `commercial_agreement` seleccionable.
@@ -276,7 +277,7 @@ No E2E Gotenberg extra (criteri QT-5).
 - `signed_quote`: acceptar no crea agreement ni DMS `commercial_agreement`.
 - `separate_agreement`: només `prepare_agreement_from_quote` explícita; idempotent amb `client_op_id`; doble clic no duplica.
 - Plantilles de pressupost: tokens §2.1 + clàusula contractual; cap flag que divergi del PDF.
-- Acord: quote accepted obligatori; `source_quote_content_hash` = hash del quote; plantilla `commercial_agreement`; firma `client`; versió immutable post-enviament.
+- Acord: as-built quote accepted obligatori; CF-28 fase 2 prova també quote issued + firma acord → quote accepted. `source_quote_content_hash` = hash del quote; plantilla `commercial_agreement`; firma `client`; versió immutable post-enviament.
 - N:M: 2 acords al mateix projecte; 1 acord a 2 projectes; aïllament tenant.
 - Projecte: DMS directe + heretat sense duplicar; unlink no esborra PDF.
 - `work_gate=require_signed_agreement` bloqueja iniciar; `none` no.
@@ -438,10 +439,12 @@ Checklist original (§11.2, referent):
 
 ### 11.3 CF-22 — Obra
 
+Pla executable per fases: [`cf22-obra/README.md`](./cf22-obra/README.md) (2026-10-06, **no implementat**).
+
 1. `kind='project'` sobre el mateix aggregate.
-2. Fites, bestretes (ja `payments`), entregues parcials, ordres de canvi = `quote_amendment` (CF-9).
-3. Seguiment contractat / executat / facturat (facturat = refs ERP + albarans, no SII).
-4. Dependència: **nucli CT**, no «haver acabat tot CF-21 manteniment». Actualitzar [`04-phases-and-backlog.md`](../commercial-flow/04-phases-and-backlog.md) en CT-0 perquè no sembli que obra espera el motor de manteniment.
+2. Fites (noves); bestretes i entregues parcials **ja** existeixen (`payments`, DN); ordres de canvi = `quote_amendment` (CF-9).
+3. Seguiment contractat / executat / facturat (definicions O-D6/O-D7 al pla CF-22; no SII).
+4. Dependència: **nucli CT**, no CF-21 manteniment.
 
 ### 11.4 Plantilles i legal
 
@@ -484,8 +487,9 @@ No cal un epic «finalment fem el PDF QT-D6 amb `contract_document_id` al quote�
 | 2026-10-01 | CF-21-h0 | Baseline: literals TS, UUIDs SQL, tests d’identitat/context, script `run_commercial_agreement_tests`. | CF-21-h1…h7 |
 | 2026-10-01 | CF-21-h1…h7 | Idempotència tipada + unique quote; firma immutable; cicles operatius; billing race-safe; jobs justos + digests; inclusió determinista + render compensat; cancel/suspend/resume + paginació UI. | Reset + suite per tancar |
 | 2026-10-05 | CF-21-h | Tancat: `supabase db reset` + `run_commercial_agreement_tests.ps1` (19 SQL PASS, incl. fair jobs multi-tenant) + vitest smoke acords (21). Epic **CF-21** ✅. | CF-22 (obra) o gate/CF-19 al flux; Holded 📦 |
+| 2026-10-06 | CF-22 | Spec per fases [`cf22-obra/`](./cf22-obra/README.md). Sense migració. | CF-22-1 quan es prioritzí |
 
-**Fase activa (pista acords):** **CF-21 tancat**. Següent epic d’aquesta pista: **CF-22** Obra. Factura fiscal Holded segueix fora (CF-17 📦). Fora: tipus/tags de tenant. Producte principal del flux comercial: gate Tall 2→3 / CF-19 (`EXECUTION.md`).
+**Fase activa (pista acords):** **CF-21 tancat**. Següent epic: **CF-22** Obra — pla escrit a [`cf22-obra/`](./cf22-obra/README.md) (2026-10-06), implementació no oberta. Factura fiscal Holded segueix fora (CF-17 📦).
 
 ---
 

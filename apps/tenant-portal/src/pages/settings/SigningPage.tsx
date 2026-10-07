@@ -159,7 +159,7 @@ export function SigningPage() {
                 <p className="text-sm text-muted-foreground mt-1">
                   {t(
                     'signing.docuseal_section_description',
-                    'Envia documents a signar via DocuSeal. En mode plataforma consumeix crèdits; en mode BYO uses la teva instància.',
+                    'Envia documents a signar via el compte DocuSeal de la plataforma. Cada signatura consumeix 1 crèdit.',
                   )}
                 </p>
               </div>
@@ -318,18 +318,6 @@ export function SigningPage() {
                 <p className="text-xs text-muted-foreground">
                   {t('signing.credits_contact_note', 'Per ampliar els crèdits, contacta amb el suport o el teu administrador de compte.')}
                 </p>
-              </div>
-            )}
-
-            {config && !isPlatform && (
-              <div className="border-t pt-4 text-sm text-muted-foreground">
-                <p className="font-medium text-foreground">{t('signing.byo_title', 'Mode BYO (clau pròpia)')}</p>
-                <p className="mt-1">
-                  {t('signing.byo_description', "Estàs usant la teva pròpia integració amb DocuSeal. No apliquen crèdits de plataforma.")}
-                </p>
-                {config.docuseal_api_url && (
-                  <p className="text-xs font-mono mt-2">{config.docuseal_api_url}</p>
-                )}
               </div>
             )}
 

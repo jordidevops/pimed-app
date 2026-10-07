@@ -32,7 +32,7 @@ export function useEmailLogs(
       let query = supabase
         .from('email_logs')
         .select(
-          'id, site_id, created_at, to_emails, cc_emails, bcc_emails, subject, status, from_email, from_name, reply_to, attempt_count, is_dead_letter, sent_at, delivered_at, last_error, error_history, html_body, text_body',
+          'id, site_id, created_at, to_emails, cc_emails, bcc_emails, subject, status, from_email, from_name, reply_to, attempt_count, is_dead_letter, sent_at, delivered_at, last_error, error_history, html_body, text_body, template_id, body_redacted',
           { count: 'exact' },
         )
         .eq('tenant_id', tenantId!)

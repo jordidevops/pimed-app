@@ -15,7 +15,7 @@ export function useDocumentVersionSubmission(versionId: string | null | undefine
     queryFn: async () => {
       const { data, error } = await supabase
         .from('signing_submissions')
-        .select('id, status, docuseal_signing_url, created_at')
+        .select('id, status, created_at')
         .eq('source_document_version_id', versionId!)
         .in('status', ACTIVE_STATUSES)
         .neq('status_reason', 'generate_only_snapshot')

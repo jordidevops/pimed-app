@@ -103,6 +103,22 @@
       "openHub": "Open access hub"
     },
     "bccTitle": "Bulletin BCC",
+    "commercial": {
+      "title": "Commercial documents",
+      "hint": "Opt-in: clients see these documents in the named portal. Requires portal mode. Does not change commercial state.",
+      "quotesAgreements": "Quotes and agreements",
+      "quotesAgreementsHint": "Numbers, statuses, totals and sent or signed versions for the account.",
+      "deliveryNotes": "Delivery notes",
+      "deliveryNotesHint": "Issued, signed or disputed delivery notes for the account.",
+      "invoices": "Invoices",
+      "invoicesHint": "Issued invoices, amounts and aggregated payments for the account.",
+      "invoicesConfirmTitle": "Expose invoices in the portal?",
+      "invoicesConfirmBody": "Named portal clients will see numbers, lines, totals and aggregated payments for their account. Confirm to enable.",
+      "invoicesConfirmAction": "Enable invoices",
+      "saved": "Portal commercial documents updated",
+      "saveError": "Could not save commercial document settings",
+      "requiresPortalMode": "Portal mode is required to expose commercial documents"
+    },
     "contentDefaultsTitle": "Bulletin content",
     "contentDefaultsHint": "Defaults for new bulletins. Each bulletin can override them.",
     "showChecklistsDefault": "Show checklists",

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, CheckCircle2, Newspaper, ShieldAlert, Users } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, FileText, Newspaper, ShieldAlert, Users } from 'lucide-react'
 import { useTenant } from '@/contexts/TenantContext'
 import { useToast } from '@/hooks/use-toast'
 import { usePermission } from '@/hooks/usePermission'
@@ -11,8 +11,24 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
 import { useCustomerPortalEffective } from '@/features/portal-entitlements'
+
+type CommercialPortalSettings = {
+  quotes_agreements_enabled: boolean
+  delivery_notes_enabled: boolean
+  invoices_enabled: boolean
+  mode_effective: string
+  can_configure: boolean
+}
 
 type PublicProfileFields = {
   display_name: string
@@ -134,6 +150,88 @@ export function CustomerPortalSettingsPage() {
   const [showChecklistsDefault, setShowChecklistsDefault] = useState(true)
   const [showTasksDefault, setShowTasksDefault] = useState(true)
   const [showMaterialsDefault, setShowMaterialsDefault] = useState(true)
+  const [quotesAgreementsEnabled, setQuotesAgreementsEnabled] = useState(false)
+  const [deliveryNotesEnabled, setDeliveryNotesEnabled] = useState(false)
+  const [invoicesEnabled, setInvoicesEnabled] = useState(false)
+  const [invoiceConfirmOpen, setInvoiceConfirmOpen] = useState(false)
+
+  const commercialSettingsQuery = useQuery({
+    queryKey: ['customer-portal-commercial-settings', tenantId ?? ''],
+    enabled: Boolean(tenantId && canManage),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc(
+        'get_my_customer_portal_commercial_settings' as never,
+      )
+      if (error) throw error
+      const row = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>
+      return {
+        quotes_agreements_enabled: row.quotes_agreements_enabled === true,
+        delivery_notes_enabled: row.delivery_notes_enabled === true,
+        invoices_enabled: row.invoices_enabled === true,
+        mode_effective: typeof row.mode_effective === 'string' ? row.mode_effective : '',
+        can_configure: row.can_configure === true,
+      } satisfies CommercialPortalSettings
+    },
+  })
+
+  useEffect(() => {
+    if (!commercialSettingsQuery.data) return
+    setQuotesAgreementsEnabled(commercialSettingsQuery.data.quotes_agreements_enabled)
+    setDeliveryNotesEnabled(commercialSettingsQuery.data.delivery_notes_enabled)
+    setInvoicesEnabled(commercialSettingsQuery.data.invoices_enabled)
+  }, [commercialSettingsQuery.data])
+
+  const commercialSettingsMutation = useMutation({
+    mutationFn: async (patch: {
+      quotes_agreements_enabled?: boolean
+      delivery_notes_enabled?: boolean
+      invoices_enabled?: boolean
+    }) => {
+      const { data, error } = await supabase.rpc(
+        'set_my_customer_portal_commercial_settings' as never,
+        {
+          p_quotes_agreements_enabled: patch.quotes_agreements_enabled ?? null,
+          p_delivery_notes_enabled: patch.delivery_notes_enabled ?? null,
+          p_invoices_enabled: patch.invoices_enabled ?? null,
+        } as never,
+      )
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ['customer-portal-commercial-settings', tenantId ?? ''],
+      })
+      toast({
+        title: t(
+          'customer_portal.commercial.saved',
+          'Documents comercials del portal actualitzats',
+        ),
+      })
+    },
+    onError: (err: { message?: string }) => {
+      const msg = err?.message ?? ''
+      const prev = commercialSettingsQuery.data
+      if (prev) {
+        setQuotesAgreementsEnabled(prev.quotes_agreements_enabled)
+        setDeliveryNotesEnabled(prev.delivery_notes_enabled)
+        setInvoicesEnabled(prev.invoices_enabled)
+      }
+      toast({
+        variant: 'destructive',
+        title:
+          msg.includes('commercial_portal_requires_portal_mode')
+            ? t(
+                'customer_portal.commercial.requiresPortalMode',
+                'Cal mode portal per exposar documents comercials',
+              )
+            : t(
+                'customer_portal.commercial.saveError',
+                'No s\'han pogut desar els documents comercials',
+              ),
+      })
+    },
+  })
 
   const contentDefaultsQuery = useQuery({
     queryKey: ['customer-portal-bulletin-content-defaults', tenantId ?? ''],
@@ -471,6 +569,156 @@ export function CustomerPortalSettingsPage() {
                 )}
               </p>
             )}
+          </section>
+
+          <section className="rounded-2xl border p-5 space-y-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              {t('customer_portal.commercial.title', 'Documents comercials')}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                'customer_portal.commercial.hint',
+                'Opt-in: el client veu aquests documents al portal nominatiu. Només disponible amb mode portal. No altera estats comercials.',
+              )}
+            </p>
+            {commercialSettingsQuery.data?.can_configure === false && (
+              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                {t(
+                  'customer_portal.commercial.requiresPortalMode',
+                  'Cal mode portal per exposar documents comercials',
+                )}
+              </p>
+            )}
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="cp-commercial-quotes" className="text-sm font-medium">
+                  {t(
+                    'customer_portal.commercial.quotesAgreements',
+                    'Pressupostos i acords',
+                  )}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {t(
+                    'customer_portal.commercial.quotesAgreementsHint',
+                    'Números, estats, totals i versions enviades o firmades del compte.',
+                  )}
+                </p>
+              </div>
+              <Switch
+                id="cp-commercial-quotes"
+                checked={quotesAgreementsEnabled}
+                disabled={
+                  commercialSettingsMutation.isPending ||
+                  commercialSettingsQuery.isLoading ||
+                  commercialSettingsQuery.data?.can_configure === false
+                }
+                onCheckedChange={(checked) => {
+                  setQuotesAgreementsEnabled(checked)
+                  commercialSettingsMutation.mutate({
+                    quotes_agreements_enabled: checked,
+                  })
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="cp-commercial-dn" className="text-sm font-medium">
+                  {t('customer_portal.commercial.deliveryNotes', 'Albarans')}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {t(
+                    'customer_portal.commercial.deliveryNotesHint',
+                    'Albarans emesos, signats o disputats del compte.',
+                  )}
+                </p>
+              </div>
+              <Switch
+                id="cp-commercial-dn"
+                checked={deliveryNotesEnabled}
+                disabled={
+                  commercialSettingsMutation.isPending ||
+                  commercialSettingsQuery.isLoading ||
+                  commercialSettingsQuery.data?.can_configure === false
+                }
+                onCheckedChange={(checked) => {
+                  setDeliveryNotesEnabled(checked)
+                  commercialSettingsMutation.mutate({
+                    delivery_notes_enabled: checked,
+                  })
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="cp-commercial-invoices" className="text-sm font-medium">
+                  {t('customer_portal.commercial.invoices', 'Factures')}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {t(
+                    'customer_portal.commercial.invoicesHint',
+                    'Factures emeses, imports i pagaments agregats del compte.',
+                  )}
+                </p>
+              </div>
+              <Switch
+                id="cp-commercial-invoices"
+                checked={invoicesEnabled}
+                disabled={
+                  commercialSettingsMutation.isPending ||
+                  commercialSettingsQuery.isLoading ||
+                  commercialSettingsQuery.data?.can_configure === false
+                }
+                onCheckedChange={(checked) => {
+                  if (checked && !invoicesEnabled) {
+                    setInvoiceConfirmOpen(true)
+                    return
+                  }
+                  setInvoicesEnabled(checked)
+                  commercialSettingsMutation.mutate({ invoices_enabled: checked })
+                }}
+              />
+            </div>
+            <Dialog open={invoiceConfirmOpen} onOpenChange={setInvoiceConfirmOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {t(
+                      'customer_portal.commercial.invoicesConfirmTitle',
+                      'Exposar factures al portal?',
+                    )}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {t(
+                      'customer_portal.commercial.invoicesConfirmBody',
+                      'Els clients amb accés nominatiu veuran números, línies, totals i pagaments agregats del seu compte. Confirma que vols activar-ho.',
+                    )}
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setInvoiceConfirmOpen(false)}
+                  >
+                    {t('customer_portal.no', 'No')}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setInvoiceConfirmOpen(false)
+                      setInvoicesEnabled(true)
+                      commercialSettingsMutation.mutate({ invoices_enabled: true })
+                    }}
+                  >
+                    {t(
+                      'customer_portal.commercial.invoicesConfirmAction',
+                      'Activar factures',
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </section>
 
           <section className="rounded-2xl border p-5 space-y-3">

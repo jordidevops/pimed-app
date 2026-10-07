@@ -13,6 +13,7 @@ import {
   parseCommercialInclusion,
   type CommercialInclusion,
 } from '../utils/agreementInclusion'
+import { defaultDecisionExpiresAt } from '../utils/commercialDecisionSend'
 
 export type { CommercialInclusion }
 
@@ -68,12 +69,27 @@ export type CommercialDocument = {
   parent_document_id: string | null
   supersedes_id: string | null
   created_at: string
+  /**
+   * Active native invoice linked via invoice_delivery_notes (delivery notes only).
+   * Source of truth for “facturat”; do not use external_invoice_ref text alone.
+   */
+  invoice_id?: string | null
+  invoice_doc_number?: string | null
+  /** @deprecated Legacy text ref on DN; prefer invoice_id / commercial_document_external_refs on invoice */
   external_invoice_ref?: string | null
   rendered_document_id?: string | null
   pdf_job_id?: string | null
   document_template_id?: string | null
   full_body_template_id?: string | null
   formalization_mode?: 'signed_quote' | 'separate_agreement' | null
+}
+
+/** True when a delivery note has an active native invoice link (`invoice_delivery_notes`). */
+export function isDeliveryNoteInvoiced(
+  doc: Pick<CommercialDocument, 'doc_type' | 'invoice_id'>,
+): boolean {
+  if (doc.doc_type !== 'delivery_note') return false
+  return Boolean(doc.invoice_id)
 }
 
 export type { CommercialDocumentDetail, CommercialDocumentLine }
@@ -484,6 +500,7 @@ export async function registerCommercialSigningIntent(params: {
   action: 'accept' | 'reject' | 'delivery'
   clientOpId: string
   submissionId?: string | null
+  decisionRequestId?: string | null
 }): Promise<string> {
   const { data, error } = await supabase.rpc('register_commercial_signing_intent' as never, {
     p_document_id: params.documentId,
@@ -491,7 +508,258 @@ export async function registerCommercialSigningIntent(params: {
     p_action: params.action,
     p_client_op_id: params.clientOpId,
     p_submission_id: params.submissionId ?? null,
+    p_decision_request_id: params.decisionRequestId ?? null,
   } as never)
+  if (error) throw error
+  return data as string
+}
+
+export type CommercialDecisionDeliveryChannel =
+  | 'email'
+  | 'whatsapp_portal_nudge'
+  | 'portal'
+  | 'presential'
+
+/** Public customer-portal origin for WhatsApp nudges (no signing secret). */
+export function customerPortalPendingUrl(): string | null {
+  const base = (import.meta.env.VITE_CUSTOMER_PORTAL_ORIGIN as string | undefined)?.replace(
+    /\/$/,
+    '',
+  )
+  if (!base) return null
+  return `${base}/dashboard/pending`
+}
+
+export async function hasActiveCustomerPortalGrantForDocument(
+  documentId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc(
+    'has_active_customer_portal_grant_for_document' as never,
+    { p_document_id: documentId } as never,
+  )
+  if (error) throw error
+  return data === true
+}
+
+export type OpenCommercialDecisionRequest = {
+  id: string
+  status: string
+  purpose: string
+  expires_at: string
+  active_provider: string | null
+  decided_at: string | null
+  decided_via: string | null
+  commercial_document_id: string | null
+  agreement_version_id: string | null
+  document_version_id: string | null
+  rendered_document_id: string | null
+  latest_delivery: {
+    id: string
+    channel: string
+    status: string
+    recipient_masked: string | null
+    created_at: string
+    error_code: string | null
+  } | null
+}
+
+export async function createCommercialDecisionRequest(params: {
+  targetKind: 'commercial_document' | 'agreement_version'
+  targetId: string
+  expiresAt: string
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('create_commercial_decision_request' as never, {
+    p_target_kind: params.targetKind,
+    p_target_id: params.targetId,
+    p_expires_at: params.expiresAt,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+export async function createCommercialDecisionDelivery(params: {
+  requestId: string
+  channel: CommercialDecisionDeliveryChannel
+  contactPointId?: string | null
+  locale?: string
+  clientOpId?: string
+}): Promise<{ deliveryId: string; alreadyCreated: boolean }> {
+  const { data, error } = await supabase.rpc('create_commercial_decision_delivery' as never, {
+    p_request_id: params.requestId,
+    p_channel: params.channel,
+    p_contact_point_id: params.contactPointId ?? null,
+    p_locale: params.locale ?? 'ca',
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  const row = data as {
+    delivery_id: string
+    already_created: boolean
+  }
+  return {
+    deliveryId: row.delivery_id,
+    alreadyCreated: row.already_created,
+  }
+}
+
+export async function getOpenCommercialDecisionRequest(
+  documentId: string,
+): Promise<OpenCommercialDecisionRequest | null> {
+  const { data, error } = await supabase.rpc('get_open_commercial_decision_request' as never, {
+    p_target_document_id: documentId,
+  } as never)
+  if (error) throw error
+  if (!data) return null
+  return data as OpenCommercialDecisionRequest
+}
+
+export async function revokeCommercialDecisionRequest(params: {
+  requestId: string
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('revoke_commercial_decision_request' as never, {
+    p_request_id: params.requestId,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+export async function prepareCommercialDecisionSigningAttempt(params: {
+  requestId: string
+  provider: 'native' | 'docuseal'
+  clientOpId?: string
+}): Promise<{
+  ok: boolean
+  provider_changed: boolean
+  from_provider: string
+  to_provider: string
+  clientOpId: string
+}> {
+  const clientOpId = params.clientOpId ?? generateClientOpId()
+  const { data, error } = await supabase.rpc(
+    'prepare_commercial_decision_signing_attempt' as never,
+    {
+      p_request_id: params.requestId,
+      p_provider: params.provider,
+      p_client_op_id: clientOpId,
+    } as never,
+  )
+  if (error) throw error
+  const row = data as {
+    ok?: boolean
+    provider_changed?: boolean
+    from_provider?: string
+    to_provider?: string
+  }
+  return {
+    ok: row?.ok === true,
+    provider_changed: row?.provider_changed === true,
+    from_provider: String(row?.from_provider ?? 'native'),
+    to_provider: String(row?.to_provider ?? params.provider),
+    clientOpId,
+  }
+}
+
+export async function abortCommercialDecisionSigningPrepare(params: {
+  requestId: string
+  clientOpId: string
+}): Promise<void> {
+  const { error } = await supabase.rpc(
+    'abort_commercial_decision_signing_prepare' as never,
+    {
+      p_request_id: params.requestId,
+      p_client_op_id: params.clientOpId,
+    } as never,
+  )
+  if (error) throw error
+}
+
+export type CommercialSignedArtifactStatus = {
+  request_id: string
+  request_status: string
+  submission_id: string
+  submission_status: string
+  artifact_status: string | null
+  artifact_error: string | null
+  has_result_pdf: boolean
+}
+
+export async function getCommercialDocumentSignedArtifactStatus(
+  documentId: string,
+): Promise<CommercialSignedArtifactStatus | null> {
+  const { data, error } = await supabase.rpc(
+    'get_commercial_document_signed_artifact_status' as never,
+    { p_document_id: documentId } as never,
+  )
+  if (error) throw error
+  if (!data) return null
+  return data as CommercialSignedArtifactStatus
+}
+
+export async function applyCommercialDecisionOffice(params: {
+  requestId: string
+  outcome: 'accepted' | 'declined'
+  reason?: string | null
+  clientOpId?: string
+}): Promise<unknown> {
+  const { data, error } = await supabase.rpc('apply_commercial_decision_office' as never, {
+    p_request_id: params.requestId,
+    p_outcome: params.outcome,
+    p_reason: params.reason ?? null,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  return data
+}
+
+export async function enqueueCommercialDecisionDeliveryEmail(params: {
+  deliveryId: string
+  toEmail: string
+  decisionUrl: string
+  recipientName?: string | null
+  locale?: string | null
+  portalUrl?: string | null
+}): Promise<{ deliveryId: string; emailLogId: string; status: string; alreadyQueued: boolean }> {
+  const { data, error } = await supabase.rpc(
+    'enqueue_commercial_decision_delivery_email' as never,
+    {
+      p_delivery_id: params.deliveryId,
+      p_to_email: params.toEmail,
+      p_decision_url: params.decisionUrl,
+      p_recipient_name: params.recipientName ?? null,
+      p_locale: params.locale ?? null,
+      p_portal_url: params.portalUrl ?? null,
+    } as never,
+  )
+  if (error) throw error
+  const row = data as {
+    delivery_id: string
+    email_log_id: string
+    status: string
+    already_queued: boolean
+  }
+  return {
+    deliveryId: row.delivery_id,
+    emailLogId: row.email_log_id,
+    status: row.status,
+    alreadyQueued: row.already_queued,
+  }
+}
+
+export async function markCommercialDecisionDeliveryFailed(params: {
+  deliveryId: string
+  errorCode: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc(
+    'mark_commercial_decision_delivery_failed' as never,
+    {
+      p_delivery_id: params.deliveryId,
+      p_error_code: params.errorCode,
+    } as never,
+  )
   if (error) throw error
   return data as string
 }
@@ -633,18 +901,60 @@ export async function getDeliveryNoteCollectionDetail(
   return data as DeliveryNoteCollectionDetail
 }
 
-export async function setDeliveryExternalInvoiceRef(params: {
+/** Attach / update / clear ERP-gestoria ref on a commercial document (never changes PiMed doc_number). */
+export async function setCommercialDocumentExternalRef(params: {
   documentId: string
-  ref: string | null
+  externalNumber: string | null
+  provider?: string
+  externalId?: string | null
 }): Promise<void> {
-  const { error } = await supabase.rpc(
-    'set_delivery_external_invoice_ref' as never,
-    {
-      p_document_id: params.documentId,
-      p_ref: params.ref,
-    } as never,
-  )
+  const { error } = await supabase.rpc('set_commercial_document_external_ref' as never, {
+    p_document_id: params.documentId,
+    p_external_number: params.externalNumber,
+    p_provider: params.provider ?? 'manual',
+    p_external_id: params.externalId ?? null,
+  } as never)
   if (error) throw error
+}
+
+export type CommercialDocumentExternalRef = {
+  provider: string
+  external_number: string | null
+  external_id: string | null
+  synced_at: string | null
+}
+
+/** Read ERP/gestoria refs for a document (usually provider=manual). */
+export async function listCommercialDocumentExternalRefs(
+  documentId: string,
+): Promise<CommercialDocumentExternalRef[]> {
+  const { data, error } = await supabase
+    .from('commercial_document_external_refs' as never)
+    .select('provider, external_number, external_id, synced_at')
+    .eq('document_id', documentId)
+    .order('updated_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as CommercialDocumentExternalRef[]
+}
+
+export async function issueInvoiceFromDeliveryNotes(params: {
+  deliveryNoteIds: string[]
+  issuedOn: string
+  /** Optional ERP / gestoria reference — stored on external_refs; never becomes PiMed doc_number. */
+  erpReference?: string | null
+  notes?: string | null
+  clientOpId?: string
+}): Promise<{ id: string; differenceCents: number; docNumber?: string | null }> {
+  const clientOpId = params.clientOpId ?? generateClientOpId()
+  const { data, error } = await supabase.rpc('issue_invoice_from_delivery_notes' as never, {
+    p_delivery_note_ids: params.deliveryNoteIds,
+    p_client_op_id: clientOpId,
+    p_issued_on: params.issuedOn || null,
+    p_notes: params.notes ?? null,
+    p_erp_reference: params.erpReference?.trim() || null,
+  } as never)
+  if (error) throw error
+  return { id: String(data ?? ''), differenceCents: 0 }
 }
 
 export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'bizum' | 'payment_link'
@@ -751,11 +1061,58 @@ export type DeliveryNoteListRow = {
   remaining_cents: number
   issued_at: string | null
   created_at: string
-  external_invoice_id: string | null
-  external_invoice_ref: string | null
+  /** Active native invoice id (invoice_delivery_notes). */
+  invoice_id: string | null
+  /** PiMed doc_number of the active invoice. */
+  invoice_doc_number: string | null
+  /** @deprecated Prefer invoice_id */
+  external_invoice_id?: string | null
+  /** @deprecated Prefer invoice_doc_number */
+  external_invoice_ref?: string | null
   supersedes_id: string | null
   superseded_by_id: string | null
   superseded_by_number: string | null
+}
+
+function normalizeDeliveryNoteListRow(raw: Record<string, unknown>): DeliveryNoteListRow {
+  const invoiceId =
+    (raw.invoice_id as string | null | undefined) ??
+    (raw.external_invoice_id as string | null | undefined) ??
+    null
+  // PiMed invoice number only — never coerce DN.external_invoice_ref (ERP text) into it.
+  const invoiceDocNumber =
+    (raw.invoice_doc_number as string | null | undefined) ??
+    (raw.external_invoice_number as string | null | undefined) ??
+    null
+  const legacyErpText = (raw.external_invoice_ref as string | null | undefined) ?? null
+  return {
+    id: String(raw.id),
+    doc_number: (raw.doc_number as string | null) ?? null,
+    client_id: (raw.client_id as string | null) ?? null,
+    client_display_name: (raw.client_display_name as string | null) ?? null,
+    project_id: (raw.project_id as string | null) ?? null,
+    project_name: (raw.project_name as string | null) ?? null,
+    document_status: String(raw.document_status ?? ''),
+    collection_status: raw.collection_status as DeliveryNoteListStatus,
+    billing_status: raw.billing_status as SalesBillingStatus | undefined,
+    total: Number(raw.total ?? 0),
+    total_cents: Number(raw.total_cents ?? 0),
+    direct_paid_cents: Number(raw.direct_paid_cents ?? 0),
+    inherited_paid_cents: Number(raw.inherited_paid_cents ?? 0),
+    advance_applied_cents: Number(raw.advance_applied_cents ?? 0),
+    paid_cents: Number(raw.paid_cents ?? 0),
+    remaining_cents: Number(raw.remaining_cents ?? 0),
+    issued_at: (raw.issued_at as string | null) ?? null,
+    created_at: String(raw.created_at ?? ''),
+    invoice_id: invoiceId,
+    invoice_doc_number: invoiceDocNumber,
+    external_invoice_id: invoiceId,
+    /** Legacy DN text only; never alias of PiMed invoice_doc_number. */
+    external_invoice_ref: invoiceId ? null : legacyErpText,
+    supersedes_id: (raw.supersedes_id as string | null) ?? null,
+    superseded_by_id: (raw.superseded_by_id as string | null) ?? null,
+    superseded_by_number: (raw.superseded_by_number as string | null) ?? null,
+  }
 }
 
 export type ListDeliveryNotesParams = ListDeliveryCollectionParams & {
@@ -794,52 +1151,10 @@ export async function listDeliveryNotesPage(
     total_remaining_cents?: number | string | null
   } | null
   return {
-    items: (row?.items ?? []) as DeliveryNoteListRow[],
+    items: ((row?.items ?? []) as Record<string, unknown>[]).map(normalizeDeliveryNoteListRow),
     totalCount: Number(row?.total_count ?? 0),
     totalCents: Number(row?.total_cents ?? 0),
     totalPaidCents: Number(row?.total_paid_cents ?? 0),
-    totalRemainingCents: Number(row?.total_remaining_cents ?? 0),
-  }
-}
-
-export type ExternalInvoiceListRow = {
-  id: string
-  invoice_number: string
-  client_id: string
-  client_display_name: string
-  issued_on: string
-  total_cents: number
-  notes_total_cents: number
-  difference_cents: number
-  delivery_count: number
-  delivery_numbers: string[]
-  paid_cents: number
-  remaining_cents: number
-}
-
-export async function listExternalInvoicesPage(params: {
-  clientId?: string | null
-  projectId?: string | null
-  q?: string | null
-  limit?: number
-  offset?: number
-} = {}): Promise<{ items: ExternalInvoiceListRow[]; totalCount: number; totalRemainingCents: number }> {
-  const { data, error } = await supabase.rpc('list_external_invoices_page' as never, {
-    p_client_id: params.clientId || null,
-    p_project_id: params.projectId || null,
-    p_q: params.q?.trim() || null,
-    p_limit: params.limit ?? 50,
-    p_offset: params.offset ?? 0,
-  } as never)
-  if (error) throw error
-  const row = (Array.isArray(data) ? data[0] : data) as {
-    items?: ExternalInvoiceListRow[] | null
-    total_count?: number | string | null
-    total_remaining_cents?: number | string | null
-  } | null
-  return {
-    items: (row?.items ?? []) as ExternalInvoiceListRow[],
-    totalCount: Number(row?.total_count ?? 0),
     totalRemainingCents: Number(row?.total_remaining_cents ?? 0),
   }
 }
@@ -867,15 +1182,15 @@ export async function issueInvoice(params: {
   invoiceId: string
   issuedOn?: string | null
   seriesId?: string | null
-  docNumber?: string | null
   clientOpId?: string
 }): Promise<string> {
+  // P0: never pass p_doc_number — series allocation only (ERP ref lives on external_refs).
   const { data, error } = await supabase.rpc('issue_invoice' as never, {
     p_invoice_id: params.invoiceId,
     p_client_op_id: params.clientOpId ?? generateClientOpId(),
     p_issued_on: params.issuedOn ?? null,
     p_series_id: params.seriesId ?? null,
-    p_doc_number: params.docNumber ?? null,
+    p_doc_number: null,
   } as never)
   if (error) throw error
   return String(data ?? params.invoiceId)
@@ -891,120 +1206,6 @@ export async function cancelInvoice(params: {
   } as never)
   if (error) throw error
   return String(data ?? params.invoiceId)
-}
-
-/** Create draft then issue (native path replacing register_external_invoice writes). */
-export async function setCommercialDocumentExternalRef(params: {
-  documentId: string
-  externalNumber: string | null
-  provider?: string
-  externalId?: string | null
-}): Promise<void> {
-  const { error } = await supabase.rpc('set_commercial_document_external_ref' as never, {
-    p_document_id: params.documentId,
-    p_external_number: params.externalNumber,
-    p_provider: params.provider ?? 'manual',
-    p_external_id: params.externalId ?? null,
-  } as never)
-  if (error) throw error
-}
-
-function isMissingRpcError(err: unknown): boolean {
-  if (typeof err !== 'object' || err === null) return false
-  const row = err as { code?: unknown; message?: unknown; details?: unknown }
-  if (row.code === 'PGRST202') return true
-  const blob = `${typeof row.message === 'string' ? row.message : ''}\n${
-    typeof row.details === 'string' ? row.details : ''
-  }`
-  return blob.includes('Could not find the function') || blob.includes('schema cache')
-}
-
-export async function issueInvoiceFromDeliveryNotes(params: {
-  deliveryNoteIds: string[]
-  issuedOn: string
-  /** Optional ERP / external reference — does not become PiMed doc_number. */
-  erpReference?: string | null
-  /** @deprecated Prefer erpReference; forced doc numbers skip series allocation. */
-  invoiceNumber?: string | null
-  notes?: string | null
-  allocateNumber?: boolean
-  clientOpId?: string
-}): Promise<{ id: string; differenceCents: number; docNumber?: string | null }> {
-  const clientOpId = params.clientOpId ?? generateClientOpId()
-  const forcedNumber =
-    params.allocateNumber === false || Boolean(params.invoiceNumber)
-      ? (params.invoiceNumber ?? null)
-      : null
-
-  // Forced doc_number is legacy/rare; keep create+issue. Normal path is one TX RPC.
-  if (forcedNumber) {
-    const draftId = await createInvoiceDraftFromDeliveryNotes({
-      deliveryNoteIds: params.deliveryNoteIds,
-      issuedOn: params.issuedOn,
-      notes: params.notes,
-      clientOpId,
-    })
-    try {
-      const issuedId = await issueInvoice({
-        invoiceId: draftId,
-        issuedOn: params.issuedOn,
-        docNumber: forcedNumber,
-        clientOpId,
-      })
-      return { id: issuedId, differenceCents: 0 }
-    } catch (err) {
-      try {
-        await cancelInvoice({ invoiceId: draftId, clientOpId: generateClientOpId() })
-      } catch {
-        // best-effort discard
-      }
-      throw err
-    }
-  }
-
-  const { data, error } = await supabase.rpc('issue_invoice_from_delivery_notes' as never, {
-    p_delivery_note_ids: params.deliveryNoteIds,
-    p_client_op_id: clientOpId,
-    p_issued_on: params.issuedOn || null,
-    p_notes: params.notes ?? null,
-    p_erp_reference: params.erpReference?.trim() || null,
-  } as never)
-  if (error) throw error
-  return { id: String(data ?? ''), differenceCents: 0 }
-}
-
-export async function registerExternalInvoice(params: {
-  invoiceNumber: string
-  issuedOn: string
-  totalCents: number
-  deliveryNoteIds: string[]
-  notes?: string | null
-}): Promise<{ id: string; differenceCents: number }> {
-  // Prefer native draft+issue; fall back to compatibility RPC only if the RPC is missing.
-  try {
-    return await issueInvoiceFromDeliveryNotes({
-      deliveryNoteIds: params.deliveryNoteIds,
-      issuedOn: params.issuedOn,
-      invoiceNumber: params.invoiceNumber,
-      notes: params.notes,
-    })
-  } catch (err) {
-    if (!isMissingRpcError(err)) throw err
-    const { data, error } = await supabase.rpc('register_external_invoice' as never, {
-      p_invoice_number: params.invoiceNumber,
-      p_issued_on: params.issuedOn,
-      p_total_cents: params.totalCents,
-      p_delivery_note_ids: params.deliveryNoteIds,
-      p_client_op_id: generateClientOpId(),
-      p_notes: params.notes ?? null,
-    } as never)
-    if (error) throw error
-    const row = data as { id?: string; difference_cents?: number | string | null }
-    return {
-      id: String(row?.id ?? ''),
-      differenceCents: Number(row?.difference_cents ?? 0),
-    }
-  }
 }
 
 export type InvoicePaymentResult = {
@@ -1739,6 +1940,49 @@ export async function getPayment(paymentId: string): Promise<CommercialPayment> 
   return data as CommercialPayment
 }
 
+async function attachActiveInvoiceLinks(
+  docs: CommercialDocument[],
+): Promise<CommercialDocument[]> {
+  const dnIds = docs.filter((d) => d.doc_type === 'delivery_note').map((d) => d.id)
+  if (dnIds.length === 0) return docs
+
+  const { data: links, error: linkErr } = await supabase
+    .from('invoice_delivery_notes' as never)
+    .select('delivery_note_id, invoice_id')
+    .in('delivery_note_id', dnIds)
+    .is('released_at', null)
+  if (linkErr) throw linkErr
+
+  const byDn = new Map<string, string>()
+  for (const row of (links ?? []) as Array<{ delivery_note_id: string; invoice_id: string }>) {
+    byDn.set(row.delivery_note_id, row.invoice_id)
+  }
+  if (byDn.size === 0) return docs
+
+  const invoiceIds = [...new Set(byDn.values())]
+  const { data: invDocs, error: invErr } = await supabase
+    .from('commercial_documents' as never)
+    .select('id, doc_number')
+    .in('id', invoiceIds)
+  if (invErr) throw invErr
+  const numbers = new Map(
+    ((invDocs ?? []) as Array<{ id: string; doc_number: string | null }>).map((d) => [
+      d.id,
+      d.doc_number,
+    ]),
+  )
+
+  return docs.map((doc) => {
+    const invoiceId = byDn.get(doc.id)
+    if (!invoiceId) return doc
+    return {
+      ...doc,
+      invoice_id: invoiceId,
+      invoice_doc_number: numbers.get(invoiceId) ?? null,
+    }
+  })
+}
+
 export async function listProjectCommercialDocuments(
   projectId: string,
 ): Promise<CommercialDocument[]> {
@@ -1748,7 +1992,7 @@ export async function listProjectCommercialDocuments(
     .eq('project_id', projectId)
     .order('created_at', { ascending: false })
   if (error) throw error
-  return (data ?? []) as CommercialDocument[]
+  return attachActiveInvoiceLinks((data ?? []) as CommercialDocument[])
 }
 
 export async function listCommercialDocumentsForClient(
@@ -1760,7 +2004,7 @@ export async function listCommercialDocumentsForClient(
     .eq('client_id', clientId)
     .order('created_at', { ascending: false })
   if (error) throw error
-  return (data ?? []) as CommercialDocument[]
+  return attachActiveInvoiceLinks((data ?? []) as CommercialDocument[])
 }
 
 /** First line name per document, ordered by position. Used as a human title in lists. */
@@ -1827,6 +2071,7 @@ export type QuoteAgreementState = {
   id: string
   sourceQuoteId: string
   status: string
+  activeVersionId: string | null
   versionStatus: string | null
   renderedDocumentId: string | null
 }
@@ -1871,6 +2116,7 @@ export async function listQuoteAgreementStates(
     id: row.id,
     sourceQuoteId: row.source_quote_id,
     status: row.status,
+    activeVersionId: row.active_version_id,
     versionStatus: row.active_version_id
       ? versionStatus.get(row.active_version_id) ?? null
       : null,
@@ -1890,7 +2136,7 @@ export async function listCommercialDocumentsForProjects(
     .in('project_id', projectIds)
     .order('created_at', { ascending: false })
   if (error) throw error
-  return (data ?? []) as CommercialDocument[]
+  return attachActiveInvoiceLinks((data ?? []) as CommercialDocument[])
 }
 
 export async function projectHasQuoteWaiver(projectId: string): Promise<boolean> {
@@ -1956,7 +2202,7 @@ export async function getCommercialDocumentDetail(
   if (eventsError) throw eventsError
 
   const row = doc as CommercialDocument & Record<string, unknown>
-  return {
+  const base: CommercialDocumentDetail = {
     id: row.id,
     tenant_id: row.tenant_id,
     doc_type: row.doc_type,
@@ -1993,6 +2239,11 @@ export async function getCommercialDocumentDetail(
     lines: (lines ?? []) as CommercialDocumentLine[],
     events: (events ?? []) as CommercialDocumentDetail['events'],
   }
+  if (base.doc_type === 'delivery_note') {
+    const [enriched] = await attachActiveInvoiceLinks([base])
+    return { ...base, ...enriched, lines: base.lines, events: base.events }
+  }
+  return base
 }
 
 export async function recordCommercialDocumentSent(params: {
@@ -2169,6 +2420,19 @@ export async function markAgreementSentForSignature(params: {
     p_version_id: params.versionId,
     p_submission_id: params.submissionId,
     p_signer_role: 'client',
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+/** Undo mark→pending when Send/sign fails before a usable session exists. */
+export async function revertAgreementSentForSignature(params: {
+  versionId: string
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('revert_agreement_sent_for_signature' as never, {
+    p_version_id: params.versionId,
     p_client_op_id: params.clientOpId ?? generateClientOpId(),
   } as never)
   if (error) throw error
@@ -2719,24 +2983,62 @@ export async function sendAgreementVersionForSignature(params: {
   if (!rendered.version_id) throw new Error('agreement_pdf_required')
   const { callSignDocumentRouter } = await import('@/features/signing/api/signingService')
   const opId = generateClientOpId()
-  const result = await callSignDocumentRouter({
-    tenant_id: params.tenantId,
-    action: 'sign_native',
-    source_type: 'document_existing',
-    source_document_version_id: rendered.version_id,
-    document_title: params.documentTitle,
-    native_sign_type: 'presential',
-    output_format: 'pdf',
-    output_profile: 'pdfa2b',
-    signer_name: params.signerName,
-    signer_role: 'client',
-    client_request_id: opId,
-  })
-  return markAgreementSentForSignature({
-    versionId: params.versionId,
-    submissionId: result.submission_id ?? null,
-    clientOpId: opId,
-  })
+  let marked = false
+  let createdRequestId: string | null = null
+  try {
+    await markAgreementSentForSignature({
+      versionId: params.versionId,
+      submissionId: null,
+      clientOpId: opId,
+    })
+    marked = true
+    let decisionRequestId: string | null = null
+    try {
+      decisionRequestId = await createCommercialDecisionRequest({
+        targetKind: 'agreement_version',
+        targetId: params.versionId,
+        expiresAt: defaultDecisionExpiresAt(14),
+        clientOpId: opId,
+      })
+      createdRequestId = decisionRequestId
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (!msg.includes('decision_requests_disabled')) throw err
+    }
+    const result = await callSignDocumentRouter({
+      tenant_id: params.tenantId,
+      action: 'sign_native',
+      source_type: 'document_existing',
+      source_document_version_id: rendered.version_id,
+      document_title: params.documentTitle,
+      native_sign_type: 'presential',
+      output_format: 'pdf',
+      output_profile: 'pdfa2b',
+      signer_name: params.signerName,
+      signer_role: 'client',
+      client_request_id: opId,
+      ...(decisionRequestId
+        ? { commercial_decision_request_id: decisionRequestId }
+        : {}),
+    })
+    return result.submission_id ?? params.versionId
+  } catch (err) {
+    if (createdRequestId) {
+      try {
+        await revokeCommercialDecisionRequest({ requestId: createdRequestId })
+      } catch {
+        /* keep primary */
+      }
+    }
+    if (marked) {
+      try {
+        await revertAgreementSentForSignature({ versionId: params.versionId })
+      } catch {
+        /* keep primary */
+      }
+    }
+    throw err
+  }
 }
 
 export async function hasRecentAgreementSigningFailure(agreementId: string): Promise<boolean> {

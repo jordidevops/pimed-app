@@ -206,12 +206,14 @@ BEGIN
     END IF;
   END;
 
-  PERFORM api.set_delivery_external_invoice_ref(v_delivery, '  F-2026-017  ');
-  SELECT external_invoice_ref INTO v_invoice
-  FROM data.commercial_documents
-  WHERE id = v_delivery;
-  IF v_invoice IS DISTINCT FROM 'F-2026-017' THEN
-    RAISE EXCEPTION 'T10 external invoice ref not saved: %', v_invoice;
-  END IF;
+  BEGIN
+    PERFORM api.set_delivery_external_invoice_ref(v_delivery, '  F-2026-017  ');
+    RAISE EXCEPTION 'T10 set_delivery_external_invoice_ref should be deprecated';
+  EXCEPTION
+    WHEN SQLSTATE 'P0001' THEN
+      IF SQLERRM NOT LIKE '%external_invoice_ref_deprecated%' THEN
+        RAISE;
+      END IF;
+  END;
 END;
 $$;

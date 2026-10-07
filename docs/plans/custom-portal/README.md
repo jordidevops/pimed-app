@@ -7,6 +7,8 @@
 > **Schema (local/dev):** reescriure migracions CP-A/CP-B + `db reset`; no acumular fixups additius mentre no hi hagi producció.
 >
 > **Control d'execució:** estat per milestone → [`STATUS.md`](./STATUS.md) · fase activa i gates → [`EXECUTION.md`](./EXECUTION.md). Aquest README és el contracte d'arquitectura; no duplica el tracking.
+>
+> **Extensió comercial planificada (CP-D):** [`../commercial-flow/11-commercial-signing-ux/`](../commercial-flow/11-commercial-signing-ux/README.md) — quotes/acords, albarans, factures i decisions; reutilitza grants/BFF de CP-C i no exposa PostgREST al client.
 
 ## Resum executiu
 
@@ -506,7 +508,7 @@ Per a domini custom, el callback d'auth torna primer a un domini de sistema allo
 7. Crear helpers privats `SECURITY DEFINER` amb `search_path` fixat que calculen projeccions visibles. No s'exposen a `authenticated`; l'Edge resolver les crida amb service role després de validar sessió/grant. El BFF mai té accés DB privilegiat general.
 8. Offboarding: tancar `contact_relationships`, desactivar canals, revocar grant i totes les sessions d'aquella persona sense afectar altres persones de l'empresa.
 9. Navegació mòbil simple: activitat, butlletins, properes visites i contacte.
-10. Factures, galeries i resums són mòduls posteriors amb scope explícit propi.
+10. Factures, documents comercials, galeries i resums són mòduls posteriors amb scope explícit propi. Factures/quotes/acords/albarans queden especificats a **CP-D / CF-28**.
 11. Aplicar `mode = portal` i `new_access_policy` a invitació/acceptació/grant; els accessos persistents no desactiven la possibilitat de crear shares puntuals.
 12. Ampliar «Veure com el client» a scope empresa+persona d'un sol grant; la llista de clients roman al tenant-portal i no hi ha selector multi-client al customer-portal.
 

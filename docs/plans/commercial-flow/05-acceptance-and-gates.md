@@ -103,6 +103,30 @@ La cobertura automàtica no substitueix una UAT offline real en mòbil; fins lla
 5. Un cobrament parcial deixa saldo pendent correcte. **(CF-17)** — cobert: cap a `record_payment`, bestretes, `payment_link` amb referència; Stripe i Holded API 📦.
 6. El PDF de marca es genera amb la plantilla del tenant i queda desat al DMS. **(CF-18)** — cobert: HTML del snapshot + Gotenberg/cua + `rendered_document_id`; TAP prova l’enllaç DMS, no la conversió; signatura formal 📦.
 
+## Acceptació CF-28 — Firma comercial i portal
+
+Spec: [`11-commercial-signing-ux/`](./11-commercial-signing-ux/README.md).
+
+Core obligatori:
+
+1. El tenant envia una quote/acord/DN per correu o enllaç i veu una sola resposta pendent.
+2. El client revisa el snapshot exacte, accepta amb firma o refusa sense pad.
+3. Dues respostes simultànies produeixen un sol outcome; la perdedora veu l'estat real.
+4. `separate_agreement` demana una sola firma al client.
+5. Un DN disputat queda bloquejat a totes les portes de facturació.
+6. Firma nativa funciona amb zero crèdits.
+7. El PDF firmat és una versió del mateix document DMS.
+8. L'estat remot apareix sense reload manual.
+
+Portal, quan el tenant l'activa:
+
+1. Scope tenant + compte + principal provat.
+2. Quotes/acords, DN i factures només emesos; cap draft/cost/nota interna.
+3. Factura mostra total, pagat, pendent i orígens.
+4. La decisió al portal usa la mateixa request i first-wins.
+
+Gate tècnic complet a [`11-commercial-signing-ux/09-fase-tests-scale-rollout.md`](./11-commercial-signing-ux/09-fase-tests-scale-rollout.md).
+
 ## Gate Tall 2 → Tall 3
 
 | Ítem | Requisit | Estat (2026-10-05) |
@@ -123,4 +147,4 @@ Ompliment cost/PVP/flags verificat (smoke). Sense tancar el deute residual de qu
 2. Cap usuari sense permís financer accedeix a costos ni marges, comprovat a la base de dades.
 3. Els costos històrics no canvien quan es modifiquen sous o preus de catàleg.
 4. Un contracte de manteniment distingeix el que està inclòs del que és extra autoritzable. **(CF-21-c** — `get_project_commercial_inclusion`: OS de pla vinculat a acord actiu = inclosa (sense pressupost nou per iniciar); altrament = extra. SLA + emails d’avís: CF-21-f; facturació periòdica (regla/períodes/ref. externa): CF-21-g; factura fiscal: CF-17 📦.)
-5. Una obra registra bestreta, fites i ordres de canvi signades, amb seguiment de contractat, executat i facturat. **(CF-22;** depèn del nucli d’acords, no de CF-21.)
+5. Una obra registra bestreta, fites i ordres de canvi signades, amb seguiment de contractat, executat i facturat. **(CF-22** — spec [`../commercial-agreements/cf22-obra/`](../commercial-agreements/cf22-obra/README.md); bestreta/ampliacions/DN ja existeixen; fites+seguiment pendents. Depèn del nucli d’acords, no de CF-21.)

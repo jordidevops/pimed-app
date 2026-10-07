@@ -504,9 +504,8 @@ export function DocumentRow({ document: doc, canWrite, onShare, activeShareLinkC
                 const sc = signingConfig
                 if (!sc || !sc.feature_enabled || !sc.effective_is_active) {
                   setSignBlockedOpen(true)
-                } else if (sc.mode === 'platform' && sc.signing_credits === 0) {
-                  setNoCreditsOpen(true)
                 } else {
+                  // Native signing must remain available with 0 credits; DocuSeal is gated inside the orchestrator.
                   setSignOpen(true)
                 }
               }}

@@ -129,4 +129,18 @@ describe('buildCommercialDocumentHtml', () => {
     expect(html).toContain('Client d’exemple')
     expect(html).toContain('Servei d’exemple')
   })
+
+  it('uses option-A invoice footer, not the delivery-note fiscal disclaimer', () => {
+    const invoiceHtml = buildCommercialDocumentHtml(
+      doc({ doc_type: 'invoice', doc_number: 'F-2026-0001' }),
+    )
+    const deliveryHtml = buildCommercialDocumentHtml(
+      doc({ doc_type: 'delivery_note', doc_number: 'A-2026-0001' }),
+    )
+    expect(invoiceHtml).toContain('Document de facturació PiMed')
+    expect(invoiceHtml).toContain('Verifactu')
+    expect(invoiceHtml).not.toContain('Aquest document no és una factura fiscal.')
+    expect(deliveryHtml).toContain('Aquest document no és una factura fiscal.')
+    expect(deliveryHtml).not.toContain('Document de facturació PiMed')
+  })
 })

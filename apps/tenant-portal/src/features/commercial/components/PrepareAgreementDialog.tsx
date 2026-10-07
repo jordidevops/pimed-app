@@ -16,11 +16,16 @@ import { callSignDocumentRouter } from '@/features/signing/api/signingService'
 import { generateClientOpId } from '@/features/attendance/api/clientOpId'
 import { supabase } from '@/lib/supabase'
 import {
+  createCommercialDecisionRequest,
   markAgreementSentForSignature,
   prepareAgreementFromQuote,
+  registerCommercialSigningIntent,
   renderCommercialAgreementPdf,
+  revertAgreementSentForSignature,
+  revokeCommercialDecisionRequest,
   type CommercialAgreementKind,
 } from '../api/commercialFlowService'
+import { defaultDecisionExpiresAt } from '../utils/commercialDecisionSend'
 import {
   COMMERCIAL_AGREEMENT_TEMPLATE_ID_KEY,
   parseCommercialSettingId,
@@ -277,6 +282,8 @@ export function PrepareAgreementDialog({
     if (!version || busy) return
     setBusy(true)
     setError(null)
+    let markedVersionId: string | null = null
+    let createdRequestId: string | null = null
     try {
       const rendered = await renderCommercialAgreementPdf({
         versionId: version.id,
@@ -294,6 +301,25 @@ export function PrepareAgreementDialog({
       setVersion(nextVersion)
       if (!nextVersion?.rendered_document_id) throw new Error('agreement_pdf_required')
       const opId = generateClientOpId()
+      await markAgreementSentForSignature({
+        versionId: nextVersion.id,
+        submissionId: null,
+        clientOpId: opId,
+      })
+      markedVersionId = nextVersion.id
+      let decisionRequestId: string | null = null
+      try {
+        decisionRequestId = await createCommercialDecisionRequest({
+          targetKind: 'agreement_version',
+          targetId: nextVersion.id,
+          expiresAt: defaultDecisionExpiresAt(14),
+          clientOpId: opId,
+        })
+        createdRequestId = decisionRequestId
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        if (!msg.includes('decision_requests_disabled')) throw err
+      }
       const result = await callSignDocumentRouter({
         tenant_id: tenantId,
         action: 'sign_native',
@@ -306,15 +332,42 @@ export function PrepareAgreementDialog({
         signer_name: buyerName,
         signer_role: 'client',
         client_request_id: opId,
+        ...(decisionRequestId
+          ? { commercial_decision_request_id: decisionRequestId }
+          : {}),
       })
-      await markAgreementSentForSignature({
-        versionId: nextVersion.id,
+      if (!result.session_id) {
+        throw new Error(
+          t('projects.commercial.sign_session_missing', "No s'ha creat la sessió de firma"),
+        )
+      }
+      markedVersionId = null
+      createdRequestId = null
+      await registerCommercialSigningIntent({
+        documentId,
+        sessionId: result.session_id,
+        action: 'accept',
+        clientOpId: generateClientOpId(),
         submissionId: result.submission_id ?? null,
-        clientOpId: opId,
+        decisionRequestId,
       })
       await reload()
       onChanged()
     } catch (err) {
+      if (createdRequestId) {
+        try {
+          await revokeCommercialDecisionRequest({ requestId: createdRequestId })
+        } catch {
+          /* surface original */
+        }
+      }
+      if (markedVersionId) {
+        try {
+          await revertAgreementSentForSignature({ versionId: markedVersionId })
+        } catch {
+          /* surface original */
+        }
+      }
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setBusy(false)

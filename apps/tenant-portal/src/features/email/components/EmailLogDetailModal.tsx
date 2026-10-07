@@ -63,7 +63,8 @@ export function EmailLogDetailModal({
 
   if (!log) return null
 
-  const hasBody = !!(log.html_body || log.text_body)
+  const bodyRedacted = log.body_redacted === true
+  const hasBody = !bodyRedacted && !!(log.html_body || log.text_body)
 
   async function handleBodyViewConfirm() {
     if (!log) return
@@ -206,8 +207,15 @@ export function EmailLogDetailModal({
             </section>
           )}
 
-          {/* Vista prèvia HTML (sandboxed) */}
-          {hasBody && (
+          {/* Vista prèvia HTML (sandboxed) — CS-D58: signing/decision bodies redacted */}
+          {bodyRedacted ? (
+            <section className="rounded-lg border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
+              {t(
+                'email.logs.body_redacted_signing',
+                'El cos d’aquest correu de firma o decisió no es mostra a l’equip. Conté l’enllaç del destinatari.',
+              )}
+            </section>
+          ) : hasBody ? (
             <section className="space-y-2 pt-2">
               <Button
                 type="button"
@@ -220,7 +228,7 @@ export function EmailLogDetailModal({
                 {t('email.logs.view_body_btn', 'Veure cos del correu')}
               </Button>
             </section>
-          )}
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>

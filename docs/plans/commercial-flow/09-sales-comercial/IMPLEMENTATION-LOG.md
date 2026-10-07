@@ -64,7 +64,7 @@ TS: `commercialErrorMessage`, `resolveNav`, `navigationReturn`, `buildCommercial
 - Issue atòmic `issue_invoice_from_delivery_notes` + resume d’orphan draft
 - `clientOpId` per intent (cobrar / emetre / export); export no reutilitza lots `failed`
 - Badge `billing_status` (En esborrany vs Facturat); selecció només `to_invoice`
-- Data local (`localDateIso`); `registerExternalInvoice` fallback només `PGRST202`
+- Data local (`localDateIso`); fallback `registerExternalInvoice` retirat a P0 (2026-10-06)
 - Member base sense `invoices.edit` (TS + `get_role_permissions`)
 
 ## Activity + cobraments (`000012`, 2026-10-03)
@@ -82,9 +82,24 @@ TS: `commercialErrorMessage`, `resolveNav`, `navigationReturn`, `buildCommercial
 - LOG: dades UAT `A-CF25-*` locals sense backfill cega de línies
 - Seeds durables (2026-10-06): Volt `A-2026-9101` (2 línies), Riera `A-2026-9102` + existent `A-2026-9001` — `supabase/seeds/commercial_hub_delivery_notes.sql` a `[db.seed] sql_paths`
 
+## P0 facturació coherent (opció A) — 2026-10-06
+
+- Posicionament: [`../10-positioning-invoicing-a.md`](../10-positioning-invoicing-a.md)
+- Client: només `issueInvoiceFromDeliveryNotes({ erpReference })`; sense forçar `doc_number`; `issueInvoice` sense `docNumber`; surface `invoices` → `list_sales_invoices_page`; `listExternalInvoicesPage` retirat
+- Fitxa factura: lectura/edició/esborrar ref ERP; “facturat” = `invoice_id` (link natiu)
+- Copy honest (locales ca + peus PDF invoice vs DN) + acords: “aquí només ref”
+- Migració: `20261227000001_p0_invoice_shim_no_force_number.sql` (shim no força número; mismatch RAISE abans d’emetre)
+- Tests: `external_invoices_tests.sql` (P0 native), CF-17 T10 deprecated; vitest commercial/error/workflow/html OK
+- **Fora:** P0.4 UAT camp; REVOKE shim; drop `external_invoices`
+
 ## Pendent curt (opcional)
 
-- Edició write de patrons de sèrie
+- Edició gated del patró: [`08-series-pattern-edit.md`](./08-series-pattern-edit.md)
 - Adaptadors Sage/A3/DelSol
 - Worker storage signat (V1: ZIP al navegador)
-- EXPLAIN escala + UAT anul·lar / tancar exercici (diferits; veure fase 7)
+- EXPLAIN escala (diferit; veure fase 7)
+
+## UAT opcional CF-27 (2026-10-06)
+
+- Anul·lar: Gina emet `F-2026-0001` des d’`A-2026-9001` (sense pagaments) → Anul·lar; DN torna a **Per facturar**. No s’ha tocat `A-2026-0002`.
+- Exercici: Settings Comercial tancar **2026** (Tancat) → emetre no assigna `F-2026-0002` → Reobrir (**Obert**, `reopened_at` 2026-10-06). Any no resta tancat.

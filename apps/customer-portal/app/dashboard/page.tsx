@@ -5,7 +5,7 @@ import {
 } from '@/components/DashboardBulletinList'
 import type { BulletinListItem } from '@/lib/constants'
 import { PLATFORM_FALLBACK_LOCALE, resolveUiLocale } from '@/lib/locale'
-import { resolveGrantSession } from '@/lib/resolver'
+import { resolveCommercialSession, resolveGrantSession } from '@/lib/resolver'
 import { uiLocaleFromResolve } from '@/lib/resolve-ui-locale'
 import { readActorCookie, readSessionCookie, readUiLocaleCookie } from '@/lib/session'
 
@@ -72,6 +72,17 @@ export default async function DashboardPage() {
     cookieLocale,
   )
   const bulletins = parseBulletins(result.bulletins)
+  // One commercial RPC: modules + pending count + preview cards.
+  const commercial = await resolveCommercialSession({
+    sessionToken: session,
+    action: 'list_pending_decisions',
+    limit: 5,
+  })
+  const modules = commercial.ok ? commercial.modules : undefined
+  const pendingItems = commercial.ok ? (commercial.pending_items ?? []) : []
+  const pendingCount = commercial.ok
+    ? (commercial.pending_decisions_count ?? pendingItems.length)
+    : 0
 
   return (
     <I18nProvider uiLocale={uiLocale}>
@@ -83,6 +94,9 @@ export default async function DashboardPage() {
         accountContactId={result.client_account_contact_id}
         tenantId={result.tenant_id}
         tenantProfile={result.tenant_profile ?? result.access_activity?.tenant_profile}
+        modules={modules}
+        pendingItems={pendingItems}
+        pendingCount={pendingCount}
       />
     </I18nProvider>
   )

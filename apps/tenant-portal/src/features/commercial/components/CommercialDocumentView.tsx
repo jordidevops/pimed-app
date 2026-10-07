@@ -16,8 +16,14 @@ import {
   listQuoteAgreementStates,
 } from '../api/commercialFlowService'
 import { CommercialNativeSignDialog } from './CommercialNativeSignDialog'
+import { CommercialOfficeRejectDialog } from './CommercialOfficeRejectDialog'
 import { PrepareAgreementDialog } from './PrepareAgreementDialog'
-import type { CommercialNativeSignAction } from '../utils/commercialNativeSign'
+import {
+  commercialSigningChannelBadge,
+  commercialSigningChannelLabelKey,
+  commercialSigningProviderBadge,
+  commercialSigningProviderLabelKey,
+} from '../utils/commercialSigningBadges'
 import type { CommercialDocumentDetail } from '../utils/commercialDocumentModel'
 import {
   commercialFilename,
@@ -85,17 +91,25 @@ export function CommercialDocumentView({
   const dmsHref = (docId: string) => documentPathWithReturn(docId, resolvedDmsReturn)
   const [doc, setDoc] = useState<CommercialDocumentDetail | null>(null)
   const [loading, setLoading] = useState(false)
-  const [signAction, setSignAction] = useState<CommercialNativeSignAction | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
+  const [signAction, setSignAction] = useState<'accept' | 'delivery' | null>(null)
+  const [officeRejectOpen, setOfficeRejectOpen] = useState(false)
+  const [decisionBusy, setDecisionBusy] = useState(false)
   const [prepareOpen, setPrepareOpen] = useState(false)
   const [preview, setPreview] = useState<IssuedCommercialPreview | null>(null)
+  const { data: signingHub } = useCommercialDocumentSigningHub(open ? documentId : null)
+  const signedPreviewVersionId =
+    signingHub?.signingStatus === 'completed' && signingHub.resultDocumentVersionId
+      ? signingHub.resultDocumentVersionId
+      : null
   const pdf = useCommercialPdf({
     documentId,
     tenantId: doc?.tenant_id ?? null,
     enabled: open && !!doc,
     initialRenderedDocumentId: doc?.rendered_document_id,
     initialPdfJobId: doc?.pdf_job_id,
+    preferredVersionId: signedPreviewVersionId,
   })
-  const { data: signingHub } = useCommercialDocumentSigningHub(open ? documentId : null)
   const { data: templates = [] } = useDocumentTemplates(open ? doc?.tenant_id ?? undefined : undefined)
   const { data: agreementStates = [] } = useQuery({
     queryKey: ['commercial_agreements', 'by-quotes', documentId],
@@ -117,7 +131,7 @@ export function CommercialDocumentView({
   const deliveryRow = deliveryPage?.items.find((item) => item.id === documentId) ?? null
   const replacedBy = deliveryRow?.superseded_by_number
   const replaces = deliveryPage?.items.find((item) => item.id === deliveryRow?.supersedes_id)?.doc_number
-  const deliveryInvoiced = Boolean(deliveryRow?.external_invoice_ref || doc?.external_invoice_ref)
+  const deliveryInvoiced = Boolean(deliveryRow?.invoice_id || doc?.invoice_id)
   const deliveryCancelled = doc?.status === 'cancelled' || deliveryRow?.collection_status === 'rectified'
   const templateName = templates.find((template) => template.id === doc?.full_body_template_id)?.name ?? null
   const relationshipBadges = commercialRelationshipBadges({
@@ -153,8 +167,8 @@ export function CommercialDocumentView({
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per open/documentId
-  }, [documentId, open])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload on open/documentId/token
+  }, [documentId, open, reloadToken])
 
   useEffect(() => {
     if (!open || !doc) {
@@ -172,10 +186,19 @@ export function CommercialDocumentView({
 
   if (!open) return null
 
-  function decide(kind: 'accept' | 'reject') {
-    if (!doc) return
-    setSignAction(kind)
+  function refreshAfterDecision() {
+    setDecisionBusy(true)
+    setReloadToken((n) => n + 1)
+    void queryClient.invalidateQueries({
+      queryKey: ['commercial', 'signing_hub', 'by_document', documentId],
+    })
+    void queryClient.invalidateQueries({ queryKey: ['commercial_documents'] })
+    onChanged?.()
+    setDecisionBusy(false)
   }
+
+  const providerBadge = commercialSigningProviderBadge(signingHub?.signingProvider)
+  const channelBadge = commercialSigningChannelBadge(signingHub?.signingType)
 
   const showPrices = doc?.show_prices !== false
   const currency = doc?.currency || 'EUR'
@@ -224,7 +247,7 @@ export function CommercialDocumentView({
         <div className="flex flex-wrap gap-1.5">
           {doc && onShare && doc.status !== 'cancelled' ? (
             <Button type="button" size="sm" variant="outline" onClick={onShare}>
-              {t('projects.commercial.send', 'Enviar')}
+              {t('projects.commercial.share_title_deliver', 'Només entregar')}
             </Button>
           ) : null}
           {doc && pdf.status === 'ready' && pdf.downloadUrl ? (
@@ -330,6 +353,22 @@ export function CommercialDocumentView({
                 <div className="flex flex-wrap items-center justify-end gap-1.5">
                   <CommercialDocumentStatusBadges doc={doc} t={t} />
                   <CommercialRelationshipBadges kinds={relationshipBadges} />
+                  {providerBadge ? (
+                    <span className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-violet-50 text-violet-800 dark:bg-violet-950/40 dark:text-violet-200">
+                      {t(
+                        commercialSigningProviderLabelKey(providerBadge),
+                        providerBadge === 'native' ? 'Firma pròpia' : 'DocuSeal',
+                      )}
+                    </span>
+                  ) : null}
+                  {channelBadge ? (
+                    <span className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-sky-50 text-sky-800 dark:bg-sky-950/40 dark:text-sky-200">
+                      {t(
+                        commercialSigningChannelLabelKey(channelBadge),
+                        channelBadge === 'presential' ? 'Presencial' : 'Remota',
+                      )}
+                    </span>
+                  ) : null}
                   {signingHub?.signingStatus ? (
                     <Link
                       to={commercialSigningCentreHref(signingHub.submissionId)}
@@ -341,7 +380,7 @@ export function CommercialDocumentView({
                       {t(
                         `signing:center.status.${signingHub.signingStatus}`,
                         signingHub.signingStatus === 'completed'
-                          ? 'Firmat digitalment'
+                          ? t('projects.commercial.badge_signed', 'Firmat')
                           : signingHub.signingStatus,
                       )}
                     </Link>
@@ -559,7 +598,10 @@ export function CommercialDocumentView({
                 {doc.doc_type === 'delivery_note' && !deliveryCancelled && deliveryInvoiced ? (
                   <p className="pt-2 text-sm text-muted-foreground">
                     {t('projects.collections.included_in_invoice', 'Inclòs a la factura {{ref}}', {
-                      ref: deliveryRow?.external_invoice_ref || doc.external_invoice_ref,
+                      ref:
+                        deliveryRow?.invoice_doc_number ||
+                        doc.invoice_doc_number ||
+                        '—',
                     })}
                   </p>
                 ) : null}
@@ -697,7 +739,8 @@ export function CommercialDocumentView({
             size="lg"
             variant="outline"
             className="h-12"
-            onClick={() => decide('reject')}
+            disabled={decisionBusy}
+            onClick={() => setOfficeRejectOpen(true)}
           >
             {t('projects.commercial.reject', 'Refusar')}
           </Button>
@@ -705,7 +748,8 @@ export function CommercialDocumentView({
             type="button"
             size="lg"
             className="h-12"
-            onClick={() => decide('accept')}
+            disabled={decisionBusy}
+            onClick={() => setSignAction('accept')}
           >
             {t('projects.commercial.accept', 'Acceptar')}
           </Button>
@@ -812,11 +856,21 @@ export function CommercialDocumentView({
           open
           onClose={() => setSignAction(null)}
           onCompleted={() => {
-            onChanged?.()
+            refreshAfterDecision()
             if (signAction !== 'delivery') onClose()
           }}
         />
       ) : null}
+
+      <CommercialOfficeRejectDialog
+        documentId={documentId}
+        open={officeRejectOpen}
+        onClose={() => setOfficeRejectOpen(false)}
+        onCompleted={() => {
+          refreshAfterDecision()
+          onClose()
+        }}
+      />
     </div>
   )
 }

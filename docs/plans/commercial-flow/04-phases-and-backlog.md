@@ -43,6 +43,7 @@ Objectiu: un autònom cobra correctament una feina, amb o sense pressupost, i ma
 | **CF-18** | Render amb plantilles | `document_template_id` al document comercial; PDF de marca via el motor de `/documents`; desat al DMS; encaminament opcional a signatura formal | CF-11 |
 | **CF-25** | Hub d'Albarans (CF-26) | Vista oficina `/delivery-notes`: tots els albarans, saldo FIFO, factura externa i rectificació. `/cobraments` redirigeix. Spec + **fet/pendent**: [`07-collections-and-ar-hub.md`](./07-collections-and-ar-hub.md). **CF-25-b** (períodes d’acord) diferit | CF-12, CF-17 |
 | **CF-27** | Comercial `/sales` | ✅ Factures natives, allocations, sèries/exercicis, gestoria, export ZIP, taules i fitxes. Pla: [`09-sales-comercial/`](./09-sales-comercial/README.md) · [`LOG`](./09-sales-comercial/IMPLEMENTATION-LOG.md) | CF-26 |
+| **CF-28** | Firma comercial i portal | Sol·licitud de decisió atòmica, correu/enllaç, refús sense firma, `/sign` comercial, un sol DMS, portal amb quotes/acords/DN/factures i DocuSeal opcional. Spec: [`11-commercial-signing-ux/`](./11-commercial-signing-ux/README.md) | CF-18, nucli CT, CF-27, CP-C |
 
 ---
 
@@ -53,7 +54,7 @@ Objectiu: un autònom cobra correctament una feina, amb o sense pressupost, i ma
 | **CF-19** | Costos privats | `catalog_item_financials` i `project_line_financials` amb permís financer; marge objectiu com a suggeriment de PVP; mai columnes a les vistes obertes | Tall 2 |
 | **CF-20** | Rendibilitat | Resultat brut estimat i real; cost laboral congelat per work log; separació de cost i preu a materials; ampliació del model de despeses | CF-19 |
 | **CF-21** | Manteniment contractual | Acord amb vigència, actius coberts, serveis inclosos, SLA, revisió de preus, extres autoritzables i regla de facturació. Reutilitza el nucli `commercial_agreements` del [pla CT](../commercial-agreements/pla-pressupost-contracte-acords.md); no és una taula `contracte` nova | Nucli CT (no cal tot CF-22) |
-| **CF-22** | Obra i instal·lació | Opcions i variants, bestretes, fites, ordres de canvi signades, entregues parcials i seguiment contractat, executat i facturat. `kind='project'` sobre el **mateix nucli d’acords**. Les extensions de manteniment de CF-21 **no** són prerequisit | Nucli CT; CF-9 com a ordre de canvi |
+| **CF-22** | Obra i instal·lació | `kind='project'`, fites, seguiment contractat/executat/facturat. Bestretes/DN parcials/ampliacions **ja** a CF-17/26/9. Variants/retencions **fora**. Spec: [`../commercial-agreements/cf22-obra/`](../commercial-agreements/cf22-obra/README.md). CF-21 **no** és prerequisit | Nucli CT; CF-9 |
 
 L'ampliació construïda a CF-9 és la base natural de l'ordre de canvi de CF-22.
 

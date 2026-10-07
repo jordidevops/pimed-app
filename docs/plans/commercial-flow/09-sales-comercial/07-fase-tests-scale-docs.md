@@ -47,8 +47,8 @@ Casos coberts a les suites anteriors (PASS local):
 ### Oficina
 
 - [x] Facturar selecció DN → fitxa factura → PDF → cobrar → saldos
-- [ ] Anul·lar factura sense pagaments → DN tornen a per facturar (**diferit**)
-- [ ] Tancar exercici → bloqueig mutacions (**diferit**; Settings OK)
+- [x] Anul·lar factura sense pagaments → DN tornen a per facturar (2026-10-06 Gina: `A-2026-9001` → `F-2026-0001` cancelled; hub **Per facturar**)
+- [x] Tancar exercici → bloqueig mutacions (2026-10-06: tancar 2026 → Settings **Tancat**; emetre no va crear `F-2026-0002`; **Reobrir** → **Obert**, `reopened_at` set; no deixar l’any tancat)
 
 ### Camp
 

@@ -1,5 +1,5 @@
 import { Navigate, useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { getCommercialDocumentDetail } from '../api/commercialFlowService'
 import { CommercialDocumentDetail } from './CommercialDocumentDetail'
@@ -7,6 +7,7 @@ import { CommercialDocumentShareSheet } from './CommercialDocumentShareSheet'
 
 export function QuoteDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const queryClient = useQueryClient()
   const [shareOpen, setShareOpen] = useState(false)
 
   const detailQuery = useQuery({
@@ -14,6 +15,16 @@ export function QuoteDetailPage() {
     queryFn: () => getCommercialDocumentDetail(id!),
     enabled: !!id,
   })
+
+  function handleChanged() {
+    if (!id) return
+    void queryClient.invalidateQueries({ queryKey: ['commercial_document', id] })
+    void queryClient.invalidateQueries({
+      queryKey: ['commercial', 'signing_hub', 'by_document', id],
+    })
+    void queryClient.invalidateQueries({ queryKey: ['commercial_documents'] })
+    void queryClient.invalidateQueries({ queryKey: ['commercial_agreements', 'by-quotes', id] })
+  }
 
   if (!id) return <Navigate to="/sales/quotes" replace />
 
@@ -40,6 +51,7 @@ export function QuoteDetailPage() {
         backTo="/sales/quotes"
         dmsReturnTo={`/sales/quotes/${id}`}
         onShare={() => setShareOpen(true)}
+        onChanged={handleChanged}
       />
       {shareOpen ? (
         <CommercialDocumentShareSheet documentId={id} open onClose={() => setShareOpen(false)} />

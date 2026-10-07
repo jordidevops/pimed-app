@@ -7,6 +7,9 @@ export type CommercialSigningHubLink = {
   commercialStatus: string | null
   signingStatus: string | null
   action: string | null
+  signingProvider: string | null
+  sessionId: string | null
+  signingType: 'presential' | 'remote' | null
   sourceDocumentId: string | null
   resultDocumentVersionId: string | null
   resultDocumentId: string | null

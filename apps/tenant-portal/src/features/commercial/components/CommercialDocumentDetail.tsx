@@ -1,9 +1,16 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, User } from 'lucide-react'
+import { ArrowLeft, MoreHorizontal, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageShell } from '@/components/layout/PageShell'
 import { useToast } from '@/hooks/use-toast'
@@ -14,12 +21,27 @@ import {
 } from '@/lib/navigationReturn'
 import {
   getCommercialDocumentDetail,
+  getCommercialDocumentSignedArtifactStatus,
+  getOpenCommercialDecisionRequest,
   listDeliveryNotesPage,
   listQuoteAgreementStates,
+  revokeCommercialDecisionRequest,
 } from '../api/commercialFlowService'
 import { CommercialNativeSignDialog } from './CommercialNativeSignDialog'
+import { CommercialOfficeRejectDialog } from './CommercialOfficeRejectDialog'
+import { SendCommercialDecisionDialog } from './SendCommercialDecisionDialog'
+import {
+  commercialDecisionRequestsEnabled,
+  commercialDecisionSendCta,
+} from '../utils/commercialDecisionSend'
+import { useEffectiveSettings } from '@/hooks/useSettings'
 import { PrepareAgreementDialog } from './PrepareAgreementDialog'
-import type { CommercialNativeSignAction } from '../utils/commercialNativeSign'
+import {
+  commercialSigningChannelBadge,
+  commercialSigningChannelLabelKey,
+  commercialSigningProviderBadge,
+  commercialSigningProviderLabelKey,
+} from '../utils/commercialSigningBadges'
 import type { CommercialDocumentDetail as DocDetail } from '../utils/commercialDocumentModel'
 import {
   commercialFilename,
@@ -71,8 +93,6 @@ function PdfPanel({
   doc,
   pdf,
   preview,
-  signedPdfId,
-  dmsHref,
   showHtmlFallback,
   onToggleHtmlFallback,
   htmlFallbackOpen,
@@ -81,8 +101,6 @@ function PdfPanel({
   doc: DocDetail
   pdf: ReturnType<typeof useCommercialPdf>
   preview: IssuedCommercialPreview | null
-  signedPdfId: string | null
-  dmsHref: (id: string) => string
   showHtmlFallback: boolean
   onToggleHtmlFallback: () => void
   htmlFallbackOpen: boolean
@@ -115,20 +133,6 @@ function PdfPanel({
             }}
           >
             {t('projects.commercial.share_pdf', 'Descarregar PDF')}
-          </Button>
-        ) : null}
-        {pdf.renderedDocumentId ? (
-          <Button type="button" size="sm" variant="ghost" asChild>
-            <Link to={dmsHref(pdf.renderedDocumentId)}>
-              {t('projects.commercial.open_dms', 'Obrir al DMS')}
-            </Link>
-          </Button>
-        ) : null}
-        {signedPdfId && signedPdfId !== pdf.renderedDocumentId ? (
-          <Button type="button" size="sm" variant="ghost" asChild>
-            <Link to={dmsHref(signedPdfId)}>
-              {t('projects.commercial.open_signed_pdf', 'Obrir PDF firmat')}
-            </Link>
           </Button>
         ) : null}
         {showHtmlFallback ? (
@@ -241,7 +245,9 @@ export function CommercialDocumentDetail({
   const { toast } = useToast()
   const isLarge = useIsLargeScreen()
   const canEditPricing = usePermission('commercial.pricing.edit')
-  const { activeRole } = useTenant()
+  const { activeRole, activeTenant } = useTenant()
+  const { data: effectiveSettings } = useEffectiveSettings({ tenantId: activeTenant?.id })
+  const decisionEnabled = commercialDecisionRequestsEnabled(effectiveSettings)
   const canPrepareAgreement = activeRole === 'owner' || activeRole === 'manager'
   const locationReturn = `${location.pathname}${location.search}`
   const resolvedDmsReturn =
@@ -251,19 +257,50 @@ export function CommercialDocumentDetail({
 
   const [doc, setDoc] = useState<DocDetail | null>(null)
   const [loading, setLoading] = useState(true)
-  const [signAction, setSignAction] = useState<CommercialNativeSignAction | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
+  const [signAction, setSignAction] = useState<'accept' | 'delivery' | null>(null)
+  const [officeRejectOpen, setOfficeRejectOpen] = useState(false)
+  const [sendDecisionOpen, setSendDecisionOpen] = useState(false)
+  const [sendDecisionResend, setSendDecisionResend] = useState(false)
+  const [decisionBusy, setDecisionBusy] = useState(false)
   const [prepareOpen, setPrepareOpen] = useState(false)
   const [preview, setPreview] = useState<IssuedCommercialPreview | null>(null)
   const [htmlFallbackOpen, setHtmlFallbackOpen] = useState(false)
+  const pendingCardRef = useRef<HTMLElement | null>(null)
 
+  const { data: signingHub } = useCommercialDocumentSigningHub(documentId)
+  const signedPreviewVersionId =
+    signingHub?.signingStatus === 'completed' && signingHub.resultDocumentVersionId
+      ? signingHub.resultDocumentVersionId
+      : null
   const pdf = useCommercialPdf({
     documentId,
     tenantId: doc?.tenant_id ?? null,
     enabled: !!doc,
     initialRenderedDocumentId: doc?.rendered_document_id,
     initialPdfJobId: doc?.pdf_job_id,
+    preferredVersionId: signedPreviewVersionId,
   })
-  const { data: signingHub } = useCommercialDocumentSigningHub(documentId)
+  const openDecisionQuery = useQuery({
+    queryKey: ['commercial', 'decision_request', 'open', documentId],
+    queryFn: () => getOpenCommercialDecisionRequest(documentId),
+    enabled: decisionEnabled && !!documentId,
+    refetchOnWindowFocus: true,
+    refetchInterval: (q) => (q.state.data?.status === 'open' ? 20_000 : false),
+  })
+  const openDecision = openDecisionQuery.data
+  const artifactStatusQuery = useQuery({
+    queryKey: ['commercial', 'signed_artifact', documentId],
+    queryFn: () => getCommercialDocumentSignedArtifactStatus(documentId),
+    enabled: decisionEnabled && !!documentId,
+    refetchOnWindowFocus: true,
+    refetchInterval: (q) =>
+      q.state.data?.artifact_status === 'failed' ||
+      q.state.data?.artifact_status === 'pending'
+        ? 30_000
+        : false,
+  })
+  const artifactStatus = artifactStatusQuery.data
   const { data: templates = [] } = useDocumentTemplates(doc?.tenant_id ?? undefined)
   const { data: agreementStates = [] } = useQuery({
     queryKey: ['commercial_agreements', 'by-quotes', documentId],
@@ -271,6 +308,17 @@ export function CommercialDocumentDetail({
     enabled: !!documentId && doc?.doc_type !== 'delivery_note',
   })
   const agreement = agreementStates[0] ?? null
+  const quoteExpired =
+    !!doc?.valid_until && new Date(doc.valid_until).getTime() < Date.now()
+  const sendCta = commercialDecisionSendCta({
+    docStatus: doc?.status,
+    formalizationMode: doc?.formalization_mode,
+    hasOpenRequest: !!openDecision,
+    decisionRequestsEnabled: decisionEnabled,
+    isExpired: quoteExpired,
+    agreementVersionStatus: agreement?.versionStatus,
+    agreementRendered: !!agreement?.renderedDocumentId,
+  })
   const { data: deliveryPage } = useQuery({
     queryKey: ['delivery_notes', 'document-view', doc?.project_id, documentId],
     queryFn: () =>
@@ -286,7 +334,7 @@ export function CommercialDocumentDetail({
   const replacedBy = deliveryRow?.superseded_by_number
   const replaces = deliveryPage?.items.find((item) => item.id === deliveryRow?.supersedes_id)
     ?.doc_number
-  const deliveryInvoiced = Boolean(deliveryRow?.external_invoice_ref || doc?.external_invoice_ref)
+  const deliveryInvoiced = Boolean(deliveryRow?.invoice_id || doc?.invoice_id)
   const deliveryCancelled =
     doc?.status === 'cancelled' || deliveryRow?.collection_status === 'rectified'
   const templateName =
@@ -322,8 +370,23 @@ export function CommercialDocumentDetail({
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per documentId
-  }, [documentId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload on documentId / explicit refresh
+  }, [documentId, reloadToken])
+
+  function refreshAfterDecision() {
+    setDecisionBusy(true)
+    setReloadToken((n) => n + 1)
+    void queryClient.invalidateQueries({
+      queryKey: ['commercial', 'signing_hub', 'by_document', documentId],
+    })
+    void queryClient.invalidateQueries({ queryKey: ['commercial_document', documentId] })
+    void queryClient.invalidateQueries({ queryKey: ['commercial_documents'] })
+    onChanged?.()
+    setDecisionBusy(false)
+  }
+
+  const providerBadge = commercialSigningProviderBadge(signingHub?.signingProvider)
+  const channelBadge = commercialSigningChannelBadge(signingHub?.signingType)
 
   useEffect(() => {
     if (!doc) {
@@ -366,7 +429,9 @@ export function CommercialDocumentDetail({
     canPrepareAgreement &&
     doc.formalization_mode === 'separate_agreement' &&
     (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment') &&
-    (effectiveStatus === 'accepted' || effectiveStatus === 'signed')
+    (effectiveStatus === 'issued' ||
+      effectiveStatus === 'accepted' ||
+      effectiveStatus === 'signed')
 
   const signedPdfId = commercialSignedPdfDocumentId(signingHub)
   const showHtmlFallback =
@@ -375,11 +440,46 @@ export function CommercialDocumentDetail({
 
   const title = doc?.doc_number ?? documentId.slice(0, 8)
 
+  const showPrepareAgreementBtn =
+    showPrepareAgreement &&
+    !(
+      decisionEnabled &&
+      (sendCta === 'send_for_accept' || sendCta === 'view_pending')
+    )
+
   const commercialHeaderActions = (
     <>
+      {sendCta === 'send_for_accept' ? (
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => {
+            setSendDecisionResend(false)
+            setSendDecisionOpen(true)
+          }}
+        >
+          {t('projects.commercial.decision_send_title', 'Enviar per acceptar')}
+        </Button>
+      ) : null}
+      {sendCta === 'view_pending' && openDecision ? (
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => {
+            pendingCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+          }}
+        >
+          {t('projects.commercial.decision_view_pending', 'Veure resposta pendent')}
+        </Button>
+      ) : null}
       {doc && onShare && doc.status !== 'cancelled' ? (
-        <Button type="button" size="sm" onClick={onShare}>
-          {t('projects.commercial.send', 'Enviar')}
+        <Button
+          type="button"
+          size="sm"
+          variant={sendCta === 'send_for_accept' || sendCta === 'view_pending' ? 'outline' : 'default'}
+          onClick={onShare}
+        >
+          {t('projects.commercial.share_title_deliver', 'Només entregar')}
         </Button>
       ) : null}
       {showDeliverySignFooter ? (
@@ -387,17 +487,39 @@ export function CommercialDocumentDetail({
           {t('projects.commercial.sign_delivery', 'Signar conformitat')}
         </Button>
       ) : null}
-      {showDecideFooter ? (
+      {showDecideFooter && !decisionEnabled ? (
         <>
-          <Button type="button" size="sm" variant="outline" onClick={() => setSignAction('reject')}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={decisionBusy}
+            onClick={() => setOfficeRejectOpen(true)}
+          >
             {t('projects.commercial.reject', 'Refusar')}
           </Button>
-          <Button type="button" size="sm" onClick={() => setSignAction('accept')}>
+          <Button
+            type="button"
+            size="sm"
+            disabled={decisionBusy}
+            onClick={() => setSignAction('accept')}
+          >
             {t('projects.commercial.accept', 'Acceptar')}
           </Button>
         </>
       ) : null}
-      {showPrepareAgreement ? (
+      {showDecideFooter && decisionEnabled ? (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={decisionBusy}
+          onClick={() => setOfficeRejectOpen(true)}
+        >
+          {t('projects.commercial.decision_register_reject', 'Registrar refús')}
+        </Button>
+      ) : null}
+      {showPrepareAgreementBtn ? (
         <Button type="button" size="sm" variant="outline" onClick={() => setPrepareOpen(true)}>
           {agreement
             ? t('projects.commercial.prepare_agreement_footer_send', 'Enviar el contracte a firmar')
@@ -405,12 +527,81 @@ export function CommercialDocumentDetail({
         </Button>
       ) : null}
       {commercialActions}
-      {signingHub?.submissionId ? (
-        <Button type="button" size="sm" variant="outline" asChild>
-          <Link to={commercialSigningCentreHref(signingHub.submissionId)}>
-            {t('projects.commercial.open_signing_centre', 'Centre de signatures')}
-          </Link>
-        </Button>
+      {doc ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" size="sm" variant="outline" className="gap-1">
+              <MoreHorizontal className="h-4 w-4" aria-hidden />
+              {t('projects.commercial.more_actions', 'Més')}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {pdf.renderedDocumentId ? (
+              <DropdownMenuItem asChild>
+                <Link to={dmsHref(pdf.renderedDocumentId)}>
+                  {t('projects.commercial.open_dms', 'Obrir al DMS')}
+                </Link>
+              </DropdownMenuItem>
+            ) : null}
+            {signedPdfId && signedPdfId !== pdf.renderedDocumentId ? (
+              <DropdownMenuItem asChild>
+                <Link to={dmsHref(signedPdfId)}>
+                  {t('projects.commercial.open_signed_pdf', 'Obrir PDF firmat')}
+                </Link>
+              </DropdownMenuItem>
+            ) : null}
+            {signingHub?.submissionId ? (
+              <DropdownMenuItem asChild>
+                <Link to={commercialSigningCentreHref(signingHub.submissionId)}>
+                  {t('projects.commercial.open_signing_centre', 'Centre de signatures')}
+                </Link>
+              </DropdownMenuItem>
+            ) : null}
+            {showHtmlFallback ? (
+              <DropdownMenuItem
+                onSelect={() => setHtmlFallbackOpen((v) => !v)}
+              >
+                {htmlFallbackOpen
+                  ? t('projects.commercial.hide_html_draft', 'Amagar esborrany HTML')
+                  : t('projects.commercial.show_html_draft', 'Veure esborrany HTML')}
+              </DropdownMenuItem>
+            ) : null}
+            {(pdf.renderedDocumentId ||
+              signedPdfId ||
+              signingHub?.submissionId ||
+              showHtmlFallback) &&
+            preview?.kind !== 'docx' ? (
+              <DropdownMenuSeparator />
+            ) : null}
+            {preview?.kind !== 'docx' ? (
+              <DropdownMenuItem
+                onSelect={() => {
+                  if (!doc) return
+                  void printCommercialDocument(doc).catch((err: unknown) => {
+                    toast({
+                      variant: 'destructive',
+                      title: t('projects.commercial.share_failed', 'Enviament fallit · Reintentar'),
+                      description: err instanceof Error ? err.message : undefined,
+                    })
+                  })
+                }}
+              >
+                {t('projects.commercial.share_print', 'Imprimir HTML')}
+              </DropdownMenuItem>
+            ) : null}
+            {showDecideFooter && decisionEnabled && effectiveStatus === 'issued' ? (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  disabled={decisionBusy}
+                  onSelect={() => setSignAction('accept')}
+                >
+                  {t('projects.commercial.decision_presential', 'Firma presencial')}
+                </DropdownMenuItem>
+              </>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
       ) : null}
     </>
   )
@@ -422,6 +613,116 @@ export function CommercialDocumentDetail({
       </p>
     ) : (
       <div className="space-y-5">
+        {artifactStatus?.artifact_status === 'failed' ||
+        (artifactStatus?.artifact_status === 'pending' &&
+          artifactStatus.request_status === 'accepted' &&
+          !artifactStatus.has_result_pdf) ? (
+          <section className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/30">
+            <p className="text-sm font-medium text-foreground">
+              {artifactStatus.artifact_status === 'failed'
+                ? t(
+                    'projects.commercial.decision_artifact_failed',
+                    'PDF firmat pendent de sincronitzar',
+                  )
+                : t(
+                    'projects.commercial.decision_artifact_pending',
+                    'S’està recuperant el PDF firmat…',
+                  )}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t(
+                'projects.commercial.decision_artifact_help',
+                'La resposta del client ja està registrada. El PDF s’adjuntarà automàticament quan estigui disponible.',
+              )}
+            </p>
+          </section>
+        ) : null}
+
+        {openDecision && decisionEnabled ? (
+          <section
+            ref={pendingCardRef}
+            className="rounded-xl border border-sky-300 bg-sky-50 px-4 py-3 dark:border-sky-800 dark:bg-sky-950/30"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0 space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  {t('projects.commercial.decision_pending_title', 'Resposta pendent')}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t('projects.commercial.decision_pending_expires', 'Caduca {{date}}', {
+                    date: formatCommercialEventDate(openDecision.expires_at),
+                  })}
+                </p>
+                {openDecision.latest_delivery ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t('projects.commercial.decision_pending_delivery', '{{channel}} · {{status}}', {
+                      channel: openDecision.latest_delivery.channel,
+                      status: openDecision.latest_delivery.status,
+                    })}
+                    {openDecision.latest_delivery.recipient_masked
+                      ? ` · ${openDecision.latest_delivery.recipient_masked}`
+                      : ''}
+                    {openDecision.latest_delivery.error_code
+                      ? ` · ${openDecision.latest_delivery.error_code}`
+                      : ''}
+                  </p>
+                ) : null}
+                {openDecision.agreement_version_id ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t(
+                      'projects.commercial.decision_pending_agreement',
+                      'El client ha de firmar l’acord, no el pressupost.',
+                    )}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={decisionBusy}
+                  onClick={() => {
+                    setSendDecisionResend(true)
+                    setSendDecisionOpen(true)
+                  }}
+                >
+                  {t('projects.commercial.decision_resend_title', 'Reenviar sol·licitud')}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={decisionBusy}
+                  onClick={() => {
+                    void (async () => {
+                      setDecisionBusy(true)
+                      try {
+                        await revokeCommercialDecisionRequest({ requestId: openDecision.id })
+                        toast({
+                          title: t('projects.commercial.decision_revoked', 'Sol·licitud revocada'),
+                        })
+                        void openDecisionQuery.refetch()
+                        refreshAfterDecision()
+                      } catch (err) {
+                        toast({
+                          variant: 'destructive',
+                          title: t('projects.commercial.error', 'Error comercial'),
+                          description: err instanceof Error ? err.message : undefined,
+                        })
+                      } finally {
+                        setDecisionBusy(false)
+                      }
+                    })()
+                  }}
+                >
+                  {t('projects.commercial.decision_revoke', 'Revocar enviament')}
+                </Button>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
         {signingHub?.signingStatus ||
         showOfficePending ||
         (doc.doc_type !== 'delivery_note' &&
@@ -442,6 +743,22 @@ export function CommercialDocumentDetail({
                 <span className="text-sm font-medium">
                   {t('projects.commercial.document_status', 'Estat del document')}
                 </span>
+                {providerBadge ? (
+                  <span className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-violet-50 text-violet-800 dark:bg-violet-950/40 dark:text-violet-200">
+                    {t(
+                      commercialSigningProviderLabelKey(providerBadge),
+                      providerBadge === 'native' ? 'Firma pròpia' : 'DocuSeal',
+                    )}
+                  </span>
+                ) : null}
+                {channelBadge ? (
+                  <span className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-sky-50 text-sky-800 dark:bg-sky-950/40 dark:text-sky-200">
+                    {t(
+                      commercialSigningChannelLabelKey(channelBadge),
+                      channelBadge === 'presential' ? 'Presencial' : 'Remota',
+                    )}
+                  </span>
+                ) : null}
                 <Link
                   to={commercialSigningCentreHref(signingHub.submissionId)}
                   className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium hover:opacity-80 ${
@@ -452,7 +769,7 @@ export function CommercialDocumentDetail({
                   {t(
                     `signing:center.status.${signingHub.signingStatus}`,
                     signingHub.signingStatus === 'completed'
-                      ? 'Firmat digitalment'
+                      ? t('projects.commercial.badge_signed', 'Firmat')
                       : signingHub.signingStatus,
                   )}
                 </Link>
@@ -626,7 +943,10 @@ export function CommercialDocumentDetail({
             {doc.doc_type === 'delivery_note' && !deliveryCancelled && deliveryInvoiced ? (
               <p className="pt-2 text-sm text-muted-foreground">
                 {t('projects.collections.included_in_invoice', 'Inclòs a la factura {{ref}}', {
-                  ref: deliveryRow?.external_invoice_ref || doc.external_invoice_ref,
+                  ref:
+                    deliveryRow?.invoice_doc_number ||
+                    doc.invoice_doc_number ||
+                    '—',
                 })}
               </p>
             ) : null}
@@ -690,8 +1010,6 @@ export function CommercialDocumentDetail({
       doc={doc}
       pdf={pdf}
       preview={preview}
-      signedPdfId={signedPdfId}
-      dmsHref={dmsHref}
       showHtmlFallback={showHtmlFallback}
       htmlFallbackOpen={htmlFallbackOpen}
       onToggleHtmlFallback={() => setHtmlFallbackOpen((v) => !v)}
@@ -780,11 +1098,37 @@ export function CommercialDocumentDetail({
           open
           onClose={() => setSignAction(null)}
           onCompleted={() => {
-            onChanged?.()
+            refreshAfterDecision()
             setSignAction(null)
           }}
         />
       ) : null}
+
+      <CommercialOfficeRejectDialog
+        documentId={documentId}
+        open={officeRejectOpen}
+        onClose={() => setOfficeRejectOpen(false)}
+        onCompleted={refreshAfterDecision}
+      />
+
+      <SendCommercialDecisionDialog
+        documentId={documentId}
+        open={sendDecisionOpen}
+        existingRequest={sendDecisionResend ? openDecision ?? null : null}
+        onClose={() => {
+          setSendDecisionOpen(false)
+          setSendDecisionResend(false)
+        }}
+        onSent={() => {
+          setSendDecisionOpen(false)
+          setSendDecisionResend(false)
+          void openDecisionQuery.refetch()
+          void queryClient.invalidateQueries({
+            queryKey: ['commercial_agreements', 'by-quotes', documentId],
+          })
+          refreshAfterDecision()
+        }}
+      />
     </>
   )
 }

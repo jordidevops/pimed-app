@@ -19,9 +19,11 @@
 | [08-gate-tall2-tall3.md](./08-gate-tall2-tall3.md) | Gate Tall 2→3: permís, cost materials, despeses flags — fet / pendent / quan |
 | [08b-gate-tall2-tall3-human-uat.md](./08b-gate-tall2-tall3-human-uat.md) | **UAT humana pas a pas** (comptes, O1–O7, offline F*, Dia 2, full de resultats) |
 | [09-sales-comercial/](./09-sales-comercial/README.md) | **CF-27 ✅:** `/sales` factures natives, sèries, gestoria, export ZIP — [`LOG`](./09-sales-comercial/IMPLEMENTATION-LOG.md) |
+| [10-positioning-invoicing-a.md](./10-positioning-invoicing-a.md) | **P0:** posicionament opció A (factura interna + gestoria; Verifactu = futur C); glossari i regles de copy |
+| [11-commercial-signing-ux/](./11-commercial-signing-ux/README.md) | **CF-28 📄:** enviar per acceptar, decisió atòmica, `/sign` comercial, un DMS, portal client i DocuSeal opcional |
 | [EXECUTION.md](./EXECUTION.md) | Font de veritat de l'ordre real de treball |
 | [STATUS.md](./STATUS.md) | Estat per epic; actualitzar durant la implementació |
-| [Acords comercials](../commercial-agreements/pla-pressupost-contracte-acords.md) | Formalització (pressupost signat vs acord separat) i continuació CF-21/CF-22 |
+| [Acords comercials](../commercial-agreements/pla-pressupost-contracte-acords.md) | Formalització (pressupost signat vs acord separat); CF-21 ✅; CF-22 spec [`cf22-obra/`](../commercial-agreements/cf22-obra/README.md) |
 
 ---
 

@@ -29,6 +29,7 @@ CF-26 va deixar un hub d’albarans amb factura **externa** (`external_invoices`
 | 5 | Gestoria i export | [`05-fase-accountant-exports.md`](./05-fase-accountant-exports.md) | Revisió + lots ZIP |
 | 6 | Fitxes i PDF | [`06-fase-detail-render.md`](./06-fase-detail-render.md) | Rutes detall, badges, render |
 | 7 | Proves i docs | [`07-fase-tests-scale-docs.md`](./07-fase-tests-scale-docs.md) | Concurrència, escala, UAT |
+| — | Backlog patró | [`08-series-pattern-edit.md`](./08-series-pattern-edit.md) | Edició gated del patró (no implementat) |
 
 Checklist mestre (vista ràpida): [`CHECKLIST.md`](./CHECKLIST.md)
 

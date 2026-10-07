@@ -21,8 +21,10 @@ import { supabase } from '@/lib/supabase'
 import {
   cancelInvoice,
   getCommercialDocumentDetail,
+  listCommercialDocumentExternalRefs,
   listSalesInvoicesPage,
   recordInvoicePayment,
+  setCommercialDocumentExternalRef,
   type CommercialDocumentLine,
 } from '../api/commercialFlowService'
 import { useCommercialPdf } from '../hooks/useCommercialPdf'
@@ -59,6 +61,8 @@ export function InvoiceDetailPage() {
   const [payAmount, setPayAmount] = useState('')
   const [payMethod, setPayMethod] = useState('transfer')
   const [payReference, setPayReference] = useState('')
+  const [erpRefDraft, setErpRefDraft] = useState('')
+  const [erpRefSaving, setErpRefSaving] = useState(false)
   const payOpIdRef = useRef<string | null>(null)
   const payIntentKeyRef = useRef<string | null>(null)
 
@@ -140,14 +144,29 @@ export function InvoiceDetailPage() {
     enabled: !!id && !!doc,
   })
 
+  const erpRefQuery = useQuery({
+    queryKey: ['commercial_document_external_refs', id],
+    queryFn: () => listCommercialDocumentExternalRefs(id!),
+    enabled: !!id,
+  })
+
   const remainingCents = balanceQuery.data?.remaining_cents ?? totalCents
   const collectionStatus = balanceQuery.data?.collection_status ?? 'pending'
   const collectDefaultCents = Math.max(0, remainingCents)
+  const savedErpRef =
+    erpRefQuery.data?.find((r) => r.provider === 'manual')?.external_number ??
+    erpRefQuery.data?.[0]?.external_number ??
+    balanceQuery.data?.external_ref ??
+    null
 
   useEffect(() => {
     if (!collectOpen || !balanceQuery.isSuccess) return
     setPayAmount((collectDefaultCents / 100).toFixed(2))
   }, [collectOpen, balanceQuery.isSuccess, collectDefaultCents])
+
+  useEffect(() => {
+    setErpRefDraft(savedErpRef ?? '')
+  }, [savedErpRef, id])
 
   if (!id) return <Navigate to="/sales/invoices" replace />
 
@@ -220,7 +239,13 @@ export function InvoiceDetailPage() {
     setBusy(true)
     try {
       await cancelInvoice({ invoiceId: id })
-      toast({ title: t('projects.commercial.cancelled', 'Cancel·lat') })
+      toast({
+        title: t('projects.sales.invoice_cancelled', 'Document anul·lat'),
+        description: t(
+          'projects.sales.invoice_cancelled_help',
+          'Anul·lar a PiMed no és una factura rectificativa AEAT.',
+        ),
+      })
       void detailQuery.refetch()
     } catch (err) {
       toast({
@@ -230,6 +255,38 @@ export function InvoiceDetailPage() {
       })
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function handleSaveErpRef(nextValue?: string) {
+    if (!id || !canEdit) return
+    const value = (nextValue !== undefined ? nextValue : erpRefDraft).trim() || null
+    setErpRefSaving(true)
+    try {
+      await setCommercialDocumentExternalRef({
+        documentId: id,
+        externalNumber: value,
+        provider: 'manual',
+      })
+      setErpRefDraft(value ?? '')
+      toast({
+        title: t('projects.sales.invoice_ref_saved', 'Referència desada'),
+        description: t(
+          'projects.sales.erp_reference_saved_help',
+          'No canvia el número de sèrie PiMed.',
+        ),
+      })
+      void erpRefQuery.refetch()
+      void queryClient.invalidateQueries({ queryKey: ['sales_invoice_row', id] })
+      void queryClient.invalidateQueries({ queryKey: ['sales_invoices'] })
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: t('projects.commercial.error', 'Error comercial'),
+        description: commercialErrorMessage(err),
+      })
+    } finally {
+      setErpRefSaving(false)
     }
   }
 
@@ -253,7 +310,16 @@ export function InvoiceDetailPage() {
               <Link to="/sales/invoices">{t('common.back', 'Tornar')}</Link>
             </Button>
             <h1 className="text-2xl font-bold">{doc.doc_number ?? id.slice(0, 8)}</h1>
+            <Badge variant="secondary">
+              {t('projects.sales.pimed_number_badge', 'Número PiMed')}
+            </Badge>
           </div>
+          <p className="text-xs text-muted-foreground max-w-xl">
+            {t(
+              'projects.sales.invoice_positioning_help',
+              'Document de facturació a PiMed (cobraments i gestoria). No és la factura fiscal Verifactu.',
+            )}
+          </p>
           <div className="flex flex-wrap gap-2">
             <Badge variant="outline">
               {t('projects.sales.document', 'Document')}: {documentStatus}
@@ -313,7 +379,59 @@ export function InvoiceDetailPage() {
               {t('projects.commercial.cancel', 'Anul·lar')}
             </Button>
           ) : null}
-        </div>      </div>
+        </div>
+      </div>
+
+      <section className="space-y-2 rounded-xl border border-border p-4">
+        <h2 className="text-sm font-semibold">
+          {t('projects.sales.erp_reference_label', 'Ref. ERP / gestoria')}
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          {t(
+            'projects.sales.erp_reference_detail_help',
+            'Número al teu programa de facturació o gestoria. No canvia el número PiMed.',
+          )}
+        </p>
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-[12rem] flex-1 space-y-1.5">
+            <Label htmlFor="invoice-erp-ref">
+              {t('projects.sales.erp_reference_field', 'Referència')}
+            </Label>
+            <Input
+              id="invoice-erp-ref"
+              value={erpRefDraft}
+              onChange={(event) => setErpRefDraft(event.target.value)}
+              placeholder="F-HOLD-014"
+              disabled={!canEdit || erpRefSaving}
+              autoComplete="off"
+            />
+          </div>
+          {canEdit ? (
+            <>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={erpRefSaving || erpRefDraft.trim() === (savedErpRef ?? '')}
+                onClick={() => void handleSaveErpRef()}
+              >
+                {t('projects.collections.external_invoice_save', 'Desar')}
+              </Button>
+              {savedErpRef || erpRefDraft.trim() ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={erpRefSaving}
+                  onClick={() => void handleSaveErpRef('')}
+                >
+                  {t('projects.sales.erp_reference_clear', 'Esborrar')}
+                </Button>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      </section>
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold">{t('projects.sales.lines', 'Línies')}</h2>

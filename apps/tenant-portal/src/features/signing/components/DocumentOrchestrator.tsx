@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type 
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle2, Check, ChevronLeft, ChevronRight, Copy, ExternalLink, Eye, FileText, Loader2, PenLine, Trash2, Plus, Search, User, ArrowUpDown, Send, AlertTriangle } from 'lucide-react'
+import { CheckCircle2, ChevronLeft, ChevronRight, Eye, FileText, Loader2, PenLine, Trash2, Plus, Search, User, ArrowUpDown, Send, AlertTriangle } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
@@ -27,6 +27,7 @@ import { jobPlaceName } from '@/features/employees/utils/jobPlaceName'
 import { useContacts } from '@/features/contacts/api/useContacts'
 import { useCatalogItems } from '@/features/catalog/api/useCatalogItems'
 import { useTenantRoleDefaults, buildPriorityDefaultsMap } from '../api/useTenantRoleDefaults'
+import { canSignWithDocuseal, canSignWithNative } from '../utils/signingCreditsGate'
 import { DocxPreviewPane } from './DocxPreviewModal'
 import { usePdfConverterConfig } from '../api/usePdfConverterConfig'
 import { usePdfJobStatus, type PdfJobState } from '../api/usePdfJobStatus'
@@ -490,8 +491,6 @@ export function DocumentOrchestrator({ open, onClose, onDocumentCreated, onGener
     return true
   }, [onGenerationComplete, result, pdfJobState, outputAction, resolvedSource, finishChatGeneration, outputFormatFromAction])
 
-  // ── Copy URL feedback ─────────────────────────────────────────────────────
-  const [copiedSigningUrl, setCopiedSigningUrl] = useState(false)
 
   // ── Preview state (fill_variables step) ──────────────────────────────────
   const [showPreview, setShowPreview]           = useState(true)
@@ -510,7 +509,7 @@ export function DocumentOrchestrator({ open, onClose, onDocumentCreated, onGener
 
   const isNativeRemoteSent =
     isNativeRemoteFlow &&
-    (result?.email_queued !== undefined || !!result?.signing_url || result?.status === 'ready' || result?.status === 'pending')
+    (result?.email_queued !== undefined || result?.status === 'ready' || result?.status === 'pending')
 
   // Només bloquejar clic fora / Escape quan el client està signant al pad
   const lockOutsideDismiss = isNativePresentialFlow && showSignaturePad
@@ -1033,10 +1032,12 @@ export function DocumentOrchestrator({ open, onClose, onDocumentCreated, onGener
       return
     }
 
-    if (effectiveAction === 'sign_docuseal' && !canSign) {
+    if (effectiveAction === 'sign_docuseal' && !canSignDocuseal) {
       toast({
         variant: 'destructive',
-        description: t('orchestrator.signingUnavailableNow', 'La signatura digital no està disponible en aquest moment.'),
+        description: isPlatform && credits === 0
+          ? t('orchestrator.docusealNoCredits', 'DocuSeal no disponible: no hi ha crèdits')
+          : t('orchestrator.signingUnavailableNow', 'La signatura digital no està disponible en aquest moment.'),
       })
       return
     }
@@ -1431,7 +1432,15 @@ export function DocumentOrchestrator({ open, onClose, onDocumentCreated, onGener
   const signingEffectivelyActive = config?.effective_is_active === true
   const signingAdminDisabled     = config?.admin_disabled === true
   const signingFeatureEnabled    = config?.feature_enabled === true
-  const canSign   = signingFeatureEnabled && signingEffectivelyActive && (!isPlatform || credits > 0)
+  const creditsGateInput = {
+    featureEnabled: signingFeatureEnabled,
+    effectivelyActive: signingEffectivelyActive,
+    mode: config?.mode,
+    credits,
+    nativeSigningEnabled: nativeSignEnabled,
+  }
+  const canSignDocuseal = canSignWithDocuseal(creditsGateInput)
+  const canSignNative = canSignWithNative(creditsGateInput)
   const canGenerateOutput =
     activeRole === 'owner' || activeRole === 'manager'
     || activeSiteRole === 'owner' || activeSiteRole === 'manager'
@@ -1620,8 +1629,10 @@ export function DocumentOrchestrator({ open, onClose, onDocumentCreated, onGener
     sign_native_remote:     "S'envia un link al client per signar remotament per email.",
   }
   const isOutputActionDisabled = (action: OutputAction) => {
-    if (action === 'sign_docuseal') return !canSign
-    if (action === 'sign_native_presential' || action === 'sign_native_remote') return !nativeSignEnabled
+    if (action === 'sign_docuseal') return !canSignDocuseal
+    if (action === 'sign_native_presential' || action === 'sign_native_remote') {
+      return !(signingFeatureEnabled && signingEffectivelyActive && nativeSignEnabled)
+    }
     return !canGenerateOutput
   }
   const selectedOutputDisabled = isOutputActionDisabled(outputAction)
@@ -2016,6 +2027,11 @@ export function DocumentOrchestrator({ open, onClose, onDocumentCreated, onGener
                       <p className="text-xs text-muted-foreground mt-0.5 ml-6">
                         {t(`orchestrator.output_${action}_desc`, outputDescFallbacks[action])}
                       </p>
+                      {isSign && isPlatform && credits === 0 ? (
+                        <p className="text-xs text-amber-700 mt-1 ml-6">
+                          {t('orchestrator.docusealNoCredits', 'DocuSeal no disponible: no hi ha crèdits')}
+                        </p>
+                      ) : null}
                     </button>
                   )
                 })}
@@ -2039,9 +2055,9 @@ export function DocumentOrchestrator({ open, onClose, onDocumentCreated, onGener
                 <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
                   {t('orchestrator.signing_not_active', "La signatura digital no està activa. Activa-la a Configuració → Firmes.")}
                 </p>
-              ) : isPlatform && credits === 0 ? (
+              ) : !canSignNative && isPlatform && credits === 0 ? (
                 <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
-                  {t('orchestrator.noCredits', 'Sense crèdits de signatura disponibles')}
+                  {t('orchestrator.docusealNoCredits', 'DocuSeal no disponible: no hi ha crèdits')}
                 </p>
               ) : null}
             </div>
@@ -2341,29 +2357,11 @@ export function DocumentOrchestrator({ open, onClose, onDocumentCreated, onGener
                       </p>
                       <p className="text-sm text-gray-600">
                         {result.email_error
-                          ?? t('orchestrator.native_remote_email_failed_desc', 'Comproveu la configuració d\'email del tenant.')}
+                          ?? t(
+                            'orchestrator.native_remote_email_failed_no_copy',
+                            'Comproveu la configuració d\'email i reenvieu des del Centre de Signatura. L\'enllaç no es mostra per seguretat.',
+                          )}
                       </p>
-                      {result.signing_url && (
-                        <div className="w-full mt-2 space-y-2">
-                          <p className="text-xs text-muted-foreground">
-                            {t('orchestrator.native_remote_copy_link', 'Podeu copiar l\'enllaç i enviar-lo manualment:')}
-                          </p>
-                          <div className="flex gap-2">
-                            <Input readOnly value={result.signing_url} className="text-xs" />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                void navigator.clipboard.writeText(result.signing_url!)
-                                toast({ title: t('orchestrator.native_remote_link_copied', 'Enllaç copiat') })
-                              }}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
                     </>
                   ) : (
                     <>
@@ -2372,26 +2370,11 @@ export function DocumentOrchestrator({ open, onClose, onDocumentCreated, onGener
                         {t('orchestrator.native_remote_session_ready', 'Sessió de signatura creada')}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {t('orchestrator.native_remote_session_ready_desc', 'El document està llest. Compartiu l\'enllaç de signatura amb el client.')}
+                        {t(
+                          'orchestrator.native_remote_session_ready_desc_secure',
+                          'El document està llest. El client rebrà el correu de la plataforma; l\'equip no veu l\'enllaç de firma.',
+                        )}
                       </p>
-                      {result?.signing_url && (
-                        <div className="w-full mt-2 space-y-2">
-                          <div className="flex gap-2">
-                            <Input readOnly value={result.signing_url} className="text-xs" />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                void navigator.clipboard.writeText(result.signing_url!)
-                                toast({ title: t('orchestrator.native_remote_link_copied', 'Enllaç copiat') })
-                              }}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
                     </>
                   )}
                   {result?.submission_id && (
@@ -2430,41 +2413,16 @@ export function DocumentOrchestrator({ open, onClose, onDocumentCreated, onGener
                     ? (notificationMode === 'docuseal_auto'
                         ? t('orchestrator.done_sign_docuseal_auto', 'DocuSeal enviarà els correus als signants.')
                         : notificationMode === 'app_manual'
-                          ? t('orchestrator.done_sign_manual', 'Els enllaços de signatura s\'han guardat. Copieu-los des del Centre de Signatura.')
+                          ? t(
+                              'orchestrator.done_sign_manual_secure',
+                              'Podeu reenviar les notificacions des del Centre de Signatura. Els enllaços no es mostren a l\'equip.',
+                            )
                           : t('orchestrator.done_sign_desc', 'La sol·licitud de signatura s\'ha enviat correctament.'))
                     : t('orchestrator.done_generate_desc', 'El document s\'ha creat correctament al DMS.')}
                 </p>
               </div>
 
               <div className="flex flex-col gap-2 w-full max-w-xs">
-                {/* URL de signatura: només visible en modes app (no docuseal_auto) */}
-                {result.signing_url && notificationMode !== 'docuseal_auto' && (
-                  <div className="flex gap-2">
-                    <a
-                      href={result.signing_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      {t('orchestrator.done_signing_url', 'Obrir URL de signatura')}
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void navigator.clipboard.writeText(result.signing_url!)
-                        setCopiedSigningUrl(true)
-                        setTimeout(() => setCopiedSigningUrl(false), 2000)
-                      }}
-                      className="flex items-center justify-center px-3 py-2 rounded-lg border bg-white hover:bg-accent/50 transition-colors"
-                      title={t('orchestrator.done_copy_url', 'Copiar URL de signatura')}
-                    >
-                      {copiedSigningUrl
-                        ? <Check className="h-4 w-4 text-green-500" />
-                        : <Copy className="h-4 w-4 text-muted-foreground" />}
-                    </button>
-                  </div>
-                )}
                 {/* Accions DMS i navegació al Signing Center */}
                 {result.submission_id && (
                   outputAction === 'sign_docuseal'

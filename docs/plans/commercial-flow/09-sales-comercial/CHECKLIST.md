@@ -30,9 +30,10 @@
 
 ## Pendent operatiu
 
-- (Opcional) edició write de patrons de sèrie; adaptadors ERP
+- (Opcional) edició gated del patró de sèrie — spec [`08-series-pattern-edit.md`](./08-series-pattern-edit.md); adaptadors ERP
 - (Opcional) selecció radio a Comptabilitat (Marcar revisat) si cal millorar UX
-- (**Diferit**) EXPLAIN escala; UAT anul·lar factura / tancar exercici
+- (**Diferit**) EXPLAIN escala
+- UAT anul·lar factura / tancar+reobrir exercici: ✅ 2026-10-06 (Gina; 2026 reobert)
 - (**Ops**) després de `000011`: re-login members perquè el JWT perdi `invoices.edit` base
 
 ## Epic

@@ -244,6 +244,7 @@
     "done_new": "Nou document",
     "creditsRemaining": "Crèdits restants: {{n}}",
     "noCredits": "Sense crèdits de signatura disponibles",
+    "docusealNoCredits": "DocuSeal no disponible: no hi ha crèdits",
     "signingDisabled": "La signatura digital no està disponible",
     "generateOwnerManagerOnlyHint": "La generació de documents (DOCX/HTML/PDF) està disponible només per a owner o manager del tenant/site actiu.",
     "generateRequiresManagerRole": "Només owner o manager poden generar documents al DMS.",

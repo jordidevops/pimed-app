@@ -21,8 +21,8 @@ describe('commercialErrorMessage', () => {
     expect(
       commercialErrorMessage({
         code: 'PGRST202',
-        message: 'Could not find the function api.register_external_invoice without parameters',
-        details: 'Searched for the function api.register_external_invoice without parameters',
+        message: 'Could not find the function api.issue_invoice_from_delivery_notes without parameters',
+        details: 'Searched for the function api.issue_invoice_from_delivery_notes without parameters',
       }),
     ).toMatch(/schema cache|migració/i)
   })

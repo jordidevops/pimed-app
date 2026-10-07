@@ -148,6 +148,11 @@ interface RequestBody {
   signer_role?:                 string;
   /** Worker intern (attendance-protocol-publish): usuari gestor que inicia la publicació. */
   initiated_by_user_id?:       string;
+  /**
+   * CF-28 / F5: context comercial verificable. Quan és present i vàlid,
+   * sign_native reutilitza rendered_document_id (sense create_document_with_version).
+   */
+  commercial_decision_request_id?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -233,8 +238,34 @@ function renderDocxSafe(
   }
 }
 
+/**
+ * CS-D58: deep scrub of secret-bearing keys before any tenant JWT response.
+ * Deny-list by key pattern (recursive) rather than shallow deletes.
+ */
+const TENANT_SECRET_KEY_RE =
+  /^(signing_url|signer_links|docuseal_signing_url|docuseal_bridge_url|provider_signing_url|raw_token|token|embed_src|slug|remote_submission)$/i;
+
+function scrubTenantSecrets(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => scrubTenantSecrets(item));
+  }
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+      if (TENANT_SECRET_KEY_RE.test(key)) continue;
+      out[key] = scrubTenantSecrets(nested);
+    }
+    return out;
+  }
+  return value;
+}
+
+function redactSigningLinksForTenant(body: Record<string, unknown>): Record<string, unknown> {
+  return scrubTenantSecrets(body) as Record<string, unknown>;
+}
+
 function jsonOk(body: Record<string, unknown>, status = 200): Response {
-  return new Response(JSON.stringify(body), {
+  return new Response(JSON.stringify(redactSigningLinksForTenant(body)), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
@@ -361,6 +392,29 @@ async function parseBody(req: Request): Promise<RequestBody> {
         throw new AppError(400, "invalid_context_refs", `context_refs["${key}"] requereix entity_type i entity_id string`);
     }
   }
+  if (raw.commercial_decision_request_id !== undefined) {
+    if (typeof raw.commercial_decision_request_id !== "string" || !raw.commercial_decision_request_id.trim()) {
+      throw new AppError(
+        400,
+        "invalid_commercial_decision_request_id",
+        "commercial_decision_request_id ha de ser un UUID no buit",
+      );
+    }
+    if (raw.action !== "sign_native" && raw.action !== "sign") {
+      throw new AppError(
+        400,
+        "commercial_decision_request_action",
+        "commercial_decision_request_id només és vàlid amb action=sign_native o sign",
+      );
+    }
+    if (raw.source_type !== "document_existing") {
+      throw new AppError(
+        400,
+        "commercial_decision_request_source",
+        "commercial_decision_request_id requereix source_type=document_existing",
+      );
+    }
+  }
 
   return raw as unknown as RequestBody;
 }
@@ -420,6 +474,96 @@ interface SourceFile {
   blockMapping?:     Record<string, string> | null;
   /** template_type de la plantilla pare ('html' | 'docx'). */
   templateType?:     string | null;
+}
+
+type CommercialReuse = {
+  requestId: string;
+  documentId: string;
+  versionId: string;
+};
+
+/**
+ * CF-28 / F5: valida request comercial i retorna el document DMS canònic a reutilitzar.
+ * No activa el camí nou sense aquest context server-side.
+ */
+async function resolveCommercialDecisionReuse(
+  adminData: ReturnType<typeof createAdminDataClient>,
+  requestId: string,
+  tenantId: string,
+  sourceVersionId: string,
+  sourceDocumentId: string | null,
+): Promise<CommercialReuse> {
+  const { data: req, error } = await adminData
+    .from("commercial_decision_requests")
+    .select("id, tenant_id, status, rendered_document_id, document_version_id")
+    .eq("id", requestId)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError(500, "decision_request_lookup_error", error.message);
+  }
+  if (!req) {
+    throw new AppError(404, "decision_request_not_found", "commercial_decision_request no trobada");
+  }
+  if (req.tenant_id !== tenantId) {
+    throw new AppError(403, "decision_request_tenant_mismatch", "La request no pertany a aquest tenant");
+  }
+  if (req.status !== "open") {
+    throw new AppError(409, "decision_request_not_open", "La request comercial ja no està oberta");
+  }
+  if (!req.rendered_document_id || !req.document_version_id) {
+    throw new AppError(
+      409,
+      "decision_request_missing_document",
+      "La request comercial no té document DMS de snapshot",
+    );
+  }
+  if (req.document_version_id !== sourceVersionId) {
+    throw new AppError(
+      409,
+      "decision_request_version_mismatch",
+      "source_document_version_id no coincideix amb el snapshot de la request",
+    );
+  }
+  if (sourceDocumentId && req.rendered_document_id !== sourceDocumentId) {
+    throw new AppError(
+      409,
+      "decision_request_document_mismatch",
+      "El document font no coincideix amb rendered_document_id de la request",
+    );
+  }
+
+  const { data: ver, error: verErr } = await adminData
+    .from("document_versions")
+    .select("id, document_id")
+    .eq("id", sourceVersionId)
+    .maybeSingle();
+  if (verErr || !ver || ver.document_id !== req.rendered_document_id) {
+    throw new AppError(
+      404,
+      "decision_request_document_unavailable",
+      "La versió DMS de la request no està disponible",
+    );
+  }
+
+  const { data: doc, error: docErr } = await adminData
+    .from("documents")
+    .select("id, is_archived, tenant_id")
+    .eq("id", req.rendered_document_id)
+    .maybeSingle();
+  if (docErr || !doc || doc.tenant_id !== tenantId || doc.is_archived) {
+    throw new AppError(
+      409,
+      "decision_request_document_unavailable",
+      "El document DMS de la request no està disponible",
+    );
+  }
+
+  return {
+    requestId: req.id as string,
+    documentId: req.rendered_document_id as string,
+    versionId: req.document_version_id as string,
+  };
 }
 
 async function resolveSourceFile(
@@ -960,7 +1104,7 @@ async function submitToDocuseal(
     extra: {
       submission_id: submissionId,
       submitters: allSubmitters.length,
-      first_url: signerLinks[0]?.signing_url ?? "N/A",
+      has_first_signing_url: Boolean(signerLinks[0]?.signing_url),
       send_email: sendEmail ?? false,
     },
   });
@@ -1814,6 +1958,17 @@ Deno.serve(async (req: Request) => {
         throw new AppError(400, "missing_signers", "Cal indicar almenys un signant per firma remota");
       }
 
+      const rejectRole =
+        body.signer_role === "client_reject" ||
+        signersList.some((s) => s.role === "client_reject");
+      if (rejectRole) {
+        throw new AppError(
+          400,
+          "commercial_reject_does_not_stamp",
+          "El refús comercial no crea sessió de firma ni estampa el PDF",
+        );
+      }
+
       // Idempotència: mateixa clau → mateixa submission (sense duplicar sessions)
       const { data: existingNative } = await adminClient
         .from("signing_submissions")
@@ -1908,77 +2063,121 @@ Deno.serve(async (req: Request) => {
         }
       }
 
+      // ── CF-28 / F5: reutilitzar DMS canònic quan hi ha decision request ─────────
+      let commercialReuse: CommercialReuse | null = null;
+      if (body.commercial_decision_request_id) {
+        commercialReuse = await resolveCommercialDecisionReuse(
+          adminDataClient,
+          body.commercial_decision_request_id.trim(),
+          body.tenant_id,
+          body.source_document_version_id!,
+          sourceFile.documentId,
+        );
+      }
+
       // ── Intenta generar el PDF síncronament amb Gotenberg ──────────────────────
       // (mateixa estratègia que generate_only; fallback a cua si Gotenberg no respon)
+      // Context comercial: mai create_document_with_version (mateix data.documents.id).
       let syncVersionId:   string | null = null;
       let syncDocumentId:  string | null = null;
       let asyncPdfJobId:   string | null = null;
       let pdfBytesForFieldMap: Uint8Array | null = null;
 
-      try {
-        if (cfgNative["pdf_enabled"] !== true) throw new Error("pdf_disabled");
+      const sourceIsPdf =
+        !isDocxNative && !htmlForSigning && sourceFile.mimeType.includes("pdf");
 
-        const gotNative = createGotenbergClientFromConfig(cfgNative);
-        let pdfBytesNative: Uint8Array;
-
-        if (!isDocxNative && htmlForSigning) {
-          pdfBytesNative = await gotNative.htmlToPdf(htmlForSigning, {
-            profile:    "pdfa2b",
-            headerHtml: nativePageHeaderHtml ?? undefined,
-            footerHtml: nativePageFooterHtml ?? undefined,
-          });
-        } else if (isDocxNative) {
-          pdfBytesNative = await gotNative.docxToPdf(fileBytesNative, { profile: "pdfa2b" });
-        } else {
-          pdfBytesNative = fileBytesNative; // ja és PDF
+      if (commercialReuse) {
+        // Decision request sempre apunta a PDF emès; no convertir ni afegir versions pre-firma.
+        if (!sourceIsPdf) {
+          throw new AppError(
+            409,
+            "commercial_source_not_pdf",
+            "El document comercial de la request ha de ser un PDF ja emès",
+          );
         }
-        pdfBytesForFieldMap = pdfBytesNative;
+        syncDocumentId = commercialReuse.documentId;
+        syncVersionId = commercialReuse.versionId;
+        pdfBytesForFieldMap = fileBytesNative;
+        log("info", FEATURE, "sign_native commercial reuse (existing PDF)", {
+          extra: {
+            document_id: syncDocumentId,
+            version_id: syncVersionId,
+            commercial_decision_request_id: commercialReuse.requestId,
+          },
+        });
+      } else {
+        try {
+          if (cfgNative["pdf_enabled"] !== true) throw new Error("pdf_disabled");
 
-        const titleNative  = body.document_title ?? sourceFile.name.replace(/\.[^.]+$/, "");
-        const pdfNameNative = sanitizeFileName(titleNative) + "_to_sign.pdf";
-        const pdfPathNative = `${body.tenant_id}/${crypto.randomUUID()}/${pdfNameNative}`;
+          const gotNative = createGotenbergClientFromConfig(cfgNative);
+          let pdfBytesNative: Uint8Array;
 
-        const { error: upErrNative } = await adminClient.storage
-          .from(DOCUMENTS_BUCKET)
-          .upload(pdfPathNative, new Blob([pdfBytesNative], { type: "application/pdf" }), {
-            contentType: "application/pdf", upsert: false,
+          if (!isDocxNative && htmlForSigning) {
+            pdfBytesNative = await gotNative.htmlToPdf(htmlForSigning, {
+              profile:    "pdfa2b",
+              headerHtml: nativePageHeaderHtml ?? undefined,
+              footerHtml: nativePageFooterHtml ?? undefined,
+            });
+          } else if (isDocxNative) {
+            pdfBytesNative = await gotNative.docxToPdf(fileBytesNative, { profile: "pdfa2b" });
+          } else {
+            pdfBytesNative = fileBytesNative; // ja és PDF
+          }
+          pdfBytesForFieldMap = pdfBytesNative;
+
+          const titleNative  = body.document_title ?? sourceFile.name.replace(/\.[^.]+$/, "");
+          const pdfNameNative = sanitizeFileName(titleNative) + "_to_sign.pdf";
+          const pdfPathNative = `${body.tenant_id}/${crypto.randomUUID()}/${pdfNameNative}`;
+
+          const { error: upErrNative } = await adminClient.storage
+            .from(DOCUMENTS_BUCKET)
+            .upload(pdfPathNative, new Blob([pdfBytesNative], { type: "application/pdf" }), {
+              contentType: "application/pdf", upsert: false,
+            });
+          if (upErrNative) throw upErrNative;
+
+          const { data: rpcNative, error: rpcErrNative } = await userClient.rpc("create_document_with_version", {
+            p_tenant_id:        body.tenant_id,
+            p_folder_id:        body.folder_id ?? null,
+            p_title:            titleNative,
+            p_file_path_or_url: pdfPathNative,
+            p_mime_type:        "application/pdf",
+            p_size_bytes:       pdfBytesNative.byteLength,
+            p_storage_type:     "native",
           });
-        if (upErrNative) throw upErrNative;
+          if (rpcErrNative || !rpcNative) throw new Error(rpcErrNative?.message ?? "create_document error");
 
-        const { data: rpcNative, error: rpcErrNative } = await userClient.rpc("create_document_with_version", {
-          p_tenant_id:        body.tenant_id,
-          p_folder_id:        body.folder_id ?? null,
-          p_title:            titleNative,
-          p_file_path_or_url: pdfPathNative,
-          p_mime_type:        "application/pdf",
-          p_size_bytes:       pdfBytesNative.byteLength,
-          p_storage_type:     "native",
-        });
-        if (rpcErrNative || !rpcNative) throw new Error(rpcErrNative?.message ?? "create_document error");
+          const createdNative = (typeof rpcNative === "string" ? JSON.parse(rpcNative) : rpcNative) as Record<string, unknown>;
+          syncDocumentId = ((createdNative?.document as Record<string,unknown>)?.id ?? createdNative?.document_id ?? null) as string | null;
+          syncVersionId  = ((createdNative?.version as Record<string,unknown>)?.id ?? createdNative?.version_id ?? null) as string | null;
 
-        const createdNative = (typeof rpcNative === "string" ? JSON.parse(rpcNative) : rpcNative) as Record<string, unknown>;
-        syncDocumentId = ((createdNative?.document as Record<string,unknown>)?.id ?? createdNative?.document_id ?? null) as string | null;
-        syncVersionId  = ((createdNative?.version as Record<string,unknown>)?.id ?? createdNative?.version_id ?? null) as string | null;
+          log("info", FEATURE, "sign_native PDF sync completed", {
+            extra: { document_id: syncDocumentId, version_id: syncVersionId },
+          });
 
-        log("info", FEATURE, "sign_native PDF sync completed", {
-          extra: { document_id: syncDocumentId, version_id: syncVersionId },
-        });
+        } catch (gotErrNative) {
+          const isUnreachable = gotErrNative instanceof GotenbergError && gotErrNative.isUnreachable;
+          const isPdfDisabled = (gotErrNative as Error).message === "pdf_disabled";
 
-      } catch (gotErrNative) {
-        const isUnreachable = gotErrNative instanceof GotenbergError && gotErrNative.isUnreachable;
-        const isPdfDisabled = (gotErrNative as Error).message === "pdf_disabled";
-
-        if (!isUnreachable && !isPdfDisabled) {
-          throw new AppError(500, "pdf_generation_error", (gotErrNative as Error).message);
+          if (!isUnreachable && !isPdfDisabled) {
+            throw new AppError(500, "pdf_generation_error", (gotErrNative as Error).message);
+          }
+          // Gotenberg no accessible o PDF desactivat: caure al camí asíncron
+          log("warn", FEATURE, "sign_native async fallback", {
+            extra: { reason: isPdfDisabled ? "pdf disabled" : "Gotenberg unreachable" },
+          });
         }
-        // Gotenberg no accessible o PDF desactivat: caure al camí asíncron
-        log("warn", FEATURE, "sign_native async fallback", {
-          extra: { reason: isPdfDisabled ? "pdf disabled" : "Gotenberg unreachable" },
-        });
       }
 
       // ── Camí asíncron (fallback) ────────────────────────────────────────────────
       if (!syncVersionId) {
+        if (commercialReuse) {
+          throw new AppError(
+            503,
+            "commercial_pdf_unavailable",
+            "No es pot preparar el PDF comercial; no es crea una còpia DMS.",
+          );
+        }
         const intermNameNative = sanitizeFileName(sourceFile.name);
         const intermPathNative = `${body.tenant_id}/intermediate/${crypto.randomUUID()}/${intermNameNative}`;
         const { error: intErrNative } = await adminClient.storage
@@ -2039,9 +2238,60 @@ Deno.serve(async (req: Request) => {
         ? signersList
         : [primarySigner];
 
+      const persistRoles = signatureRoles.length > 0
+        ? signatureRoles
+        : sessionsToCreate
+          .map((s) => s.role?.trim())
+          .filter((role): role is string => Boolean(role));
+      const fieldSigners = sessionsToCreate.map((s, i) => ({
+        role:  s.role,
+        order: s.order ?? i,
+      }));
+
+      // Comercial: validar camps ABANS de crear sessions (evita òrfanes).
+      let commercialFieldMap: Awaited<ReturnType<typeof resolveAndPersistFieldMap>> | null = null;
+      if (commercialReuse) {
+        if (!pdfBytesForFieldMap) {
+          throw new AppError(
+            409,
+            "commercial_signature_field_missing",
+            "No s'ha pogut llegir el PDF comercial per localitzar el camp de firma",
+          );
+        }
+        commercialFieldMap = await resolveAndPersistFieldMap(adminClient, {
+          pdfBytes:         pdfBytesForFieldMap,
+          roles:            persistRoles,
+          signers:          fieldSigners,
+          fieldMetas:       signatureFieldMetas,
+          disallowFallback: true,
+          persist:          false,
+        });
+        const requiredRoles = sessionsToCreate
+          .map((s) => s.role?.trim())
+          .filter((role): role is string => Boolean(role));
+        for (const role of requiredRoles) {
+          const matches = commercialFieldMap.filter((f) => f.role === role);
+          if (matches.length === 0) {
+            throw new AppError(
+              409,
+              "commercial_signature_field_missing",
+              `Falta el camp de firma «${role}» al PDF comercial`,
+            );
+          }
+          if (matches.length > 1) {
+            throw new AppError(
+              409,
+              "commercial_signature_field_ambiguous",
+              `Hi ha múltiples camps de firma «${role}» al PDF comercial`,
+            );
+          }
+        }
+      }
+
       for (let i = 0; i < sessionsToCreate.length; i++) {
         const s = sessionsToCreate[i];
-        const { data: sessData, error: sessErr } = await userClient.rpc("create_signing_session", {
+        // CS-D58: service_role so create_signing_session returns token for email enqueue only
+        const { data: sessData, error: sessErr } = await adminClient.rpc("create_signing_session", {
           p_tenant_id:           body.tenant_id,
           p_document_version_id: syncVersionId ?? (body.source_type === "document_existing" ? (body.source_document_version_id ?? null) : null),
           p_signing_type:        signingType,
@@ -2052,6 +2302,7 @@ Deno.serve(async (req: Request) => {
           p_signing_group_id:    groupId,
           p_signer_order:        s.order ?? i,
           p_total_signers:       totalSigners,
+          p_operator_user_id:    user.id,
         });
         if (sessErr || !sessData) {
           throw new AppError(500, "session_create_error", sessErr?.message ?? "create_signing_session error");
@@ -2061,20 +2312,14 @@ Deno.serve(async (req: Request) => {
 
       // Mapa de camps de signatura (overlay stamp-pdf-signatures)
       if (pdfBytesForFieldMap) {
-        const persistRoles = signatureRoles.length > 0
-          ? signatureRoles
-          : sessionsToCreate
-            .map((s) => s.role?.trim())
-            .filter((role): role is string => Boolean(role));
         await resolveAndPersistFieldMap(adminClient, {
-          pdfBytes:       pdfBytesForFieldMap,
-          roles:          persistRoles,
-          signers:        sessionsToCreate.map((s, i) => ({
-            role:  s.role,
-            order: s.order ?? i,
-          })),
-          fieldMetas:     signatureFieldMetas,
-          signingGroupId: groupId,
+          pdfBytes:             pdfBytesForFieldMap,
+          roles:                persistRoles,
+          signers:              fieldSigners,
+          fieldMetas:           signatureFieldMetas,
+          signingGroupId:       groupId,
+          disallowFallback:     Boolean(commercialReuse),
+          precomputedFieldMap:  commercialFieldMap ?? undefined,
         });
       }
 
@@ -2108,6 +2353,9 @@ Deno.serve(async (req: Request) => {
             session_ids:              createdSessions.map(s => s.session_id),
             source_document_id:       syncDocumentId ?? sourceFile.documentId,
             source_document_version_id: syncVersionId ?? body.source_document_version_id ?? null,
+            ...(commercialReuse
+              ? { commercial_decision_request_id: commercialReuse.requestId }
+              : {}),
           },
         },
       );
@@ -2198,25 +2446,74 @@ Deno.serve(async (req: Request) => {
     }
 
     // action = sign ────────────────────────────────────────────────────────────
-    const externalId = getIdempotencyKey(req, body);
+    // F8: commercial DocuSeal reuses DMS snapshot; notifications stay app_manual (email = commercial /sign).
+    let commercialSignReuse: CommercialReuse | null = null;
+    if (body.commercial_decision_request_id) {
+      commercialSignReuse = await resolveCommercialDecisionReuse(
+        adminDataClient,
+        body.commercial_decision_request_id.trim(),
+        body.tenant_id,
+        body.source_document_version_id!,
+        sourceFile.documentId,
+      );
+      if (
+        !sourceFile.mimeType.includes("pdf") &&
+        sourceFile.mimeType !== "application/pdf"
+      ) {
+        throw new AppError(
+          409,
+          "commercial_source_not_pdf",
+          "DocuSeal comercial requereix el PDF canònic de la request",
+        );
+      }
+    }
+
+    const baseIdempotency = getIdempotencyKey(req, body);
+    const externalId = commercialSignReuse
+      ? `commercial-decision:${commercialSignReuse.requestId}:attempt:${baseIdempotency}`
+      : baseIdempotency;
 
     // Idempotència de request: si ja existeix una submission amb la mateixa clau,
     // retornem la mateixa resposta i no repetim consum de crèdit ni crida a DocuSeal.
     const { data: existingSubmission } = await adminClient
-      .from("signing_submissions")
-      .select("id, status, docuseal_submission_id, docuseal_signing_url")
+      .from("signing_submissions_internal")
+      .select("id, status, docuseal_submission_id, docuseal_signing_url, metadata")
       .eq("tenant_id", body.tenant_id)
       .eq("external_id", externalId)
       .maybeSingle();
 
     if (existingSubmission) {
+      if (commercialSignReuse) {
+        const { error: bindReplayErr } = await adminClient.rpc(
+          "bind_commercial_decision_docuseal_submission",
+          {
+            p_request_id: commercialSignReuse.requestId,
+            p_submission_id: existingSubmission.id,
+            p_client_op_id: null,
+          },
+        );
+        if (bindReplayErr) {
+          log("error", FEATURE, "commercial DocuSeal bind failed (replay)", {
+            extra: {
+              error: bindReplayErr.message,
+              submission_id: existingSubmission.id,
+            },
+          });
+          throw new AppError(
+            500,
+            "commercial_docuseal_bind_failed",
+            "No s'ha pogut enllaçar la submission DocuSeal amb la request comercial",
+          );
+        }
+      }
+      // CS-D58: omit signing_url from tenant response (still used server-side if needed)
       return jsonOk({
         action:                 "sign",
         submission_id:          existingSubmission.id,
         docuseal_submission_id: existingSubmission.docuseal_submission_id,
-        signing_url:            existingSubmission.docuseal_signing_url,
         status:                 existingSubmission.status,
         idempotent_replay:      true,
+        commercial_decision_request_id: commercialSignReuse?.requestId ?? null,
       }, 200);
     }
 
@@ -2233,17 +2530,31 @@ Deno.serve(async (req: Request) => {
       await consumeCredit(userClient, body.tenant_id);
     }
 
+    const commercialMeta = commercialSignReuse
+      ? {
+        decision_request_id: commercialSignReuse.requestId,
+        commercial_bridge: true,
+      }
+      : null;
+
     // Crear submission (draft → pending)
     const submissionId  = await createSubmissionRecord(
       adminClient, body, user.id, externalId,
-      sourceFile.documentId,
+      commercialSignReuse?.documentId ?? sourceFile.documentId,
       sourceFile.name,
+      {
+        metadata: commercialMeta,
+        // Commercial delivery uses /sign token email — do not enqueue DocuSeal/app signer mails.
+        notification_mode: commercialSignReuse ? "app_manual" : undefined,
+      },
     );
 
     // Determinar mode de notificació efectiu (submission override o default de tenant)
-    const notificationMode: NotificationMode = body.notification_mode ??
-      ((cfg as Record<string, unknown>)?.default_notification_mode as NotificationMode | undefined) ??
-      'app_auto_sequential';
+    const notificationMode: NotificationMode = commercialSignReuse
+      ? "app_manual"
+      : (body.notification_mode ??
+        ((cfg as Record<string, unknown>)?.default_notification_mode as NotificationMode | undefined) ??
+        "app_auto_sequential");
     // Mapeja mode → send_email a DocuSeal
     const docusealSendEmail = notificationMode === 'docuseal_auto';
 
@@ -2360,12 +2671,50 @@ Deno.serve(async (req: Request) => {
       adminClient, submissionId, notificationMode, docusealResult.signerLinks,
     );
 
+    if (commercialSignReuse) {
+      const { error: bindErr } = await adminClient.rpc(
+        "bind_commercial_decision_docuseal_submission",
+        {
+          p_request_id: commercialSignReuse.requestId,
+          p_submission_id: submissionId,
+          p_client_op_id: null,
+        },
+      );
+      if (bindErr) {
+        log("error", FEATURE, "commercial DocuSeal bind failed", {
+          extra: { error: bindErr.message, submission_id: submissionId },
+        });
+        throw new AppError(
+          500,
+          "commercial_docuseal_bind_failed",
+          "No s'ha pogut enllaçar la submission DocuSeal amb la request comercial",
+        );
+      }
+      // B7: best-effort cancel superseded DocuSeal envelopes
+      try {
+        const { cancelSupersededCommercialDocuseal } = await import(
+          "../_shared/docuseal-cancel-superseded.ts"
+        );
+        await cancelSupersededCommercialDocuseal({
+          adminClient,
+          requestId: commercialSignReuse.requestId,
+        });
+      } catch (cancelErr) {
+        log("warn", FEATURE, "superseded DocuSeal cancel skipped", {
+          extra: {
+            error: cancelErr instanceof Error ? cancelErr.message : String(cancelErr),
+          },
+        });
+      }
+    }
+
     log("info", FEATURE, "sign flow completed", {
       extra: {
         submission_id: submissionId,
         docuseal_id: docusealResult.submissionId,
         notification_mode: notificationMode,
         signers: docusealResult.signerLinks.length,
+        commercial_decision_request_id: commercialSignReuse?.requestId ?? null,
       },
     });
 
@@ -2377,6 +2726,7 @@ Deno.serve(async (req: Request) => {
       signer_links:           docusealResult.signerLinks,
       notification_mode:      notificationMode,
       status:                 "in_progress",
+      commercial_decision_request_id: commercialSignReuse?.requestId ?? null,
     }, 201);
 
   } catch (err) {

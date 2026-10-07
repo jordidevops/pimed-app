@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { getDocumentUrl } from '@/features/documents/api/documentsService'
 import {
   getCommercialPdfJobStatus,
   renderCommercialDocumentPdf,
@@ -31,13 +32,18 @@ export function useCommercialPdf(params: {
   enabled: boolean
   initialRenderedDocumentId?: string | null
   initialPdfJobId?: string | null
+  /** F5: després de firma, preferir la versió result del mateix document DMS. */
+  preferredVersionId?: string | null
 }) {
   const [state, setState] = useState<CommercialPdfState>(INITIAL)
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const requestGen = useRef(0)
 
   const request = useCallback(async () => {
     if (!params.documentId || !params.tenantId) return
+    const gen = ++requestGen.current
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      if (gen !== requestGen.current) return
       setState((prev) => ({
         ...prev,
         status: 'offline',
@@ -47,10 +53,25 @@ export function useCommercialPdf(params: {
     }
     setState((prev) => ({ ...prev, status: 'loading', error: null }))
     try {
+      if (params.preferredVersionId) {
+        const signed = await getDocumentUrl(params.preferredVersionId)
+        if (gen !== requestGen.current) return
+        setState({
+          status: 'ready',
+          downloadUrl: signed.url,
+          renderedDocumentId: params.initialRenderedDocumentId ?? null,
+          pdfJobId: params.initialPdfJobId ?? null,
+          error: null,
+          htmlFallback: false,
+        })
+        return
+      }
+
       const result: CommercialRenderResult = await renderCommercialDocumentPdf({
         documentId: params.documentId,
         tenantId: params.tenantId,
       })
+      if (gen !== requestGen.current) return
       if (result.status === 'ready' && result.download_url) {
         setState({
           status: 'ready',
@@ -82,6 +103,7 @@ export function useCommercialPdf(params: {
         htmlFallback: true,
       })
     } catch (err) {
+      if (gen !== requestGen.current) return
       setState((prev) => ({
         ...prev,
         status: 'error',
@@ -89,10 +111,17 @@ export function useCommercialPdf(params: {
         htmlFallback: true,
       }))
     }
-  }, [params.documentId, params.tenantId])
+  }, [
+    params.documentId,
+    params.tenantId,
+    params.preferredVersionId,
+    params.initialRenderedDocumentId,
+    params.initialPdfJobId,
+  ])
 
   useEffect(() => {
     if (!params.enabled) {
+      requestGen.current += 1
       setState(INITIAL)
       return
     }
@@ -100,7 +129,7 @@ export function useCommercialPdf(params: {
       ...INITIAL,
       renderedDocumentId: params.initialRenderedDocumentId ?? null,
       pdfJobId: params.initialPdfJobId ?? null,
-      status: params.initialRenderedDocumentId ? 'loading' : 'idle',
+      status: params.initialRenderedDocumentId || params.preferredVersionId ? 'loading' : 'idle',
     })
     void request()
   }, [
@@ -108,6 +137,7 @@ export function useCommercialPdf(params: {
     params.documentId,
     params.initialRenderedDocumentId,
     params.initialPdfJobId,
+    params.preferredVersionId,
     request,
   ])
 

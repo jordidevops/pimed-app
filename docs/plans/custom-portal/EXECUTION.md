@@ -6,6 +6,7 @@
 > **Estat per milestone:** [`STATUS.md`](./STATUS.md)  
 > **Fase activa:** **CP-C** 🔄 (P0+P1+P2 frontera tancats al codi; resta CP-C + smoke local)  
 > **Anterior:** CP-B MVP ✅ · CP-ADM ✅ · CP-A4 ✅ · … · CP-0 ✅  
+> **Següent planificat:** **CP-D** ❌ documents comercials, dins [`../commercial-flow/11-commercial-signing-ux/`](../commercial-flow/11-commercial-signing-ux/README.md)
 > **Schema:** migracions CP-A/CP-B reescrites + `db reset` local
 
 ## Disciplina
@@ -21,6 +22,8 @@
 |------:|------|------|
 | 1–9 | CP-0 … B | ✅ MVP històric (schema reescrit a CP-C) |
 | 10 | **CP-C** | 🔄 Compte client + Contactes + publicació ⊥ lliurament |
+| 11 | **CP-Da** | ❌ Lectura quotes/acords, albarans i factures (CF-28 fase 6) |
+| 12 | **CP-Db** | ❌ Pendents i decisió al portal (CF-28 fase 7) |
 
 ---
 

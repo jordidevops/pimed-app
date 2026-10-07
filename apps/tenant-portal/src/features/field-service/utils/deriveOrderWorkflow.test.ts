@@ -289,7 +289,8 @@ describe('deriveOrderWorkflow', () => {
   it('office gets collect_invoice when remaining is only on invoiced notes', () => {
     const delivery = {
       ...document('D-1', 'delivery_note', 'issued', 100),
-      external_invoice_ref: 'F-1',
+      invoice_id: 'inv-1',
+      invoice_doc_number: 'F-2026-0001',
     }
     const result = workflow({
       visitClosed: true,
@@ -302,10 +303,27 @@ describe('deriveOrderWorkflow', () => {
     expect(result.primaryAction).toBe('collect_invoice')
   })
 
+  it('legacy external_invoice_ref alone does not block DN collect', () => {
+    const delivery = {
+      ...document('D-1', 'delivery_note', 'issued', 100),
+      external_invoice_ref: 'F-ERP-ONLY',
+    }
+    const result = workflow({
+      visitClosed: true,
+      documents: [document('Q-1', 'quote', 'accepted'), delivery],
+      isOffice: true,
+    })
+
+    expect(result.paymentPending).toBe(true)
+    expect(result.collectDeliveryId).toBe(delivery.id)
+    expect(result.primaryAction).toBe('collect')
+  })
+
   it('field keeps done when remaining is only on invoiced notes', () => {
     const delivery = {
       ...document('D-1', 'delivery_note', 'issued', 100),
-      external_invoice_ref: 'F-1',
+      invoice_id: 'inv-1',
+      invoice_doc_number: 'F-2026-0001',
     }
     const result = workflow({
       visitClosed: true,

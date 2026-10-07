@@ -8,9 +8,8 @@ import {
 } from './commercialNativeSign'
 
 describe('commercialNativeSign', () => {
-  it('maps accept/reject/delivery to template roles', () => {
+  it('maps accept/delivery to stampable template roles', () => {
     expect(commercialSignerRoleForAction('accept')).toBe('client_accept')
-    expect(commercialSignerRoleForAction('reject')).toBe('client_reject')
     expect(commercialSignerRoleForAction('delivery')).toBe('client_delivery')
   })
 
@@ -52,17 +51,6 @@ describe('commercialNativeSign', () => {
       ),
     ).toBe(true)
     expect(isAlreadyAppliedCommercialSigningError(new Error('stamp_failed'))).toBe(false)
-  })
-
-  it('keeps an optional reject reason', () => {
-    const payload = buildCommercialNativeSignaturePayload({
-      action: 'reject',
-      submissionId: 'sub-2',
-      sessionId: 'sess-2',
-      reason: 'Fora de termini',
-    })
-    expect(payload.reason).toBe('Fora de termini')
-    expect(payload.role).toBe('client_reject')
   })
 
   it('builds a public /sign/:token URL', () => {

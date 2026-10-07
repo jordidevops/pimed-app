@@ -1,8 +1,48 @@
 # Flux comercial — Estat d'implementació
 
-> **Última actualització:** 2026-10-06
+> **Última actualització:** 2026-10-07
 > **Propòsit:** seguir el desenvolupament dels epics CF i deixar constància honesta del que falta.
 > **Pla:** [`README.md`](./README.md) · backlog [`04-phases-and-backlog.md`](./04-phases-and-backlog.md) · ordre [`EXECUTION.md`](./EXECUTION.md) · gate Tall 2→3 [`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md)
+
+## Novetat 2026-10-07 — Control d'enllaços de firma (CS-D58–D60)
+
+- Decisió: tenant no veu URL/token de firma de la contrapart (UI + API). WhatsApp = nudge portal; sense `copy_link`.
+- Implementat: strip RPC/Edge/vistes `api.*`; UI sense copy/fallback; email_logs redactats; staff Edge 403; self-sign mensual via RPC propi.
+- **F8 DocuSeal comercial:** 📦 diferit (Gate E); selector no exposat; contracte a `08-fase-docuseal.md` sota CS-D58–D60.
+- **Següent:** F8 quan es vulgui Gate E, o F9 UAT del core natiu/portal.
+
+## Novetat 2026-10-07 — CF-28 F7 portal decisió (CP-Db)
+
+- `…00015`–`…00017`: pendents; decline; accept natiu (`prepare` → stamp → strangler `via=portal`).
+- UI pad + autoritat; shared mailbox amb actor; PDF BFF; justificant.
+- **Següent:** control d'enllaços (CS-D58) → F8 DocuSeal.
+
+## Novetat 2026-10-07 — CF-28 F6 portal lectura (CP-Da)
+
+- Migracions `…00010`–`…00014`: toggles, llistes, detall/PDF, staff, review fixes (mode portal, show_prices, ledger, hygiene).
+- Edge BFF; PDF signed URL només via `/api/commercial/pdf`; nav gated per mòduls; tests SQL ampliats.
+- **Següent:** F7 portal decisió (en curs).
+
+## Novetat 2026-10-06 — CF-28 firma comercial i portal
+
+- Especificació implementable per fases: [`11-commercial-signing-ux/`](./11-commercial-signing-ux/README.md).
+- Core: request/snapshot/deliveries/tokens/evidència, apply first-wins, correu servidor, `/sign` comercial i un sol document DMS.
+- Portal CP-D: quotes/acords, albarans i factures; després decisió dins del portal.
+- DocuSeal queda després del core natiu i consumeix crèdits; firma nativa no.
+- **Estat:** 🔄 F1–F3 ✅; F4/F5 [~] (UAT residual); F6 CP-Da ✅; F7 CP-Db ✅; F8+ pendent.
+- Migracions: `20261228000001`…`00010` (domain → portal commercial read).
+- Tests: `commercial_decision_requests_tests.sql` + QT-9 legacy + vitest gate/CTA.
+
+## Novetat 2026-10-06 — P0 facturació coherent (opció A)
+
+- Posicionament: [`10-positioning-invoicing-a.md`](./10-positioning-invoicing-a.md) — factura interna PiMed + gestoria; Verifactu = futur C.
+- Camí únic: emissió nativa; ref ERP només a `commercial_document_external_refs` (**mai** com a `doc_number`).
+- UI: surface factures via `list_sales_invoices_page`; fitxa invoice amb edició de ref ERP; copy honest.
+- Shim `register_external_invoice` (`20261227000001`) ja no força el número PiMed; mismatch de totals = RAISE abans d’emetre. `set_delivery_external_invoice_ref` segueix RAISE deprecated.
+- Helpers “facturat” / bloqueig cobrament DN = només `invoice_id` (link natiu). `listExternalInvoicesPage` retirat del client; `issueInvoice` no accepta `docNumber`.
+- Tests TS afectats OK; SQL `external_invoices_tests` / CF-17 T10 alineats amb P0. Smoke manual UAT = P0.4 📦.
+- Log: [`09-sales-comercial/IMPLEMENTATION-LOG.md`](./09-sales-comercial/IMPLEMENTATION-LOG.md) § P0.
+- **Fora d’aquest tall:** P0.4 UAT camp/offline; REVOKE shim; drop taules legacy.
 
 ## Novetat 2026-10-01 — Gate Tall 2 → Tall 3 (talls tècnics)
 
@@ -33,7 +73,7 @@
 
 ## Resum
 
-**Tall 1 espina comercial tancable** (tècnicament). **CF-13…CF-15, CF-17…CF-21, CF-26 i CF-27 tancats**. **CF-16** implementat (UAT offline pendent). Gate Tall 2→3: model + ompliment smoke ✅; UAT residual (km/offline/multi-dia) ⚠️ abans de confiar xifres CF-20. Pista acords: **CF-21** ✅ → següent **CF-22**. Deute: UAT Tall 1, Stripe/Holded 📦, signatura formal (DocuSeal/qualified) 📦, EXP 📦, CF-25-b 📦. Signatura nativa amb el dit a pressupost/albarà ✅ (2026-10-06).
+**Tall 1 espina comercial tancable** (tècnicament). **CF-13…CF-15, CF-17…CF-21, CF-26 i CF-27 tancats**. **CF-16** implementat (UAT offline pendent). Gate Tall 2→3: model + ompliment smoke ✅; UAT residual (km/offline/multi-dia) ⚠️ abans de confiar xifres CF-20. Pista acords: **CF-21** ✅ → següent **CF-22**. Flux client **CF-28** 📄 especificat. Deute: UAT Tall 1, Stripe/Holded 📦, CF-28/DocuSeal 📄, EXP 📦, CF-25-b 📦. Signatura nativa amb el dit a pressupost/albarà ✅ (2026-10-06).
 
 ## Tall 1 — Espina legal i de camp
 
@@ -80,12 +120,24 @@
 | Epic | Nom | Estat | Notes |
 |------|-----|-------|-------|
 | CF-21 | Manteniment contractual | ✅ | a…h; verificat reset + suite SQL 2026-10-05. Holded 📦. Pla [acords](../commercial-agreements/pla-pressupost-contracte-acords.md) |
-| CF-22 | Obra i instal·lació | ❌ | Depèn del nucli CT, no de CF-21 |
+| CF-22 | Obra i instal·lació | ❌ | Spec [`cf22-obra/`](../commercial-agreements/cf22-obra/README.md) 2026-10-06. Depèn del nucli CT, no de CF-21 |
+
+## Flux client comercial
+
+| Epic | Nom | Estat | Notes |
+|------|-----|-------|-------|
+| CF-28 | Firma comercial i portal | 🔄 | F1–F7 ✅; CS-D58–D60 ✅; F8 DocuSeal 📦. Spec [`11-commercial-signing-ux/`](./11-commercial-signing-ux/README.md) |
 
 ## Changelog
 
 | Data | Canvi |
 |------|-------|
+| 2026-10-07 | **CF-28 F6 tall 4 / CP-Da:** staff preview + legal + SQL tests. Següent: F7. |
+| 2026-10-07 | **CF-28 F6 tall 3:** detall allowlist + PDF signed URL + rutes `[id]`. |
+| 2026-10-07 | **CF-28 F6 tall 2:** DN + invoices list + rutes portal. |
+| 2026-10-07 | **CF-28 F6 tall 1:** toggles + list quotes/acords + edge/BFF + settings + `/dashboard/quotes`. |
+| 2026-10-06 | **CF-28** especificat (no implementat): decisions, 9 fases, escala/rollout i checklist a [`11-commercial-signing-ux/`](./11-commercial-signing-ux/README.md). |
+| 2026-10-06 | **CF-22** especificat (no implementat): [`cf22-obra/`](../commercial-agreements/cf22-obra/README.md). |
 | 2026-10-06 | Seeds hub durables: Volt `A-2026-9101` + Riera `A-2026-9102` (`commercial_hub_delivery_notes.sql` a `sql_paths`). `A-CF25-*` no es recreen. |
 | 2026-10-06 | **CF-5/CF-10 polish signatura dit:** Pointer Events al pad; diàleg comercial sense PDF a sobre del canvas; confirm sense exigir hub id; hub 1-signant (migrations `20261226*`). Renúncia segueix `staff_ui`. |
 | 2026-10-05 | **CF-20** tancat: `20261223000001` labor freeze + `get_project_profitability_summary` + UI; SQL `commercial_cf20_profitability_tests.sql`; types. UAT gate residual segueix ⚠️. |

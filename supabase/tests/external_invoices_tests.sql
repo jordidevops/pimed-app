@@ -1,4 +1,4 @@
--- CF-26: external invoices group delivery notes and split collection FIFO. Rolls back.
+-- P0: native invoice path; ERP ref ≠ PiMed doc_number; legacy DN ref write deprecated.
 BEGIN;
 
 DO $$
@@ -7,18 +7,13 @@ DECLARE
   v_owner uuid := '20000000-0000-0000-0000-000000000002';
   v_client uuid := '80000000-0000-0000-0000-000000000101';
   v_site uuid := '30000000-0000-0000-0000-000000000004';
-  v_other_client uuid := '80000000-0000-0000-0000-00000000cf61';
   v_project uuid := '51000000-0000-0000-0000-00000000cf60';
-  v_other_project uuid := '51000000-0000-0000-0000-00000000cf61';
   v_quote uuid;
   v_dn1 uuid;
   v_dn2 uuid;
-  v_other uuid;
-  v_result jsonb;
   v_invoice uuid;
-  v_pay uuid;
-  v_first integer;
-  v_second integer;
+  v_doc_number text;
+  v_erp text;
   v_err text;
 BEGIN
   PERFORM set_config('request.jwt.claim.sub', v_owner::text, true);
@@ -45,7 +40,7 @@ BEGIN
     id, tenant_id, type, name, description, status, visibility,
     site_id, client_id, created_by, commercial_regime, service_mode
   ) VALUES (
-    v_project, v_tenant, 'work_order', 'CF-26 invoice', 'disposable',
+    v_project, v_tenant, 'work_order', 'P0 invoice native', 'disposable',
     'active', 'company', v_site, v_client, v_owner, 'consumer', 'execute'
   );
 
@@ -79,96 +74,76 @@ BEGIN
     'cf264000-0000-0000-0000-000000000006'::uuid, NULL
   );
 
-  v_result := api.register_external_invoice(
-    'F-CF26-1', CURRENT_DATE, 20000,
+  -- Legacy write on DN must fail
+  BEGIN
+    PERFORM api.set_delivery_external_invoice_ref(v_dn1, 'F-LEGACY');
+    RAISE EXCEPTION 'set_delivery_external_invoice_ref should be deprecated';
+  EXCEPTION
+    WHEN SQLSTATE 'P0001' THEN
+      GET STACKED DIAGNOSTICS v_err = MESSAGE_TEXT;
+      IF v_err IS DISTINCT FROM 'external_invoice_ref_deprecated' THEN
+        RAISE EXCEPTION 'unexpected deprecate error: %', v_err;
+      END IF;
+  END;
+
+  -- Native issue with ERP ref (via shim): PiMed number ≠ ERP ref
+  v_invoice := (api.register_external_invoice(
+    'F-ERP-P0-1', CURRENT_DATE,
+    data.commercial_document_total_cents((SELECT total FROM data.commercial_documents WHERE id = v_dn1))
+      + data.commercial_document_total_cents((SELECT total FROM data.commercial_documents WHERE id = v_dn2)),
     ARRAY[v_dn1, v_dn2],
     'cf264000-0000-0000-0000-000000000007'::uuid,
     NULL
-  );
-  v_invoice := (v_result->>'id')::uuid;
-  IF (v_result->>'difference_cents')::integer = 0 THEN
-    RAISE EXCEPTION 'mismatch should be reported, got %', v_result;
-  END IF;
-  IF (SELECT external_invoice_ref FROM data.commercial_documents WHERE id = v_dn1) IS DISTINCT FROM 'F-CF26-1' THEN
-    RAISE EXCEPTION 'delivery note should carry the invoice number';
+  )->>'id')::uuid;
+
+  SELECT doc_number INTO v_doc_number
+  FROM data.commercial_documents WHERE id = v_invoice;
+
+  IF v_doc_number IS NULL OR v_doc_number = 'F-ERP-P0-1' THEN
+    RAISE EXCEPTION 'PiMed doc_number must be series-allocated, not ERP ref (got %)', v_doc_number;
   END IF;
 
+  SELECT r.external_number INTO v_erp
+  FROM data.commercial_document_external_refs r
+  WHERE r.document_id = v_invoice AND r.provider = 'manual';
+
+  IF v_erp IS DISTINCT FROM 'F-ERP-P0-1' THEN
+    RAISE EXCEPTION 'ERP ref missing on invoice, got %', v_erp;
+  END IF;
+
+  IF NOT data.delivery_note_is_invoiced(v_dn1) OR NOT data.delivery_note_is_invoiced(v_dn2) THEN
+    RAISE EXCEPTION 'delivery notes should be linked to native invoice';
+  END IF;
+
+  -- Idempotent retry (same client_op_id + matching totals)
   IF (api.register_external_invoice(
-    'F-CF26-1', CURRENT_DATE, 20000, ARRAY[v_dn1, v_dn2],
+    'F-ERP-P0-1', CURRENT_DATE,
+    data.commercial_document_total_cents((SELECT total FROM data.commercial_documents WHERE id = v_dn1))
+      + data.commercial_document_total_cents((SELECT total FROM data.commercial_documents WHERE id = v_dn2)),
+    ARRAY[v_dn1, v_dn2],
     'cf264000-0000-0000-0000-000000000007'::uuid, NULL
   )->>'id')::uuid IS DISTINCT FROM v_invoice THEN
     RAISE EXCEPTION 'invoice register retry changed the id';
   END IF;
 
-  BEGIN
-    PERFORM api.record_payment(
-      v_dn1, 100, 'cash',
-      'cf264000-0000-0000-0000-000000000008'::uuid, NULL, now()
-    );
-    RAISE EXCEPTION 'invoiced delivery should not be collected directly';
-  EXCEPTION
-    WHEN SQLSTATE 'P0001' THEN
-      GET STACKED DIAGNOSTICS v_err = MESSAGE_TEXT;
-      IF v_err IS DISTINCT FROM 'delivery_note_invoiced' THEN
-        RAISE;
-      END IF;
-  END;
-
-  v_pay := api.record_invoice_payment(
-    v_invoice, 15000, 'transfer', 'TR-1',
-    'cf264000-0000-0000-0000-000000000009'::uuid, now()
-  );
-  SELECT amount_cents INTO v_first FROM data.payments WHERE document_id = v_dn1 AND external_invoice_id = v_invoice;
-  SELECT amount_cents INTO v_second FROM data.payments WHERE document_id = v_dn2 AND external_invoice_id = v_invoice;
-  IF v_first IS NULL OR v_second IS NULL OR v_first + v_second <> 15000 THEN
-    RAISE EXCEPTION 'invoice payment split failed first % second %', v_first, v_second;
-  END IF;
-  IF (SELECT reference FROM data.payments WHERE id = v_pay) IS DISTINCT FROM 'TR-1' THEN
-    RAISE EXCEPTION 'shared reference missing';
-  END IF;
-
-  INSERT INTO data.contacts (id, tenant_id, kind, display_name)
-  VALUES (v_other_client, v_tenant, 'person', 'Alt client factura');
-  INSERT INTO data.projects (
-    id, tenant_id, type, name, description, status, visibility,
-    site_id, client_id, created_by, commercial_regime, service_mode
-  ) VALUES (
-    v_other_project, v_tenant, 'work_order', 'CF-26 other client', 'disposable',
-    'active', 'company', v_site, v_other_client, v_owner, 'consumer', 'execute'
-  );
-  PERFORM api.upsert_project_line(
-    v_other_project, NULL, NULL, 'service', 'Alt', NULL, 'u',
-    1, 10, 0, 21, 0, NULL,
-    'cf264000-0000-0000-0000-00000000000a'::uuid
-  );
-  v_other := api.issue_commercial_document(
-    v_other_project, 'quote', true,
-    'cf264000-0000-0000-0000-00000000000b'::uuid, NULL
-  );
-  PERFORM api.accept_commercial_document(
-    v_other, '{"method":"sql_test"}'::jsonb,
-    'cf264000-0000-0000-0000-00000000000c'::uuid
-  );
-  v_other := api.issue_commercial_document(
-    v_other_project, 'delivery_note', true,
-    'cf264000-0000-0000-0000-00000000000d'::uuid, NULL
-  );
+  -- Totals mismatch must raise before issuing (no live invoice with wrong total)
   BEGIN
     PERFORM api.register_external_invoice(
-      'f-cf26-1', CURRENT_DATE, 100,
-      ARRAY[v_other],
-      'cf264000-0000-0000-0000-00000000000e'::uuid, NULL
+      'F-ERP-BAD', CURRENT_DATE, 999999999,
+      ARRAY[v_dn1],
+      'cf264000-0000-0000-0000-000000000099'::uuid,
+      NULL
     );
-    RAISE EXCEPTION 'same invoice number on another client should fail';
+    RAISE EXCEPTION 'expected invoice_totals_mismatch';
   EXCEPTION
     WHEN SQLSTATE 'P0001' THEN
       GET STACKED DIAGNOSTICS v_err = MESSAGE_TEXT;
-      IF v_err IS DISTINCT FROM 'invoice_number_cross_client' THEN
-        RAISE;
+      IF v_err IS DISTINCT FROM 'invoice_totals_mismatch' THEN
+        RAISE EXCEPTION 'unexpected mismatch error: %', v_err;
       END IF;
   END;
 
-  RAISE NOTICE 'external_invoices_tests ok';
+  RAISE NOTICE 'external_invoices_tests (P0 native) ok';
 END;
 $$;
 

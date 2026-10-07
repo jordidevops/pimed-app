@@ -5,7 +5,7 @@
 > **Pla:** [`README.md`](./README.md) · estat per epic: [`STATUS.md`](./STATUS.md)
 > **Fase activa (producte en curs):** Gate Tall 2→3 UAT residual ⚠️ / pista acords **CF-22** — CF-20 ✅ ([`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md)).
 > **Anterior:** **CF-26** + **CF-27** ✅ — hub Albarans + Comercial `/sales` ([`07`](./07-collections-and-ar-hub.md), [`09`](./09-sales-comercial/README.md))
-> **Altres:** **CF-21** ✅ (pista acords); **CF-22** ❌; Gate Tall 1→2 diferit; CF-16 UAT offline; Stripe/Holded API 📦; signatura formal 📦; modes quote-first 📦 [`06`](./06-sales-entry-modes-quote-first.md); **CF-25-b** 📦
+> **Altres:** **CF-21** ✅ (pista acords); **CF-22** ❌; **CF-28** 📄 firma comercial/portal; Gate Tall 1→2 diferit; CF-16 UAT offline; Stripe/Holded API 📦; modes quote-first 📦 [`06`](./06-sales-entry-modes-quote-first.md); **CF-25-b** 📦
 
 ## Disciplina
 
@@ -48,7 +48,8 @@
 | 20 | **CF-19** Costos privats | ✅ | `catalog_item_financials` / `project_line_financials`; copy DEFINER; UI formulari + suggest PVP; SQL `commercial_cf19_financials_tests.sql` |
 | 21 | **CF-20** Rendibilitat | ✅ | `work_log_labor_costs` + freeze; `get_project_profitability_summary` ex-VAT; UI card; SQL `commercial_cf20_profitability_tests.sql` |
 | 22 | **CF-21** Manteniment contractual | ✅ | a…h tancats (2026-10-05): reset + suite SQL + smoke TS. Factura fiscal Holded 📦. Pla: [`commercial-agreements`](../commercial-agreements/pla-pressupost-contracte-acords.md) |
-| 23 | **CF-22** Obra i instal·lació | ❌ | |
+| 23 | **CF-22** Obra i instal·lació | ❌ | Spec [`cf22-obra/`](../commercial-agreements/cf22-obra/README.md) 2026-10-06 |
+| 24 | **CF-28** Firma comercial i portal | 🔄 | Spec [`11`](./11-commercial-signing-ux/README.md). F1–F8 ✅; F9 UAT/escala |
 
 ---
 
@@ -113,7 +114,8 @@ Cada epic tancat afegeix aquí una entrada amb data, abast real i desviacions re
 | 2026-10-02 | CF-26 fixes | Patches+preview rectify; summary sense DN; clock FIFO; list scoped; CTA factura oficina; dates; comprovant; remediació legacy manual; `isOffice` sense tallar Cobrar DN al camp | UAT navegador; regenerar `database.types.ts`; prova SQL RAISE cross-client; CF-25-b; compositor quantitats V2 |
 | 2026-10-03 | CF-27 | `/sales` factures natives, allocations, sèries/FY, gestoria+export ZIP, fitxes/PDF, `getSessionAppMetadata`, migracions `000001`–`000009`, UAT oficina/gestoria/camp | Sèries write UI; adaptadors ERP; worker storage ZIP; escala EXPLAIN documentada |
 | 2026-10-03 | CF-26 UAT + fix | Cobrament camp, factura `F-2026-0019`, Rectificar al menú hub; `000010` draft sense línies + cancel draft | Seeds A-CF25-* amb línies; CF-25-b |
-| 2026-10-03 | CF-27 bugfix | `000011`: issue atòmic + orphan resume; export `client_op_id`; member sense `invoices.*` heretat; badge draft; `clientOpId` per intent | Re-login JWT members; UAT anul·lar/FY diferits |
+| 2026-10-03 | CF-27 bugfix | `000011`: issue atòmic + orphan resume; export `client_op_id`; member sense `invoices.*` heretat; badge draft; `clientOpId` per intent | Re-login JWT members |
+| 2026-10-06 | CF-27 UAT opcional | Gina: anul·lar `F-2026-0001` (`A-2026-9001` → Per facturar); smoke tancar/reobrir 2026 sense deixar l’any tancat | EXPLAIN escala segueix diferit |
 | 2026-10-05 | CF-21-h | Reset local + suite `run_commercial_agreement_tests` (19 SQL PASS) + vitest smoke acords (21). Epic CF-21 tancat | Holded 📦; CF-22 |
 | 2026-10-05 | Gate T2→T3 UAT | Smoke online Volt 2 OS (`gate-tall2-tall3-uat.spec.ts`) + SQL costs/despeses PASS; ompliment PVP/cost/flags ✅ | O5 km; F*; multi-dia humà — guia [`08b`](./08b-gate-tall2-tall3-human-uat.md) |
 | 2026-10-05 | **CF-19** | `20261221000001` financials + copy DEFINER; UI catàleg/línies `costs.view`; suggest PVP; SQL `commercial_cf19_financials_tests.sql`; types regenerats | **CF-20**; UAT gate residual ⚠️ |
@@ -121,6 +123,8 @@ Cada epic tancat afegeix aquí una entrada amb data, abast real i desviacions re
 | 2026-10-05 | **CF-20** | `20261223000001`: labor freeze + summary 1A/2A ex-VAT (línies `h` excloses del cost de línies); UI Resultat brut; SQL PASS; types | UAT gate residual per confiar xifres |
 | 2026-10-05 | **CF-20 hardening** | `20261224000001`: freeze date Europe/Madrid; `real_basis` per docs acceptats (incl. subtotal 0); coverage closed sense freeze; REVOKE freeze helpers; UPDATE immutable | — |
 | 2026-10-06 | **CF-5/CF-10 signatura dit** | Pad Pointer Events; diàleg camp per dit; hub 1-signant; smoke accept P-2026-0001 | Renúncia `staff_ui`; UAT humana Tall 1 |
+| 2026-10-06 | CF-22 spec | Pla per fases a `commercial-agreements/cf22-obra/` (decisions O-D*, kind/fites/seguiment; variants fora) | Obrir fase 1 quan es prioritzí |
+| 2026-10-06 | CF-28 spec | Pla per fases a `11-commercial-signing-ux/` (domini first-wins, send/link, DMS, CP-D, DocuSeal, escala) | Obrir fase 1 quan es prioritzi |
 
 
 ## Fase tancada: CF-20 Rendibilitat
@@ -144,6 +148,8 @@ Fet (a…h): vigència, cobertura/plans, inclusió OS, framework, cicles, SLA/em
 ## Fase tancada: CF-27 Comercial `/sales`
 
 Fet: migracions `20261217000001`…`000009`, `doc_type=invoice`, `payment_allocations`, sèries/exercicis, llistes keyset, export gestoria (ZIP PizZip), fitxes DN/factura + PDF, preset Gestoria, `getSessionAppMetadata` per claims JWT. UAT oficina (Alice/Volt), gestoria (Eve), camp (Hèctor/Riera). Detall: [`09-sales-comercial/IMPLEMENTATION-LOG.md`](./09-sales-comercial/IMPLEMENTATION-LOG.md).
+
+**P0 facturació (2026-10-06, opció A):** [`10-positioning-invoicing-a.md`](./10-positioning-invoicing-a.md) — camí natiu únic; ref ERP ≠ `doc_number`; shim `20261227000001`; copy honest. P0.4 UAT 📦.
 
 **Fora d'abast / opcional:** Verifactu, adaptadors Sage/A3/DelSol sense fixture, worker storage signat, edició write de patrons de sèrie.
 

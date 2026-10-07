@@ -126,7 +126,7 @@ export function AgreementBillingSection({
         <p className="text-xs text-muted-foreground">
           {t(
             'projects.agreements.billing_help',
-            "Períodes a facturar a l'ERP extern. Aquí només es desa la referència (Holded/Quipu); PiMed no emet factura fiscal.",
+            'Períodes d’acord: aquí només es desa la ref. ERP/gestoria. Al hub Comercial (/sales) sí s’emet document PiMed des d’albarans; això no és Verifactu.',
           )}
         </p>
         {cadenceLabel && billingAmountCents != null ? (

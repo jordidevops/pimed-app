@@ -32,16 +32,16 @@ import {
   commercialDocumentOrderPath,
   listDeliveryNotesPage,
   listDocumentPayments,
-  listExternalInvoicesPage,
   listPaymentsForDocuments,
   listSalesDeliveryNotesPage,
+  listSalesInvoicesPage,
   issueInvoiceFromDeliveryNotes,
   previewNextDocumentNumber,
   recordInvoicePayment,
   type DeliveryNoteListRow,
-  type ExternalInvoiceListRow,
   type SalesBillingStatus,
   type SalesDeliveryNoteListRow,
+  type SalesInvoiceListRow,
   type SalesListCursor,
 } from '../api/commercialFlowService'
 import { commercialErrorMessage } from '../utils/commercialErrorMessage'
@@ -118,7 +118,7 @@ function billingLabelForSalesRow(
   return t('projects.sales.billing_to_invoice', 'Per facturar')
 }
 
-/** Adapt sales RPC rows to the legacy list shape used by collect/select actions. */
+/** Adapt sales RPC rows to the list shape used by collect/select actions. */
 function salesRowToLegacy(row: SalesDeliveryNoteListRow): DeliveryNoteListRow {
   return {
     id: row.id,
@@ -142,8 +142,10 @@ function salesRowToLegacy(row: SalesDeliveryNoteListRow): DeliveryNoteListRow {
     remaining_cents: Number(row.remaining_cents ?? 0),
     issued_at: row.issued_at,
     created_at: row.created_at,
+    invoice_id: row.invoice_id,
+    invoice_doc_number: row.invoice_doc_number,
     external_invoice_id: row.invoice_id,
-    external_invoice_ref: row.invoice_doc_number,
+    external_invoice_ref: row.external_invoice_ref ?? null,
     supersedes_id: null,
     superseded_by_id: null,
     superseded_by_number: null,
@@ -153,7 +155,7 @@ function salesRowToLegacy(row: SalesDeliveryNoteListRow): DeliveryNoteListRow {
 function rowBillingStatus(row: DeliveryNoteListRow): SalesBillingStatus | 'to_invoice' {
   if (row.billing_status) return row.billing_status
   if (row.collection_status === 'rectified') return 'rectified'
-  if (row.external_invoice_id || row.external_invoice_ref) return 'invoiced'
+  if (row.invoice_id) return 'invoiced'
   return 'to_invoice'
 }
 
@@ -290,7 +292,7 @@ export function DeliveryNotesList({
   const [erpReference, setErpReference] = useState('')
   const [invoiceDate, setInvoiceDate] = useState(() => localDateIso())
   const [invoiceTotal, setInvoiceTotal] = useState('')
-  const [payInvoice, setPayInvoice] = useState<ExternalInvoiceListRow | null>(null)
+  const [payInvoice, setPayInvoice] = useState<SalesInvoiceListRow | null>(null)
   const [payAmount, setPayAmount] = useState('')
   const [payMethod, setPayMethod] = useState('transfer')
   const [payReference, setPayReference] = useState('')
@@ -429,14 +431,14 @@ export function DeliveryNotesList({
     enabled: surface === 'notes' && useSalesList,
   })
   const invoicesQuery = useQuery({
-    queryKey: ['external_invoices', clientId, projectId, q, page],
+    queryKey: ['sales_invoices', 'embedded', clientId, projectId, q, page],
     queryFn: () =>
-      listExternalInvoicesPage({
+      listSalesInvoicesPage({
         clientId,
         projectId,
         q,
         limit: PAGE_SIZE,
-        offset: (page - 1) * PAGE_SIZE,
+        // embedded list uses offset-style paging via cursor null + page size; use first page only for embedded
       }),
     enabled: surface === 'invoices',
   })
@@ -462,7 +464,7 @@ export function DeliveryNotesList({
       ? useSalesList
         ? items.reduce((sum, row) => sum + row.remaining_cents, 0)
         : (notesQuery.data?.totalRemainingCents ?? 0)
-      : (invoicesQuery.data?.totalRemainingCents ?? 0)
+      : invoices.reduce((sum, row) => sum + Number(row.remaining_cents ?? 0), 0)
   const salesHasMore = Boolean(salesNotesQuery.data?.hasMore)
   const totalPages = useSalesList
     ? Math.max(1, cursorPage + 1 + (salesHasMore ? 1 : 0))
@@ -626,7 +628,6 @@ export function DeliveryNotesList({
     void queryClient.invalidateQueries({ queryKey: ['delivery_notes'] })
     void queryClient.invalidateQueries({ queryKey: ['sales_delivery_notes'] })
     void queryClient.invalidateQueries({ queryKey: ['sales_dashboard_kpis'] })
-    void queryClient.invalidateQueries({ queryKey: ['external_invoices'] })
     void queryClient.invalidateQueries({ queryKey: ['sales_invoices'] })
     void queryClient.invalidateQueries({ queryKey: ['project_delivery_summary'] })
     void queryClient.invalidateQueries({ queryKey: ['commercial_documents'] })
@@ -663,7 +664,6 @@ export function DeliveryNotesList({
         issuedOn: invoiceDate,
         deliveryNoteIds,
         erpReference: erpReference.trim() || null,
-        allocateNumber: true,
         clientOpId: clientOpIdForIssue(deliveryNoteIds),
       })
       toast({
@@ -1000,17 +1000,17 @@ export function DeliveryNotesList({
                 id: 'invoice',
                 header: t('projects.sales.tab_invoices', 'Factura'),
                 cell: (row) =>
-                  row.external_invoice_id ? (
+                  row.invoice_id ? (
                     <Link
-                      to={`/sales/invoices/${row.external_invoice_id}`}
+                      to={`/sales/invoices/${row.invoice_id}`}
                       className="hover:underline"
                     >
                       {rowBillingStatus(row) === 'draft_invoice'
                         ? t('projects.sales.billing_draft', 'En esborrany')
-                        : (row.external_invoice_ref ?? row.external_invoice_id.slice(0, 8))}
+                        : (row.invoice_doc_number ?? row.invoice_id.slice(0, 8))}
                     </Link>
                   ) : (
-                    (row.external_invoice_ref ?? '—')
+                    (row.invoice_doc_number ?? '—')
                   ),
               },
             ] satisfies SalesDataTableColumn<DeliveryNoteListRow>[]
@@ -1082,13 +1082,13 @@ export function DeliveryNotesList({
                     },
                   ]
                 : []),
-              ...(row.external_invoice_id
+              ...(row.invoice_id
                 ? [
                     {
                       key: 'invoice',
                       label: t('projects.sales.open_invoice', 'Obrir factura'),
                       onSelect: () => {
-                        void navigate(`/sales/invoices/${row.external_invoice_id}`)
+                        void navigate(`/sales/invoices/${row.invoice_id}`)
                       },
                     },
                   ]
@@ -1221,7 +1221,7 @@ export function DeliveryNotesList({
                     {invoiced ? (
                       <p className="text-xs text-muted-foreground">
                         {t('projects.collections.included_in_invoice', 'Inclòs a la factura {{ref}}', {
-                          ref: row.external_invoice_ref,
+                          ref: row.invoice_doc_number,
                         })}
                       </p>
                     ) : null}
@@ -1318,15 +1318,21 @@ export function DeliveryNotesList({
             <li key={invoice.id} className="space-y-2 rounded-2xl border border-border bg-card p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="font-semibold">{invoice.invoice_number}</p>
+                  <p className="font-semibold">
+                    <Link
+                      to={`/sales/invoices/${invoice.id}`}
+                      className="hover:underline"
+                    >
+                      {invoice.doc_number ?? invoice.id.slice(0, 8)}
+                    </Link>
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     {invoice.client_display_name} · {(invoice.delivery_numbers ?? []).join(', ') || '—'}
                   </p>
-                  {invoice.difference_cents !== 0 ? (
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                      {t('projects.collections.invoice_difference_line', 'Diferència {{amount}} €', {
-                        amount: moneyFmt.format(centsToEuros(invoice.difference_cents)),
-                      })}
+                  {invoice.external_ref ? (
+                    <p className="text-xs text-muted-foreground">
+                      {t('projects.sales.erp_reference_label', 'Ref. ERP / gestoria')}:{' '}
+                      {invoice.external_ref}
                     </p>
                   ) : null}
                 </div>
@@ -1342,19 +1348,28 @@ export function DeliveryNotesList({
                   </p>
                 </div>
               </div>
-              {invoice.remaining_cents > 0 && isOffice ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => {
-                    setPayInvoice(invoice)
-                    setPayAmount((invoice.remaining_cents / 100).toFixed(2))
-                    setPayReference('')
-                  }}
-                >
-                  {t('projects.collections.collect_invoice', 'Cobrar factura')}
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" size="sm" variant="outline" asChild>
+                  <Link to={`/sales/invoices/${invoice.id}`}>
+                    {t('projects.sales.open_invoice', 'Obrir factura')}
+                  </Link>
                 </Button>
-              ) : null}
+                {invoice.remaining_cents > 0 &&
+                invoice.document_status !== 'cancelled' &&
+                isOffice ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      setPayInvoice(invoice)
+                      setPayAmount((invoice.remaining_cents / 100).toFixed(2))
+                      setPayReference('')
+                    }}
+                  >
+                    {t('projects.collections.collect_invoice', 'Cobrar factura')}
+                  </Button>
+                ) : null}
+              </div>
             </li>
           ))}
         </ul>
@@ -1473,7 +1488,7 @@ export function DeliveryNotesList({
             <DialogDescription>
               {t(
                 'projects.sales.issue_invoice_help',
-                'PiMed assigna el número de sèrie. La factura fiscal (Verifactu) queda fora d’aquest pas.',
+                'PiMed assigna el número de sèrie (document de facturació intern). Opcionalment pots desar una ref. ERP/gestoria; no canvia el número PiMed. No és la factura fiscal Verifactu.',
               )}
             </DialogDescription>
           </DialogHeader>
@@ -1497,7 +1512,7 @@ export function DeliveryNotesList({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="sales-erp-ref">
-                {t('projects.sales.erp_reference_label', 'Ref. ERP (opcional)')}
+                {t('projects.sales.erp_reference_label', 'Ref. ERP / gestoria (opcional)')}
               </Label>
               <Input
                 id="sales-erp-ref"
@@ -1571,7 +1586,8 @@ export function DeliveryNotesList({
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {t('projects.collections.collect_invoice', 'Cobrar factura')} {payInvoice?.invoice_number}
+              {t('projects.collections.collect_invoice', 'Cobrar factura')}{' '}
+              {payInvoice?.doc_number ?? payInvoice?.id.slice(0, 8)}
             </DialogTitle>
           </DialogHeader>
           <Input inputMode="decimal" value={payAmount} onChange={(event) => setPayAmount(event.target.value)} />

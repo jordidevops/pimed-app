@@ -46,6 +46,8 @@ type HtmlLabels = {
   statusRejected: string
   statusExpired: string
   statusCancelled: string
+  invoiceInternalNote: string
+  deliveryNotFiscalNote: string
 }
 
 const LABELS: Record<string, HtmlLabels> = {
@@ -79,6 +81,9 @@ const LABELS: Record<string, HtmlLabels> = {
     statusRejected: 'Refusat',
     statusExpired: 'Caducat',
     statusCancelled: 'Anul·lat',
+    invoiceInternalNote:
+      'Document de facturació PiMed (cobraments i gestoria). No és la factura fiscal Verifactu.',
+    deliveryNotFiscalNote: 'Aquest document no és una factura fiscal.',
   },
   es: {
     concept: 'Concepto',
@@ -110,6 +115,9 @@ const LABELS: Record<string, HtmlLabels> = {
     statusRejected: 'Rechazado',
     statusExpired: 'Caducado',
     statusCancelled: 'Anulado',
+    invoiceInternalNote:
+      'Documento de facturación PiMed (cobros y gestoría). No es la factura fiscal Verifactu.',
+    deliveryNotFiscalNote: 'Este documento no es una factura fiscal.',
   },
   en: {
     concept: 'Item',
@@ -141,6 +149,9 @@ const LABELS: Record<string, HtmlLabels> = {
     statusRejected: 'Rejected',
     statusExpired: 'Expired',
     statusCancelled: 'Cancelled',
+    invoiceInternalNote:
+      'PiMed billing document (collections and accountant export). Not a Verifactu fiscal invoice.',
+    deliveryNotFiscalNote: 'This document is not a fiscal invoice.',
   },
 }
 
@@ -383,6 +394,17 @@ export function buildCommercialDocumentHtml(
     doc.terms_text
       ? `<section class="terms"><strong>${escapeHtml(labels.terms)}</strong><br/>${escapeHtml(doc.terms_text)}</section>`
       : ''
+  }
+  ${
+    doc.doc_type === 'invoice'
+      ? `<p class="muted" style="margin-top:16px;font-size:11px">${escapeHtml(
+          labels.invoiceInternalNote,
+        )}</p>`
+      : doc.doc_type === 'delivery_note'
+        ? `<p class="muted" style="margin-top:16px;font-size:11px">${escapeHtml(
+            labels.deliveryNotFiscalNote,
+          )}</p>`
+        : ''
   }
   ${options.documentFooterHtml ? `<div class="letterhead">${options.documentFooterHtml}</div>` : ''}
 </body>

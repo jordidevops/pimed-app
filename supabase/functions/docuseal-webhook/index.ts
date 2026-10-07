@@ -27,6 +27,7 @@ import { initObservability, captureException } from "../_shared/observability/sy
 import { log } from "../_shared/observability/structured-logger.ts";
 import { createOperationLogService } from "../_shared/observability/operation-log-service.ts";
 import { isInfrastructureBug } from "../_shared/observability/helpers.ts";
+import { attachSignedDocumentFromUrl } from "../_shared/docuseal-attach-signed.ts";
 
 const FEATURE = "docuseal-webhook";
 
@@ -328,203 +329,61 @@ async function logSigningOperationFailure(
 }
 
 
-async function attachSignedDocument(
-  adminClient:   ReturnType<typeof createAdminClient>,
-  submissionId:  string,
-  tenantId:      string,
-  documentUrl:   string,
-  documentName:  string,
+async function recordArtifactStatus(
+  adminClient: ReturnType<typeof createAdminClient>,
+  submissionId: string,
+  status: "pending" | "attached" | "failed",
+  error?: string | null,
+  signedUrl?: string | null,
 ): Promise<void> {
-
-  // Guard idempotent: si ja tenim versió final, no reprocessem
-  const { data: currentSubmission } = await adminClient
-    .from("signing_submissions")
-    .select("result_document_version_id")
-    .eq("id", submissionId)
-    .maybeSingle();
-
-  if (currentSubmission?.result_document_version_id) {
-    log("info", FEATURE, "Signed PDF already attached, skipping", {
+  const { error: rpcErr } = await adminClient.rpc(
+    "record_signing_submission_artifact_status",
+    {
+      p_submission_id: submissionId,
+      p_status: status,
+      p_error: error ?? null,
+      p_signed_url: signedUrl ?? null,
+    },
+  );
+  if (rpcErr) {
+    log("warn", FEATURE, "record artifact status failed", {
       correlationId: submissionId,
+      extra: { error: rpcErr.message, status },
     });
-    return;
   }
+}
 
-  // Descarregar PDF de DocuSeal
-  let fileData: Uint8Array;
-  try {
-    const res = await fetch(documentUrl);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    fileData = new Uint8Array(await res.arrayBuffer());
-  } catch (err) {
-    const msg = (err as Error).message;
-    log("error", FEATURE, "Error descarregant PDF firmat", {
-      tenantId,
-      correlationId: submissionId,
-      extra: { error: msg },
-    });
-    await logSigningOperationFailure(adminClient, {
-      tenantId,
-      submissionId,
-      operationCode: "attach_signed_pdf",
-      title: "No s'ha pogut descarregar el PDF firmat",
-      message: msg,
-      errorCode: "download_failed",
-      err,
-    });
-    return;
-  }
-
-  // Obtenir source_document_version_id de la submission
-  const { data: sub, error: subErr } = await adminClient
-    .from("signing_submissions")
-    .select("source_document_version_id")
-    .eq("id", submissionId)
-    .single();
-
-  if (subErr || !sub) {
-    log("error", FEATURE, "Submission not found for PDF attach", {
-      correlationId: submissionId,
-    });
-    return;
-  }
-
-  // Obtenir document pare i path original des de document_versions (fix per query fragile)
-  let documentId:   string | null = null;
-  let originalPath: string | null = null;
-
-  if (sub.source_document_version_id) {
-    // Usem el client de data.* perquè api.document_versions no existeix com a vista
-    const dataClient = createAdminDataClient();
-    const { data: srcVer } = await dataClient
-      .from("document_versions")
-      .select("document_id, file_path_or_url")
-      .eq("id", sub.source_document_version_id)
-      .maybeSingle();
-
-    documentId   = (srcVer?.document_id   as string | undefined) ?? null;
-    originalPath = (srcVer?.file_path_or_url as string | undefined) ?? null;
-  }
-
-  if (!documentId) {
-    // Plantilla o document sense versió font: crear document contenidor directament
-    // (no usem create_document_with_version RPC perquè comprova jwt_user_tenants)
-    const safeName = documentName.replace(/[^\w.\-]/g, "_").slice(0, 200);
-    const dataClient = createAdminDataClient();
-    const { data: newDoc, error: docErr } = await dataClient
-      .from("documents")
-      .insert({ tenant_id: tenantId, title: `Signed - ${safeName}` })
-      .select("id")
-      .single();
-
-    if (docErr || !newDoc?.id) {
-      const msg = docErr?.message ?? "unknown";
-      log("error", FEATURE, "Error creant document contenidor", {
-        tenantId,
-        correlationId: submissionId,
-        extra: { error: msg },
-      });
-      await logSigningOperationFailure(adminClient, {
-        tenantId,
-        submissionId,
-        operationCode: "attach_signed_pdf",
-        title: "No s'ha pogut crear el document per al PDF firmat",
-        message: msg,
-        errorCode: "document_create_failed",
-      });
-      return;
-    }
-    documentId = newDoc.id as string;
-  }
-
-  // Ruta al costat de l'original (o fallback a carpeta "signed/")
-  const path = computeNeighborPath(tenantId, submissionId, originalPath, "_signed");
-  const blob = new Blob([fileData.buffer as ArrayBuffer], { type: "application/pdf" });
-
-  const { error: uploadErr } = await adminClient.storage
-    .from(DOCUMENTS_BUCKET)
-    .upload(path, blob, { contentType: "application/pdf", upsert: false });
-
-  if (uploadErr) {
-    const msg = uploadErr.message.toLowerCase();
-    if (!msg.includes("already exists") && !msg.includes("duplicate")) {
-      log("error", FEATURE, "Error pujant PDF firmat", {
-        tenantId,
-        correlationId: submissionId,
-        extra: { error: uploadErr.message },
-      });
-      await logSigningOperationFailure(adminClient, {
-        tenantId,
-        submissionId,
-        operationCode: "attach_signed_pdf",
-        title: "No s'ha pogut pujar el PDF firmat",
-        message: uploadErr.message,
-        errorCode: "upload_failed",
-      });
-      return;
-    }
-  }
-
-  // Reutilitzar versió si ja apunta al mateix path (idempotència)
-  const { data: existingVersion } = await adminClient
-    .from("document_versions")
-    .select("id")
-    .eq("file_path_or_url", path)
-    .maybeSingle();
-
-  if (existingVersion?.id) {
-    await adminClient
-      .from("signing_submissions")
-      .update({ result_document_version_id: existingVersion.id })
-      .eq("id", submissionId)
-      .eq("tenant_id", tenantId);
-    return;
-  }
-
-  // Crear versió nova al DMS
-  // Usem add_document_version_internal (sense check jwt_user_tenants) perquè
-  // el webhook opera amb service_role i no té JWT d'usuari → la RPC estàndard
-  // retornaria "Acces denegat: cal rol owner o manager".
-  const { data: verData, error: verErr } = await adminClient.rpc("add_document_version_internal", {
-    p_document_id:      documentId,
-    p_file_path_or_url: path,
-    p_mime_type:        "application/pdf",
-    p_size_bytes:       fileData.length,
-    p_storage_type:     "native",
-  });
-
-  if (verErr) {
-    log("error", FEATURE, "Error creant versió DMS", {
-      tenantId,
-      correlationId: submissionId,
-      extra: { error: verErr.message },
-    });
-    await logSigningOperationFailure(adminClient, {
-      tenantId,
-      submissionId,
-      operationCode: "attach_signed_pdf",
-      title: "No s'ha pogut registrar el PDF firmat al DMS",
-      message: verErr.message,
-      errorCode: "version_create_failed",
-    });
-    return;
-  }
-
-  const parsedVer = typeof verData === "string" ? JSON.parse(verData) : verData;
-  const versionId = (parsedVer as Record<string, unknown>).id as string | undefined;
-
-  if (versionId) {
-    await adminClient
-      .from("signing_submissions")
-      .update({ result_document_version_id: versionId })
-      .eq("id", submissionId)
-      .eq("tenant_id", tenantId);
-  }
-
-  log("info", FEATURE, "Signed PDF attached", {
+async function attachSignedDocument(
+  adminClient: ReturnType<typeof createAdminClient>,
+  submissionId: string,
+  tenantId: string,
+  documentUrl: string,
+  documentName: string,
+): Promise<void> {
+  const result = await attachSignedDocumentFromUrl({
+    adminClient,
+    submissionId,
     tenantId,
-    correlationId: submissionId,
-    extra: { document_id: documentId, version_id: versionId, path },
+    documentUrl,
+    documentName,
+  });
+  if (result.ok) return;
+
+  const titles: Record<string, string> = {
+    download_failed: "No s'ha pogut descarregar el PDF firmat",
+    document_create_failed: "No s'ha pogut crear el document per al PDF firmat",
+    upload_failed: "No s'ha pogut pujar el PDF firmat",
+    version_create_failed: "No s'ha pogut registrar el PDF firmat al DMS",
+    submission_not_found: "Submission not found for PDF attach",
+  };
+  const code = result.errorCode ?? "attach_failed";
+  await logSigningOperationFailure(adminClient, {
+    tenantId,
+    submissionId,
+    operationCode: "attach_signed_pdf",
+    title: titles[code] ?? "No s'ha pogut adjuntar el PDF firmat",
+    message: result.message ?? code,
+    errorCode: code,
   });
 }
 
@@ -734,17 +593,25 @@ Deno.serve(async (req: Request) => {
 
   const adminClient = createAdminClient();
 
+  // Internal view: metadata + URLs for service_role (CS-D58 scrubbed public view is insufficient).
   const { data: submission, error: subErr } = await adminClient
-    .from("signing_submissions")
-    .select("id, tenant_id, status, signers, notification_mode")
+    .from("signing_submissions_internal")
+    .select(
+      "id, tenant_id, status, signers, notification_mode, metadata, result_document_version_id",
+    )
     .eq("external_id", externalId)
     .maybeSingle();
 
   if (subErr || !submission) {
+    // Return 200 so DocuSeal does not retry-storm during create/bind races.
     log("warn", FEATURE, "external_id not found (possible race condition)", {
       extra: { external_id: data.external_id },
     });
-    return errorResponse(404, "Submission not found");
+    return jsonOk({
+      received: true,
+      processed: false,
+      reason: "submission_not_found",
+    });
   }
 
   // Ignorar events sobre submissions ja tancades (idempotència d'estat final)
@@ -763,6 +630,36 @@ Deno.serve(async (req: Request) => {
       ? "declined"
     : EVENT_TO_STATUS[event_type];
 
+  async function maybeApplyCommercialDecision(
+    outcome: "accepted" | "declined",
+  ): Promise<void> {
+    const meta = (submission.metadata ?? {}) as Record<string, unknown>;
+    if (meta.commercial_bridge !== true && meta.commercial_bridge !== "true") {
+      return;
+    }
+    if (typeof meta.decision_request_id !== "string" || !meta.decision_request_id) {
+      return;
+    }
+    const { data: applyRow, error: applyErr } = await adminClient.rpc(
+      "apply_commercial_decision_from_docuseal_submission",
+      {
+        p_submission_id: submission.id,
+        p_outcome: outcome,
+      },
+    );
+    if (applyErr) {
+      log("error", FEATURE, "commercial DocuSeal apply failed", {
+        correlationId: submission.id as string,
+        extra: { error: applyErr.message, outcome },
+      });
+      return;
+    }
+    log("info", FEATURE, "commercial DocuSeal apply result", {
+      correlationId: submission.id as string,
+      extra: { outcome, result: applyRow },
+    });
+  }
+
   if (
     FINAL_STATUSES.includes(submission.status as string) &&
     !shouldProcessAsCompleted // sempre processar completed per adjuntar PDF si falta
@@ -771,6 +668,34 @@ Deno.serve(async (req: Request) => {
       correlationId: submission.id as string,
       extra: { status: submission.status },
     });
+    // Still reconcile commercial apply (idempotent) if terminal decline/complete already recorded.
+    // Retry signed PDF attach when completed but result version is still missing.
+    if (submission.status === "completed") {
+      if (!submission.result_document_version_id) {
+        const meta = (submission.metadata ?? {}) as Record<string, unknown>;
+        const storedUrl =
+          typeof meta.artifact_signed_url === "string"
+            ? meta.artifact_signed_url.trim()
+            : "";
+        const firstDoc = data.documents?.[0];
+        const signedUrl =
+          firstDoc?.url ??
+          data.submission?.combined_document_url ??
+          (storedUrl || null);
+        if (signedUrl) {
+          await attachSignedDocument(
+            adminClient,
+            submission.id,
+            submission.tenant_id as string,
+            signedUrl,
+            firstDoc?.name ?? `signed-document-${data.id}`,
+          );
+        }
+      }
+      await maybeApplyCommercialDecision("accepted");
+    } else if (submission.status === "declined") {
+      await maybeApplyCommercialDecision("declined");
+    }
     return jsonOk({ received: true, processed: false, reason: "already_final" });
   }
 
@@ -931,6 +856,12 @@ Deno.serve(async (req: Request) => {
       log("warn", FEATURE, "completed event without documents URL", {
         correlationId: submission.id as string,
       });
+      await recordArtifactStatus(
+        adminClient,
+        submission.id,
+        "failed",
+        "missing_signed_url",
+      );
     }
 
     // Adjuntar PDF d'auditoria (best-effort, independent del PDF firmat)
@@ -958,6 +889,18 @@ Deno.serve(async (req: Request) => {
         directAuditUrl,
       );
     }
+  }
+
+  // CF-28 F8: bridge DocuSeal terminal outcomes → commercial decision apply
+  if (shouldProcessAsCompleted) {
+    await maybeApplyCommercialDecision("accepted");
+  } else if (
+    isFormDeclinedWithSubmissionDeclined ||
+    isFormDeclinedTerminal ||
+    statusAfter === "declined" ||
+    event_type === "submission.declined"
+  ) {
+    await maybeApplyCommercialDecision("declined");
   }
 
   log("info", FEATURE, "Webhook event processed", {

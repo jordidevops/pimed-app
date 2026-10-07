@@ -391,6 +391,8 @@ export async function resolveStampOverlayFields(opts: {
   pageCount: number;
   fieldMap?: SigningFieldArea[] | null;
   fieldHints?: SigningFieldMeta[];
+  /** CF-28: sense coordenades genèriques (comercial). */
+  disallowFallback?: boolean;
 }): Promise<{ fields: SigningFieldArea[]; error?: string }> {
   const live = opts.signerRole
     ? await detectFieldForRole(opts.pdfBytes, opts.signerRole, opts.fieldHints)
@@ -398,6 +400,14 @@ export async function resolveStampOverlayFields(opts: {
   if (live) return { fields: [live] };
 
   if (opts.signerRole && await pdfHasFirmaToken(opts.pdfBytes)) {
+    return { fields: [], error: SIGNATURE_FIELD_NOT_FOUND };
+  }
+
+  const roleKey = opts.signerRole?.trim() || `Signer ${opts.signerOrder + 1}`;
+  const fromMap = (opts.fieldMap ?? []).filter((f) => f.role === roleKey);
+  if (fromMap.length > 0) return { fields: fromMap };
+
+  if (opts.disallowFallback) {
     return { fields: [], error: SIGNATURE_FIELD_NOT_FOUND };
   }
 
@@ -488,39 +498,52 @@ export async function resolveAndPersistFieldMap(
     fieldMetas?: SigningFieldMeta[];
     signingGroupId?: string | null;
     pdfJobId?: string | null;
+    /** CF-28: sense coordenades genèriques (comercial). */
+    disallowFallback?: boolean;
+    /** Si false, només resol (per validar abans de crear sessions). */
+    persist?: boolean;
+    /** Reutilitza un mapa ja resolt (evita doble parse del PDF). */
+    precomputedFieldMap?: SigningFieldArea[];
   },
 ): Promise<SigningFieldArea[]> {
   const pageCount = getPdfPageCount(opts.pdfBytes);
 
-  // Prioritat: detecció de marques al PDF (x/y reals); layout HTML només com a fallback
-  let fieldMap = await detectFieldMapFromPdf(opts.pdfBytes, opts.roles, {
-    fieldHints: opts.fieldMetas,
-  });
-
-  if (fieldMap.length > 0) {
-    fieldMap = fieldMap.map((f) => {
-      const { w, h } = hintBox(f.role, opts.fieldMetas);
-      return { ...f, w, h };
+  let fieldMap: SigningFieldArea[];
+  if (opts.precomputedFieldMap) {
+    fieldMap = opts.precomputedFieldMap;
+  } else {
+    // Prioritat: detecció de marques al PDF (x/y reals); layout HTML només com a fallback
+    fieldMap = await detectFieldMapFromPdf(opts.pdfBytes, opts.roles, {
+      fieldHints: opts.fieldMetas,
     });
-  } else if (opts.fieldMetas && opts.fieldMetas.length > 0) {
-    fieldMap = buildLayoutFieldMap(opts.fieldMetas, pageCount);
+
+    if (fieldMap.length > 0) {
+      fieldMap = fieldMap.map((f) => {
+        const { w, h } = hintBox(f.role, opts.fieldMetas);
+        return { ...f, w, h };
+      });
+    } else if (opts.fieldMetas && opts.fieldMetas.length > 0 && !opts.disallowFallback) {
+      fieldMap = buildLayoutFieldMap(opts.fieldMetas, pageCount);
+    }
+
+    if (fieldMap.length === 0 && !opts.disallowFallback) {
+      fieldMap = buildFallbackFieldMap(
+        opts.signers,
+        pageCount,
+        opts.fieldMetas,
+      );
+    }
   }
 
-  if (fieldMap.length === 0) {
-    fieldMap = buildFallbackFieldMap(
-      opts.signers,
-      pageCount,
-      opts.fieldMetas,
-    );
-  }
-
-  const { error } = await db.rpc("update_signing_sessions_field_map", {
-    p_field_map:        fieldMap,
-    p_signing_group_id: opts.signingGroupId ?? null,
-    p_pdf_job_id:       opts.pdfJobId ?? null,
-  });
-  if (error) {
-    log("warn", FEATURE, "Failed to persist field map", { extra: { error: error.message } });
+  if (opts.persist !== false) {
+    const { error } = await db.rpc("update_signing_sessions_field_map", {
+      p_field_map:        fieldMap,
+      p_signing_group_id: opts.signingGroupId ?? null,
+      p_pdf_job_id:       opts.pdfJobId ?? null,
+    });
+    if (error) {
+      log("warn", FEATURE, "Failed to persist field map", { extra: { error: error.message } });
+    }
   }
   return fieldMap;
 }

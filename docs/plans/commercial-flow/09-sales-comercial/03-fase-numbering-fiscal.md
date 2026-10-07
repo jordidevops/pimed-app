@@ -44,9 +44,10 @@ Numeració concurrent per tenant+sèrie+període, preview no vinculant, i tancam
 ## Settings UI
 
 - [x] Settings → Comercial (nova secció o sota plantilles comercials):
-  - Llista sèries per tipus; editar pattern; activar/desactivar — **read-only** list + pattern (sense write RPC)
+  - Llista sèries per tipus; **read-only** list + pattern (sense write RPC)
   - Vista prèvia (preview RPC)
-  - Exercicis: tancar / reobrir amb confirmació
+  - Exercicis: tancar / reobrir
+  - Edició gated del patró: spec [`08-series-pattern-edit.md`](./08-series-pattern-edit.md) (**no implementat**)
 - [x] La UI **no** escriu `last_value` a mà.
 
 ## Proves
@@ -54,8 +55,8 @@ Numeració concurrent per tenant+sèrie+període, preview no vinculant, i tancam
 - [ ] Dues emissions concurrents mateixa sèrie → números consecutius sense duplicat.
 - [ ] Preview no consumeix número.
 - [ ] `issued_on` any passat usa `period_key` correcte.
-- [ ] Any tancat bloqueja issue/cancel/pay; lectura OK.
-- [ ] Reobrir restaura mutacions.
+- [x] Any tancat bloqueja issue/cancel/pay; lectura OK. (UAT 2026-10-06: tancar 2026; emetre no crea `F-2026-0002`; lectura Settings OK)
+- [x] Reobrir restaura mutacions. (UAT 2026-10-06: Reobrir → Obert)
 
 ## DoD
 

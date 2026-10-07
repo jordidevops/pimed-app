@@ -3,9 +3,9 @@
 > **Contracte CP-0.5** — acordat abans de crear schema (2026-08-04).  
 > Pla: [`README.md`](./README.md) · Execució: [`EXECUTION.md`](./EXECUTION.md).  
 > **Retenció / Legal Center plataforma:** [`../legal-compliance/README.md`](../legal-compliance/README.md) (jobs DSAR i purge a fase LC-2).  
-> Versió del contracte: **1.1**
+> Versió del contracte: **1.2** *(CF-28 portal comercial lectura, 2026-10-07)*
 
-Aquest document fixa què pot sortir al butlletí/reader i quant es conserva. No és l’entitlement comercial ([`entitlements-contract.md`](./entitlements-contract.md)).
+Aquest document fixa què pot sortir al butlletí/reader **i** al catàleg comercial del portal nominatiu, i quant es conserva. No és l’entitlement comercial ([`entitlements-contract.md`](./entitlements-contract.md)).
 
 ---
 
@@ -48,6 +48,29 @@ Inclòs **només** si el draft/publicació el marca explícitament (o forma part
 - Qualsevol adjunt «només perquè està a l’ordre» sense selecció explícita (l’auto-inclusió d’evidence de ítems/tasques marcats és selecció explícita de curació)
 
 Canviar l’allowlist exigeix bump de `schema_version` / `template_version` a la versió publicada i revisió d’aquest contracte.
+
+---
+
+## 2bis. Allowlist comercial al portal nominatiu (CF-28 / CP-Da)
+
+Exposició **opt-in** per toggle a `customer_portal_tenant_state` (`commercial_*_enabled`). Off per defecte. Només mode `portal` (no `share_only`). Kill-switch global del portal mana.
+
+Accés només via BFF → edge `resolve-customer-portal-commercial` → RPCs `data.*` service-only amb `tenant_id` + `client_account_contact_id` ja resolts (grant o staff scoped a compte). Cap lectura PostgREST directa des del browser.
+
+| Mòdul | Visible | Exclòs |
+|---|---|---|
+| Quotes / esmenes | Número, dates, validesa, status no-draft, totals/línies si `show_prices`, decisió resumida, PDF via signed URL curta | `created_by`, notes internes, templates, drafts, paths Storage |
+| Acords | Kind, estat versió (`pending_signature`/`signed`/`declined`), vigència, PDF signed/rendered | Versions draft sense enviament, errors de signing |
+| Albarans | Número, data, projecte públic, status (`rejected` → disputat), línies/imports si `show_prices`, factura vinculada, PDF | Costos, notes internes |
+| Factures | Número, status, línies, totals, pagat/pendent agregat, pagaments amb referència emmascarada, albarans origen | `payments`/`payment_allocations` crus, metadades bancàries, exports gestoria, drafts |
+
+Retenció comercial:
+
+- El portal **no** crea còpies mutables; serveix versions/snapshots del domini comercial.
+- Cache BFF `private, no-store`; signed URL PDF TTL curt (minuts).
+- Revocar grant / staff session / kill-switch talla accés immediat; el document comercial persisteix segons retenció del domini CF.
+
+Staff «veure com el client»: mateix allowlist; banner de suport; sessió scoped a un `client_account_contact_id`; audit amb `session_id` staff.
 
 ---
 

@@ -165,6 +165,9 @@ verify_jwt = true
 [functions.get-document-url]
 verify_jwt = true
 
+[functions.process-commercial-decision-token]
+verify_jwt = false
+
 [functions.create-document-share-link]
 verify_jwt = true
 
@@ -187,6 +190,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.resolve-customer-portal-grant]
+verify_jwt = false
+
+[functions.resolve-customer-portal-commercial]
 verify_jwt = false
 
 [functions.set-customer-portal-locale]
@@ -248,6 +254,9 @@ verify_jwt = true
 
 [functions.docuseal-webhook]
 verify_jwt = false
+
+[functions.reconcile-docuseal-signed-artifacts]
+verify_jwt = true
 
 [functions.save-tenant-api-key]
 verify_jwt = true

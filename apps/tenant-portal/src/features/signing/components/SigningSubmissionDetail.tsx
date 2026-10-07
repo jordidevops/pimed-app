@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
-  RefreshCw, ExternalLink, FileText, Copy, Check, Mail,
+  RefreshCw, ExternalLink, FileText, Mail,
   CheckCircle2, XCircle, Clock, AlertCircle, Loader2, Download, Eye, ShieldCheck, Info, ClipboardCheck, Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -133,10 +133,8 @@ export function SigningSubmissionDetail() {
   )
   const commercialLink = submission?.id ? commercialHub[submission.id] : undefined
 
-  const [copiedSigningUrl, setCopiedSigningUrl] = useState(false)
   const [selectedSigner, setSelectedSigner] = useState<SignerSnapshot | null>(null)
   const [sendingNotifIdx, setSendingNotifIdx] = useState<number | null>(null)
-  const [copiedSignerUrlIdx, setCopiedSignerUrlIdx] = useState<number | null>(null)
   const [sessionActionLoading, setSessionActionLoading] = useState<SigningSessionAction | null>(null)
   const [docusealCheckResult, setDocusealCheckResult] = useState<SigningSessionManagerResult | null>(null)
   const [confirmDeleteSessionOpen, setConfirmDeleteSessionOpen] = useState(false)
@@ -337,30 +335,6 @@ export function SigningSubmissionDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {isDocuSeal && submission.docuseal_signing_url && (
-            <>
-              <Button variant="outline" size="sm" asChild>
-                <a href={submission.docuseal_signing_url} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                  {t('detail.openSigningUrl', 'URL de signatura')}
-                </a>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  void navigator.clipboard.writeText(submission.docuseal_signing_url!)
-                  setCopiedSigningUrl(true)
-                  setTimeout(() => setCopiedSigningUrl(false), 2000)
-                }}
-                title={t('detail.copySigningUrl', 'Copiar URL de signatura')}
-              >
-                {copiedSigningUrl
-                  ? <Check className="h-3.5 w-3.5 text-green-500" />
-                  : <Copy className="h-3.5 w-3.5" />}
-              </Button>
-            </>
-          )}
           {status === 'completed' && !submission.reviewed_at && (
             <Button
               variant="outline"
@@ -544,11 +518,16 @@ export function SigningSubmissionDetail() {
             <p className="mt-1 text-xs">
               {t('detail.docusealFound', 'Existeix a DocuSeal')}: {docusealCheckResult.remote_found ? t('detail.yes', 'Sí') : t('detail.no', 'No')}
             </p>
-            {docusealCheckResult.remote_submission && (
-              <pre className="mt-2 max-h-48 overflow-auto rounded bg-background/80 p-2 text-[11px] text-foreground/90 border">
-                {JSON.stringify(docusealCheckResult.remote_submission, null, 2)}
-              </pre>
-            )}
+            {docusealCheckResult.remote_status ? (
+              <p className="mt-1 text-xs">
+                {t('detail.docusealRemoteStatus', 'Estat remot')}: {String(docusealCheckResult.remote_status)}
+              </p>
+            ) : null}
+            {typeof docusealCheckResult.remote_submitter_count === 'number' ? (
+              <p className="mt-1 text-xs">
+                {t('detail.docusealSubmitters', 'Signants remots')}: {docusealCheckResult.remote_submitter_count}
+              </p>
+            ) : null}
           </div>
         )}
       </div>
@@ -661,39 +640,7 @@ export function SigningSubmissionDetail() {
                           {t(`detail.signerStatus.${signerEffectiveStatus(s)}`, s.status)}
                         </span>
                       )}
-                      {s.signing_url && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          title={t('detail.openSignerUrl', 'Obrir URL de signatura')}
-                          asChild
-                        >
-                          <a href={s.signing_url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        </Button>
-                      )}
-                      {s.signing_url && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          title={t('detail.copySignerUrl', 'Copiar URL de signatura')}
-                          onClick={() => {
-                            void navigator.clipboard.writeText(s.signing_url!)
-                            setCopiedSignerUrlIdx(i)
-                            setTimeout(() => setCopiedSignerUrlIdx(null), 2000)
-                          }}
-                        >
-                          {copiedSignerUrlIdx === i
-                            ? <Check className="h-3.5 w-3.5 text-green-500" />
-                            : <Copy className="h-3.5 w-3.5" />}
-                        </Button>
-                      )}
-                      {notificationMode && notificationMode !== 'docuseal_auto' && !isTerminal && submission.docuseal_submission_id && (
+                      {notificationMode && notificationMode !== 'docuseal_auto' && !isTerminal && (
                         <Button
                           type="button"
                           variant="ghost"
@@ -840,16 +787,6 @@ export function SigningSubmissionDetail() {
                 <p className="tabular-nums">{formatDateTime(selectedSigner.completed_at ?? null)}</p>
               </div>
 
-              {selectedSigner.signing_url && (
-                <div className="pt-1">
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={selectedSigner.signing_url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                      {t('detail.openSignerSigningUrl', 'Obrir URL del signant')}
-                    </a>
-                  </Button>
-                </div>
-              )}
             </div>
           )}
         </DialogContent>

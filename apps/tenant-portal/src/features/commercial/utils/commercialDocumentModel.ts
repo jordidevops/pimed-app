@@ -75,6 +75,8 @@ export type CommercialDocumentDetail = {
     document_template_id?: string | null
     full_body_template_id?: string | null
     formalization_mode?: 'signed_quote' | 'separate_agreement' | null
+    invoice_id?: string | null
+    invoice_doc_number?: string | null
     external_invoice_ref?: string | null
     supersedes_id?: string | null
   lines: CommercialDocumentLine[]

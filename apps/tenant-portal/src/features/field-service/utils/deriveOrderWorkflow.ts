@@ -206,7 +206,7 @@ export function deriveOrderWorkflow(input: {
     [...activeDeliveries]
       .filter(
         (document) =>
-          !document.external_invoice_ref &&
+          !document.invoice_id &&
           remainingCentsForDocument(document, documents, input.payments) > 0,
       )
       .sort(

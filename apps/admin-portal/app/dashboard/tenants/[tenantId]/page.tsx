@@ -9,6 +9,7 @@ import { MembersTab } from '@/components/dashboard/MembersTab'
 import { SitesTab } from '@/components/dashboard/SitesTab'
 import { AuditLogsTab } from '@/components/dashboard/AuditLogsTab'
 import { TenantSigningTab } from '@/components/dashboard/TenantSigningTab'
+import { getTenantSigningOpsSummary } from '@/app/admin/actions/signing-ops'
 import { TenantPortalsTab } from '@/components/dashboard/TenantPortalsTab'
 import { TenantCustomerClientsTab } from '@/components/dashboard/TenantCustomerClientsTab'
 import { TenantAiTab } from '@/components/dashboard/TenantAiTab'
@@ -130,6 +131,7 @@ export default async function TenantDetailPage({ params, searchParams }: Props) 
   const signingConfig = (signingConfigRows[0] ?? null) as {
     mode: string; is_active: boolean; admin_disabled: boolean; signing_credits: number; docuseal_api_url: string
   } | null
+  const signingOpsSummary = await getTenantSigningOpsSummary(tenantId)
 
   const aiSummary = tab === 'ia' ? await getTenantAiSummary(tenantId) : null
   const tenantSecrets = tab === 'secrets' ? await getTenantSecretsMeta(tenantId) : []
@@ -423,13 +425,18 @@ export default async function TenantDetailPage({ params, searchParams }: Props) 
         </Link>
         <Link
           href={`/dashboard/tenants/${tenantId}?tab=firmes`}
-          className={`px-5 py-2.5 text-sm font-medium border-b-2 transition ${
+          className={`px-5 py-2.5 text-sm font-medium border-b-2 transition flex items-center gap-2 ${
             tab === 'firmes'
               ? 'text-indigo-600 border-indigo-600'
               : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
           }`}
         >
           {t('tenants.detail.tabs.firmes', 'Firmes')}
+          {signingOpsSummary && signingOpsSummary.unresolved_failures_7d > 0 && (
+            <span className="text-xs bg-red-50 text-red-700 rounded-full px-2 py-0.5 font-normal">
+              {signingOpsSummary.unresolved_failures_7d}
+            </span>
+          )}
         </Link>
         <Link
           href={`/dashboard/tenants/${tenantId}?tab=ia`}
@@ -576,6 +583,7 @@ export default async function TenantDetailPage({ params, searchParams }: Props) 
           flagRolloutPct={signingFlag?.rollout_percentage ?? 0}
           override={signingOverride !== null ? signingOverride.override_status : null}
           signingConfig={signingConfig}
+          opsSummary={signingOpsSummary}
         />
       )}
 

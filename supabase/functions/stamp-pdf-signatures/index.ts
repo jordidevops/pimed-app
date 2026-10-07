@@ -474,18 +474,40 @@ Deno.serve(async (req: Request) => {
     let signerFields: SigningFieldArea[] = [];
 
     if (doOverlay) {
+      // CF-28: refús no estampa; rols comercials sense fallback genèric.
+      if (signerRole === "client_reject") {
+        return new Response(
+          JSON.stringify({ error: "commercial_reject_does_not_stamp" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+      const commercialRole =
+        signerRole === "client_accept" ||
+        signerRole === "client_delivery" ||
+        signerRole === "client";
       const overlay = await resolveStampOverlayFields({
         pdfBytes: origBytes,
         signerRole,
         signerOrder,
         pageCount: pdfDoc.getPageCount(),
         fieldMap,
+        disallowFallback: commercialRole,
       });
-      if (overlay.error === SIGNATURE_FIELD_NOT_FOUND) {
-        return new Response(JSON.stringify({ error: SIGNATURE_FIELD_NOT_FOUND }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (overlay.error === SIGNATURE_FIELD_NOT_FOUND || (commercialRole && overlay.fields.length === 0)) {
+        return new Response(
+          JSON.stringify({
+            error: commercialRole
+              ? "commercial_signature_field_missing"
+              : SIGNATURE_FIELD_NOT_FOUND,
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
       signerFields = overlay.fields;
       await overlaySignatureFields(pdfDoc, signerFields, clientSigBytes, signerRole);

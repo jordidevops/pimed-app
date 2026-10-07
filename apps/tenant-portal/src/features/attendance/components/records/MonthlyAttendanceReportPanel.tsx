@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -47,7 +47,10 @@ import { useMonthlyCloseSettings } from '../../api/useMonthlyCloseSettings'
 import { useMonthlyEmployeeConfirmValidation } from '../../api/useMonthlyEmployeeConfirmValidation'
 import { useAttendanceLegalCounters } from '../../api/useAttendanceLegalCounters'
 import { isMonthlyCloseBlockedByEmployeeConfirm } from '../../api/monthlyCloseSettings'
-import { resolveEmployeeSignerLink } from '../../api/monthlyReportSigningUtils'
+import {
+  fetchMyPendingSigningUrl,
+  isCurrentUserPendingSigner,
+} from '../../api/monthlyReportSigningUtils'
 import { openMonthlyConfirmWhatsApp } from '@/features/employee-portal/utils/portalWhatsApp'
 import { useSigningSubmission } from '@/features/signing/api/useSigningSubmission'
 import { useAuth } from '@/contexts/AuthContext'
@@ -203,7 +206,26 @@ export function MonthlyAttendanceReportPanel({
   const { data: signingSubmission } = useSigningSubmission(
     variant === 'employee' ? submissionId ?? undefined : undefined,
   )
-  const employeeSignUrl = resolveEmployeeSignerLink(signingSubmission, user?.email)
+  const canSelfSign = isCurrentUserPendingSigner(signingSubmission, user?.email)
+  const [employeeSignUrl, setEmployeeSignUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (variant !== 'employee' || !submissionId || !canSelfSign) {
+      setEmployeeSignUrl(null)
+      return
+    }
+    let cancelled = false
+    void fetchMyPendingSigningUrl(submissionId)
+      .then((url) => {
+        if (!cancelled) setEmployeeSignUrl(url)
+      })
+      .catch(() => {
+        if (!cancelled) setEmployeeSignUrl(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [variant, submissionId, canSelfSign, signingSubmission?.status])
 
   const status = effectiveStatus((data?.status?.status as MonthlyReportStatus) ?? null)
   const exportData = data?.export

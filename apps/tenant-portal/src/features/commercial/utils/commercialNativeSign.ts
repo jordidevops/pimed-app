@@ -1,20 +1,17 @@
 export type CommercialNativeSignAction = 'accept' | 'reject' | 'delivery'
 
-export type CommercialNativeSignerRole =
-  | 'client_accept'
-  | 'client_reject'
-  | 'client_delivery'
+/** Rols que poden estampar el PDF. El refús no en té (CF-28 F5). */
+export type CommercialNativeSignerRole = 'client_accept' | 'client_delivery'
 
 export function commercialSignerRoleForAction(
-  action: CommercialNativeSignAction,
+  action: Exclude<CommercialNativeSignAction, 'reject'>,
 ): CommercialNativeSignerRole {
-  if (action === 'reject') return 'client_reject'
   if (action === 'delivery') return 'client_delivery'
   return 'client_accept'
 }
 
 export function buildCommercialNativeSignaturePayload(params: {
-  action: CommercialNativeSignAction
+  action: Exclude<CommercialNativeSignAction, 'reject'>
   sessionId: string
   submissionId?: string | null
   signingGroupId?: string | null

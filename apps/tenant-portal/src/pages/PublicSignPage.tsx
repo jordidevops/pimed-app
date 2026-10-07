@@ -16,6 +16,10 @@ import { useParams } from 'react-router-dom'
 import { Loader2, CheckCircle, XCircle, AlertTriangle, FileText } from 'lucide-react'
 import { SignaturePad } from '../features/signing/components/SignaturePad'
 import { nativeSignerRoleLabel } from '../features/signing/utils/signerRoleLabel'
+import {
+  CommercialDecisionPage,
+  type CommercialDecisionResolve,
+} from '../features/commercial/components/CommercialDecisionPage'
 import { supabase } from '../lib/supabase'
 
 // ---------------------------------------------------------------------------
@@ -95,6 +99,7 @@ export function PublicSignPage() {
   const [declineReason, setDeclineReason] = useState('')
   const [geoEnabled,setGeoEnabled]= useState(false)
   const [geo,       setGeo]       = useState<{ lat: number; lon: number } | null>(null)
+  const [commercial, setCommercial] = useState<CommercialDecisionResolve | null>(null)
   const docViewedRef = useRef(false)
   const clientIp     = useRef<string>('')
 
@@ -107,14 +112,24 @@ export function PublicSignPage() {
 
     void (async () => {
       try {
-        let ip = ''
-        try {
-          const d = await fetch('https://api.ipify.org?format=json').then((r) => r.json()) as { ip: string }
-          ip = d.ip
-          clientIp.current = ip
-        } catch {
-          // ignore IP lookup failures
+        // CF-28: commercial decision tokens first; fall through to DMS signing.
+        const commercialRes = await supabase.rpc('resolve_commercial_decision_token' as never, {
+          p_token: token,
+          p_mark_opened: true,
+        } as never)
+        if (!commercialRes.error && commercialRes.data) {
+          const commercialPayload = commercialRes.data as {
+            kind?: string
+          } & Partial<CommercialDecisionResolve>
+          if (commercialPayload.kind === 'commercial_decision') {
+            setCommercial(commercialPayload as CommercialDecisionResolve)
+            setPageState('ready')
+            return
+          }
         }
+
+        // IP is captured server-side (edge/RPC); do not call third-party IP lookup (CS-D31).
+        clientIp.current = ''
 
         const { data, error } = await supabase.rpc('get_signing_session_public', { p_token: token })
         if (error) throw new Error(error.message)
@@ -136,7 +151,6 @@ export function PublicSignPage() {
         await logSigningEvidence({
           p_session_id: sess.session_id,
           p_event_type: 'link_opened',
-          p_ip_address: ip || undefined,
           p_user_agent: navigator.userAgent,
         })
 
@@ -285,6 +299,10 @@ export function PublicSignPage() {
         </div>
       </PublicLayout>
     )
+  }
+
+  if (commercial && token) {
+    return <CommercialDecisionPage token={token} initial={commercial} />
   }
 
   if (pageState === 'already_signed') {

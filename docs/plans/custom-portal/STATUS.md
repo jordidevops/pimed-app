@@ -1,6 +1,6 @@
 # Customer portal — Estat d'implementació
 
-> **Última actualització:** 2026-08-07  
+> **Última actualització:** 2026-10-06
 > **Propòsit:** seguir el desenvolupament del portal del client i butlletins d'intervenció.  
 > **Pla:** [`README.md`](./README.md) · ordre d'execució [`EXECUTION.md`](./EXECUTION.md)
 
@@ -30,8 +30,17 @@
 | **CP-ADM** | Entitlements / admin | ✅ | |
 | **CP-B** | Portal client light | ✅ | MVP històric; model substituït |
 | **CP-C** | Portal centrat en el contacte | 🔄 | P0+P1+P2 frontera tancats al codi; resta CP-C (multi-dest / ops) |
+| **CP-D** | Documents comercials | ❌ | Spec CF-28: lectura/traçabilitat (Da) → decisió (Db) |
 
 ---
+
+## CP-D — Documents comercials
+
+Spec canònica: [`../commercial-flow/11-commercial-signing-ux/`](../commercial-flow/11-commercial-signing-ux/README.md).
+
+- **CP-Da:** toggles opt-in, projeccions BFF allowlistades, quotes/acords, albarans i factures.
+- **CP-Db:** pendents i acceptar/refusar dins del portal sobre la mateixa request comercial.
+- No s'obre fins al domini CF-28 fase 2; CP-C continua sent prerequisit.
 
 ## CP-C — Portal centrat en el contacte
 
@@ -109,6 +118,7 @@ Ops local: mateix `CUSTOMER_PORTAL_BFF_SECRET` a BFF i `supabase/functions/.env.
 
 | Data | Canvi |
 |------|-------|
+| 2026-10-06 | **CP-D** especificat dins CF-28: lectura comercial + decisió, no implementat. |
 | 2026-08-07 | Footer tenant + `/dashboard/access`; settings perfil públic; staff history col·lapsable sota «Veure portal» |
 | 2026-08-07 | P0 transparència accessos: grants + staff «Suport de {tenant}» al dashboard; historial staff al tab Portal; staff empty = dashboard.empty |
 | 2026-08-07 | Fix staff preview: `create_customer_portal_staff_session` → SECURITY DEFINER (platform_state + INSERT sessions) |

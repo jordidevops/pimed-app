@@ -2579,6 +2579,201 @@ export type Database = {
         }
         Relationships: []
       }
+      commercial_decision_deliveries: {
+        Row: {
+          channel: string | null
+          created_at: string | null
+          email_log_id: string | null
+          error_code: string | null
+          failed_at: string | null
+          id: string | null
+          idempotency_key: string | null
+          locale: string | null
+          queued_at: string | null
+          recipient_contact_point_id: string | null
+          recipient_hash: string | null
+          recipient_masked: string | null
+          request_id: string | null
+          sent_at: string | null
+          status: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string | null
+          email_log_id?: string | null
+          error_code?: string | null
+          failed_at?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          locale?: string | null
+          queued_at?: string | null
+          recipient_contact_point_id?: string | null
+          recipient_hash?: string | null
+          recipient_masked?: string | null
+          request_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string | null
+          email_log_id?: string | null
+          error_code?: string | null
+          failed_at?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          locale?: string | null
+          queued_at?: string | null
+          recipient_contact_point_id?: string | null
+          recipient_hash?: string | null
+          recipient_masked?: string | null
+          request_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
+      commercial_decision_events: {
+        Row: {
+          actor_id: string | null
+          client_op_id: string | null
+          content_hash: string | null
+          created_at: string | null
+          event_type: string | null
+          evidence: Json | null
+          id: string | null
+          ip_address: unknown
+          outcome: string | null
+          portal_principal_id: string | null
+          provider: string | null
+          provider_session_id: string | null
+          provider_submission_id: string | null
+          reason: string | null
+          request_id: string | null
+          signer_email: string | null
+          signer_name: string | null
+          signer_role: string | null
+          tenant_id: string | null
+          user_agent: string | null
+          via: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          client_op_id?: string | null
+          content_hash?: string | null
+          created_at?: string | null
+          event_type?: string | null
+          evidence?: Json | null
+          id?: string | null
+          ip_address?: unknown
+          outcome?: string | null
+          portal_principal_id?: string | null
+          provider?: string | null
+          provider_session_id?: string | null
+          provider_submission_id?: string | null
+          reason?: string | null
+          request_id?: string | null
+          signer_email?: string | null
+          signer_name?: string | null
+          signer_role?: string | null
+          tenant_id?: string | null
+          user_agent?: string | null
+          via?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          client_op_id?: string | null
+          content_hash?: string | null
+          created_at?: string | null
+          event_type?: string | null
+          evidence?: Json | null
+          id?: string | null
+          ip_address?: unknown
+          outcome?: string | null
+          portal_principal_id?: string | null
+          provider?: string | null
+          provider_session_id?: string | null
+          provider_submission_id?: string | null
+          reason?: string | null
+          request_id?: string | null
+          signer_email?: string | null
+          signer_name?: string | null
+          signer_role?: string | null
+          tenant_id?: string | null
+          user_agent?: string | null
+          via?: string | null
+        }
+        Relationships: []
+      }
+      commercial_decision_requests: {
+        Row: {
+          active_provider: string | null
+          agreement_version_id: string | null
+          client_account_contact_id: string | null
+          client_op_id: string | null
+          commercial_document_id: string | null
+          content_hash: string | null
+          created_at: string | null
+          created_by: string | null
+          decided_at: string | null
+          decided_via: string | null
+          document_version_id: string | null
+          expires_at: string | null
+          id: string | null
+          purpose: string | null
+          rendered_document_id: string | null
+          snapshot_json: Json | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active_provider?: string | null
+          agreement_version_id?: string | null
+          client_account_contact_id?: string | null
+          client_op_id?: string | null
+          commercial_document_id?: string | null
+          content_hash?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          decided_at?: string | null
+          decided_via?: string | null
+          document_version_id?: string | null
+          expires_at?: string | null
+          id?: string | null
+          purpose?: string | null
+          rendered_document_id?: string | null
+          snapshot_json?: Json | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active_provider?: string | null
+          agreement_version_id?: string | null
+          client_account_contact_id?: string | null
+          client_op_id?: string | null
+          commercial_document_id?: string | null
+          content_hash?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          decided_at?: string | null
+          decided_via?: string | null
+          document_version_id?: string | null
+          expires_at?: string | null
+          id?: string | null
+          purpose?: string | null
+          rendered_document_id?: string | null
+          snapshot_json?: Json | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       commercial_document_events: {
         Row: {
           actor_id: string | null
@@ -11634,6 +11829,15 @@ export type Database = {
         Args: { p_project_id: string; p_template_id: string }
         Returns: string
       }
+      apply_commercial_decision_office: {
+        Args: {
+          p_client_op_id: string
+          p_outcome: string
+          p_reason: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
       apply_pause_config_template: {
         Args: { p_archetype_key: string }
         Returns: number
@@ -12510,6 +12714,25 @@ export type Database = {
           p_version_id: string
         }
         Returns: Json
+      }
+      create_commercial_decision_delivery: {
+        Args: {
+          p_channel: string
+          p_client_op_id: string
+          p_contact_point_id: string
+          p_locale: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
+      create_commercial_decision_request: {
+        Args: {
+          p_client_op_id: string
+          p_expires_at: string
+          p_target_id: string
+          p_target_kind: string
+        }
+        Returns: string
       }
       create_commercial_rendered_document_internal: {
         Args: {
@@ -13423,6 +13646,17 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: number
+      }
+      enqueue_commercial_decision_delivery_email: {
+        Args: {
+          p_decision_url: string
+          p_delivery_id: string
+          p_locale?: string
+          p_portal_url?: string
+          p_recipient_name?: string
+          p_to_email: string
+        }
+        Returns: Json
       }
       enqueue_customer_report_share_email: {
         Args: {
@@ -14424,6 +14658,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: number
+      }
+      get_open_commercial_decision_request: {
+        Args: { p_target_document_id: string }
+        Returns: Json
       }
       get_own_certifications: {
         Args: { p_token_hash_hex: string }
@@ -16500,6 +16738,10 @@ export type Database = {
         }
         Returns: string
       }
+      mark_commercial_decision_delivery_failed: {
+        Args: { p_delivery_id: string; p_error_code: string }
+        Returns: string
+      }
       mark_customer_intervention_report_media_copy_job: {
         Args: {
           p_copied_size_bytes?: number
@@ -17017,16 +17259,28 @@ export type Database = {
         }
         Returns: string
       }
-      register_commercial_signing_intent: {
-        Args: {
-          p_action: string
-          p_client_op_id: string
-          p_document_id: string
-          p_session_id: string
-          p_submission_id?: string
-        }
-        Returns: string
-      }
+      register_commercial_signing_intent:
+        | {
+            Args: {
+              p_action: string
+              p_client_op_id: string
+              p_document_id: string
+              p_session_id: string
+              p_submission_id?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_action: string
+              p_client_op_id: string
+              p_decision_request_id?: string
+              p_document_id: string
+              p_session_id: string
+              p_submission_id?: string
+            }
+            Returns: string
+          }
       register_external_invoice: {
         Args: {
           p_client_op_id: string
@@ -17412,6 +17666,10 @@ export type Database = {
       revoke_attendance_station_secret: {
         Args: { p_device_id: string }
         Returns: Json
+      }
+      revoke_commercial_decision_request: {
+        Args: { p_client_op_id: string; p_request_id: string }
+        Returns: string
       }
       revoke_contact_relationship: {
         Args: { p_reason?: string; p_relationship_id: string }
