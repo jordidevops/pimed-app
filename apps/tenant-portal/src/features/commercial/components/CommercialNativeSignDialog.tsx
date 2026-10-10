@@ -29,6 +29,10 @@ import {
   isAlreadyAppliedCommercialSigningError,
   type CommercialNativeSignAction,
 } from '../utils/commercialNativeSign'
+import {
+  commercialErrorMessage,
+  isDecisionRequestsDisabledError,
+} from '../utils/commercialErrorMessage'
 import { docTypeLabel, partyDisplayName } from '../utils/commercialDocumentModel'
 
 interface CommercialNativeSignDialogProps {
@@ -145,7 +149,7 @@ export function CommercialNativeSignDialog({
       onCompleted('signed')
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(commercialErrorMessage(err))
       setStep('error')
     } finally {
       setBusy(false)
@@ -194,9 +198,19 @@ export function CommercialNativeSignDialog({
     setError(null)
     try {
       const doc = await getCommercialDocumentDetail(documentId)
+      // Bake the post-sign status into the PDF so the stamped artifact does not
+      // keep «Pendent de resposta» after accept / «Emès» after delivery sign.
+      const statusOverride =
+        action === 'accept'
+          ? ('accepted' as const)
+          : action === 'delivery'
+            ? ('signed' as const)
+            : undefined
       const rendered = await renderCommercialDocumentPdf({
         documentId,
         tenantId,
+        regenerate: !!statusOverride,
+        statusOverride,
       })
       if (rendered.status !== 'ready' || !rendered.version_id) {
         throw new Error(
@@ -217,8 +231,8 @@ export function CommercialNativeSignDialog({
           clientOpId: opId,
         })
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err)
-        if (!msg.includes('decision_requests_disabled')) throw err
+        // Optional: presential accept works without decision-request rows.
+        if (!isDecisionRequestsDisabledError(err)) throw err
       }
       const result = await callSignDocumentRouter({
         tenant_id: tenantId,
@@ -282,7 +296,7 @@ export function CommercialNativeSignDialog({
         setStep('remote')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(commercialErrorMessage(err))
       setStep('error')
     } finally {
       setBusy(false)
@@ -319,10 +333,13 @@ export function CommercialNativeSignDialog({
       onCompleted('signed')
       onClose()
     } catch (err) {
+      const message = commercialErrorMessage(err)
+      setError(message)
+      setStep('error')
       toast({
         variant: 'destructive',
         title: t('projects.commercial.error', 'Error comercial'),
-        description: err instanceof Error ? err.message : undefined,
+        description: message,
       })
     } finally {
       setBusy(false)
@@ -486,7 +503,7 @@ export function CommercialNativeSignDialog({
 
         {step === 'error' ? (
           <div className="space-y-3">
-            <p className="text-sm text-destructive">{error}</p>
+            <div className="text-sm text-destructive whitespace-pre-wrap break-words">{error}</div>
             <Button type="button" variant="outline" onClick={() => setStep('choose')}>
               {t('projects.commercial.sign_retry', 'Tornar')}
             </Button>

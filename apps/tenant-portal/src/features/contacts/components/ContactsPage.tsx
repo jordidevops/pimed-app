@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -10,41 +10,63 @@ import { Input } from '@/components/ui/input'
 import { ScrollableTabBar } from '@/components/ui/scrollable-tab-bar'
 import { PageShell } from '@/components/layout/PageShell'
 import { ListViewToggle } from '@/components/layout/ListViewToggle'
+import { FilterChips } from '@/components/layout/FilterChips'
+import { SiteScopeFilter } from '@/components/layout/SiteScopeFilter'
 import { useListViewMode } from '@/hooks/useListViewMode'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { useListDensity } from '@/hooks/useListDensity'
+import { useSiteScope } from '@/hooks/useSiteScope'
+import { SalesDataTable, type SalesDataTableColumn } from '@/features/commercial/components/SalesDataTable'
 import {
   getActiveContactSitesForTenant,
+  getContactLifecycleSignalRows,
   getContacts,
   googleMapsUrlForSite,
 } from '../api/contactsService'
 import type { Contact } from '../api/contactsService'
+import {
+  buildLifecycleByContactId,
+  type ContactCommercialLifecycle,
+} from '../utils/contactCommercialLifecycle'
 import { ContactCard, type ContactCardSiteInfo } from './ContactCard'
+import { ContactLifecycleBadge } from './ContactLifecycleBadge'
 import { ContactForm } from './ContactForm'
 import { ContactsPortalHubTab } from './ContactsPortalHubTab'
 
 type KindFilter = 'all' | 'person' | 'company'
+type LifecycleFilter = 'all' | ContactCommercialLifecycle
 type ContactsPageTab = 'list' | 'portal_hub'
 
+function lifecycleLabel(
+  lifecycle: ContactCommercialLifecycle,
+  t: (key: string, fallback: string) => string,
+): string {
+  if (lifecycle === 'effective') return t('contacts.lifecycle.effective', 'Efectiu')
+  if (lifecycle === 'potential') return t('contacts.lifecycle.potential', 'Potencial')
+  return t('contacts.lifecycle.agenda', 'Agenda')
+}
+
 export function ContactsPage() {
-  const { t } = useTranslation('contacts')
+  const { t } = useTranslation(['contacts', 'common'])
   const contactListLabel = useSectorContactListLabel()
   const isFieldService = useIsFieldService()
   const { activeTenant, tenants, tenantsLoading } = useTenant()
+  const {
+    sites: tenantSites,
+    selectedSiteId,
+    setSelectedSiteId,
+    showSiteFilter,
+    canUseAllSites,
+  } = useSiteScope()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [search, setSearch] = useState('')
   const [kindFilter, setKindFilter] = useState<KindFilter>('all')
+  const [lifecycleFilter, setLifecycleFilter] = useState<LifecycleFilter>('all')
   const [formOpen, setFormOpen] = useState(false)
   const { mode, setMode, effectiveMode } = useListViewMode('contacts.list', 'cards')
+  const { density, setDensity } = useListDensity('contacts.list', 'comfortable')
 
   const activeTab: ContactsPageTab =
     searchParams.get('tab') === 'portal_hub' ? 'portal_hub' : 'list'
@@ -72,6 +94,21 @@ export function ContactsPage() {
     enabled: !!activeTenant && activeTab === 'list',
   })
 
+  const { data: lifecycleSignals } = useQuery({
+    queryKey: ['contacts', 'lifecycle_signals', activeTenant?.id],
+    queryFn: () => getContactLifecycleSignalRows(),
+    enabled: !!activeTenant && activeTab === 'list',
+  })
+
+  const lifecycleByContact = useMemo(() => {
+    if (!lifecycleSignals) return new Map<string, ContactCommercialLifecycle>()
+    return buildLifecycleByContactId(
+      contacts.map((c) => ({ id: c.id, source: c.source })),
+      lifecycleSignals.docs,
+      lifecycleSignals.projects,
+    )
+  }, [contacts, lifecycleSignals])
+
   const sitesByContact = useMemo(() => {
     const map = new Map<string, ContactCardSiteInfo>()
     for (const site of contactSites) {
@@ -92,8 +129,18 @@ export function ContactsPage() {
 
   const filtered = useMemo(() => {
     let result = contacts
+    // Sidebar / table site scope: show global contacts + contacts of that local.
+    if (selectedSiteId) {
+      result = result.filter((c) => !c.site_id || c.site_id === selectedSiteId)
+    }
     if (kindFilter !== 'all') {
       result = result.filter((c) => c.kind === kindFilter)
+    }
+    if (lifecycleFilter !== 'all') {
+      result = result.filter((c) => {
+        if (!c.id) return false
+        return (lifecycleByContact.get(c.id) ?? 'agenda') === lifecycleFilter
+      })
     }
     if (search.trim()) {
       const q = search.trim().toLowerCase()
@@ -101,25 +148,103 @@ export function ContactsPage() {
         (c) =>
           c.display_name?.toLowerCase().includes(q) ||
           c.email?.toLowerCase().includes(q) ||
-          c.phone?.includes(q),
+          c.phone?.includes(q) ||
+          c.legal_name?.toLowerCase().includes(q) ||
+          c.tax_id?.toLowerCase().includes(q),
       )
     }
     return result
-  }, [contacts, kindFilter, search])
+  }, [contacts, kindFilter, lifecycleByContact, lifecycleFilter, search, selectedSiteId])
+
+  const filterChips = [
+    ...(search.trim()
+      ? [{ key: 'q', label: search.trim(), onRemove: () => setSearch('') }]
+      : []),
+    ...(kindFilter !== 'all'
+      ? [
+          {
+            key: 'kind',
+            label:
+              kindFilter === 'person'
+                ? t('contacts.filter_person', 'Persones')
+                : t('contacts.filter_company', 'Empreses'),
+            onRemove: () => setKindFilter('all'),
+          },
+        ]
+      : []),
+    ...(lifecycleFilter !== 'all'
+      ? [
+          {
+            key: 'lifecycle',
+            label: lifecycleLabel(lifecycleFilter, t),
+            onRemove: () => setLifecycleFilter('all'),
+          },
+        ]
+      : []),
+  ]
+
+  const columns = useMemo<SalesDataTableColumn<Contact>[]>(
+    () => [
+      {
+        id: 'name',
+        header: t('contacts.fields.display_name', 'Nom'),
+        cell: (contact) => (
+          <button
+            type="button"
+            className="text-left font-semibold hover:underline"
+            onClick={() => contact.id && navigate(`/contacts/${contact.id}`)}
+          >
+            {contact.display_name || '—'}
+          </button>
+        ),
+      },
+      {
+        id: 'kind',
+        header: t('contacts.fields.kind', 'Tipus'),
+        cell: (contact) =>
+          contact.kind === 'company'
+            ? t('contacts.kind.company', 'Empresa')
+            : t('contacts.kind.person', 'Persona'),
+      },
+      {
+        id: 'lifecycle',
+        header: t('contacts.lifecycle.column', 'Estat'),
+        cell: (contact) => {
+          const lifecycle = contact.id ? lifecycleByContact.get(contact.id) : undefined
+          return lifecycle ? <ContactLifecycleBadge lifecycle={lifecycle} /> : '—'
+        },
+      },
+      {
+        id: 'email',
+        header: t('contacts.fields.email', 'Correu electrònic'),
+        cell: (contact) => (
+          <span className="text-muted-foreground">{contact.email || '—'}</span>
+        ),
+      },
+      {
+        id: 'phone',
+        header: t('contacts.fields.phone', 'Telèfon'),
+        cell: (contact) => (
+          <span className="text-muted-foreground">{contact.phone || '—'}</span>
+        ),
+      },
+    ],
+    [lifecycleByContact, navigate, t],
+  )
 
   if (tenantsLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+      <div className="flex h-full items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-600" />
       </div>
     )
   }
 
   if (!activeTenant && tenants.length > 1) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
-          <p className="text-sm text-amber-800 font-medium">
+      <div className="mx-auto max-w-3xl px-4 py-10">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
+          <p className="text-sm font-medium text-amber-800">
             {t('contacts.errors.load_failed', 'Error en carregar els contactes')}
           </p>
         </div>
@@ -129,6 +254,19 @@ export function ContactsPage() {
 
   if (!activeTenant) return null
 
+  const kindFilters: Array<{ id: KindFilter; label: string }> = [
+    { id: 'all', label: t('contacts.filter_all', 'Tots') },
+    { id: 'person', label: t('contacts.filter_person', 'Persones') },
+    { id: 'company', label: t('contacts.filter_company', 'Empreses') },
+  ]
+
+  const lifecycleFilters: Array<{ id: LifecycleFilter; label: string }> = [
+    { id: 'all', label: t('contacts.lifecycle.filter_all', 'Tots els estats') },
+    { id: 'effective', label: lifecycleLabel('effective', t) },
+    { id: 'potential', label: lifecycleLabel('potential', t) },
+    { id: 'agenda', label: lifecycleLabel('agenda', t) },
+  ]
+
   return (
     <>
       <PageShell
@@ -137,7 +275,7 @@ export function ContactsPage() {
         actions={
           activeTab === 'list' ? (
             <Button onClick={() => setFormOpen(true)}>
-              <Plus className="h-4 w-4 mr-1.5" />
+              <Plus className="mr-1.5 h-4 w-4" />
               {t('contacts.new_contact', 'Nou contacte')}
             </Button>
           ) : null
@@ -176,37 +314,78 @@ export function ContactsPage() {
         }
         toolbar={
           activeTab === 'list' ? (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  placeholder={t('contacts.search_placeholder', 'Cerca per nom, email o telèfon...')}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="relative block min-w-[12rem] flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    placeholder={t(
+                      'contacts.search_placeholder',
+                      'Cerca per nom, email, telèfon o NIF…',
+                    )}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    aria-label={t('contacts.search_aria', 'Cerca contactes')}
+                  />
+                </label>
+                <ListViewToggle
+                  mode={mode}
+                  onModeChange={setMode}
+                  density={density}
+                  onDensityChange={setDensity}
+                  showDensity={effectiveMode === 'table'}
                 />
               </div>
-              <div className="flex shrink-0 gap-1 rounded-lg border border-border bg-background p-0.5">
-                {(['all', 'person', 'company'] as KindFilter[]).map((k) => (
-                  <button
-                    key={k}
+
+              <div className="flex flex-wrap gap-1.5">
+                {kindFilters.map((filter) => (
+                  <Button
+                    key={filter.id}
                     type="button"
-                    onClick={() => setKindFilter(k)}
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                      kindFilter === k
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'text-muted-foreground hover:bg-accent'
-                    }`}
+                    size="sm"
+                    variant={kindFilter === filter.id ? 'default' : 'outline'}
+                    className="h-7 rounded-full px-2.5 text-xs"
+                    onClick={() => setKindFilter(filter.id)}
                   >
-                    {k === 'all'
-                      ? t('contacts.filter_all', 'Tots')
-                      : k === 'person'
-                        ? t('contacts.filter_person', 'Persones')
-                        : t('contacts.filter_company', 'Empreses')}
-                  </button>
+                    {filter.label}
+                  </Button>
                 ))}
               </div>
-              <ListViewToggle mode={mode} onModeChange={setMode} showDensity={false} />
+
+              <div className="flex flex-wrap gap-1.5">
+                {lifecycleFilters.map((filter) => (
+                  <Button
+                    key={filter.id}
+                    type="button"
+                    size="sm"
+                    variant={lifecycleFilter === filter.id ? 'default' : 'outline'}
+                    className="h-7 rounded-full px-2.5 text-xs"
+                    onClick={() => setLifecycleFilter(filter.id)}
+                  >
+                    {filter.label}
+                  </Button>
+                ))}
+              </div>
+
+              {showSiteFilter ? (
+                <SiteScopeFilter
+                  sites={tenantSites}
+                  value={selectedSiteId}
+                  onChange={setSelectedSiteId}
+                  canSelectAll={canUseAllSites}
+                />
+              ) : null}
+
+              <FilterChips
+                chips={filterChips}
+                clearAllLabel={t('common:list.clear_filters', 'Netejar filtres')}
+                onClearAll={() => {
+                  setSearch('')
+                  setKindFilter('all')
+                  setLifecycleFilter('all')
+                }}
+              />
             </div>
           ) : undefined
         }
@@ -237,14 +416,16 @@ export function ContactsPage() {
                   <Users className="h-7 w-7 text-primary" />
                 </div>
                 <p className="text-base font-semibold text-foreground">
-                  {t('contacts.empty_title', 'Encara no hi ha contactes')}
+                  {contacts.length === 0
+                    ? t('contacts.empty_title', 'Encara no hi ha contactes')
+                    : t('contacts.empty_filtered', 'Cap contacte no coincideix amb la cerca.')}
                 </p>
-                {contacts.length === 0 && (
+                {contacts.length === 0 ? (
                   <Button variant="outline" onClick={() => setFormOpen(true)}>
                     <Plus className="mr-1.5 h-4 w-4" />
                     {t('contacts.empty_cta', 'Crea el primer contacte')}
                   </Button>
-                )}
+                ) : null}
               </div>
             )}
 
@@ -255,42 +436,37 @@ export function ContactsPage() {
                     key={contact.id}
                     contact={contact}
                     siteInfo={contact.id ? sitesByContact.get(contact.id) : undefined}
+                    lifecycle={
+                      contact.id ? lifecycleByContact.get(contact.id) ?? null : null
+                    }
                   />
                 ))}
               </div>
             ) : null}
 
             {!isLoading && filtered.length > 0 && effectiveMode === 'table' ? (
-              <div className="overflow-hidden rounded-xl border border-border">
-                <Table className="app-list-table" data-density="comfortable">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="bg-card">{t('contacts.title', 'Contactes')}</TableHead>
-                      <TableHead className="bg-card">{t('contacts.filter_person', 'Tipus')}</TableHead>
-                      <TableHead className="bg-card">Email</TableHead>
-                      <TableHead className="bg-card">{t('contacts.phone', 'Telèfon')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((contact) => (
-                      <TableRow
-                        key={contact.id}
-                        className="cursor-pointer"
-                        onClick={() => contact.id && navigate(`/contacts/${contact.id}`)}
-                      >
-                        <TableCell className="font-medium">{contact.display_name}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {contact.kind === 'company'
-                            ? t('contacts.filter_company', 'Empreses')
-                            : t('contacts.filter_person', 'Persones')}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">{contact.email || '—'}</TableCell>
-                        <TableCell className="text-muted-foreground">{contact.phone || '—'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <SalesDataTable
+                columns={columns}
+                rows={filtered}
+                getRowId={(contact) => contact.id!}
+                density={density}
+                onRowActivate={(contact) => {
+                  if (contact.id) navigate(`/contacts/${contact.id}`)
+                }}
+                countLabel={t('common:list.showing_count', 'Mostrant {{shown}} de {{total}}', {
+                  shown: filtered.length,
+                  total: contacts.length,
+                })}
+                rowActions={(contact) => [
+                  {
+                    key: 'open',
+                    label: t('contacts.actions.view', 'Veure detall'),
+                    onSelect: () => {
+                      if (contact.id) navigate(`/contacts/${contact.id}`)
+                    },
+                  },
+                ]}
+              />
             ) : null}
           </>
         )}

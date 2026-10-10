@@ -33,6 +33,11 @@ import {
   templateCategoryLabel,
 } from '../utils/templateCategories'
 import { commercialRequiredTokens } from '../utils/commercialTemplateContract'
+import {
+  commercialVocabFamilyFromCategory,
+  findUnknownCommercialPaths,
+  formatUnknownPathMessage,
+} from '../utils/commercialClosedVocabulary'
 import { parseCommercialTemplateLegalGaps } from '@/features/commercial/utils/rpcError'
 import {
   extractDocxDocumentXml,
@@ -509,6 +514,37 @@ export function TemplateFormModal({ open, onClose, mode, inline, initialOpenAiWi
           description: t('locale.docxExtractError', 'No s\'ha pogut llegir el DOCX per validar els marcadors obligatoris.'),
         })
         return
+      }
+
+      const vocabFamily = commercialVocabFamilyFromCategory(localeCategory)
+      const vocabContent = isHtml ? htmlContent : searchableContent
+      if (vocabFamily && vocabContent) {
+        const unknownHits = findUnknownCommercialPaths(
+          vocabContent,
+          vocabFamily,
+          isHtml ? 'html' : 'docx',
+        )
+        if (unknownHits.length > 0) {
+          const detail = formatUnknownPathMessage(unknownHits)
+          const isExistingLocale = Boolean(mode.existing?.id)
+          if (isExistingLocale) {
+            toast({
+              description: t(
+                'locale.unknownVocabWarn',
+                `Avís: camins fora del vocabulari comercial (no bloquegen plantilles existents): ${detail}`,
+              ),
+            })
+          } else {
+            toast({
+              variant: 'destructive',
+              description: t(
+                'locale.unknownVocabError',
+                `Camins fora del vocabulari comercial: ${detail}`,
+              ),
+            })
+            return
+          }
+        }
       }
 
       await upsertLocale.mutateAsync({

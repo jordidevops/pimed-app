@@ -44,6 +44,7 @@ import { CommercialDocumentView } from './CommercialDocumentView'
 import { commercialSalesDetailHref } from '../utils/commercialSigningHub'
 import { CommercialNativeSignDialog } from './CommercialNativeSignDialog'
 import { CommercialOfficeRejectDialog } from './CommercialOfficeRejectDialog'
+import { CommercialOfficeAcceptDialog } from './CommercialOfficeAcceptDialog'
 import { PaymentReceiptSheet } from './PaymentReceiptSheet'
 import { QuoteWaiverDialog } from './QuoteWaiverDialog'
 import { DeliveryNotesList } from './DeliveryNotesList'
@@ -51,6 +52,7 @@ import { RectifyDeliveryNoteDialog } from './RectifyDeliveryNoteDialog'
 import { ReissueQuoteDialog } from './ReissueQuoteDialog'
 import { QuoteFormalizationFields } from './QuoteFormalizationFields'
 import {
+  parseAllowOfficeAccept,
   parseFormalizationModeDefault,
   type FormalizationMode,
 } from '../utils/deviationApprovalThreshold'
@@ -77,6 +79,8 @@ interface ProjectCommercialPanelProps {
   embedded?: boolean
   showHeader?: boolean
   serviceMode?: 'execute' | 'assessment' | null
+  /** Quote-first prospect OS: never offer waiver / work-without-quote. */
+  allowWorkWithoutQuote?: boolean
   /** Optional controlled dialogs driven by the primary action bar */
   forceViewDocId?: string | null
   forceCollectDocId?: string | null
@@ -112,6 +116,7 @@ export function ProjectCommercialPanel({
   embedded = false,
   showHeader = true,
   serviceMode = null,
+  allowWorkWithoutQuote = true,
   forceViewDocId = null,
   forceCollectDocId = null,
   forceReceiptPaymentId = null,
@@ -122,11 +127,12 @@ export function ProjectCommercialPanel({
   const { t } = useTranslation(['projects', 'common'])
   const { toast } = useToast()
   const navigate = useNavigate()
-  const { activeTenant } = useTenant()
+  const { activeTenant, activeRole } = useTenant()
   const queryClient = useQueryClient()
   const canEditPricing = usePermission('commercial.pricing.edit')
   const { ctx, gatesLoading } = useNavGateContext()
   const isOffice = !gatesLoading && passesGate('isOffice', ctx)
+  const isOfficeRole = activeRole === 'owner' || activeRole === 'manager'
   const [busy, setBusy] = useState(false)
   const [formalizationMode, setFormalizationMode] = useState<FormalizationMode | null>(null)
   const [quoteTemplateId, setQuoteTemplateId] = useState('')
@@ -144,6 +150,7 @@ export function ProjectCommercialPanel({
     action: Exclude<CommercialNativeSignAction, 'reject'>
   } | null>(null)
   const [officeRejectDocId, setOfficeRejectDocId] = useState<string | null>(null)
+  const [officeAcceptDocId, setOfficeAcceptDocId] = useState<string | null>(null)
 
   function openDocument(doc: Pick<CommercialDocument, 'id' | 'doc_type'>) {
     const href = commercialSalesDetailHref(doc.id, doc.doc_type)
@@ -161,6 +168,8 @@ export function ProjectCommercialPanel({
     { tenantId: activeTenant?.id ?? '' },
     { enabled: !!activeTenant?.id && section === 'authorize' },
   )
+  const allowOfficeAccept = parseAllowOfficeAccept(effectiveSettings)
+  const showOfficeAcceptCta = allowOfficeAccept && isOfficeRole && canEditPricing
   const { data: quoteTemplates = [] } = useDocumentTemplates(
     section === 'authorize' ? activeTenant?.id : undefined,
   )
@@ -348,10 +357,15 @@ export function ProjectCommercialPanel({
 
   const help =
     section === 'authorize'
-      ? t(
-          'projects.commercial.authorize_help',
-          'Emet un pressupost a partir del full de preus, o registra una renúncia signada.',
-        )
+      ? allowWorkWithoutQuote
+        ? t(
+            'projects.commercial.authorize_help',
+            'Emet un pressupost a partir del full de preus, o registra una renúncia signada.',
+          )
+        : t(
+            'projects.commercial.authorize_help_quote_only',
+            'Omple el full de preus i emet el pressupost. Aquesta ordre és només de preparació comercial.',
+          )
       : section === 'deliver'
         ? t(
             'projects.commercial.deliver_help',
@@ -378,31 +392,50 @@ export function ProjectCommercialPanel({
       )}
 
       {showAuthorizeActions && terminalQuote && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950/30">
-          <div className="flex items-center gap-2">
-            <CommercialDocumentStatusBadges doc={terminalQuote} t={t} />
-            <p className="text-sm font-medium">
-              {t(
-                'projects.commercial.terminal_quote_title',
-                'Aquest pressupost ja no es pot decidir',
-              )}
-            </p>
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950/30 space-y-2">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0 space-y-1">
+              <p className="text-sm font-medium text-foreground">
+                {docTypeLabel(terminalQuote)} {terminalQuote.doc_number ?? '—'}
+              </p>
+              <CommercialDocumentStatusBadges doc={terminalQuote} t={t} />
+              <p className="text-xs text-muted-foreground">
+                {latestQuoteStatus === 'rejected'
+                  ? t(
+                      'projects.commercial.terminal_quote_rejected_help',
+                      'El client ha refusat aquest pressupost. Obre la fitxa per veure’l o crea’n un de nou.',
+                    )
+                  : latestQuoteStatus === 'expired'
+                    ? t(
+                        'projects.commercial.terminal_quote_expired_help',
+                        'Aquest pressupost ha caducat. Obre la fitxa o crea’n un de nou.',
+                      )
+                    : t(
+                        'projects.commercial.terminal_quote_help',
+                        'Aquest pressupost ja no es pot decidir. Es conserva a l’historial; pots obrir la fitxa o crear-ne un de nou.',
+                      )}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1.5 shrink-0">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => openDocument(terminalQuote)}
+              >
+                {t('common:list.open_record', 'Obrir fitxa')}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={busy || !hasLines}
+                onClick={() => setReissueOpen(true)}
+              >
+                {t('projects.commercial.reissue_confirm', 'Crear nou pressupost')}
+              </Button>
+            </div>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {t(
-              'projects.commercial.terminal_quote_help',
-              'Es conserva a l’historial. Per continuar, crea un pressupost nou.',
-            )}
-          </p>
-          <Button
-            type="button"
-            size="sm"
-            className="mt-2"
-            disabled={busy || !hasLines}
-            onClick={() => setReissueOpen(true)}
-          >
-            {t('projects.commercial.reissue_confirm', 'Crear nou pressupost')}
-          </Button>
         </div>
       )}
 
@@ -444,6 +477,20 @@ export function ProjectCommercialPanel({
             >
               {t('projects.commercial.reject', 'Refusar')}
             </Button>
+            {showOfficeAcceptCta ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => setOfficeAcceptDocId(latestQuote.id)}
+              >
+                {t(
+                  'projects.commercial.office_accept_cta',
+                  'Registrar acceptació (oficina)',
+                )}
+              </Button>
+            ) : null}
           </div>
         </div>
       )}
@@ -525,9 +572,9 @@ export function ProjectCommercialPanel({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="space-y-3">
         {showAuthorizeActions && isAssessment ? (
-          <div className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
             {t(
               'projects.commercial.assessment_prepare_help',
               'Visita d’avaluació: no cal autorització ni renúncia abans de la visita. Després, oficina prepara el pressupost.',
@@ -543,67 +590,75 @@ export function ProjectCommercialPanel({
           </span>
         ) : null}
         {showAuthorizeActions && !latestQuote ? (
-          <QuoteFormalizationFields
-            mode={quoteFormalizationMode}
-            templateId={quoteTemplateId}
-            templates={quoteTemplates}
-            disabled={busy}
-            onModeChange={setFormalizationMode}
-            onTemplateChange={setQuoteTemplateId}
-          />
-        ) : null}
-        {showAuthorizeActions && !isAssessment && !latestQuote && (
-          <Button
-            type="button"
-            size="sm"
-            disabled={busy || !hasLines}
-            onClick={() =>
-              run(
-                () =>
-                  issueCommercialDocument({
-                    projectId,
-                    docType: 'quote',
-                    formalizationMode: quoteFormalizationMode,
-                    fullBodyTemplateId: quoteTemplateId || null,
-                  }),
-                t('projects.commercial.quote_issued', 'Pressupost emès'),
-              )
-            }
-          >
-            {t('projects.commercial.issue_quote', 'Emetre pressupost')}
-          </Button>
-        )}
-        {showAuthorizeActions && isAssessment && !latestQuote && (
-          <Button
-            type="button"
-            size="sm"
-            disabled={busy || !hasLines}
-            onClick={() =>
-              run(
-                () =>
-                  issueCommercialDocument({
-                    projectId,
-                    docType: 'quote',
-                    formalizationMode: quoteFormalizationMode,
-                    fullBodyTemplateId: quoteTemplateId || null,
-                  }),
-                t('projects.commercial.quote_issued', 'Pressupost emès'),
-              )
-            }
-          >
-            {t('projects.commercial.issue_quote_office', 'Emetre pressupost (oficina)')}
-          </Button>
-        )}
-        {showAuthorizeActions && showWaiverCta && !hasWaiver && !isAssessment ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            onClick={() => setWaiverOpen(true)}
-          >
-            {t('projects.commercial.work_without_quote', 'Treballar sense pressupost')}
-          </Button>
+          <div id="commercial-issue-quote" className="space-y-3">
+            <QuoteFormalizationFields
+              mode={quoteFormalizationMode}
+              templateId={quoteTemplateId}
+              templates={quoteTemplates}
+              disabled={busy}
+              onModeChange={setFormalizationMode}
+              onTemplateChange={setQuoteTemplateId}
+            />
+            <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
+              {!isAssessment ? (
+                <Button
+                  type="button"
+                  disabled={busy || !hasLines}
+                  onClick={() =>
+                    run(
+                      () =>
+                        issueCommercialDocument({
+                          projectId,
+                          docType: 'quote',
+                          formalizationMode: quoteFormalizationMode,
+                          fullBodyTemplateId: quoteTemplateId || null,
+                        }),
+                      t('projects.commercial.quote_issued', 'Pressupost emès'),
+                    )
+                  }
+                >
+                  {t('projects.commercial.issue_quote', 'Emetre pressupost')}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  disabled={busy || !hasLines}
+                  onClick={() =>
+                    run(
+                      () =>
+                        issueCommercialDocument({
+                          projectId,
+                          docType: 'quote',
+                          formalizationMode: quoteFormalizationMode,
+                          fullBodyTemplateId: quoteTemplateId || null,
+                        }),
+                      t('projects.commercial.quote_issued', 'Pressupost emès'),
+                    )
+                  }
+                >
+                  {t('projects.commercial.issue_quote_office', 'Emetre pressupost (oficina)')}
+                </Button>
+              )}
+              {!hasLines ? (
+                <span className="text-xs text-muted-foreground">
+                  {t(
+                    'projects.commercial.issue_needs_lines',
+                    'Afegeix almenys una línia al full de preus.',
+                  )}
+                </span>
+              ) : null}
+              {allowWorkWithoutQuote && showWaiverCta && !hasWaiver && !isAssessment ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => setWaiverOpen(true)}
+                >
+                  {t('projects.commercial.work_without_quote', 'Treballar sense pressupost')}
+                </Button>
+              ) : null}
+            </div>
+          </div>
         ) : null}
         {showDeliverActions && isAssessment && !latestDelivery ? (
           <div className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
@@ -801,6 +856,26 @@ export function ProjectCommercialPanel({
         />
       ) : null}
 
+      {officeAcceptDocId ? (
+        <CommercialOfficeAcceptDialog
+          documentId={officeAcceptDocId}
+          open
+          onClose={() => setOfficeAcceptDocId(null)}
+          onCompleted={() => {
+            void refetch()
+            queryClient.invalidateQueries({ queryKey: ['projects'] })
+            queryClient.invalidateQueries({ queryKey: ['commercial_documents'] })
+            queryClient.invalidateQueries({
+              queryKey: ['commercial', 'signing_hub'],
+            })
+          }}
+          separateAgreement={
+            docs.find((d) => d.id === officeAcceptDocId)?.formalization_mode ===
+            'separate_agreement'
+          }
+        />
+      ) : null}
+
       {shareDocId ? (
         <CommercialDocumentShareSheet
           documentId={shareDocId}
@@ -986,6 +1061,20 @@ export function ProjectCommercialPanel({
                       >
                         {t('projects.commercial.reject', 'Refusar')}
                       </Button>
+                      {showOfficeAcceptCta ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() => setOfficeAcceptDocId(doc.id)}
+                        >
+                          {t(
+                            'projects.commercial.office_accept_cta',
+                            'Registrar acceptació (oficina)',
+                          )}
+                        </Button>
+                      ) : null}
                       {doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment' ? (
                         <Button
                           type="button"

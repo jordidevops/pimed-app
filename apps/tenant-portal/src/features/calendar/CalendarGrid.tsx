@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -57,6 +57,11 @@ export type CalendarGridProps = {
   monthMaxCards?: number
   /** Fixed-height slot beside the period label (empty notices, etc.). */
   notice?: ReactNode
+  /**
+   * Avui only moves the visible range inside this view and pulses today.
+   * Default still calls onSelectDay (company calendar opens the day).
+   */
+  keepViewOnToday?: boolean
 }
 
 const TONE_CLASS: Record<NonNullable<CalendarGridEvent['tone']>, string> = {
@@ -194,10 +199,25 @@ export function CalendarGrid({
   monthCellMode = 'auto',
   monthMaxCards = 2,
   notice,
+  keepViewOnToday = false,
 }: CalendarGridProps) {
   const { t, i18n } = useTranslation('calendar')
   const locale = toUiLocale(i18n.resolvedLanguage)
   const today = startOfDay(new Date())
+  const todayNodeRef = useRef<HTMLElement | null>(null)
+  const [flashToken, setFlashToken] = useState(0)
+
+  useEffect(() => {
+    if (flashToken === 0) return
+    todayNodeRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+  }, [flashToken, anchor, view])
+
+  const viewForFlash = useRef(view)
+  useEffect(() => {
+    if (viewForFlash.current === view) return
+    viewForFlash.current = view
+    setFlashToken(0)
+  }, [view])
   const weekStart = startOfWeek(anchor, weekStartsOn)
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   const monthDays = getMonthGridDays(anchor, weekStartsOn)
@@ -237,6 +257,10 @@ export function CalendarGrid({
 
   function goToday() {
     onAnchorChange(today)
+    if (keepViewOnToday) {
+      setFlashToken((n) => n + 1)
+      return
+    }
     onSelectDay?.(today)
   }
 
@@ -320,14 +344,18 @@ export function CalendarGrid({
           {weekDays.map((day) => {
             const isToday = isSameDay(day, today)
             const isSelected = selectedDay ? isSameDay(day, selectedDay) : false
+            const flash = isToday && flashToken > 0
             return (
               <section
-                key={dateKey(day)}
+                key={flash ? `${dateKey(day)}-flash-${flashToken}` : dateKey(day)}
+                ref={isToday ? todayNodeRef : undefined}
+                data-agenda-today={isToday ? 'true' : undefined}
                 className={cn(
                   // Stable height so empty ↔ busy weeks don't jump the layout.
-                  'flex min-h-48 flex-col rounded-xl border border-border bg-card p-2 md:min-h-52',
-                  isToday && 'ring-1 ring-primary/40',
-                  isSelected && 'ring-2 ring-primary',
+                  'flex min-h-48 scroll-mt-24 flex-col rounded-xl border border-border bg-card p-2 md:min-h-52',
+                  isToday && 'border-primary bg-primary/15 ring-2 ring-primary',
+                  isSelected && !isToday && 'ring-2 ring-primary',
+                  flash && 'agenda-today-flash',
                 )}
               >
                 <div className="mb-2 flex shrink-0 items-center justify-between gap-1">
@@ -339,7 +367,12 @@ export function CalendarGrid({
                     <p className="text-[10px] font-semibold uppercase text-muted-foreground">
                       {new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(day)}
                     </p>
-                    <p className={cn('text-sm font-bold', isToday && 'text-primary')}>
+                    <p
+                      className={cn(
+                        'inline-flex h-7 min-w-7 items-center justify-center rounded-full text-sm font-bold',
+                        isToday && 'bg-primary text-primary-foreground',
+                      )}
+                    >
                       {day.getDate()}
                     </p>
                   </button>
@@ -381,17 +414,21 @@ export function CalendarGrid({
                 day.getMonth() === anchor.getMonth() &&
                 day.getFullYear() === anchor.getFullYear()
               const isToday = isSameDay(day, today)
+              const flash = isToday && flashToken > 0
               const dayEvents = eventsByDay.get(dateKey(day)) ?? []
               const visibleCards = dayEvents.slice(0, monthMaxCards)
               const overflow = dayEvents.length - visibleCards.length
               return (
                 <div
-                  key={dateKey(day)}
+                  key={flash ? `${dateKey(day)}-flash-${flashToken}` : dateKey(day)}
+                  ref={isToday ? todayNodeRef : undefined}
+                  data-agenda-today={isToday ? 'true' : undefined}
                   className={cn(
-                    'border-b border-r border-border p-1',
+                    'scroll-mt-24 border-b border-r border-border p-1',
                     monthDots ? 'min-h-14 sm:min-h-16' : 'min-h-24 p-1.5 md:min-h-28',
                     !inMonth && 'bg-muted/20 text-muted-foreground',
-                    isToday && 'bg-primary/5',
+                    isToday && 'bg-primary/15 ring-2 ring-inset ring-primary',
+                    flash && 'agenda-today-flash',
                     dayEvents.length > 0 && 'cursor-pointer',
                   )}
                   onClick={() => {

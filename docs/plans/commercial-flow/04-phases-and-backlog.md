@@ -62,7 +62,7 @@ L'ampliació construïda a CF-9 és la base natural de l'ordre de canvi de CF-22
 
 ### Diferit — modes d’entrada comercial
 
-**CF-24 (provisional):** `sales_entry_mode` `order_first` | `quote_first` (client→pressupost→OS). Spec completa a [`06-sales-entry-modes-quote-first.md`](./06-sales-entry-modes-quote-first.md). **No** és prerequisit de CF-19…CF-22 ni del cicle UX nav. Requereix 2n tenant de prova; Riera roman `order_first`.
+**CF-24:** entrades comercials **coexistents** (order-first + quote-first; CTAs duals). D1=**C** (`commercial_stage=prospect`). Spec: [`06-sales-entry-modes-quote-first.md`](./06-sales-entry-modes-quote-first.md). **No** és prerequisit de CF-19…CF-22.
 
 ## Dependències crítiques
 

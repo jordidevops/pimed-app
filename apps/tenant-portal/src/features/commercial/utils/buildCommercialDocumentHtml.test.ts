@@ -102,6 +102,12 @@ describe('buildCommercialDocumentHtml', () => {
     expect(html).not.toContain('Estat: issued')
   })
 
+  it('translates accepted quotes as Acceptat', () => {
+    const html = buildCommercialDocumentHtml(doc({ status: 'accepted' }))
+    expect(html).toContain('Estat: Acceptat')
+    expect(html).not.toContain('Estat: Pendent de resposta')
+  })
+
   it('renders priced lines and totals when show_prices is true', () => {
     const html = buildCommercialDocumentHtml(doc())
     expect(html).toContain('Preu')

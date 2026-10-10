@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, MoreHorizontal, User } from 'lucide-react'
@@ -26,9 +26,13 @@ import {
   listDeliveryNotesPage,
   listQuoteAgreementStates,
   revokeCommercialDecisionRequest,
+  ensureProjectFromOrphanQuote,
 } from '../api/commercialFlowService'
+import { CommercialSummaryLines } from './CommercialSummaryLines'
+import { OrphanQuoteComposer } from './OrphanQuoteComposer'
 import { CommercialNativeSignDialog } from './CommercialNativeSignDialog'
 import { CommercialOfficeRejectDialog } from './CommercialOfficeRejectDialog'
+import { CommercialOfficeAcceptDialog } from './CommercialOfficeAcceptDialog'
 import { SendCommercialDecisionDialog } from './SendCommercialDecisionDialog'
 import {
   commercialDecisionRequestsEnabled,
@@ -43,12 +47,16 @@ import {
   commercialSigningProviderLabelKey,
 } from '../utils/commercialSigningBadges'
 import type { CommercialDocumentDetail as DocDetail } from '../utils/commercialDocumentModel'
+import { isOfficeAcceptedEvent } from '../utils/commercialDocumentModel'
+import { parseAllowOfficeAccept } from '../utils/deviationApprovalThreshold'
 import {
   commercialFilename,
   COMMERCIAL_LIFECYCLE_EVENT_TYPES,
   formatAddress,
   formatCommercialEventDate,
   formatMoney,
+  commercialDocumentHeading,
+  docTypeLabel,
   partyDisplayName,
   taxTotalFromBreakdown,
 } from '../utils/commercialDocumentModel'
@@ -62,6 +70,15 @@ import {
 } from '../utils/buildIssuedCommercialHtml'
 import { usePermission } from '@/hooks/usePermission'
 import { useTenant } from '@/contexts/TenantContext'
+import { resolveTenantSiteId } from '@/hooks/useSiteScope'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { CommercialDocumentStatusBadges } from './CommercialDocumentStatusBadge'
 import { CommercialRelationshipBadges } from './CommercialRelationshipBadges'
 import { AgreementFlowSteps } from './AgreementFlowSteps'
@@ -165,12 +182,12 @@ function PdfPanel({
 
       <div className="min-h-0 flex-1 overflow-auto bg-muted/30">
         {htmlFallbackOpen && preview?.kind === 'html' ? (
-          <div className="flex min-h-full justify-center p-4 sm:p-6">
-            <div className="w-full max-w-[52rem] rounded-lg border border-border bg-white p-4 shadow-sm sm:p-6">
+          <div className="flex h-full min-h-[36rem] justify-center p-2 sm:p-4">
+            <div className="flex h-full w-full max-w-5xl flex-col rounded-lg border border-border bg-white p-2 shadow-sm sm:p-4">
               <iframe
                 title={t('projects.commercial.view_html_draft', 'Esborrany HTML')}
                 srcDoc={preview.html}
-                className="block h-[min(70dvh,48rem)] min-h-[28rem] w-full rounded-md border border-border/60 bg-white"
+                className="block h-full min-h-[calc(100dvh-14rem)] w-full flex-1 rounded-md border border-border/60 bg-white"
               />
             </div>
           </div>
@@ -178,7 +195,7 @@ function PdfPanel({
           <object
             data={pdf.downloadUrl}
             type="application/pdf"
-            className="h-full min-h-[28rem] w-full"
+            className="h-full min-h-[min(80dvh,52rem)] w-full"
             aria-label={t('projects.commercial.view_tab_document', 'Document')}
           >
             <div className="space-y-2 p-4 text-sm text-muted-foreground">
@@ -241,14 +258,17 @@ export function CommercialDocumentDetail({
 }: CommercialDocumentDetailProps) {
   const { t } = useTranslation(['projects', 'signing', 'common'])
   const location = useLocation()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const isLarge = useIsLargeScreen()
   const canEditPricing = usePermission('commercial.pricing.edit')
-  const { activeRole, activeTenant } = useTenant()
+  const { activeRole, activeTenant, sites: tenantSites, selectedSiteId } = useTenant()
   const { data: effectiveSettings } = useEffectiveSettings({ tenantId: activeTenant?.id })
   const decisionEnabled = commercialDecisionRequestsEnabled(effectiveSettings)
-  const canPrepareAgreement = activeRole === 'owner' || activeRole === 'manager'
+  const allowOfficeAccept = parseAllowOfficeAccept(effectiveSettings)
+  const isOfficeRole = activeRole === 'owner' || activeRole === 'manager'
+  const canPrepareAgreement = isOfficeRole
   const locationReturn = `${location.pathname}${location.search}`
   const resolvedDmsReturn =
     dmsReturnTo ??
@@ -260,12 +280,16 @@ export function CommercialDocumentDetail({
   const [reloadToken, setReloadToken] = useState(0)
   const [signAction, setSignAction] = useState<'accept' | 'delivery' | null>(null)
   const [officeRejectOpen, setOfficeRejectOpen] = useState(false)
+  const [officeAcceptOpen, setOfficeAcceptOpen] = useState(false)
   const [sendDecisionOpen, setSendDecisionOpen] = useState(false)
   const [sendDecisionResend, setSendDecisionResend] = useState(false)
   const [decisionBusy, setDecisionBusy] = useState(false)
   const [prepareOpen, setPrepareOpen] = useState(false)
   const [preview, setPreview] = useState<IssuedCommercialPreview | null>(null)
   const [htmlFallbackOpen, setHtmlFallbackOpen] = useState(false)
+  const [ensureSitePickOpen, setEnsureSitePickOpen] = useState(false)
+  const [ensureSiteId, setEnsureSiteId] = useState<string>('')
+  const [ensureBusy, setEnsureBusy] = useState(false)
   const pendingCardRef = useRef<HTMLElement | null>(null)
 
   const { data: signingHub } = useCommercialDocumentSigningHub(documentId)
@@ -417,6 +441,8 @@ export function CommercialDocumentDetail({
     effectiveStatus === 'issued' &&
     (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment') &&
     canDecideAmendment
+  const showOfficeAccept =
+    showDecideFooter && allowOfficeAccept && isOfficeRole && canEditPricing
   const showOfficePending =
     !!doc &&
     effectiveStatus === 'issued' &&
@@ -438,7 +464,9 @@ export function CommercialDocumentDetail({
     Boolean(preview?.kind === 'html') &&
     (pdf.status === 'pending' || pdf.status === 'loading' || pdf.status === 'error' || pdf.status === 'offline')
 
-  const title = doc?.doc_number ?? documentId.slice(0, 8)
+  const title = doc
+    ? commercialDocumentHeading(doc, docTypeLabel(doc.doc_type))
+    : t('projects.commercial.share_loading', 'Carregant…')
 
   const showPrepareAgreementBtn =
     showPrepareAgreement &&
@@ -472,7 +500,7 @@ export function CommercialDocumentDetail({
           {t('projects.commercial.decision_view_pending', 'Veure resposta pendent')}
         </Button>
       ) : null}
-      {doc && onShare && doc.status !== 'cancelled' ? (
+      {doc && onShare && doc.status !== 'cancelled' && doc.status !== 'draft' ? (
         <Button
           type="button"
           size="sm"
@@ -498,6 +526,20 @@ export function CommercialDocumentDetail({
           >
             {t('projects.commercial.reject', 'Refusar')}
           </Button>
+          {showOfficeAccept ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={decisionBusy}
+              onClick={() => setOfficeAcceptOpen(true)}
+            >
+              {t(
+                'projects.commercial.office_accept_cta',
+                'Registrar acceptació (oficina)',
+              )}
+            </Button>
+          ) : null}
           <Button
             type="button"
             size="sm"
@@ -509,15 +551,31 @@ export function CommercialDocumentDetail({
         </>
       ) : null}
       {showDecideFooter && decisionEnabled ? (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={decisionBusy}
-          onClick={() => setOfficeRejectOpen(true)}
-        >
-          {t('projects.commercial.decision_register_reject', 'Registrar refús')}
-        </Button>
+        <>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={decisionBusy}
+            onClick={() => setOfficeRejectOpen(true)}
+          >
+            {t('projects.commercial.decision_register_reject', 'Registrar refús')}
+          </Button>
+          {showOfficeAccept ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={decisionBusy}
+              onClick={() => setOfficeAcceptOpen(true)}
+            >
+              {t(
+                'projects.commercial.office_accept_cta',
+                'Registrar acceptació (oficina)',
+              )}
+            </Button>
+          ) : null}
+        </>
       ) : null}
       {showPrepareAgreementBtn ? (
         <Button type="button" size="sm" variant="outline" onClick={() => setPrepareOpen(true)}>
@@ -598,6 +656,17 @@ export function CommercialDocumentDetail({
                 >
                   {t('projects.commercial.decision_presential', 'Firma presencial')}
                 </DropdownMenuItem>
+                {showOfficeAccept ? (
+                  <DropdownMenuItem
+                    disabled={decisionBusy}
+                    onSelect={() => setOfficeAcceptOpen(true)}
+                  >
+                    {t(
+                      'projects.commercial.office_accept_cta',
+                      'Registrar acceptació (oficina)',
+                    )}
+                  </DropdownMenuItem>
+                ) : null}
               </>
             ) : null}
           </DropdownMenuContent>
@@ -826,7 +895,12 @@ export function CommercialDocumentDetail({
               case 'sent':
                 return t('projects.commercial.event_sent', 'Enviat')
               case 'accepted':
-                return t('projects.commercial.event_accepted', 'Acceptat')
+                return isOfficeAcceptedEvent([event])
+                  ? t(
+                      'projects.commercial.event_accepted_office',
+                      'Acceptat per oficina',
+                    )
+                  : t('projects.commercial.event_accepted', 'Acceptat')
               case 'rejected':
                 return t('projects.commercial.event_rejected', 'Refusat')
               case 'cancelled':
@@ -896,41 +970,16 @@ export function CommercialDocumentDetail({
           </div>
         </section>
 
-        <ul className="divide-y divide-border rounded-xl border border-border">
-          {doc.lines.map((line) => (
-            <li key={line.id} className="flex items-start justify-between gap-3 px-3 py-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground">{line.name}</p>
-                <p className="text-xs tabular-nums text-muted-foreground">
-                  {Number(line.quantity)} {line.unit}
-                  {showPrices ? ` · ${formatMoney(line.unit_price, currency)}` : ''}
-                </p>
-              </div>
-              {showPrices ? (
-                <p className="shrink-0 text-sm font-medium tabular-nums text-foreground">
-                  {formatMoney(line.line_total, currency)}
-                </p>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+        <CommercialSummaryLines
+          lines={doc.lines}
+          currency={currency}
+          showPrices={showPrices}
+          subtotal={Number(doc.subtotal)}
+          total={Number(doc.total)}
+        />
 
         {showPrices ? (
           <section className="space-y-1 text-sm">
-            <div className="flex justify-between text-muted-foreground">
-              <span>{t('projects.commercial.view_subtotal', 'Base')}</span>
-              <span className="tabular-nums">{formatMoney(doc.subtotal, currency)}</span>
-            </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>{t('projects.commercial.view_tax', 'IVA')}</span>
-              <span className="tabular-nums">
-                {formatMoney(taxTotalFromBreakdown(doc.tax_breakdown), currency)}
-              </span>
-            </div>
-            <div className="flex justify-between border-t border-border pt-1 text-base font-semibold text-foreground">
-              <span>{t('projects.commercial.view_total', 'Total')}</span>
-              <span className="tabular-nums">{formatMoney(doc.total, currency)}</span>
-            </div>
             {doc.doc_type === 'delivery_note' && deliveryCancelled ? (
               <p className="pt-2 text-sm text-amber-700 dark:text-amber-300">
                 {replacedBy
@@ -1021,6 +1070,119 @@ export function CommercialDocumentDetail({
     </div>
   )
 
+  const orphanCreatedFromQuote = (doc?.events ?? []).some(
+    (e) => e.payload?.project_created_from_quote === true,
+  )
+  const orphanDetailChip =
+    doc &&
+    (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment')
+      ? orphanCreatedFromQuote
+        ? t('projects.orphan.chip_os_new', 'Acceptat · OS nova')
+        : !doc.project_id && (doc.status === 'accepted' || doc.status === 'signed')
+          ? t('projects.orphan.chip_os_pending', 'Acceptat · OS pendent')
+          : !doc.project_id && (doc.status === 'draft' || doc.status === 'issued')
+            ? t('projects.orphan.chip_orphan', 'Sense ordre')
+            : null
+      : null
+
+  const orphanQuote =
+    !!doc &&
+    (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment') &&
+    !doc.project_id
+  const orphanDraft = orphanQuote && doc.status === 'draft'
+
+  async function runEnsureOs(siteId: string | null) {
+    setEnsureBusy(true)
+    try {
+      const projectId = await ensureProjectFromOrphanQuote(documentId, siteId)
+      try {
+        const key = 'orphan-os-ack'
+        const raw = localStorage.getItem(key)
+        const map = raw ? (JSON.parse(raw) as Record<string, boolean>) : {}
+        map[documentId] = true
+        localStorage.setItem(key, JSON.stringify(map))
+      } catch {
+        /* ignore */
+      }
+      toast({
+        title: t('projects.orphan.os_created', 'Ordre creada'),
+        description: t(
+          'projects.orphan.os_created_help',
+          'Planifica-la a Agenda → Sense planificar.',
+        ),
+      })
+      setEnsureSitePickOpen(false)
+      setReloadToken((n) => n + 1)
+      onChanged?.()
+      navigate(`/field/orders/${projectId}?tab=prepare`)
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        description:
+          err instanceof Error
+            ? err.message
+            : t('projects.orphan.os_failed', "No s'ha pogut crear l'ordre"),
+      })
+    } finally {
+      setEnsureBusy(false)
+    }
+  }
+
+  function handleEnsureOsClick() {
+    const resolved = resolveTenantSiteId({
+      selectedSiteId,
+      sites: tenantSites,
+    })
+    if (resolved) {
+      void runEnsureOs(resolved)
+      return
+    }
+    if (tenantSites.length > 1) {
+      setEnsureSiteId(tenantSites[0]?.id ?? '')
+      setEnsureSitePickOpen(true)
+      return
+    }
+    void runEnsureOs(null)
+  }
+
+  const orphanForm = orphanQuote ? (
+    <div className="space-y-2">
+      <OrphanQuoteComposer
+        documentId={documentId}
+        status={doc.status}
+        projectId={doc.project_id}
+        lines={doc.lines}
+        title={doc.title}
+        formalizationMode={doc.formalization_mode}
+        hasAgreement={!!agreement}
+        onChanged={() => {
+          setReloadToken((n) => n + 1)
+          onChanged?.()
+        }}
+      />
+      {doc.status === 'accepted' ? (
+        <Button
+          type="button"
+          size="sm"
+          disabled={ensureBusy}
+          onClick={() => handleEnsureOsClick()}
+        >
+          {t('projects.orphan.ensure_os', 'Crear / reintentar ordre')}
+        </Button>
+      ) : null}
+    </div>
+  ) : null
+
+  const orphanComposer =
+    isLarge && orphanDraft ? (
+      <div className="mb-4 flex flex-wrap items-start gap-4">
+        <div className="w-full min-w-0 max-w-3xl">{orphanForm}</div>
+        <aside className="sticky top-2 w-full max-w-sm shrink-0 space-y-4 lg:w-80">{summaryBody}</aside>
+      </div>
+    ) : (
+      orphanForm && <div className="mb-4">{orphanForm}</div>
+    )
+
   return (
     <>
       <PageShell
@@ -1030,8 +1192,28 @@ export function CommercialDocumentDetail({
         subtitle={
           doc ? (
             <span className="inline-flex flex-wrap items-center gap-1.5">
+              {doc.doc_number ? (
+                <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[11px] font-medium tabular-nums">
+                  {t('projects.orphan.doc_number_label', 'Núm. {{number}}', {
+                    number: doc.doc_number,
+                  })}
+                </span>
+              ) : null}
               <CommercialDocumentStatusBadges doc={doc} t={t} />
+              {isOfficeAcceptedEvent(doc.events) ? (
+                <span className="inline-flex items-center rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100">
+                  {t(
+                    'projects.commercial.office_accept_badge',
+                    'Acceptat per oficina',
+                  )}
+                </span>
+              ) : null}
               <CommercialRelationshipBadges kinds={relationshipBadges} />
+              {orphanDetailChip ? (
+                <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+                  {orphanDetailChip}
+                </span>
+              ) : null}
             </span>
           ) : undefined
         }
@@ -1047,15 +1229,18 @@ export function CommercialDocumentDetail({
           </>
         }
       >
-        {isLarge ? (
-          <div className="grid min-h-[calc(100dvh-12rem)] grid-cols-[minmax(0,22rem)_minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+        {orphanComposer}
+        {isLarge && orphanDraft ? (
+          <div className="min-h-[min(70dvh,48rem)]">{pdfBlock}</div>
+        ) : isLarge ? (
+          <div className="grid min-h-[calc(100dvh-10rem)] grid-cols-[minmax(0,18rem)_minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
             <div className="min-w-0 space-y-4 overflow-y-auto pr-1">{summaryBody}</div>
-            <div className="min-h-0 sticky top-4 self-start h-[calc(100dvh-10rem)]">
+            <div className="min-h-0 sticky top-2 self-start h-[calc(100dvh-8rem)]">
               {pdfBlock}
             </div>
           </div>
         ) : (
-          <Tabs defaultValue="summary" className="w-full">
+          <Tabs defaultValue="document" className="w-full">
             <TabsList>
               <TabsTrigger value="summary">
                 {t('projects.commercial.view_tab_summary', 'Resum')}
@@ -1067,7 +1252,7 @@ export function CommercialDocumentDetail({
             <TabsContent value="summary" className="mt-4 space-y-4">
               {summaryBody}
             </TabsContent>
-            <TabsContent value="document" className="mt-4 min-h-[28rem]">
+            <TabsContent value="document" className="mt-4 min-h-[min(80dvh,52rem)]">
               {pdfBlock}
             </TabsContent>
           </Tabs>
@@ -1111,6 +1296,15 @@ export function CommercialDocumentDetail({
         onCompleted={refreshAfterDecision}
       />
 
+      <CommercialOfficeAcceptDialog
+        documentId={documentId}
+        open={officeAcceptOpen}
+        onClose={() => setOfficeAcceptOpen(false)}
+        onCompleted={refreshAfterDecision}
+        separateAgreement={doc?.formalization_mode === 'separate_agreement'}
+        openDecisionRequestId={openDecision?.id ?? null}
+      />
+
       <SendCommercialDecisionDialog
         documentId={documentId}
         open={sendDecisionOpen}
@@ -1129,6 +1323,55 @@ export function CommercialDocumentDetail({
           refreshAfterDecision()
         }}
       />
+
+      <Dialog open={ensureSitePickOpen} onOpenChange={setEnsureSitePickOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {t('projects.orphan.tenant_site_pick_title', 'Tria el local de l’ordre')}
+            </DialogTitle>
+            <DialogDescription>
+              {t(
+                'projects.orphan.tenant_site_pick_help',
+                'Aquest pressupost no té local. Tria quin centre de l’empresa crearà l’ordre de servei.',
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium">
+              {t('projects.orphan.tenant_site_label', 'Local')}
+            </span>
+            <select
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+              value={ensureSiteId}
+              onChange={(e) => setEnsureSiteId(e.target.value)}
+            >
+              {tenantSites.map((site) => (
+                <option key={site.id} value={site.id}>
+                  {site.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={ensureBusy}
+              onClick={() => setEnsureSitePickOpen(false)}
+            >
+              {t('common:cancel', 'Cancel·lar')}
+            </Button>
+            <Button
+              type="button"
+              disabled={ensureBusy || !ensureSiteId}
+              onClick={() => void runEnsureOs(ensureSiteId || null)}
+            >
+              {t('projects.orphan.tenant_site_pick_confirm', 'Crear ordre')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

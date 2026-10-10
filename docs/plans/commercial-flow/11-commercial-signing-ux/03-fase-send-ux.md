@@ -192,7 +192,10 @@ Refetch:
 - apply es produeix per sessió signada;
 - si la request ja es va decidir remotament, mostrar resultat i no obrir pad.
 
-Acceptació verbal sense firma no és outcome `accepted` V1.
+Acceptació verbal sense firma: **opt-in** via `commercial.allow_office_accept` (default false).
+Owner/manager registra acceptació d’oficina amb motiu → `status = accepted` + evidència
+`{ method: 'office', role: 'office_accept' }` (RPC `accept_commercial_document_office`).
+No equival a PDF firmat pel client; el `work_gate` d’acords no es desactiva.
 
 ## Fitxers
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { UserPlus, Mail, Phone, MessageSquare, Globe } from 'lucide-react'
+import { UserPlus, Mail, Phone, MessageSquare, Globe, FileText, ExternalLink } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
 import { usePublicLeads } from '../api/usePublicLeads'
 import { usePromoteLeadToContact } from '../api/usePublicSiteMutations'
@@ -18,11 +19,13 @@ const STATUS_STYLES: Record<string, string> = {
   contacted: 'bg-amber-50 text-amber-700',
   converted: 'bg-green-50 text-green-700',
   discarded: 'bg-muted text-muted-foreground',
+  rejected: 'bg-muted text-muted-foreground',
 }
 
 export function LeadsTable({ tenantId, sites, canManage }: LeadsTableProps) {
   const { t } = useTranslation('public-portal')
   const { toast } = useToast()
+  const navigate = useNavigate()
   const [siteFilter, setSiteFilter] = useState<string>('')
 
   const { data: leads = [], isLoading, isError } = usePublicLeads(tenantId, {
@@ -32,10 +35,22 @@ export function LeadsTable({ tenantId, sites, canManage }: LeadsTableProps) {
 
   async function handlePromote(leadId: string) {
     try {
-      await promoteMut.mutateAsync(leadId)
-      toast({ title: t('public_portal.success.promote_lead', 'Lead convertit a contacte.') })
+      const contactId = await promoteMut.mutateAsync(leadId)
+      toast({
+        title: t('public_portal.success.promote_lead', 'Lead convertit a contacte.'),
+        description: t(
+          'public_portal.success.promote_lead_next',
+          'Ja pots crear un pressupost o una ordre des del contacte.',
+        ),
+      })
+      if (typeof contactId === 'string' && contactId) {
+        navigate(`/contacts/${contactId}?tab=quotes`)
+      }
     } catch {
-      toast({ title: t('public_portal.errors.promote_lead', 'Error convertint el lead a contacte.'), variant: 'destructive' })
+      toast({
+        title: t('public_portal.errors.promote_lead', 'Error convertint el lead a contacte.'),
+        variant: 'destructive',
+      })
     }
   }
 
@@ -44,6 +59,7 @@ export function LeadsTable({ tenantId, sites, canManage }: LeadsTableProps) {
     contacted: t('public_portal.leads.status_contacted', 'Contactat'),
     converted: t('public_portal.leads.status_converted', 'Convertit'),
     discarded: t('public_portal.leads.status_discarded', 'Descartat'),
+    rejected: t('public_portal.leads.status_discarded', 'Descartat'),
   }
 
   return (
@@ -56,11 +72,10 @@ export function LeadsTable({ tenantId, sites, canManage }: LeadsTableProps) {
           <p className="text-sm text-muted-foreground mt-0.5">
             {t(
               'public_portal.leads.section_description',
-              'Llistat de contactes captats a través dels formularis del portal.',
+              'Llistat de contactes captats a través dels formularis del portal. En convertir-los, continua amb pressupost o ordre des del contacte.',
             )}
           </p>
         </div>
-        {/* Site filter */}
         {sites.length > 1 && (
           <select
             value={siteFilter}
@@ -80,10 +95,14 @@ export function LeadsTable({ tenantId, sites, canManage }: LeadsTableProps) {
 
       {isLoading ? (
         <div className="space-y-2">
-          {[1, 2, 3, 4].map((i) => <div key={i} className="h-12 rounded-xl bg-muted animate-pulse" />)}
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-12 rounded-xl bg-muted animate-pulse" />
+          ))}
         </div>
       ) : isError ? (
-        <p className="text-sm text-destructive">{t('public_portal.leads.error', 'Error carregant els leads.')}</p>
+        <p className="text-sm text-destructive">
+          {t('public_portal.leads.error', 'Error carregant els leads.')}
+        </p>
       ) : leads.length === 0 ? (
         <p className="text-sm text-muted-foreground italic">
           {t('public_portal.leads.no_leads', 'Cap lead rebut encara.')}
@@ -148,7 +167,7 @@ export function LeadsTable({ tenantId, sites, canManage }: LeadsTableProps) {
                         /{lead.source_page_slug}
                       </div>
                     ) : (
-                      <span className="italic">{(lead as any).public_site_slug ?? '—'}</span>
+                      <span className="italic">{(lead as { public_site_slug?: string }).public_site_slug ?? '—'}</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -160,24 +179,70 @@ export function LeadsTable({ tenantId, sites, canManage }: LeadsTableProps) {
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                     {lead.created_at
-                      ? new Date(lead.created_at).toLocaleDateString('ca-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+                      ? new Date(lead.created_at).toLocaleDateString('ca-ES', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })
                       : '—'}
                   </td>
                   {canManage && (
                     <td className="px-4 py-3 text-right">
-                      {lead.status !== 'converted' && !lead.contact_id && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 text-xs"
-                          onClick={() => handlePromote(lead.id!)}
-                          disabled={promoteMut.isPending}
-                          title={t('public_portal.leads.promote_to_contact', 'Convertir a contacte')}
-                        >
-                          <UserPlus className="h-3.5 w-3.5 mr-1" />
-                          {t('public_portal.leads.promote_to_contact', 'Convertir a contacte')}
-                        </Button>
-                      )}
+                      <div className="flex flex-wrap items-center justify-end gap-1">
+                        {lead.status !== 'converted' && !lead.contact_id && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs"
+                            onClick={() => handlePromote(lead.id!)}
+                            disabled={promoteMut.isPending}
+                            title={t(
+                              'public_portal.leads.promote_to_contact',
+                              'Convertir a contacte',
+                            )}
+                          >
+                            <UserPlus className="h-3.5 w-3.5 mr-1" />
+                            {t(
+                              'public_portal.leads.promote_to_contact',
+                              'Convertir a contacte',
+                            )}
+                          </Button>
+                        )}
+                        {lead.contact_id && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs"
+                              onClick={() =>
+                                navigate(
+                                  `/sales/quotes?client_id=${lead.contact_id}&orphan=1`,
+                                )
+                              }
+                              title={t(
+                                'public_portal.leads.open_quotes',
+                                'Només pressupost per al contacte',
+                              )}
+                            >
+                              <FileText className="h-3.5 w-3.5 mr-1" />
+                              {t('public_portal.leads.cta_quote', 'Nou pressupost')}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs"
+                              onClick={() => navigate(`/contacts/${lead.contact_id}`)}
+                              title={t(
+                                'public_portal.leads.open_contact',
+                                'Obrir contacte',
+                              )}
+                            >
+                              <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                              {t('public_portal.leads.cta_contact', 'Contacte')}
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   )}
                 </tr>

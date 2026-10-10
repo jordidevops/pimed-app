@@ -4,6 +4,7 @@ export type CommercialTemplateSyntax = 'html' | 'docx'
 
 type TokenDef = { id: string; html: string; docx: string }
 
+/** Aligned with SQL `validate_commercial_template_locale` (CF-28): client_reject not required. */
 export const QUOTE_REQUIRED_TOKENS: TokenDef[] = [
   { id: 'lines_loop', html: '{% for line in lines %}', docx: '[[#lines]]' },
   { id: 'totals.total', html: 'totals.total', docx: 'totals.total' },
@@ -11,7 +12,6 @@ export const QUOTE_REQUIRED_TOKENS: TokenDef[] = [
   { id: 'document.valid_until', html: 'document.valid_until', docx: 'document.valid_until' },
   { id: 'tax_breakdown', html: 'totals.tax_breakdown', docx: 'totals.tax_breakdown' },
   { id: 'client_accept', html: 'role="client_accept"', docx: 'role=client_accept' },
-  { id: 'client_reject', html: 'role="client_reject"', docx: 'role=client_reject' },
 ]
 
 export const DELIVERY_NOTE_REQUIRED_TOKENS: TokenDef[] = [
@@ -28,11 +28,12 @@ export function commercialRequiredTokens(
   return tokens.map((token) => ({ id: token.id, example: token[syntax] }))
 }
 
+/** Short authoring hints; full contract in commercialClosedVocabulary.ts / cf24-closed-vocabulary.md */
 export const COMMERCIAL_CONTEXT_FIELDS = [
-  'tenant.name / tenant.email / tenant.logo_url',
+  'tenant.name / tenant.tax_id / tenant.email / tenant.logo_url',
   'document.doc_number / document.issued_at / document.valid_until / document.show_prices',
-  'seller.display_name / buyer.display_name',
+  'seller.display_name / buyer.display_name (no buyer.name)',
   'service_address.line1 / service_address.city',
-  'lines[].name / quantity / unit_price / line_total',
-  'totals.subtotal / totals.tax_breakdown[].tax_rate / tax_amount / totals.total',
+  'lines[].name / quantity / unit_price / line_total / kind',
+  'totals.subtotal / totals.tax_breakdown[].tax_rate / tax_amount / tax_base / totals.total',
 ] as const

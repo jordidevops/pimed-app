@@ -93,6 +93,7 @@
 | CF-11 | Compartició i PDF simple | ✅ | |
 | CF-12 | Cobrament simple | ✅ | |
 | CF-23 | Servei habitual + checklist | ✅ | Bridge + apply + default create |
+| CF-24 | Entrades quote-first / order-first | 🔄 | V1 C ✅. **V2 orphan** + hotfix (`20261232000001`); UAT manual [`cf24-v2-orphan-uat.md`](./cf24-v2-orphan-uat.md). Spec [`06`](./06-sales-entry-modes-quote-first.md) |
 
 ## Tall 2 — Equip petit, historial i diners
 
@@ -132,6 +133,13 @@
 
 | Data | Canvi |
 |------|-------|
+| 2026-10-08 | **CF-24 V2 orphan UAT:** guió pas a pas [`cf24-v2-orphan-uat.md`](./cf24-v2-orphan-uat.md) (Cas 0–6); enllaçat des README / 06. |
+| 2026-10-08 | **CF-24 V2 orphan hotfix:** `20261232000001` restaura immutable + gate active-sense-link + membership/`created_by` + event sense duplicar accept + finalize pre-00002; UI chip/navigate/avís soft/site; tests ampliat. |
+| 2026-10-08 | **CF-24 V2 orphan:** migracions draft/CDL/issue/ensure/gate; UI wizard+composer+chip; lead→`orphan=1`; tests `commercial_cf24_v2_orphan_quote_tests.sql`. |
+| 2026-10-08 | **CF-24 V2 orphan en curs:** docs 06 + spike 1b (opció B accept→OS reintentable); N orphans/client; lead→orfe preferent. |
+| 2026-10-08 | **CF-24 wizard/stepper quote-first:** `ProspectCommercialGuide` a fitxa prospecte; wizard d’alta amb contacte a `CreateProspectQuoteDialog`; CTA prospecte sempre a `/sales/quotes`. |
+| 2026-10-08 | **CF-24 D1=C + UAT mínim:** prospect OS, accept/reject/firma, llistats i PDF estat; UAT camí C donat per fet. Següent CF-24: wizard/stepper quote-first. Altres pistes: CF-28 F8/F9, CF-22, gate Tall 2→3, CF-25-b. |
+| 2026-10-08 | **CF-24 D1=C:** `commercial_stage` prospect/execute; RPC create/promote/cancel; filtres Avui/agenda; CTA prospecte; trigger accept→execute; types regenerats. |
 | 2026-10-07 | **CF-28 F6 tall 4 / CP-Da:** staff preview + legal + SQL tests. Següent: F7. |
 | 2026-10-07 | **CF-28 F6 tall 3:** detall allowlist + PDF signed URL + rutes `[id]`. |
 | 2026-10-07 | **CF-28 F6 tall 2:** DN + invoices list + rutes portal. |

@@ -4,6 +4,7 @@ import {
   commercialFullBodyTemplateSettingValue,
   commercialSettingsPatchWithFullBodyTemplates,
   commercialSettingsPatchWithThreshold,
+  parseAllowOfficeAccept,
   parseCommercialSettingId,
   parseFormalizationModeDefault,
   resolveActiveCommercialFullBodyTemplateId,
@@ -123,5 +124,19 @@ describe('commercial full-body settings patch', () => {
     expect(
       resolveActiveCommercialFullBodyTemplateId(null, 'quote_template_id', 'quote', templates, tenantId),
     ).toBe('old')
+  })
+})
+
+describe('parseAllowOfficeAccept', () => {
+  it('defaults to false', () => {
+    expect(parseAllowOfficeAccept(null)).toBe(false)
+    expect(parseAllowOfficeAccept({})).toBe(false)
+    expect(parseAllowOfficeAccept({ commercial: {} })).toBe(false)
+  })
+
+  it('reads boolean and string true', () => {
+    expect(parseAllowOfficeAccept({ commercial: { allow_office_accept: true } })).toBe(true)
+    expect(parseAllowOfficeAccept({ commercial: { allow_office_accept: 'true' } })).toBe(true)
+    expect(parseAllowOfficeAccept({ commercial: { allow_office_accept: false } })).toBe(false)
   })
 })

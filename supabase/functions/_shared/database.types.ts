@@ -5092,11 +5092,13 @@ export type Database = {
         Row: {
           attempt_count: number | null
           bcc_emails: string[] | null
+          body_redacted: boolean | null
           cc_emails: string[] | null
           created_at: string | null
           delivered_at: string | null
           email_type: "transactional" | "bulk" | null
           error_history: Json | null
+          event_type: string | null
           from_email: string | null
           from_name: string | null
           html_body: string | null
@@ -5122,83 +5124,10 @@ export type Database = {
             | null
           subject: string | null
           tags: string[] | null
+          template_id: string | null
           tenant_id: string | null
           text_body: string | null
           to_emails: string[] | null
-        }
-        Insert: {
-          attempt_count?: number | null
-          bcc_emails?: string[] | null
-          cc_emails?: string[] | null
-          created_at?: string | null
-          delivered_at?: string | null
-          email_type?: "transactional" | "bulk" | null
-          error_history?: Json | null
-          from_email?: string | null
-          from_name?: string | null
-          html_body?: string | null
-          id?: string | null
-          idempotency_key?: string | null
-          is_dead_letter?: boolean | null
-          last_error?: string | null
-          provider?: "resend" | "sendgrid" | null
-          provider_message_id?: string | null
-          reply_to?: string | null
-          scheduled_at?: string | null
-          sent_at?: string | null
-          site_id?: string | null
-          status?:
-            | "queued"
-            | "processing"
-            | "sent"
-            | "delivered"
-            | "bounced"
-            | "failed"
-            | "complained"
-            | "suppressed"
-            | null
-          subject?: string | null
-          tags?: string[] | null
-          tenant_id?: string | null
-          text_body?: string | null
-          to_emails?: string[] | null
-        }
-        Update: {
-          attempt_count?: number | null
-          bcc_emails?: string[] | null
-          cc_emails?: string[] | null
-          created_at?: string | null
-          delivered_at?: string | null
-          email_type?: "transactional" | "bulk" | null
-          error_history?: Json | null
-          from_email?: string | null
-          from_name?: string | null
-          html_body?: string | null
-          id?: string | null
-          idempotency_key?: string | null
-          is_dead_letter?: boolean | null
-          last_error?: string | null
-          provider?: "resend" | "sendgrid" | null
-          provider_message_id?: string | null
-          reply_to?: string | null
-          scheduled_at?: string | null
-          sent_at?: string | null
-          site_id?: string | null
-          status?:
-            | "queued"
-            | "processing"
-            | "sent"
-            | "delivered"
-            | "bounced"
-            | "failed"
-            | "complained"
-            | "suppressed"
-            | null
-          subject?: string | null
-          tags?: string[] | null
-          tenant_id?: string | null
-          text_body?: string | null
-          to_emails?: string[] | null
         }
         Relationships: []
       }
@@ -8552,6 +8481,7 @@ export type Database = {
           client_report_published_at: string | null
           client_report_published_by: string | null
           commercial_regime: string | null
+          commercial_stage: string | null
           contact_site_id: string | null
           created_at: string | null
           created_by: string | null
@@ -8584,6 +8514,7 @@ export type Database = {
           client_report_published_at?: string | null
           client_report_published_by?: string | null
           commercial_regime?: string | null
+          commercial_stage?: string | null
           contact_site_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -8616,6 +8547,7 @@ export type Database = {
           client_report_published_at?: string | null
           client_report_published_by?: string | null
           commercial_regime?: string | null
+          commercial_stage?: string | null
           contact_site_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -9635,7 +9567,157 @@ export type Database = {
         }
         Relationships: []
       }
+      signing_submissions_internal: {
+        Row: {
+          artifact_retry_url: string | null
+          created_at: string | null
+          docuseal_signing_url: string | null
+          docuseal_submission_id: string | null
+          external_id: string | null
+          id: string | null
+          metadata: Json | null
+          notification_mode:
+            | "docuseal_auto"
+            | "app_manual"
+            | "app_auto_all"
+            | "app_auto_sequential"
+            | null
+          result_document_version_id: string | null
+          signers: Json | null
+          signing_provider: string | null
+          status:
+            | "draft"
+            | "pending"
+            | "in_progress"
+            | "completed"
+            | "declined"
+            | "expired"
+            | "cancelled"
+            | "error"
+            | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          artifact_retry_url?: string | null
+          created_at?: string | null
+          docuseal_signing_url?: string | null
+          docuseal_submission_id?: string | null
+          external_id?: string | null
+          id?: string | null
+          metadata?: Json | null
+          notification_mode?:
+            | "docuseal_auto"
+            | "app_manual"
+            | "app_auto_all"
+            | "app_auto_sequential"
+            | null
+          result_document_version_id?: string | null
+          signers?: Json | null
+          signing_provider?: string | null
+          status?:
+            | "draft"
+            | "pending"
+            | "in_progress"
+            | "completed"
+            | "declined"
+            | "expired"
+            | "cancelled"
+            | "error"
+            | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          artifact_retry_url?: string | null
+          created_at?: string | null
+          docuseal_signing_url?: string | null
+          docuseal_submission_id?: string | null
+          external_id?: string | null
+          id?: string | null
+          metadata?: Json | null
+          notification_mode?:
+            | "docuseal_auto"
+            | "app_manual"
+            | "app_auto_all"
+            | "app_auto_sequential"
+            | null
+          result_document_version_id?: string | null
+          signers?: Json | null
+          signing_provider?: string | null
+          status?:
+            | "draft"
+            | "pending"
+            | "in_progress"
+            | "completed"
+            | "declined"
+            | "expired"
+            | "cancelled"
+            | "error"
+            | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       signing_submitters: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          email: string | null
+          email_log_id: string | null
+          external_submitter_id: string | null
+          id: string | null
+          name: string | null
+          notified_at: string | null
+          opened_at: string | null
+          role: string | null
+          signer_order: number | null
+          signing_url: string | null
+          status: string | null
+          submission_id: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          email?: string | null
+          email_log_id?: string | null
+          external_submitter_id?: string | null
+          id?: string | null
+          name?: string | null
+          notified_at?: string | null
+          opened_at?: string | null
+          role?: string | null
+          signer_order?: number | null
+          signing_url?: never
+          status?: string | null
+          submission_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          email?: string | null
+          email_log_id?: string | null
+          external_submitter_id?: string | null
+          id?: string | null
+          name?: string | null
+          notified_at?: string | null
+          opened_at?: string | null
+          role?: string | null
+          signer_order?: number | null
+          signing_url?: never
+          status?: string | null
+          submission_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      signing_submitters_internal: {
         Row: {
           completed_at: string | null
           created_at: string | null
@@ -11600,6 +11682,10 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: Json
       }
+      abort_commercial_decision_signing_prepare: {
+        Args: { p_client_op_id: string; p_request_id: string }
+        Returns: Json
+      }
       accept_commercial_document: {
         Args: {
           p_client_op_id: string
@@ -11829,12 +11915,38 @@ export type Database = {
         Args: { p_project_id: string; p_template_id: string }
         Returns: string
       }
+      apply_commercial_decision_by_token: {
+        Args: {
+          p_client_op_id: string
+          p_evidence: Json
+          p_outcome: string
+          p_token: string
+        }
+        Returns: Json
+      }
+      apply_commercial_decision_from_docuseal_submission: {
+        Args: { p_outcome: string; p_submission_id: string }
+        Returns: Json
+      }
       apply_commercial_decision_office: {
         Args: {
           p_client_op_id: string
           p_outcome: string
           p_reason: string
           p_request_id: string
+        }
+        Returns: Json
+      }
+      apply_customer_portal_pending_decision: {
+        Args: {
+          p_audit_request_id?: string
+          p_client_op_id?: string
+          p_evidence?: Json
+          p_ip_address?: unknown
+          p_outcome: string
+          p_request_id: string
+          p_session_token_hash: string
+          p_user_agent?: string
         }
         Returns: Json
       }
@@ -12099,6 +12211,14 @@ export type Database = {
         }
         Returns: Json
       }
+      bind_commercial_decision_docuseal_submission: {
+        Args: {
+          p_client_op_id?: string
+          p_request_id: string
+          p_submission_id: string
+        }
+        Returns: Json
+      }
       build_and_persist_checklist_public_report: {
         Args: {
           p_bypass_reason?: string
@@ -12187,6 +12307,10 @@ export type Database = {
         Args: { p_job_id: string; p_tenant_id: string }
         Returns: boolean
       }
+      cancel_prospect_project: {
+        Args: { p_project_id: string }
+        Returns: undefined
+      }
       cancel_shift_opening: { Args: { p_id: string }; Returns: Json }
       check_ai_tokens_daily_limit: {
         Args: {
@@ -12228,6 +12352,15 @@ export type Database = {
           reason: string
           unit_price: number
         }[]
+      }
+      check_commercial_sign_rate_limit: {
+        Args: {
+          p_bucket_type: string
+          p_client_key: string
+          p_max_attempts?: number
+          p_window_minutes?: number
+        }
+        Returns: Json
       }
       check_dedup: {
         Args: { p_key: string; p_queue: string }
@@ -12487,6 +12620,16 @@ export type Database = {
       }
       confirm_shift_slot: { Args: { p_slot_id: string }; Returns: Json }
       consume_signing_credit: { Args: { p_tenant_id: string }; Returns: number }
+      continue_customer_portal_pending_docuseal: {
+        Args: {
+          p_audit_request_id?: string
+          p_ip_address?: unknown
+          p_request_id: string
+          p_session_token_hash: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
       copy_project_lines: {
         Args: {
           p_client_op_id?: string
@@ -12503,12 +12646,17 @@ export type Database = {
       count_pending_absences: { Args: never; Returns: number }
       count_projects: {
         Args: {
+          p_include_prospect?: boolean
           p_open_only?: boolean
           p_planned_start_from?: string
           p_planned_start_to?: string
           p_tenant_id: string
           p_type?: string
         }
+        Returns: number
+      }
+      count_signing_submissions_needing_artifact_reconcile: {
+        Args: { p_cap?: number }
         Returns: number
       }
       create_absence_type_subtype: {
@@ -13126,6 +13274,17 @@ export type Database = {
         }
         Returns: string
       }
+      create_prospect_work_order: {
+        Args: {
+          p_client_id: string
+          p_contact_site_id?: string
+          p_description?: string
+          p_name: string
+          p_site_id?: string
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       create_public_site:
         | { Args: { p_name: string; p_site_id?: string }; Returns: string }
         | {
@@ -13170,6 +13329,7 @@ export type Database = {
             Args: {
               p_document_version_id: string
               p_expires_days?: number
+              p_operator_user_id?: string
               p_pdf_job_id?: string
               p_signer_email?: string
               p_signer_name?: string
@@ -14304,8 +14464,20 @@ export type Database = {
         Args: { p_at_date?: string; p_group_id: string }
         Returns: Json
       }
+      get_commercial_decision_receipt: {
+        Args: { p_token: string }
+        Returns: Json
+      }
+      get_commercial_decision_request_status_service: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
       get_commercial_display_formats: {
         Args: { p_tenant_id: string }
+        Returns: Json
+      }
+      get_commercial_document_signed_artifact_status: {
+        Args: { p_document_id: string }
         Returns: Json
       }
       get_commercial_full_body_locale: {
@@ -14640,6 +14812,7 @@ export type Database = {
         Args: never
         Returns: Json
       }
+      get_my_customer_portal_commercial_settings: { Args: never; Returns: Json }
       get_my_customer_portal_public_profile: { Args: never; Returns: Json }
       get_my_customer_portal_retention_status: { Args: never; Returns: Json }
       get_my_email_usage: { Args: { p_tenant_id?: string }; Returns: Json }
@@ -14650,6 +14823,10 @@ export type Database = {
       }
       get_my_open_work_log: { Args: { p_project_id: string }; Returns: Json }
       get_my_open_work_log_global: { Args: never; Returns: Json }
+      get_my_pending_signing_url: {
+        Args: { p_submission_id: string }
+        Returns: string
+      }
       get_my_tenant_legal_center: { Args: never; Returns: Json }
       get_next_ai_message_sequence_service: {
         Args: {
@@ -14660,7 +14837,7 @@ export type Database = {
         Returns: number
       }
       get_open_commercial_decision_request: {
-        Args: { p_target_document_id: string }
+        Args: { p_agreement_version_id?: string; p_target_document_id?: string }
         Returns: Json
       }
       get_own_certifications: {
@@ -14968,6 +15145,14 @@ export type Database = {
       handle_project_dates_set_event: {
         Args: { p_project_id: string; p_tenant_id?: string }
         Returns: undefined
+      }
+      has_active_customer_portal_grant_for_document: {
+        Args: { p_document_id: string }
+        Returns: boolean
+      }
+      has_active_customer_portal_grant_for_request: {
+        Args: { p_request_id: string }
+        Returns: boolean
       }
       has_maps_js_platform_api_key_service: { Args: never; Returns: boolean }
       hire_application: {
@@ -16245,6 +16430,7 @@ export type Database = {
           p_client_id?: string
           p_created_by?: string
           p_department_id?: string
+          p_include_prospect?: boolean
           p_open_only?: boolean
           p_page?: number
           p_page_size?: number
@@ -16460,6 +16646,10 @@ export type Database = {
         Args: { p_session_id: string }
         Returns: Json
       }
+      list_signing_submissions_needing_artifact_reconcile: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
       list_site_availability: {
         Args: {
           p_date: string
@@ -16471,6 +16661,10 @@ export type Database = {
       }
       list_site_legal_risk_employees: {
         Args: { p_site_id: string; p_threshold_pct?: number }
+        Returns: Json
+      }
+      list_superseded_commercial_bridge_submissions: {
+        Args: { p_request_id: string }
         Returns: Json
       }
       list_tenant_certifications: {
@@ -16691,6 +16885,10 @@ export type Database = {
         Args: { p_proposal_token: string; p_tenant_id: string }
         Returns: Json
       }
+      lookup_commercial_decision_native_session: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       lookup_employee_portal_pin_reset_by_hash: {
         Args: { p_reset_token_hash_hex: string }
         Returns: Json
@@ -16737,6 +16935,10 @@ export type Database = {
           p_version_id: string
         }
         Returns: string
+      }
+      mark_commercial_bridge_docuseal_cancel_attempted: {
+        Args: { p_submission_id: string }
+        Returns: undefined
       }
       mark_commercial_decision_delivery_failed: {
         Args: { p_delivery_id: string; p_error_code: string }
@@ -16933,6 +17135,14 @@ export type Database = {
         }
         Returns: Json
       }
+      prepare_commercial_decision_signing_attempt: {
+        Args: {
+          p_client_op_id?: string
+          p_provider: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
       prepare_commercial_export_batch: {
         Args: {
           p_client_op_id?: string
@@ -16944,6 +17154,17 @@ export type Database = {
       }
       prepare_customer_intervention_report_media: {
         Args: { p_draft_id: string }
+        Returns: Json
+      }
+      prepare_customer_portal_pending_accept: {
+        Args: {
+          p_audit_request_id?: string
+          p_evidence?: Json
+          p_ip_address?: unknown
+          p_request_id: string
+          p_session_token_hash: string
+          p_user_agent?: string
+        }
         Returns: Json
       }
       prepare_employee_medical_clearance_signing: {
@@ -17021,6 +17242,10 @@ export type Database = {
         Returns: Json
       }
       promote_lead_to_contact: { Args: { p_lead_id: string }; Returns: string }
+      promote_project_to_execute: {
+        Args: { p_project_id: string }
+        Returns: undefined
+      }
       publish_checklist_template_version: {
         Args: { p_version_id: string }
         Returns: string
@@ -17072,6 +17297,10 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: number
       }
+      reconcile_commercial_decision_inconsistencies: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
       reconcile_employment_contracts: {
         Args: { p_employee_id?: string; p_on?: string }
         Returns: number
@@ -17107,6 +17336,26 @@ export type Database = {
           p_payload?: Json
         }
         Returns: string
+      }
+      record_commercial_ops_job_run: {
+        Args: {
+          p_error?: string
+          p_findings_count?: number
+          p_job_name: string
+          p_ok: boolean
+          p_payload?: Json
+          p_started_at?: string
+        }
+        Returns: string
+      }
+      record_commercial_ops_metric: {
+        Args: {
+          p_detail?: Json
+          p_metric: string
+          p_request_id?: string
+          p_tenant_id?: string
+        }
+        Returns: undefined
       }
       record_compensation_movement: {
         Args: {
@@ -17170,6 +17419,30 @@ export type Database = {
       record_processed: {
         Args: { p_key: string; p_msg_id: number; p_queue: string }
         Returns: undefined
+      }
+      record_signing_ops_job_run: {
+        Args: {
+          p_attached?: number
+          p_attempted?: number
+          p_detail?: Json
+          p_duration_ms?: number
+          p_error?: string
+          p_job_name: string
+          p_listed?: number
+          p_ok: boolean
+          p_skipped?: number
+          p_started_at?: string
+        }
+        Returns: string
+      }
+      record_signing_submission_artifact_status: {
+        Args: {
+          p_error?: string
+          p_signed_url?: string
+          p_status: string
+          p_submission_id: string
+        }
+        Returns: Json
       }
       record_station_rate_limit_block: {
         Args: {
@@ -17443,8 +17716,32 @@ export type Database = {
         }
         Returns: undefined
       }
+      resolve_commercial_decision_token: {
+        Args: { p_mark_opened?: boolean; p_token: string }
+        Returns: Json
+      }
+      resolve_commercial_docuseal_continue: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       resolve_contract_planning_cost: {
         Args: { p_contract_id: string; p_on_date?: string }
+        Returns: Json
+      }
+      resolve_customer_portal_commercial: {
+        Args: {
+          p_action?: string
+          p_cursor_id?: string
+          p_cursor_sort?: string
+          p_ip_address?: unknown
+          p_item_kind?: string
+          p_kind?: string
+          p_limit?: number
+          p_request_id?: string
+          p_session_token_hash: string
+          p_target_id?: string
+          p_user_agent?: string
+        }
         Returns: Json
       }
       resolve_customer_portal_grant_session: {
@@ -17654,6 +17951,10 @@ export type Database = {
       reveal_employee_private_field: {
         Args: { p_employee_id: string; p_field: string }
         Returns: Json
+      }
+      revert_agreement_sent_for_signature: {
+        Args: { p_client_op_id?: string; p_version_id: string }
+        Returns: string
       }
       revoke_absence: {
         Args: { p_absence_id: string; p_reason: string }
@@ -18223,6 +18524,14 @@ export type Database = {
         }
         Returns: Json
       }
+      set_my_customer_portal_commercial_settings: {
+        Args: {
+          p_delivery_notes_enabled?: boolean
+          p_invoices_enabled?: boolean
+          p_quotes_agreements_enabled?: boolean
+        }
+        Returns: Json
+      }
       set_my_customer_portal_enabled: {
         Args: { p_enabled: boolean; p_note?: string }
         Returns: Json
@@ -18466,6 +18775,10 @@ export type Database = {
           p_site_id: string
           p_to: string
         }
+        Returns: Json
+      }
+      supersede_commercial_bridge_submissions_for_request: {
+        Args: { p_request_id: string }
         Returns: Json
       }
       suspend_commercial_agreement: {

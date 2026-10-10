@@ -27,12 +27,28 @@ export const COMMERCIAL_DELIVERY_NOTE_TEMPLATE_ID_KEY = 'delivery_note_template_
 export const COMMERCIAL_FORMALIZATION_MODE_DEFAULT_KEY = 'formalization_mode_default' as const
 export const COMMERCIAL_AGREEMENT_TEMPLATE_ID_KEY = 'agreement_template_id' as const
 export const COMMERCIAL_WORK_GATE_DEFAULT_KEY = 'work_gate_default' as const
+export const COMMERCIAL_ALLOW_OFFICE_ACCEPT_KEY = 'allow_office_accept' as const
 
 export const FORMALIZATION_MODES = ['signed_quote', 'separate_agreement'] as const
 export type FormalizationMode = (typeof FORMALIZATION_MODES)[number]
 
 export const WORK_GATES = ['none', 'require_signed_agreement'] as const
 export type WorkGate = (typeof WORK_GATES)[number]
+
+/** Tenant opt-in: office may accept quotes without client pad (default false). */
+export function parseAllowOfficeAccept(
+  effective: Record<string, unknown> | null | undefined,
+): boolean {
+  const commercial = effective?.commercial
+  let raw: unknown
+  if (commercial && typeof commercial === 'object' && !Array.isArray(commercial)) {
+    raw = (commercial as Record<string, unknown>)[COMMERCIAL_ALLOW_OFFICE_ACCEPT_KEY]
+  }
+  if (raw == null) {
+    raw = effective?.[`commercial.${COMMERCIAL_ALLOW_OFFICE_ACCEPT_KEY}`]
+  }
+  return raw === true || raw === 'true'
+}
 
 export function parseWorkGateDefault(
   effective: Record<string, unknown> | null | undefined,

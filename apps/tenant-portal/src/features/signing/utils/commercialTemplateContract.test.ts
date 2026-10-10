@@ -11,7 +11,6 @@ describe('commercialRequiredTokens', () => {
       'document.valid_until',
       'tax_breakdown',
       'client_accept',
-      'client_reject',
     ])
     expect(tokens[0]?.example).toBe('{% for line in lines %}')
     expect(tokens.find((t) => t.id === 'client_accept')?.example).toBe('role="client_accept"')

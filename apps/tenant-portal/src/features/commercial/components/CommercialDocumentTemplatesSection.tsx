@@ -10,12 +10,14 @@ import { useToast } from '@/hooks/use-toast'
 import { useDocumentTemplates } from '@/features/signing/api/useDocumentTemplates'
 import {
   COMMERCIAL_AGREEMENT_TEMPLATE_ID_KEY,
+  COMMERCIAL_ALLOW_OFFICE_ACCEPT_KEY,
   COMMERCIAL_DELIVERY_NOTE_TEMPLATE_ID_KEY,
   COMMERCIAL_QUOTE_TEMPLATE_ID_KEY,
   commercialFullBodyTemplateSettingValue,
   commercialSettingsPatch,
   commercialSettingsPatchWithFullBodyTemplates,
   commercialSettingsPatchWithThreshold,
+  parseAllowOfficeAccept,
   parseCommercialSettingId,
   parseDeviationApprovalThresholdEur,
   parseFormalizationModeDefault,
@@ -60,6 +62,7 @@ export function CommercialDocumentTemplatesSection() {
   const [formalizationMode, setFormalizationMode] = useState<FormalizationMode>('signed_quote')
   const [agreementId, setAgreementId] = useState(NONE)
   const [workGate, setWorkGate] = useState<WorkGate>('none')
+  const [allowOfficeAccept, setAllowOfficeAccept] = useState(false)
 
   const ownQuotes = useMemo(
     () =>
@@ -100,6 +103,7 @@ export function CommercialDocumentTemplatesSection() {
     setFormalizationMode(parseFormalizationModeDefault(effective))
     setAgreementId(parseCommercialSettingId(effective, COMMERCIAL_AGREEMENT_TEMPLATE_ID_KEY) ?? NONE)
     setWorkGate(parseWorkGateDefault(effective))
+    setAllowOfficeAccept(parseAllowOfficeAccept(effective))
   }, [effective])
 
   async function handleSave() {
@@ -114,6 +118,7 @@ export function CommercialDocumentTemplatesSection() {
             formalization_mode_default: formalizationMode,
             agreement_template_id: commercialFullBodyTemplateSettingValue(agreementId),
             work_gate_default: workGate,
+            [COMMERCIAL_ALLOW_OFFICE_ACCEPT_KEY]: allowOfficeAccept,
           },
         ),
       )
@@ -275,6 +280,37 @@ export function CommercialDocumentTemplatesSection() {
           {t(
             'templates.work_gate_help',
             'Només s’aplica als pressupostos de contracte separat. «Un document» no bloqueja la feina.',
+          )}
+        </span>
+      </label>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium">
+          {t(
+            'templates.allow_office_accept',
+            'Acceptació d’oficina sense firma del client',
+          )}
+        </span>
+        <select
+          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+          value={allowOfficeAccept ? 'on' : 'off'}
+          onChange={(e) => setAllowOfficeAccept(e.target.value === 'on')}
+          disabled={mutation.isPending}
+        >
+          <option value="off">
+            {t('templates.allow_office_accept_off', 'Desactivat (cal firma o enviament)')}
+          </option>
+          <option value="on">
+            {t(
+              'templates.allow_office_accept_on',
+              'Activat: owner/manager pot registrar acceptació de paraula',
+            )}
+          </option>
+        </select>
+        <span className="text-xs text-muted-foreground">
+          {t(
+            'templates.allow_office_accept_help',
+            'Quan està actiu, l’oficina pot acceptar un pressupost emès amb un motiu (telèfon, etc.) sense pad del client. Queda registrat com a «Acceptat per oficina». No desactiva el work_gate dels acords.',
           )}
         </span>
       </label>

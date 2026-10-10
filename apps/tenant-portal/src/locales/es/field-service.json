@@ -92,6 +92,7 @@
     "empty": {
       "filtered": "Ninguna visita con estos filtros",
       "none": "Ninguna visita planificada",
+      "today": "Ninguna visita este día",
       "from_tray": "Planificar desde la bandeja",
       "orders": "Ver órdenes"
     }
@@ -146,6 +147,23 @@
     "phase_do": "Hacer",
     "phase_deliver": "Entregar",
     "phases_aria": "Fases de la orden",
+    "prospect_badge": "Prospecto",
+    "prospect_help": "Orden comercial para preparar el presupuesto. No aparece en Hoy hasta que se acepte.",
+    "back_to_prepare": "Volver al presupuesto",
+    "prospect_guide": {
+      "aria": "Guía del flujo presupuesto (prospecto)",
+      "title": "Seguimiento (contacto → presupuesto → respuesta)",
+      "contact": "Contacto",
+      "price_sheet": "Hoja de precios",
+      "issue": "Emitir",
+      "followup": "Seguimiento",
+      "tip_contact": "Hace falta un contacto antes de emitir el presupuesto.",
+      "tip_price_sheet": "Rellena la hoja de precios (líneas). Aún no es un documento de presupuesto.",
+      "tip_issue": "Emite o envía el presupuesto desde el panel de autorizar. La orden no sale en Hoy.",
+      "tip_followup": "Espera la respuesta del cliente. Si acepta, se abre como orden de ejecución.",
+      "tip_followup_closed": "Presupuesto cerrado sin trabajo abierto. Puedes duplicar o archivar.",
+      "tip_followup_accepted": "Aceptado: esta orden pasa a ejecución (Hacer / Entregar)."
+    },
     "phase_prepare_done": "Autorizado",
     "phase_prepare_lines": "{{count}} líneas",
     "phase_prepare_empty": "Sin precios",
@@ -165,6 +183,7 @@
     "primary_sync_pending": "Pendiente de sincronizar",
     "primary_review_sync_error": "Revisar error de sincronización",
     "primary_need_lines": "Añade líneas a la hoja de precios antes de continuar.",
+    "primary_choose_formalization": "Elige la formalización y emite el presupuesto en Preparar.",
     "punch_elapsed": "Tiempo en curso",
     "punch_total": "Tiempo trabajado",
     "punch_total_short": "Total obra",

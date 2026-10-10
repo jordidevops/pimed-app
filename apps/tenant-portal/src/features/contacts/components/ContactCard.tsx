@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Mail, MapPin, Phone } from 'lucide-react'
 import type { Contact } from '../api/contactsService'
+import type { ContactCommercialLifecycle } from '../utils/contactCommercialLifecycle'
+import { ContactLifecycleBadge } from './ContactLifecycleBadge'
 
 // ─── Avatar helpers ───────────────────────────────────────────────────────────
 
@@ -45,9 +47,10 @@ export interface ContactCardSiteInfo {
 interface ContactCardProps {
   contact: Contact
   siteInfo?: ContactCardSiteInfo | null
+  lifecycle?: ContactCommercialLifecycle | null
 }
 
-export function ContactCard({ contact, siteInfo }: ContactCardProps) {
+export function ContactCard({ contact, siteInfo, lifecycle }: ContactCardProps) {
   const { t } = useTranslation('contacts')
   const navigate = useNavigate()
 
@@ -94,17 +97,20 @@ export function ContactCard({ contact, siteInfo }: ContactCardProps) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground truncate">{name}</p>
-          <span
-            className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-medium ${
-              contact.kind === 'company'
-                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-            }`}
-          >
-            {contact.kind === 'company'
-              ? t('contacts.kind.company', 'Empresa')
-              : t('contacts.kind.person', 'Persona')}
-          </span>
+          <div className="mt-0.5 flex flex-wrap gap-1">
+            <span
+              className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                contact.kind === 'company'
+                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                  : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+              }`}
+            >
+              {contact.kind === 'company'
+                ? t('contacts.kind.company', 'Empresa')
+                : t('contacts.kind.person', 'Persona')}
+            </span>
+            {lifecycle ? <ContactLifecycleBadge lifecycle={lifecycle} /> : null}
+          </div>
         </div>
       </div>
 

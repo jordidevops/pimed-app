@@ -99,7 +99,14 @@ export function ProjectsPage({
   const { t } = useTranslation(['projects', 'field-service'])
   const { toast } = useToast()
   const { user } = useAuth()
-  const { activeTenant, tenantsLoading, sites } = useTenant()
+  const {
+    activeTenant,
+    tenantsLoading,
+    sites,
+    selectedSiteId,
+    setSelectedSiteId,
+    canUseAllSites,
+  } = useTenant()
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: departments = [] } = useDepartments()
   const isFieldService = useIsFieldService() || fieldServiceMode
@@ -155,7 +162,8 @@ export function ProjectsPage({
       ? ''
       : (rawType ?? 'work_order')
     : (rawType ?? '')
-  const siteId = searchParams.get('siteId') ?? ''
+  // Prefer explicit URL filter; otherwise follow sidebar scope (same site_id field).
+  const siteId = searchParams.get('siteId') ?? selectedSiteId ?? ''
   const departmentId = searchParams.get('departmentId') ?? ''
   const plannedStartFrom = searchParams.get('plannedStartFrom') ?? ''
   const plannedStartTo = searchParams.get('plannedStartTo') ?? ''
@@ -226,6 +234,8 @@ export function ProjectsPage({
     createdBy: isFieldService && fsQuickFilter === 'mine' ? (user?.id ?? undefined) : undefined,
     openOnly: isFieldService && fsQuickFilter === 'open',
     clientId: urlFilterClientId || undefined,
+    // Prospect OS stay off Avui/agenda, but must appear in the orders list.
+    includeProspect: isFieldService ? true : undefined,
   }), [
     page,
     pageSize,
@@ -362,6 +372,9 @@ export function ProjectsPage({
     else next.set(name, String(value))
     next.set('page', '1')
     setSearchParams(next, { replace: true })
+    if (name === 'siteId') {
+      setSelectedSiteId(value ? String(value) : null)
+    }
   }
 
   /** FS needs type=all so clearing does not fall back to default work_order. */
@@ -646,14 +659,16 @@ export function ProjectsPage({
             </div>
             {sites.length > 1 && (
               <div className="flex flex-wrap gap-2">
-                <FilterPill active={!siteId} onClick={() => updateParam('siteId', '')}>
-                  {t('projects.filters.all_sites', 'Tots els locals')}
-                </FilterPill>
+                {canUseAllSites ? (
+                  <FilterPill active={!siteId} onClick={() => updateParam('siteId', '')}>
+                    {t('projects.filters.all_sites', 'Tots els locals')}
+                  </FilterPill>
+                ) : null}
                 {sites.map((site) => (
                   <FilterPill
                     key={site.id}
                     active={siteId === site.id}
-                    onClick={() => updateParam('siteId', siteId === site.id ? '' : site.id)}
+                    onClick={() => updateParam('siteId', site.id)}
                   >
                     {site.name}
                   </FilterPill>
@@ -709,7 +724,9 @@ export function ProjectsPage({
 
           {!isFieldService && sites.length > 1 && (
             <select value={siteId} onChange={(e) => updateParam('siteId', e.target.value)} className="rounded-md border border-input bg-background px-3 py-2 text-sm">
-              <option value="">{t('projects.filters.all_sites', 'Tots els locals')}</option>
+              {canUseAllSites ? (
+                <option value="">{t('projects.filters.all_sites', 'Tots els locals')}</option>
+              ) : null}
               {sites.map((site) => (
                 <option key={site.id} value={site.id}>{site.name}</option>
               ))}

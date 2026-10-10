@@ -14,6 +14,7 @@ import {
   type CommercialInclusion,
 } from '../utils/agreementInclusion'
 import { defaultDecisionExpiresAt } from '../utils/commercialDecisionSend'
+import { isDecisionRequestsDisabledError } from '../utils/commercialErrorMessage'
 
 export type { CommercialInclusion }
 
@@ -49,8 +50,10 @@ export type CommercialDocument = {
   tenant_id: string
   doc_type: 'quote' | 'quote_amendment' | 'delivery_note' | 'invoice'
   doc_number: string | null
+  title?: string | null
   client_id: string
   project_id: string | null
+  site_id?: string | null
   status: string
   seller_snapshot?: CommercialPartySnapshot
   buyer_snapshot?: CommercialPartySnapshot
@@ -409,6 +412,121 @@ export async function previewDeliveryNote(projectId: string): Promise<DeliveryNo
   }
 }
 
+export async function setCommercialDocumentTitle(params: {
+  documentId: string
+  title: string
+}): Promise<void> {
+  const { error } = await supabase.rpc('set_commercial_document_title' as never, {
+    p_document_id: params.documentId,
+    p_title: params.title,
+  } as never)
+  if (error) throw error
+}
+
+export async function createOrphanQuoteDraft(params: {
+  tenantId: string
+  clientId: string
+  contactSiteId?: string | null
+  siteId?: string | null
+  formalizationMode?: 'signed_quote' | 'separate_agreement' | null
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('create_orphan_quote_draft' as never, {
+    p_tenant_id: params.tenantId,
+    p_client_id: params.clientId,
+    p_contact_site_id: params.contactSiteId ?? null,
+    p_formalization_mode: params.formalizationMode ?? null,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+    p_site_id: params.siteId ?? null,
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+export async function upsertCommercialDocumentLine(params: {
+  documentId: string
+  lineId?: string | null
+  catalogItemId?: string | null
+  kind?: string
+  name: string
+  description?: string | null
+  unit?: string
+  quantity?: number
+  unitPrice?: number
+  discountPct?: number
+  taxRate?: number
+  position?: number | null
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('upsert_commercial_document_line' as never, {
+    p_document_id: params.documentId,
+    p_line_id: params.lineId ?? null,
+    p_catalog_item_id: params.catalogItemId ?? null,
+    p_kind: params.kind ?? 'service',
+    p_name: params.name,
+    p_description: params.description ?? null,
+    p_unit: params.unit ?? 'u',
+    p_quantity: params.quantity ?? 1,
+    p_unit_price: params.unitPrice ?? 0,
+    p_discount_pct: params.discountPct ?? 0,
+    p_tax_rate: params.taxRate ?? 21,
+    p_position: params.position ?? null,
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+export async function deleteCommercialDocumentLine(lineId: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_commercial_document_line' as never, {
+    p_line_id: lineId,
+  } as never)
+  if (error) throw error
+}
+
+export async function issueOrphanCommercialDocument(params: {
+  documentId: string
+  showPrices?: boolean
+  formalizationMode?: 'signed_quote' | 'separate_agreement' | null
+  fullBodyTemplateId?: string | null
+  clientOpId?: string
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('issue_orphan_commercial_document' as never, {
+    p_document_id: params.documentId,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+    p_show_prices: params.showPrices ?? null,
+    p_formalization_mode: params.formalizationMode ?? null,
+    p_full_body_template_id: params.fullBodyTemplateId ?? null,
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+export async function cancelOrphanQuoteDraft(documentId: string): Promise<void> {
+  const { error } = await supabase.rpc('cancel_orphan_quote_draft' as never, {
+    p_document_id: documentId,
+  } as never)
+  if (error) throw error
+}
+
+export async function ensureProjectFromOrphanQuote(
+  documentId: string,
+  siteId?: string | null,
+): Promise<string> {
+  const { data, error } = await supabase.rpc('ensure_project_from_orphan_quote' as never, {
+    p_document_id: documentId,
+    p_site_id: siteId ?? null,
+  } as never)
+  if (error) throw error
+  return data as string
+}
+
+export async function linkAgreementProjectFromQuote(documentId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc('link_agreement_project_from_quote' as never, {
+    p_document_id: documentId,
+  } as never)
+  if (error) throw error
+  return (data as string | null) ?? null
+}
+
 export async function issueCommercialDocument(params: {
   projectId: string
   docType: 'quote' | 'quote_amendment' | 'delivery_note'
@@ -456,6 +574,21 @@ export async function acceptCommercialDocument(params: {
   const { data, error } = await supabase.rpc('accept_commercial_document' as never, {
     p_document_id: params.documentId,
     p_signature: params.signature,
+    p_client_op_id: params.clientOpId ?? generateClientOpId(),
+  } as never)
+  if (error) throw error
+  return data
+}
+
+/** Office attestation accept (no client pad). Requires commercial.allow_office_accept. */
+export async function acceptCommercialDocumentOffice(params: {
+  documentId: string
+  reason: string
+  clientOpId?: string
+}): Promise<unknown> {
+  const { data, error } = await supabase.rpc('accept_commercial_document_office' as never, {
+    p_document_id: params.documentId,
+    p_reason: params.reason,
     p_client_op_id: params.clientOpId ?? generateClientOpId(),
   } as never)
   if (error) throw error
@@ -2046,6 +2179,7 @@ export type SearchCommercialDocumentsParams = {
   totalMax?: number | null
   limit?: number
   clientId?: string | null
+  siteId?: string | null
 }
 
 export async function searchCommercialDocuments(
@@ -2062,6 +2196,7 @@ export async function searchCommercialDocuments(
     p_total_max: params.totalMax ?? null,
     p_limit: params.limit ?? 100,
     p_client_id: params.clientId || null,
+    p_site_id: params.siteId || null,
   } as never)
   if (error) throw error
   return (data ?? []) as CommercialDocumentSearchHit[]
@@ -2196,7 +2331,7 @@ export async function getCommercialDocumentDetail(
 
   const { data: events, error: eventsError } = await supabase
     .from('commercial_document_events' as never)
-    .select('id, event_type, occurred_at, channel, payload')
+    .select('id, event_type, occurred_at, channel, payload, signature')
     .eq('document_id', documentId)
     .order('occurred_at', { ascending: true })
   if (eventsError) throw eventsError
@@ -2207,6 +2342,7 @@ export async function getCommercialDocumentDetail(
     tenant_id: row.tenant_id,
     doc_type: row.doc_type,
     doc_number: row.doc_number,
+    title: (row.title as string | null | undefined) ?? null,
     client_id: row.client_id,
     project_id: row.project_id,
     status: row.status,
@@ -2279,6 +2415,11 @@ export async function renderCommercialDocumentPdf(params: {
   documentId: string
   tenantId: string
   regenerate?: boolean
+  /**
+   * Display status baked into the PDF (e.g. `accepted` when preparing a
+   * presential accept stamp). Does not change the DB row.
+   */
+  statusOverride?: 'accepted' | 'signed' | 'rejected' | 'issued' | 'pending_approval'
   clientOpId?: string
 }): Promise<CommercialRenderResult> {
   const { data, error } = await supabase.functions.invoke('render-commercial-document', {
@@ -2286,7 +2427,8 @@ export async function renderCommercialDocumentPdf(params: {
     body: {
       document_id: params.documentId,
       client_op_id: params.clientOpId ?? generateClientOpId(),
-      regenerate: params.regenerate === true,
+      regenerate: params.regenerate === true || !!params.statusOverride,
+      ...(params.statusOverride ? { status_override: params.statusOverride } : {}),
     },
   })
   if (error) {
@@ -3002,8 +3144,7 @@ export async function sendAgreementVersionForSignature(params: {
       })
       createdRequestId = decisionRequestId
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      if (!msg.includes('decision_requests_disabled')) throw err
+      if (!isDecisionRequestsDisabledError(err)) throw err
     }
     const result = await callSignDocumentRouter({
       tenant_id: params.tenantId,

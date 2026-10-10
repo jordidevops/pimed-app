@@ -2,15 +2,25 @@
   "contacts": {
     "title": "Contactes",
     "new_contact": "Nou contacte",
-    "search_placeholder": "Cerca per nom, email o telèfon...",
+    "search_placeholder": "Cerca per nom, email, telèfon o NIF…",
+    "search_aria": "Cerca contactes",
     "filter_all": "Tots",
     "filter_person": "Persones",
     "filter_company": "Empreses",
     "empty_title": "Encara no hi ha contactes",
+    "empty_filtered": "Cap contacte no coincideix amb la cerca.",
     "empty_cta": "Crea el primer contacte",
     "kind": {
       "person": "Persona",
       "company": "Empresa"
+    },
+    "lifecycle": {
+      "column": "Estat",
+      "effective": "Efectiu",
+      "potential": "Potencial",
+      "agenda": "Agenda",
+      "filter_all": "Tots els estats",
+      "help": "Estat comercial derivat (no és un camp editable)"
     },
     "fields": {
       "display_name": "Nom",
@@ -18,6 +28,7 @@
       "family_name": "Cognoms",
       "legal_name": "Raó social",
       "tax_id": "NIF/CIF",
+      "kind": "Tipus",
       "email": "Correu electrònic",
       "phone": "Telèfon",
       "phone_alt": "Telèfon alternatiu",

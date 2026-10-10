@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -287,7 +287,7 @@ export function FieldAgendaPage() {
   }, [isManager, state.scope, state.tray, state.memberIds.length])
 
   const range = rangeForView(state.view, anchor)
-  const { data: visits = [], isLoading, isFetching } = useFieldVisits({
+  const { data: visits = [], isLoading, isFetching, isPlaceholderData } = useFieldVisits({
     from: range.from,
     to: range.to,
     types: state.types,
@@ -309,6 +309,8 @@ export function FieldAgendaPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [createDay, setCreateDay] = useState<string | null>(null)
   const [panelOpen, setPanelOpen] = useState(false)
+  const [listFlash, setListFlash] = useState(0)
+  const listTodayRef = useRef<HTMLElement | null>(null)
   const isLarge = useIsLargeScreen()
   const returnTo = `${location.pathname}${location.search}`
 
@@ -345,6 +347,8 @@ export function FieldAgendaPage() {
     patchState({ view: next })
   }
 
+  const todayKey = formatAnchorDate(startOfDay(new Date()))
+
   const groupedList = useMemo(() => {
     const map = new Map<string, FieldVisit[]>()
     for (const visit of visits) {
@@ -355,6 +359,19 @@ export function FieldAgendaPage() {
     }
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
   }, [visits])
+
+  const listSections = useMemo(() => {
+    const start = formatAnchorDate(startOfDay(anchor))
+    const end = formatAnchorDate(addDays(startOfDay(anchor), 14))
+    const todayInWindow = todayKey >= start && todayKey < end
+    if (!todayInWindow || groupedList.some(([day]) => day === todayKey)) return groupedList
+    return [...groupedList, [todayKey, [] as FieldVisit[]]].sort(([a], [b]) => a.localeCompare(b))
+  }, [anchor, groupedList, todayKey])
+
+  useEffect(() => {
+    if (listFlash === 0 || state.view !== 'list') return
+    listTodayRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [listFlash, state.view, state.anchor])
 
   const gridEvents = useMemo(() => visits.filter((v) => v.planned_start).map(visitToGridEvent), [visits])
 
@@ -516,7 +533,10 @@ export function FieldAgendaPage() {
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => patchState({ anchor: formatAnchorDate(startOfDay(new Date())) })}
+        onClick={() => {
+          patchState({ anchor: formatAnchorDate(startOfDay(new Date())) })
+          if (state.view === 'list') setListFlash((n) => n + 1)
+        }}
       >
         {t('field-service:agenda.today', 'Avui')}
       </Button>
@@ -545,11 +565,14 @@ export function FieldAgendaPage() {
       <p className="text-sm font-semibold capitalize">
         {formatDayLabel(formatAnchorDate(anchor))}
       </p>
-      <div className="flex min-h-5 min-w-0 flex-1 items-center sm:justify-end">
-        {visits.length === 0 ? emptyNotice : null}
-      </div>
+      {state.view !== 'day' && visits.length === 0 ? (
+        <div className="flex min-h-5 min-w-0 flex-1 items-center sm:justify-end">
+          {emptyNotice}
+        </div>
+      ) : null}
     </div>
   )
+
 
   const showInitialSpinner = isLoading && visits.length === 0
 
@@ -560,26 +583,59 @@ export function FieldAgendaPage() {
   ) : state.view === 'list' ? (
     <div className="space-y-3">
       {dayNav}
-      {groupedList.length === 0 ? (
+      {listSections.length === 0 ? (
         <EmptyAgenda filtered={hasActiveAgendaFilters(state)} onClear={clearFilters} />
       ) : (
         <div className="space-y-5">
-          {groupedList.map(([day, dayVisits]) => (
-            <section key={day} className="space-y-2">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {formatDayLabel(day)}
-              </h2>
-              <VisitDayList visits={dayVisits} formatTime={formatTime} onOpen={openVisit} />
-            </section>
-          ))}
+          {listSections.map(([day, dayVisits]) => {
+            const isToday = day === todayKey
+            const flash = isToday && listFlash > 0
+            return (
+              <section
+                key={flash ? `${day}-flash-${listFlash}` : day}
+                ref={isToday ? listTodayRef : undefined}
+                className={cn(
+                  'scroll-mt-24 space-y-2',
+                  isToday && 'rounded-xl border border-primary bg-primary/15 p-3 ring-2 ring-primary',
+                  flash && 'agenda-today-flash',
+                )}
+              >
+                <h2
+                  className={cn(
+                    'text-xs font-semibold uppercase tracking-wide',
+                    isToday ? 'text-primary' : 'text-muted-foreground',
+                  )}
+                >
+                  {isToday
+                    ? `${t('field-service:agenda.today', 'Avui')} · ${formatDayLabel(day)}`
+                    : formatDayLabel(day)}
+                </h2>
+                {dayVisits.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t('field-service:agenda.empty.today', 'Cap visita aquest dia')}
+                  </p>
+                ) : (
+                  <VisitDayList visits={dayVisits} formatTime={formatTime} onOpen={openVisit} />
+                )}
+              </section>
+            )
+          })}
         </div>
       )}
     </div>
   ) : state.view === 'day' ? (
     <div className="space-y-3">
       {dayNav}
-      {visits.length === 0 ? null : (
-        <VisitDayList visits={visits} formatTime={formatTime} onOpen={openVisit} />
+      {isPlaceholderData && visits.length > 0 ? (
+        <div className="min-h-72" aria-hidden />
+      ) : visits.length === 0 ? (
+        <DayEmptyState
+          filtered={hasActiveAgendaFilters(state)}
+          trayVisible={trayVisible}
+          onClear={clearFilters}
+        />
+      ) : (
+        <VisitDayCards visits={visits} formatTime={formatTime} onOpen={openVisit} />
       )}
     </div>
   ) : (
@@ -602,6 +658,7 @@ export function FieldAgendaPage() {
         }
         monthCellMode="cards"
         monthMaxCards={2}
+        keepViewOnToday
         allDayLabel={t('field-service:agenda.all_day', 'Tot el dia')}
         notice={visits.length === 0 ? emptyNotice : null}
       />
@@ -661,6 +718,116 @@ export function FieldAgendaPage() {
   )
 }
 
+function VisitDayCards({
+  visits,
+  formatTime,
+  onOpen,
+}: {
+  visits: FieldVisit[]
+  formatTime: (iso: string | null | undefined) => string
+  onOpen: (id: string) => void
+}) {
+  const { t } = useTranslation(['field-service', 'projects'])
+  const ordered = [...visits].sort((a, b) =>
+    (a.planned_start ?? '').localeCompare(b.planned_start ?? ''),
+  )
+
+  return (
+    <ul className="space-y-3">
+      {ordered.map((visit) => {
+        const maintenance = visit.type === 'maintenance'
+        const startLabel = formatTime(visit.planned_start)
+        const endLabel = formatTime(visit.planned_end)
+        const allDay = !startLabel
+        const place = [visit.contact_site_name, visit.contact_site_city].filter(Boolean).join(' · ')
+        const members = visit.members.map((m) => m.display_name).filter(Boolean)
+        const regimeKey =
+          visit.commercial_regime === 'consumer' || visit.commercial_regime === 'contractual'
+            ? visit.commercial_regime
+            : null
+
+        return (
+          <li key={visit.id}>
+            <button
+              type="button"
+              onClick={() => onOpen(visit.id)}
+              className="flex w-full overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm transition hover:border-primary/50 hover:shadow-md"
+            >
+              <span
+                className={cn('w-1.5 shrink-0', maintenance ? 'bg-emerald-600' : 'bg-sky-600')}
+                aria-hidden
+              />
+              <span className="flex min-w-0 flex-1 flex-col gap-3 p-3 sm:flex-row sm:p-4">
+                <span
+                  className={cn(
+                    'flex shrink-0 flex-row items-baseline justify-between gap-2 rounded-xl px-3 py-2 sm:flex-col sm:items-center sm:justify-center',
+                    allDay ? 'sm:w-auto' : 'sm:w-[5.5rem]',
+                    maintenance ? 'bg-emerald-500/15' : 'bg-sky-500/15',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'font-bold leading-none',
+                      allDay ? 'text-sm' : 'text-lg tabular-nums',
+                    )}
+                  >
+                    {allDay
+                      ? t('field-service:agenda.all_day', 'Tot el dia')
+                      : startLabel}
+                  </span>
+                  {!allDay && endLabel ? (
+                    <span className="text-xs tabular-nums text-muted-foreground">{endLabel}</span>
+                  ) : null}
+                </span>
+                <span className="min-w-0 flex-1 space-y-1.5">
+                  <span className="flex items-start justify-between gap-2">
+                    <span className="font-semibold leading-snug">{visit.name}</span>
+                    <Badge variant={getProjectStatusVariant(visit.status)}>
+                      {getProjectStatusLabel(t, visit.status, { fieldService: true })}
+                    </Badge>
+                  </span>
+                  {visit.client_display_name ? (
+                    <span className="block truncate text-sm">{visit.client_display_name}</span>
+                  ) : null}
+                  {place ? (
+                    <span className="block truncate text-xs text-muted-foreground">{place}</span>
+                  ) : null}
+                  <span className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <Badge variant="outline">
+                      {maintenance
+                        ? t('field-service:agenda.filters.maintenance', 'Manteniment')
+                        : t('field-service:agenda.filters.work_order', 'Ordre de servei')}
+                    </Badge>
+                    {visit.service_mode === 'assessment' ? (
+                      <Badge variant="secondary">
+                        {t('field-service:service_mode.assessment', 'Avaluació')}
+                      </Badge>
+                    ) : null}
+                    {regimeKey ? (
+                      <Badge variant="outline">
+                        {t(`field-service:regime.${regimeKey}`, regimeKey)}
+                      </Badge>
+                    ) : null}
+                    {visit.members.slice(0, 3).map((member) => (
+                      <Badge key={member.user_id} variant="secondary">
+                        {member.display_name}
+                      </Badge>
+                    ))}
+                    {members.length > 3 ? (
+                      <Badge variant="secondary">+{members.length - 3}</Badge>
+                    ) : null}
+                  </span>
+                </span>
+                <ChevronRight className="hidden h-4 w-4 shrink-0 self-center text-muted-foreground sm:block" />
+              </span>
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 function VisitDayList({
   visits,
   formatTime,
@@ -699,7 +866,40 @@ function VisitDayList({
   )
 }
 
-/** Inline notice beside day/week/month chrome — fixed slot, no layout jump. */
+/** Centered empty day — reads as “nothing scheduled”, not a failed load. */
+function DayEmptyState({
+  filtered,
+  trayVisible,
+  onClear,
+}: {
+  filtered: boolean
+  trayVisible: boolean
+  onClear: () => void
+}) {
+  const { t } = useTranslation('field-service')
+  return (
+    <div className="flex min-h-72 flex-col items-center justify-center px-6 py-16 text-center">
+      <CalendarDays className="mb-3 h-10 w-10 text-muted-foreground/40" aria-hidden />
+      <p className="text-base font-medium text-foreground">
+        {filtered
+          ? t('agenda.empty.filtered', 'Cap visita amb aquests filtres')
+          : t('agenda.empty.today', 'Cap visita aquest dia')}
+      </p>
+      {filtered ? (
+        <Button type="button" variant="outline" size="sm" className="mt-4" onClick={onClear}>
+          <Search className="mr-1 h-4 w-4" />
+          {t('agenda.filters.clear', 'Netejar filtres')}
+        </Button>
+      ) : trayVisible ? (
+        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+          {t('agenda.empty.tray_hint', 'Pots planificar des de la safata')}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+/** Inline notice beside list/week/month chrome — fixed slot, no layout jump. */
 function AgendaEmptyNotice({
   filtered,
   trayVisible,

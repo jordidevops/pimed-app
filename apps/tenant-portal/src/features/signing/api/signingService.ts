@@ -282,8 +282,14 @@ export async function callStampPdfSignatures(
 
   const json = await res.json().catch(() => null)
   if (!res.ok) {
-    const message = json?.error?.message ?? json?.error ?? json?.message ?? `HTTP ${res.status}`
-    throw new Error(typeof message === 'string' ? message : `HTTP ${res.status}`)
+    const raw = json?.error?.message ?? json?.error ?? json?.message ?? json?.detail
+    const message =
+      typeof raw === 'string'
+        ? raw
+        : raw && typeof raw === 'object' && typeof (raw as { message?: unknown }).message === 'string'
+          ? String((raw as { message: string }).message)
+          : `HTTP ${res.status}`
+    throw new Error(message)
   }
   return json as StampPdfSignaturesResult
 }

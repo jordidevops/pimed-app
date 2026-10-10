@@ -71,6 +71,8 @@ import {
   type WorkExtraSection,
 } from '@/features/field-service'
 import { OrderPhaseStepper } from '@/features/field-service/components/OrderPhaseStepper'
+import { OrderCommercialGuide } from '@/features/field-service/components/OrderCommercialGuide'
+import { ProspectCommercialGuide } from '@/features/field-service/components/ProspectCommercialGuide'
 import { OrderPrimaryActionBar } from '@/features/field-service/components/OrderPrimaryActionBar'
 import { DeliverPhaseView } from '@/features/field-service/components/DeliverPhaseView'
 import {
@@ -246,6 +248,8 @@ export function ProjectDetailPage() {
     })
   }, [project, tenantRegimes])
 
+  const isProspect = project?.commercial_stage === 'prospect'
+
   const workflow = useMemo(
     () =>
       deriveOrderWorkflow({
@@ -283,6 +287,10 @@ export function ProjectDetailPage() {
   )
 
   const activeTab: OrderPhaseTab | 'activity' | 'punch' = (() => {
+    if (isProspect) {
+      if (tabParam === 'activity') return 'activity'
+      return 'prepare'
+    }
     if (!isFieldService) {
       if (
         tabParam === 'punch' ||
@@ -312,6 +320,14 @@ export function ProjectDetailPage() {
   useEffect(() => {
     if (!isFieldService || !project?.id) return
     if (focusPlannedStart) return
+    if (isProspect) {
+      const desired = tabParam === 'activity' ? 'activity' : 'prepare'
+      if (searchParams.get('tab') === desired) return
+      const params = new URLSearchParams(searchParams)
+      params.set('tab', desired)
+      setSearchParams(params, { replace: true })
+      return
+    }
     const desired = tabToSearchParam(
       resolveOrderTab(
         tabParam,
@@ -325,6 +341,7 @@ export function ProjectDetailPage() {
     setSearchParams(params, { replace: true })
   }, [
     isFieldService,
+    isProspect,
     project?.id,
     tabParam,
     highlightCommentId,
@@ -485,6 +502,7 @@ export function ProjectDetailPage() {
 
   const showPrimaryBar =
     isFieldService &&
+    !isProspect &&
     workflow.primaryAction !== 'done' &&
     workflow.primaryAction !== 'start_work' &&
     workflow.primaryAction !== 'resume_work'
@@ -536,24 +554,18 @@ export function ProjectDetailPage() {
           })
           return
         }
-        setPrimaryBusy(true)
-        try {
-          const docId = await issueCommercialDocument({
-            projectId,
-            docType: 'quote',
-          })
-          await queryClient.invalidateQueries({ queryKey: ['commercial_documents', projectId] })
-          setForceViewDocId(docId)
-          toast({ title: t('projects.commercial.quote_issued', 'Pressupost emès') })
-        } catch (err) {
-          toast({
-            variant: 'destructive',
-            title: t('projects.commercial.error', 'Error comercial'),
-            description: err instanceof Error ? err.message : undefined,
-          })
-        } finally {
-          setPrimaryBusy(false)
-        }
+        // Never issue silently — Formalització + Emetre live on the Prepare panel.
+        window.setTimeout(() => {
+          document
+            .getElementById('commercial-issue-quote')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 80)
+        toast({
+          description: t(
+            'field-service:detail.primary_choose_formalization',
+            'Tria la formalització i emet el pressupost a Preparar.',
+          ),
+        })
         return
       }
       case 'review_close':
@@ -991,7 +1003,22 @@ export function ProjectDetailPage() {
               </Select>
             )}
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-snug">{project.name}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-snug">
+              {project.name}
+            </h1>
+            {isProspect ? (
+              <span
+                className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100"
+                title={t(
+                  'field-service:detail.prospect_help',
+                  'Ordre comercial per preparar el pressupost. No surt a Avui fins que s’accepti.',
+                )}
+              >
+                {t('field-service:detail.prospect_badge', 'Prospecte')}
+              </span>
+            ) : null}
+          </div>
           {project.description && (
             <p className="text-sm text-muted-foreground line-clamp-3">{project.description}</p>
           )}
@@ -1293,7 +1320,7 @@ export function ProjectDetailPage() {
         </div>
       )}
 
-      {isFieldService && project.id && (
+      {isFieldService && !isProspect && project.id && (
         <ProjectPunchStrip
           projectId={project.id}
           locked={punchLocked || agreementBlocksWork}
@@ -1348,7 +1375,7 @@ export function ProjectDetailPage() {
         </div>
       )}
 
-      {project.id ? (
+      {!isProspect && project.id ? (
         <ProjectAgreementsSection
           projectId={project.id}
           clientId={project.client_id ?? null}
@@ -1361,52 +1388,77 @@ export function ProjectDetailPage() {
         onValueChange={setTab}
         className="space-y-4"
       >
-        <div
-          className={
-            isFieldService
-              ? 'sticky top-0 z-20 -mx-1 space-y-2 border-b border-border/60 bg-background/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80'
-              : 'space-y-2'
-          }
-        >
-          {isFieldService ? (
-            <OrderPhaseStepper
-              prepareDone={workflow.prepareDone}
-              doDone={workflow.doDone}
-              deliverDone={workflow.deliverDone}
-              prepareMicro={prepareMicro}
-              doMicro={doMicro}
-              deliverMicro={
-                workflow.deliverDone && workflow.deliveryTotalCents > 0
-                  ? moneyFmt.format(workflow.deliveryTotalCents / 100)
-                  : deliverMicro
-              }
+        {isFieldService && isProspect && activeTab === 'activity' ? (
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setTab('prepare')}
+            >
+              {t('field-service:detail.back_to_prepare', 'Tornar al pressupost')}
+            </Button>
+          </div>
+        ) : null}
+        {isProspect ? (
+          <div className="sticky top-0 z-20 -mx-1 space-y-2 border-b border-border/60 bg-background/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <ProspectCommercialGuide
+              hasClient={!!project.client_id}
+              hasLines={linesCount > 0}
+              authorizationState={workflow.authorizationState}
             />
-          ) : (
-            <TabsList className="w-full justify-start">
-              <TabsTrigger value="do">
-                {t('field-service:detail.tab_work', 'Feina')}
-              </TabsTrigger>
-              <TabsTrigger value="punch">
-                {t('field-service:detail.tab_punch', 'Fitxar')}
-              </TabsTrigger>
-              <TabsTrigger value="activity">
-                {t('field-service:detail.tab_activity', 'Activitat')}
-              </TabsTrigger>
-              <TabsTrigger value="prepare">
-                {t('field-service:detail.tab_budget', 'Imports')}
-              </TabsTrigger>
-            </TabsList>
-          )}
-          {showPrimaryBar && (
-            <OrderPrimaryActionBar
-              action={workflow.primaryAction}
-              busy={primaryBusy}
-              onAction={(action) => {
-                void handlePrimaryAction(action)
-              }}
-            />
-          )}
-        </div>
+          </div>
+        ) : (
+          <div
+            className={
+              isFieldService
+                ? 'sticky top-0 z-20 -mx-1 space-y-2 border-b border-border/60 bg-background/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80'
+                : 'space-y-2'
+            }
+          >
+            {isFieldService ? (
+              <>
+                <OrderCommercialGuide workflow={workflow} />
+                <OrderPhaseStepper
+                  prepareDone={workflow.prepareDone}
+                  doDone={workflow.doDone}
+                  deliverDone={workflow.deliverDone}
+                  prepareMicro={prepareMicro}
+                  doMicro={doMicro}
+                  deliverMicro={
+                    workflow.deliverDone && workflow.deliveryTotalCents > 0
+                      ? moneyFmt.format(workflow.deliveryTotalCents / 100)
+                      : deliverMicro
+                  }
+                />
+              </>
+            ) : (
+              <TabsList className="w-full justify-start">
+                <TabsTrigger value="do">
+                  {t('field-service:detail.tab_work', 'Feina')}
+                </TabsTrigger>
+                <TabsTrigger value="punch">
+                  {t('field-service:detail.tab_punch', 'Fitxar')}
+                </TabsTrigger>
+                <TabsTrigger value="activity">
+                  {t('field-service:detail.tab_activity', 'Activitat')}
+                </TabsTrigger>
+                <TabsTrigger value="prepare">
+                  {t('field-service:detail.tab_budget', 'Imports')}
+                </TabsTrigger>
+              </TabsList>
+            )}
+            {showPrimaryBar && (
+              <OrderPrimaryActionBar
+                action={workflow.primaryAction}
+                busy={primaryBusy}
+                onAction={(action) => {
+                  void handlePrimaryAction(action)
+                }}
+              />
+            )}
+          </div>
+        )}
 
         <TabsContent value="prepare" className="space-y-4">
           <section className="rounded-xl border border-border p-4 sm:p-5">
@@ -1419,6 +1471,7 @@ export function ProjectDetailPage() {
               hasLines={linesCount > 0}
               section="authorize"
               serviceMode={commercialPolicy.service_mode}
+              allowWorkWithoutQuote={!isProspect}
               forceViewDocId={forceViewDocId}
               onForceViewHandled={clearForceView}
             />

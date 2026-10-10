@@ -208,3 +208,28 @@
   }
 }
 
+@keyframes agenda-today-flash {
+  0%,
+  100% {
+    outline-color: transparent;
+    outline-offset: 0;
+  }
+  14%,
+  42%,
+  70% {
+    outline-color: hsl(var(--primary));
+    outline-offset: 4px;
+  }
+  28%,
+  56%,
+  84% {
+    outline-color: transparent;
+    outline-offset: 0;
+  }
+}
+
+.agenda-today-flash {
+  outline: 3px solid transparent;
+  animation: agenda-today-flash 2.8s ease-in-out 1;
+}
+

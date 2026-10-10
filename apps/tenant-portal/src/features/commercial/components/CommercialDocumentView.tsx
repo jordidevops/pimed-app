@@ -322,7 +322,7 @@ export function CommercialDocumentView({
           </p>
         </div>
       ) : (
-        <Tabs defaultValue="summary" className="flex-1 min-h-0 flex flex-col">
+        <Tabs defaultValue="document" className="flex-1 min-h-0 flex flex-col">
           <div className="border-b border-border px-4">
             <TabsList>
               <TabsTrigger value="summary">
@@ -335,7 +335,7 @@ export function CommercialDocumentView({
           </div>
           <TabsContent
             value="summary"
-            className="flex-1 overflow-y-auto mt-0 px-4 py-5 space-y-5 max-w-3xl w-full mx-auto"
+            className="flex-1 overflow-y-auto mt-0 px-4 py-5 space-y-5 max-w-4xl w-full mx-auto"
           >
             <section
               className={`rounded-xl border px-4 py-3 ${
@@ -648,7 +648,7 @@ export function CommercialDocumentView({
               <object
                 data={pdf.downloadUrl}
                 type="application/pdf"
-                className="w-full flex-1 min-h-[32rem]"
+                className="w-full flex-1 min-h-[min(80dvh,52rem)]"
                 aria-label={t('projects.commercial.view_tab_document', 'Document')}
               >
                 <div className="px-4 py-5 space-y-2 text-sm text-muted-foreground">
@@ -666,16 +666,16 @@ export function CommercialDocumentView({
                 </div>
               </object>
             ) : pdf.status === 'pending' || pdf.status === 'loading' ? (
-              <div className="px-4 py-5 space-y-3 max-w-3xl w-full mx-auto">
-                <p className="text-sm text-muted-foreground">
+              <div className="flex min-h-0 flex-1 flex-col overflow-auto px-4 py-5">
+                <p className="mb-3 text-sm text-muted-foreground">
                   {t('projects.commercial.pdf_generating', 'Generant PDF…')}
                 </p>
                 {preview?.kind === 'html' ? (
-                  <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
+                  <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col rounded-lg border border-border bg-white p-2 shadow-sm sm:p-4">
                     <iframe
                       title={t('projects.commercial.view_html_draft', 'Esborrany HTML')}
                       srcDoc={preview.html}
-                      className="block min-h-[24rem] w-full rounded-md border border-border/60 bg-white"
+                      className="block min-h-[calc(100dvh-14rem)] w-full flex-1 rounded-md border border-border/60 bg-white"
                     />
                   </div>
                 ) : null}
@@ -688,12 +688,12 @@ export function CommercialDocumentView({
                     'PDF no disponible; es mostra l’esborrany HTML.',
                   )}
                 </p>
-                <div className="flex flex-1 justify-center p-4 sm:p-6">
-                  <div className="w-full max-w-[52rem] rounded-lg border border-border bg-white p-4 shadow-sm sm:p-6">
+                <div className="flex flex-1 justify-center p-2 sm:p-4">
+                  <div className="flex w-full max-w-5xl flex-1 flex-col rounded-lg border border-border bg-white p-2 shadow-sm sm:p-4">
                     <iframe
                       title={t('projects.commercial.view_html_draft', 'Esborrany HTML')}
                       srcDoc={preview.html}
-                      className="block h-[min(70dvh,48rem)] min-h-[28rem] w-full rounded-md border border-border/60 bg-white"
+                      className="block min-h-[calc(100dvh-12rem)] w-full flex-1 rounded-md border border-border/60 bg-white"
                     />
                   </div>
                 </div>

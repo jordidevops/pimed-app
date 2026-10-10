@@ -174,7 +174,7 @@ export function PageShell({
                 </h1>
               ) : null}
               {subtitle ? (
-                <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
+                <div className="mt-0.5 text-sm text-muted-foreground">{subtitle}</div>
               ) : null}
             </div>
             {actions ? (

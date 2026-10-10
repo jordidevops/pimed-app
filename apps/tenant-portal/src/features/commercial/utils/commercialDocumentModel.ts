@@ -53,6 +53,7 @@ export type CommercialDocumentDetail = {
   tenant_id: string
   doc_type: 'quote' | 'quote_amendment' | 'delivery_note' | 'invoice'
   doc_number: string | null
+  title?: string | null
   client_id: string
   project_id: string | null
   status: string
@@ -89,6 +90,33 @@ export type CommercialDocumentEvent = {
   occurred_at: string
   channel: string | null
   payload?: Record<string, unknown> | null
+  signature?: Record<string, unknown> | null
+}
+
+/** True when the latest accept event was an office attestation (no client pad). */
+export function isOfficeAcceptedEvent(
+  events: CommercialDocumentEvent[] | null | undefined,
+): boolean {
+  const accepted = [...(events ?? [])]
+    .reverse()
+    .find((event) => event.event_type === 'accepted')
+  if (!accepted) return false
+  const sig = accepted.signature
+  if (sig && typeof sig === 'object' && !Array.isArray(sig)) {
+    if (sig.role === 'office_accept') return true
+    if (sig.method === 'office' && sig.role !== 'office_reject') return true
+  }
+  const payload = accepted.payload
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    const nested = payload.signature
+    if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+      const role = (nested as Record<string, unknown>).role
+      const method = (nested as Record<string, unknown>).method
+      if (role === 'office_accept') return true
+      if (method === 'office' && role !== 'office_reject') return true
+    }
+  }
+  return false
 }
 
 export function docTypeLabel(docType: string): string {
@@ -102,6 +130,22 @@ export function docTypeLabel(docType: string): string {
     default:
       return docType
   }
+}
+
+/** Heading for the document page. The official code is `doc_number`, not the title. */
+export function commercialDocumentHeading(
+  doc: {
+    doc_type: string
+    title?: string | null
+    buyer_snapshot?: CommercialPartySnapshot | null
+  },
+  typeLabel: string,
+): string {
+  const custom = doc.title?.trim()
+  if (custom) return custom
+  const client = partyDisplayName(doc.buyer_snapshot)
+  if (client && client !== '—') return `${typeLabel} · ${client}`
+  return typeLabel
 }
 
 export function partyDisplayName(party: CommercialPartySnapshot | null | undefined): string {

@@ -20,7 +20,6 @@ import {
   listPaymentsForDocuments,
   listPrimaryLineNames,
   listQuoteAgreementStates,
-  listCommercialDocumentsForClient,
   reissueCommercialQuote,
   searchCommercialDocuments,
   type CommercialDocument,
@@ -37,12 +36,33 @@ import {
   commercialTemplatesHref,
 } from '../utils/commercialTemplatePaths'
 import { ClientFilterControl } from '@/features/contacts/components/ClientFilterControl'
+import { SiteScopeFilter } from '@/components/layout/SiteScopeFilter'
+import { useSiteScope } from '@/hooks/useSiteScope'
 import { CommercialDocumentShareSheet } from './CommercialDocumentShareSheet'
 import { CommercialDocumentView } from './CommercialDocumentView'
 import { CommercialDocumentStatusBadges } from './CommercialDocumentStatusBadge'
 import { CommercialRelationshipBadges } from './CommercialRelationshipBadges'
-import { CreateQuoteDialog } from './CreateQuoteDialog'
+import {
+  CreateQuoteWizardDialog,
+  type QuoteWizardInitialType,
+} from './CreateQuoteWizardDialog'
 import { ReissueQuoteDialog } from './ReissueQuoteDialog'
+import { getProjectsByClientId } from '@/features/projects/api/projectsService'
+
+/** List chip: never claim «OS nova» without event evidence (detail-only). */
+function orphanOfficeChip(
+  doc: { id: string; status: string; project_id: string | null },
+  t: (key: string, fallback: string) => string,
+): string | null {
+  if (doc.project_id) return null
+  if (doc.status === 'accepted' || doc.status === 'signed') {
+    return t('projects.orphan.chip_os_pending', 'Acceptat · OS pendent')
+  }
+  if (doc.status === 'draft' || doc.status === 'issued') {
+    return t('projects.orphan.chip_orphan', 'Sense ordre')
+  }
+  return null
+}
 
 const moneyFmt = new Intl.NumberFormat('ca-ES', {
   minimumFractionDigits: 2,
@@ -75,6 +95,43 @@ function docTypeLabel(
     return t('projects.commercial.type_amendment', 'Ampliació')
   }
   return t('projects.commercial.type_delivery', 'Albarà')
+}
+
+function quoteListTitle(
+  doc: Pick<CommercialDocument, 'doc_type' | 'doc_number' | 'title'>,
+  t: (key: string, fallback: string) => string,
+): string {
+  const custom = doc.title?.trim()
+  if (custom) return custom
+  const type = docTypeLabel(doc.doc_type, t)
+  return doc.doc_number ? `${type} ${doc.doc_number}` : type
+}
+
+function quoteListNumberLabel(
+  doc: Pick<CommercialDocument, 'doc_number' | 'title' | 'doc_type'>,
+  t: (key: string, fallback: string, opts?: Record<string, string>) => string,
+): string | null {
+  if (doc.doc_number) {
+    return t('projects.orphan.doc_number_label', 'Núm. {{number}}', {
+      number: doc.doc_number,
+    })
+  }
+  if (doc.title?.trim()) {
+    return docTypeLabel(doc.doc_type, t)
+  }
+  return null
+}
+
+function orderLinkLabel(
+  doc: Pick<CommercialDocumentSearchHit, 'project_id' | 'project_name' | 'status'>,
+  t: (key: string, fallback: string) => string,
+): string {
+  if (doc.project_id) {
+    return doc.project_name?.trim() || t('projects.quotes.with_order', 'Amb ordre')
+  }
+  return (
+    orphanOfficeChip(doc, t) || t('projects.quotes.independent', 'Independent')
+  )
 }
 
 function statusLabel(
@@ -111,10 +168,17 @@ export function QuotesPage({
   clientName?: string
   embedded?: boolean
 } = {}) {
-  const { t } = useTranslation(['projects', 'common'])
+  const { t } = useTranslation(['projects', 'common', 'field-service'])
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { activeTenant } = useTenant()
+  const {
+    sites: tenantSites,
+    selectedSiteId,
+    setSelectedSiteId,
+    showSiteFilter,
+    canUseAllSites,
+  } = useSiteScope()
   const { data: templates = [] } = useDocumentTemplates(activeTenant?.id)
   const isFieldService = useIsFieldService()
   const projectBase = isFieldService ? '/field/orders' : '/projects'
@@ -149,13 +213,17 @@ export function QuotesPage({
   const [viewDocId, setViewDocId] = useState<string | null>(null)
   const [inspectId, setInspectId] = useState<string | null>(null)
   const [shareDocId, setShareDocId] = useState<string | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
+  const [wizardOpen, setWizardOpen] = useState(false)
+  const [wizardInitialType, setWizardInitialType] = useState<QuoteWizardInitialType | null>(
+    null,
+  )
   const [reissueDocId, setReissueDocId] = useState<string | null>(null)
   const [reissueBusy, setReissueBusy] = useState(false)
 
   const urlClientId = !embedded && !clientId
     ? (searchParams.get('client_id')?.trim() || null)
     : null
+  const effectiveClientId = clientId ?? urlClientId
 
   function setUrlClientId(nextId: string | null) {
     if (embedded || clientId) return
@@ -172,6 +240,17 @@ export function QuotesPage({
   }, [searchParams, embedded, isSalesHub])
 
   useEffect(() => {
+    if (embedded) return
+    if (searchParams.get('orphan') === '1') {
+      setWizardInitialType('orphan')
+      setWizardOpen(true)
+      const next = new URLSearchParams(searchParams)
+      next.delete('orphan')
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, embedded, setSearchParams])
+
+  useEffect(() => {
     if (embedded || clientId) return
     const q = searchParams.get('q')
     if (q && !search) setSearch(q)
@@ -179,11 +258,23 @@ export function QuotesPage({
   }, [])
 
   useEffect(() => {
+    if (embedded || clientId) return
     const next = searchParams.get('status')
     if (next && STATUSES.includes(next as (typeof STATUSES)[number])) {
       setStatus(next as (typeof STATUSES)[number])
+      return
     }
-  }, [searchParams])
+    if (!next) setStatus('all')
+  }, [searchParams, embedded, clientId])
+
+  function setStatusFilter(next: (typeof STATUSES)[number]) {
+    setStatus(next)
+    if (embedded || clientId) return
+    const params = new URLSearchParams(searchParams)
+    if (next === 'all') params.delete('status')
+    else params.set('status', next)
+    setSearchParams(params, { replace: true })
+  }
 
   function closeView() {
     setViewDocId(null)
@@ -237,7 +328,8 @@ export function QuotesPage({
       totalMin: totalMin === '' ? null : Number(totalMin),
       totalMax: totalMax === '' ? null : Number(totalMax),
       limit: 100,
-      clientId: urlClientId,
+      clientId: effectiveClientId,
+      siteId: selectedSiteId,
     }),
     [
       debouncedSearch,
@@ -248,80 +340,34 @@ export function QuotesPage({
       expiredOnly,
       totalMin,
       totalMax,
-      urlClientId,
+      effectiveClientId,
+      selectedSiteId,
     ],
   )
 
-  const { data: globalHits = [], isLoading: globalLoading, error: globalError } = useQuery({
+  const {
+    data: hits = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['commercial_documents', 'search', filters],
     queryFn: () => searchCommercialDocuments(filters),
-    enabled: !clientId,
   })
 
-  const { data: clientDocs = [], isLoading: clientLoading, error: clientError } = useQuery({
-    queryKey: ['commercial_documents', 'client', clientId],
-    queryFn: () => listCommercialDocumentsForClient(clientId!),
-    enabled: !!clientId,
-  })
-
-  const hits: CommercialDocumentSearchHit[] = useMemo(() => {
-    if (!clientId) return globalHits
-    const q = debouncedSearch.trim().toLowerCase()
-    return clientDocs
-      .filter((doc) => {
-        if (doc.doc_type === 'delivery_note') return false
-        if (docType !== 'all' && doc.doc_type !== docType) return false
-        if (status !== 'all' && doc.status !== status) return false
-        if (expiredOnly) {
-          if (!doc.valid_until || new Date(doc.valid_until) >= new Date()) return false
-        }
-        if (issuedFrom) {
-          const from = new Date(issuedFrom).getTime()
-          const issued = doc.issued_at ? new Date(doc.issued_at).getTime() : 0
-          if (issued < from) return false
-        }
-        if (issuedTo) {
-          const to = new Date(`${issuedTo}T23:59:59`).getTime()
-          const issued = doc.issued_at ? new Date(doc.issued_at).getTime() : 0
-          if (issued > to) return false
-        }
-        if (totalMin !== '' && Number(doc.total) < Number(totalMin)) return false
-        if (totalMax !== '' && Number(doc.total) > Number(totalMax)) return false
-        if (q) {
-          const hay = [
-            doc.doc_number,
-            doc.status,
-            clientName,
-          ]
-            .filter(Boolean)
-            .join(' ')
-            .toLowerCase()
-          if (!hay.includes(q)) return false
-        }
+  const prospectClientId = effectiveClientId
+  const { data: prospectOrders = [] } = useQuery({
+    queryKey: ['prospect_orders', prospectClientId, selectedSiteId],
+    queryFn: async () => {
+      const projects = await getProjectsByClientId(prospectClientId!)
+      return projects.filter((project) => {
+        if (project.commercial_stage !== 'prospect') return false
+        if (project.status === 'cancelled' || project.status === 'completed') return false
+        if (selectedSiteId && project.site_id !== selectedSiteId) return false
         return true
       })
-      .map((doc) => ({
-        ...doc,
-        client_display_name: clientName ?? null,
-        project_name: null,
-      }))
-  }, [
-    clientDocs,
-    clientId,
-    clientName,
-    debouncedSearch,
-    docType,
-    expiredOnly,
-    globalHits,
-    issuedFrom,
-    issuedTo,
-    status,
-    totalMax,
-    totalMin,
-  ])
-
-  const isLoading = clientId ? clientLoading : globalLoading
-  const error = clientId ? clientError : globalError
+    },
+    enabled: !!prospectClientId,
+  })
 
   const docIds = useMemo(() => hits.map((d) => d.id), [hits])
 
@@ -430,7 +476,7 @@ export function QuotesPage({
           {
             key: 'status',
             label: statusLabel(status, t),
-            onRemove: () => setStatus('all'),
+            onRemove: () => setStatusFilter('all'),
           },
         ]
       : []),
@@ -454,8 +500,65 @@ export function QuotesPage({
       : []),
   ]
 
+  const statusQuickFilters = [
+    { id: 'all' as const, label: t('projects.quotes.filter_all', 'Tots') },
+    { id: 'issued' as const, label: statusLabel('issued', t) },
+    { id: 'accepted' as const, label: statusLabel('accepted', t) },
+    { id: 'rejected' as const, label: statusLabel('rejected', t) },
+    { id: 'expired' as const, label: statusLabel('expired', t) },
+    { id: 'cancelled' as const, label: statusLabel('cancelled', t) },
+  ]
+
+  const hideClientColumn = Boolean(embedded || clientId)
+  const useSharedList = isSalesHub || embedded
+  /** Contact tab keeps the table layout so it matches /sales/quotes. */
+  const viewMode = embedded ? 'table' : effectiveMode
+
+  const prospectSection =
+    prospectOrders.length > 0 ? (
+      <section className="space-y-2">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">
+            {t('projects.prospect.list_title', 'Ordres en preparació')}
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            {t(
+              'projects.prospect.list_help',
+              'Encara no hi ha pressupost emès. Obre l’ordre per omplir el full de preus i emetre’l.',
+            )}
+          </p>
+        </div>
+        <ul className="space-y-2">
+          {prospectOrders.map((project) => (
+            <li key={project.id}>
+              <Link
+                to={`${projectBase}/${project.id}?tab=prepare`}
+                className="flex items-center justify-between gap-3 rounded-xl border border-amber-200/80 bg-amber-50/50 px-3 py-2.5 text-sm transition-colors hover:bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20 dark:hover:bg-amber-950/40"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate font-medium text-foreground">
+                    {project.name}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {t('projects.prospect.list_status', 'Prospecte · sense document emès')}
+                  </span>
+                </span>
+                <Badge
+                  variant="secondary"
+                  className="shrink-0 bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100"
+                >
+                  {t('field-service:detail.prospect_badge', 'Prospecte')}
+                </Badge>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ) : null
+
   const quoteToolbar = (
-      <div className={isSalesHub ? 'space-y-3' : 'space-y-3 rounded-2xl border border-border bg-card p-4'}>
+      <div className={useSharedList ? 'space-y-3' : 'space-y-3 rounded-2xl border border-border bg-card p-4'}>
+        {prospectSection}
         <div className="flex flex-wrap items-center gap-2">
           <label className="relative block min-w-[12rem] flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -465,25 +568,28 @@ export function QuotesPage({
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t(
                 'projects.quotes.search_placeholder',
-                'Client, número, OS o text de línia…',
+                'Títol, número, client, OS o text de línia…',
               )}
               aria-label={t('projects.quotes.search_aria', 'Cerca documents comercials')}
             />
           </label>
-          {isSalesHub ? (
+          {useSharedList && !embedded ? (
             <ListViewToggle
               mode={listMode}
               onModeChange={setListMode}
               density={density}
               onDensityChange={setDensity}
-              showDensity={effectiveMode === 'table'}
+              showDensity={viewMode === 'table'}
             />
           ) : null}
           <Button
             type="button"
             className="shrink-0"
-            disabled={createOpen}
-            onClick={() => setCreateOpen(true)}
+            disabled={wizardOpen}
+            onClick={() => {
+              setWizardInitialType(null)
+              setWizardOpen(true)
+            }}
           >
             <Plus className="mr-1.5 h-4 w-4" aria-hidden />
             {t('projects.quotes.create', 'Nou pressupost')}
@@ -491,6 +597,11 @@ export function QuotesPage({
         </div>
         {isSalesHub && !embedded ? (
           <p className="text-xs text-muted-foreground">
+            {t(
+              'projects.quotes.wizard_existing_order_note',
+              'Si ja tens una ordre oberta, obre-la i emet el pressupost des de Preparar.',
+            )}
+            {' · '}
             <Link to="/sales/agreements" className="text-indigo-600 hover:underline">
               {t('projects.agreements.open', 'Acords comercials')}
             </Link>
@@ -507,13 +618,37 @@ export function QuotesPage({
             </Link>
           </p>
         ) : null}
-        {isSalesHub ? (
+        {useSharedList ? (
+              <div className="flex flex-wrap gap-1.5">
+                {statusQuickFilters.map((filter) => (
+                  <Button
+                    key={filter.id}
+                    type="button"
+                    size="sm"
+                    variant={status === filter.id ? 'default' : 'outline'}
+                    className="h-7 rounded-full px-2.5 text-xs"
+                    onClick={() => setStatusFilter(filter.id)}
+                  >
+                    {filter.label}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
+        {showSiteFilter ? (
+          <SiteScopeFilter
+            sites={tenantSites}
+            value={selectedSiteId}
+            onChange={setSelectedSiteId}
+            canSelectAll={canUseAllSites}
+          />
+        ) : null}
+        {useSharedList ? (
           <FilterChips
             chips={quoteFilterChips}
             clearAllLabel={t('common:list.clear_filters', 'Netejar filtres')}
             onClearAll={() => {
               setSearch('')
-              setStatus('all')
+              setStatusFilter('all')
               setDocType('all')
               setExpiredOnly(false)
             }}
@@ -547,7 +682,9 @@ export function QuotesPage({
             <select
               className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
               value={status}
-              onChange={(e) => setStatus(e.target.value as (typeof STATUSES)[number])}
+              onChange={(e) =>
+                setStatusFilter(e.target.value as (typeof STATUSES)[number])
+              }
             >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -646,14 +783,17 @@ export function QuotesPage({
   const salesInspector =
     inspectedQuote ? (
       <InspectorSheet
-        title={`${docTypeLabel(inspectedQuote.doc_type, t)} ${inspectedQuote.doc_number ?? inspectedQuote.id.slice(0, 8)}`}
+        title={`${quoteListTitle(inspectedQuote, t)} · ${inspectedQuote.client_display_name || t('projects.quotes.unknown_client', 'Client')}`}
         subtitle={
           inspectedQuote.client_display_name ||
           t('projects.quotes.unknown_client', 'Sense client')
         }
         badges={
           <>
-            <Badge variant="outline">{statusLabel(inspectedQuote.status, t)}</Badge>
+            <CommercialDocumentStatusBadges doc={inspectedQuote} t={t} />
+            <Badge variant="secondary" className="text-[10px]">
+              {orderLinkLabel(inspectedQuote, t)}
+            </Badge>
             <CommercialRelationshipBadges
               kinds={commercialRelationshipBadges({
                 docType: inspectedQuote.doc_type,
@@ -674,8 +814,8 @@ export function QuotesPage({
             value: `${moneyFmt.format(Number(inspectedQuote.total))} €`,
           },
           {
-            label: t('projects.quotes.project', 'Projecte'),
-            value: inspectedQuote.project_name || '—',
+            label: t('projects.quotes.col_order', 'Ordre'),
+            value: orderLinkLabel(inspectedQuote, t),
           },
           {
             label: t('projects.collections.issued_on', 'Data'),
@@ -715,25 +855,57 @@ export function QuotesPage({
       {
         id: 'doc',
         header: t('projects.quotes.title', 'Pressupostos'),
-        cell: (doc) => (
-          <button
-            type="button"
-            className="font-semibold hover:underline"
-            onClick={() => openInspect(doc.id)}
-          >
-            {docTypeLabel(doc.doc_type, t)} {doc.doc_number ?? '—'}
-          </button>
-        ),
+        cell: (doc) => {
+          const numberLabel = quoteListNumberLabel(doc, t)
+          return (
+            <button
+              type="button"
+              className="text-left hover:underline"
+              onClick={() => openInspect(doc.id)}
+            >
+              <span className="block font-semibold">{quoteListTitle(doc, t)}</span>
+              {numberLabel ? (
+                <span className="block text-xs font-normal text-muted-foreground">{numberLabel}</span>
+              ) : null}
+            </button>
+          )
+        },
       },
+      ...(hideClientColumn
+        ? []
+        : [
+            {
+              id: 'client',
+              header: t('projects.quotes.client', 'Client'),
+              cell: (doc: CommercialDocumentSearchHit) => doc.client_display_name || '—',
+            } satisfies SalesDataTableColumn<CommercialDocumentSearchHit>,
+          ]),
       {
-        id: 'client',
-        header: t('projects.quotes.client', 'Client'),
-        cell: (doc) => doc.client_display_name || '—',
+        id: 'order',
+        header: t('projects.quotes.col_order', 'Ordre'),
+        cell: (doc) => {
+          if (doc.project_id) {
+            return (
+              <Link
+                to={`${projectBase}/${doc.project_id}`}
+                className="text-indigo-600 hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {orderLinkLabel(doc, t)}
+              </Link>
+            )
+          }
+          return (
+            <Badge variant="secondary" className="text-[10px]">
+              {orderLinkLabel(doc, t)}
+            </Badge>
+          )
+        },
       },
       {
         id: 'status',
         header: t('projects.quotes.filter_status', 'Estat'),
-        cell: (doc) => <Badge variant="outline">{statusLabel(doc.status, t)}</Badge>,
+        cell: (doc) => <CommercialDocumentStatusBadges doc={doc} t={t} />,
       },
       {
         id: 'total',
@@ -750,7 +922,7 @@ export function QuotesPage({
         },
       },
     ],
-    [t],
+    [hideClientColumn, projectBase, t],
   )
 
   const results = (
@@ -767,11 +939,16 @@ export function QuotesPage({
       )}
       {!isLoading && !error && visibleHits.length === 0 && (
         <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-          {t('projects.quotes.empty', 'Cap document no coincideix amb la cerca.')}
+          {prospectOrders.length > 0
+            ? t(
+                'projects.quotes.empty_but_prospects',
+                'Encara no hi ha pressupostos emesos. Continua amb una ordre en preparació de dalt.',
+              )
+            : t('projects.quotes.empty', 'Cap document no coincideix amb la cerca.')}
         </p>
       )}
 
-      {visibleHits.length > 0 && isSalesHub && effectiveMode === 'cards' ? (
+      {visibleHits.length > 0 && useSharedList && viewMode === 'cards' ? (
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {visibleHits.map((doc) => {
             const agreement = agreementByQuote.get(doc.id)
@@ -785,18 +962,26 @@ export function QuotesPage({
                     : doc.status === 'draft'
                       ? 'draft'
                       : 'neutral'
+            const numberLabel = quoteListNumberLabel(doc, t)
             return (
               <li key={doc.id}>
                 <SalesDocCard
-                  title={`${docTypeLabel(doc.doc_type, t)} ${doc.doc_number ?? '—'}`}
-                  subtitle={doc.client_display_name || t('projects.quotes.unknown_client', 'Client')}
+                  title={
+                    hideClientColumn
+                      ? quoteListTitle(doc, t)
+                      : `${quoteListTitle(doc, t)} · ${doc.client_display_name || t('projects.quotes.unknown_client', 'Client')}`
+                  }
+                  subtitle={numberLabel ?? orderLinkLabel(doc, t)}
                   amount={`${moneyFmt.format(Number(doc.total))} €`}
                   tone={tone}
                   onClick={() => openInspect(doc.id)}
                   active={inspectId === doc.id}
                   badges={
                     <>
-                      <Badge variant="outline">{statusLabel(doc.status, t)}</Badge>
+                      <CommercialDocumentStatusBadges doc={doc} t={t} />
+                      <Badge variant="secondary" className="text-[10px]">
+                        {orderLinkLabel(doc, t)}
+                      </Badge>
                       <CommercialRelationshipBadges
                         kinds={commercialRelationshipBadges({
                           docType: doc.doc_type,
@@ -814,7 +999,7 @@ export function QuotesPage({
                   meta={
                     <>
                       {lineNames.get(doc.id) ? `${lineNames.get(doc.id)} · ` : null}
-                      {doc.project_name || '—'}
+                      {doc.project_name || orderLinkLabel(doc, t)}
                     </>
                   }
                   footer={
@@ -850,7 +1035,7 @@ export function QuotesPage({
         </ul>
       ) : null}
 
-      {visibleHits.length > 0 && !isSalesHub ? (
+      {!useSharedList && visibleHits.length > 0 ? (
         <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
           {visibleHits.map((doc) => {
             const agreement = agreementByQuote.get(doc.id)
@@ -884,7 +1069,7 @@ export function QuotesPage({
         </ul>
       ) : null}
 
-      {isSalesHub && visibleHits.length > 0 && effectiveMode === 'table' ? (
+      {useSharedList && visibleHits.length > 0 && viewMode === 'table' ? (
         <SalesDataTable
           columns={quoteColumns}
           rows={visibleHits}
@@ -915,22 +1100,15 @@ export function QuotesPage({
 
   const dialogs = (
     <>
-      <CreateQuoteDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        clientId={clientId ?? urlClientId}
-        clientName={clientName}
-        onCreated={(documentId) => {
-          handleChanged()
-          if (isSalesHub && !embedded) {
-            void navigate(`/sales/quotes/${documentId}`)
-          } else {
-            setViewDocId(documentId)
-          }
-          toast({
-            title: t('projects.commercial.quote_issued', 'Pressupost emès'),
-          })
+      <CreateQuoteWizardDialog
+        open={wizardOpen}
+        onOpenChange={(next) => {
+          setWizardOpen(next)
+          if (!next) setWizardInitialType(null)
         }}
+        clientId={effectiveClientId}
+        clientName={clientName}
+        initialType={wizardInitialType}
       />
 
       <ReissueQuoteDialog
@@ -1082,8 +1260,11 @@ function QuoteRow({
     <li className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0 space-y-1">
         <p className="text-sm font-medium text-foreground">
-          {docTypeLabel(doc.doc_type, t)} {doc.doc_number ?? '—'}
+          {quoteListTitle(doc, t)}
         </p>
+        {quoteListNumberLabel(doc, t) ? (
+          <p className="text-sm text-muted-foreground truncate">{quoteListNumberLabel(doc, t)}</p>
+        ) : null}
         {lineName ? (
           <p className="text-sm text-muted-foreground truncate">{lineName}</p>
         ) : null}
@@ -1099,7 +1280,7 @@ function QuoteRow({
           ) : (
             doc.client_display_name || t('projects.quotes.unknown_client', 'Client')
           )}
-          {doc.project_name ? ` · ${doc.project_name}` : ''}
+          {` · ${orderLinkLabel(doc, t)}`}
         </p>
         <div className="flex flex-wrap items-center gap-1.5">
           <CommercialDocumentStatusBadges doc={doc} paidCents={paidCents} t={t} />

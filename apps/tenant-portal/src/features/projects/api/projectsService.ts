@@ -1,10 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import type { Database, Json } from '@/types/database.types'
 
-export type Project = Database['api']['Views']['projects']['Row'] & {
-  commercial_regime?: string | null
-  service_mode?: string | null
-}
+export type Project = Database['api']['Views']['projects']['Row']
 export type ProjectUpdate = Database['api']['Views']['projects']['Update']
 
 /** Project row from list RPC — may include joined client/site fields. */
@@ -31,6 +28,8 @@ export interface ProjectListParams {
   createdBy?: string
   openOnly?: boolean
   clientId?: string
+  /** When false (default), field queues hide prospect OS. Contact lists pass true via clientId. */
+  includeProspect?: boolean
 }
 
 export interface ProjectListResponse {
@@ -76,6 +75,7 @@ export async function getProjectsPage(
     p_created_by: params.createdBy || undefined,
     p_open_only: params.openOnly ?? false,
     p_client_id: params.clientId || undefined,
+    p_include_prospect: params.includeProspect ?? Boolean(params.clientId),
   })
 
   if (error) throw error
@@ -144,6 +144,26 @@ export async function createProject(params: CreateProjectParams): Promise<string
   const { data, error } = await supabase.rpc('create_project', params)
   if (error) throw error
   return data as string
+}
+
+export async function createProspectWorkOrder(params: {
+  tenantId: string
+  name: string
+  clientId: string
+  contactSiteId?: string | null
+  siteId?: string | null
+  description?: string | null
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('create_prospect_work_order', {
+    p_tenant_id: params.tenantId,
+    p_name: params.name,
+    p_client_id: params.clientId,
+    p_contact_site_id: params.contactSiteId ?? undefined,
+    p_site_id: params.siteId ?? undefined,
+    p_description: params.description ?? undefined,
+  })
+  if (error) throw error
+  return data
 }
 
 export async function updateProject(

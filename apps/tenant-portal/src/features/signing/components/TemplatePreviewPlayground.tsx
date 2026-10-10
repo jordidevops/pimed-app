@@ -163,7 +163,7 @@ export function TemplatePreviewPlayground({
         compact
           ? 'h-48 min-h-48'
           : previewOnly
-            ? 'min-h-[45vh] h-[45vh]'
+            ? 'min-h-[min(70dvh,40rem)] h-[min(70dvh,40rem)]'
             : 'lg:flex-1 min-h-[52vh] h-[52vh]',
       )}>
         {renderError ? (
@@ -174,7 +174,9 @@ export function TemplatePreviewPlayground({
             sandbox=""
             title={t('aiWizard.previewTitle', 'Vista prèvia')}
             className="w-full flex-1 border-0 bg-white"
-            style={{ minHeight: compact ? '12rem' : previewOnly ? '45vh' : '52vh' }}
+            style={{
+              minHeight: compact ? '12rem' : previewOnly ? 'min(70dvh, 40rem)' : '52vh',
+            }}
           />
         ) : (
           <p className="p-4 text-sm text-muted-foreground">{t('aiWizard.previewEmpty', 'Sense contingut HTML per previsualitzar.')}</p>

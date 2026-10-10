@@ -381,7 +381,21 @@ Deno.serve(async (req: Request) => {
 
   const documentId = asUuid(body.document_id);
   const clientOpId = asUuid(body.client_op_id) ?? crypto.randomUUID();
-  const regenerate = body.regenerate === true;
+  const statusOverrideRaw =
+    typeof body.status_override === "string" ? body.status_override.trim() : "";
+  const allowedStatusOverrides = new Set([
+    "accepted",
+    "signed",
+    "rejected",
+    "issued",
+    "pending_approval",
+  ]);
+  const statusOverride =
+    statusOverrideRaw && allowedStatusOverrides.has(statusOverrideRaw)
+      ? statusOverrideRaw
+      : null;
+  // Signing/accept flows must rebuild HTML so the PDF does not keep «Pendent de resposta».
+  const regenerate = body.regenerate === true || statusOverride !== null;
   if (!documentId) {
     return err({ status: 400, code: "missing_document_id", message: "document_id és obligatori" });
   }
@@ -461,7 +475,7 @@ Deno.serve(async (req: Request) => {
     const htmlInput: CommercialDocumentHtmlInput = {
       doc_type: String(row.doc_type),
       doc_number: (row.doc_number as string | null) ?? null,
-      status,
+      status: statusOverride ?? status,
       seller_snapshot: seller,
       buyer_snapshot: asObject(row.buyer_snapshot),
       service_address_snapshot: asObject(row.service_address_snapshot),

@@ -92,6 +92,7 @@
     "empty": {
       "filtered": "Cap visita amb aquests filtres",
       "none": "Cap visita planificada",
+      "today": "Cap visita aquest dia",
       "from_tray": "Planificar des de la safata",
       "orders": "Veure ordres"
     }
@@ -146,6 +147,23 @@
     "phase_do": "Fer",
     "phase_deliver": "Entregar",
     "phases_aria": "Fases de l'ordre",
+    "prospect_badge": "Prospecte",
+    "prospect_help": "Ordre comercial per preparar el pressupost. No surt a Avui fins que s’accepti.",
+    "back_to_prepare": "Tornar al pressupost",
+    "prospect_guide": {
+      "aria": "Guia del flux pressupost (prospecte)",
+      "title": "Seguiment (contacte → pressupost → resposta)",
+      "contact": "Contacte",
+      "price_sheet": "Full de preus",
+      "issue": "Emetre",
+      "followup": "Seguiment",
+      "tip_contact": "Cal un contacte abans d’emetre el pressupost.",
+      "tip_price_sheet": "Omple el full de preus (línies). Encara no és un document de pressupost.",
+      "tip_issue": "Emet o envia el pressupost des del panell d’autoritzar. L’ordre no surt a Avui.",
+      "tip_followup": "Espera la resposta del client. Si accepta, s’obre com a ordre d’execució.",
+      "tip_followup_closed": "Pressupost tancat sense feina oberta. Pots duplicar o arxivar.",
+      "tip_followup_accepted": "Acceptat: aquesta ordre passa a execució (Fer / Entregar)."
+    },
     "phase_prepare_done": "Autoritzat",
     "phase_prepare_lines": "{{count}} línies",
     "phase_prepare_empty": "Sense preus",
@@ -170,6 +188,7 @@
     "primary_sync_pending": "Pendent de sincronitzar",
     "primary_review_sync_error": "Revisar error de sincronització",
     "primary_need_lines": "Afegeix línies al full de preus abans de continuar.",
+    "primary_choose_formalization": "Tria la formalització i emet el pressupost a Preparar.",
     "more": "Més",
     "punch_elapsed": "Temps en curs",
     "punch_total": "Temps treballat",

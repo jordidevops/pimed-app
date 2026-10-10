@@ -148,7 +148,7 @@ Extret de [`commercial-flow/01-legal-requirements.md`](../commercial-flow/01-leg
 | Terminis | `document.issued_at` i text lliure de l'autor |
 | Validesa | `document.valid_until` |
 | Data i signatura del responsable | text lliure + camp de signatura (`role` de l'emissor/operari) — veure [`07-signing-integration.md`](./07-signing-integration.md) |
-| Resposta (acceptar/refusar) amb **espais de mida igual** | dos camps de signatura natius (`role="client_accept"` / `role="client_reject"`), mateixa mida per disseny — veure [`07-signing-integration.md`](./07-signing-integration.md) |
+| Resposta (acceptar) | camp de signatura natiu `role="client_accept"` — veure [`07-signing-integration.md`](./07-signing-integration.md). **CF-28 (2026-10):** `client_reject` **ja no és obligatori** al validador SQL (refús via enllaç de decisió). Doc històric QT-D9 pot esmentar dues caselles; guanya el SQL `20261228000008`. |
 
 La funció de validació (`data.validate_commercial_template_locale`, veure [`02-rendering-architecture.md`](./02-rendering-architecture.md) §2 punt 4) comprova **només la presència** dels marcadors de §2.1. No valida disseny visual (mida idèntica), exactitud del text legal, ni que els valors de context estiguin omplerts. Això és responsabilitat humana (QT-D7: activar amb buits exigeix `p_acknowledge_legal_gaps`).
 

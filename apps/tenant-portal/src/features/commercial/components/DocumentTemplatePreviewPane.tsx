@@ -73,7 +73,7 @@ export function DocumentTemplatePreviewPane({
           <div
             className={cn(
               'overflow-auto rounded-lg border bg-white',
-              compact ? 'h-48 min-h-48' : 'h-[45vh] min-h-[45vh]',
+              compact ? 'h-48 min-h-48' : 'h-[min(70dvh,40rem)] min-h-[28rem]',
             )}
           >
             <iframe
@@ -122,7 +122,7 @@ export function DocumentTemplatePreviewPane({
       <div
         className={cn(
           'flex min-h-0 flex-col',
-          compact ? 'h-56' : 'h-full min-h-[16rem] flex-1',
+          compact ? 'h-56' : 'h-[min(70dvh,40rem)] min-h-[28rem] flex-1',
           className,
         )}
       >

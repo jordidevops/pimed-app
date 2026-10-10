@@ -85,6 +85,7 @@ export function ProjectRow({
     isFieldService
     && !activePunchProjectId
     && project.type === 'work_order'
+    && project.commercial_stage !== 'prospect'
     && project.status !== 'completed'
     && project.status !== 'cancelled'
 
@@ -99,7 +100,17 @@ export function ProjectRow({
             className="font-medium text-foreground hover:text-primary flex items-center gap-1 group"
           >
             <span className="min-w-0">
-              <span className="block truncate">{project.name}</span>
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span className="block truncate">{project.name}</span>
+                {project.commercial_stage === 'prospect' ? (
+                  <Badge
+                    variant="secondary"
+                    className="shrink-0 rounded-md bg-amber-100 px-1.5 py-0 text-[10px] font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100"
+                  >
+                    {t('field-service:detail.prospect_badge', 'Prospecte')}
+                  </Badge>
+                ) : null}
+              </span>
               {project.client_display_name ? (
                 <span className="block truncate text-xs font-normal text-muted-foreground">
                   {project.client_display_name}

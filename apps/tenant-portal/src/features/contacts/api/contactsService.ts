@@ -39,6 +39,40 @@ export async function getContacts(opts?: { limit?: number }): Promise<Contact[]>
   return data ?? []
 }
 
+/** Signals for derived commercial lifecycle badges (CF-24). */
+export async function getContactLifecycleSignalRows(): Promise<{
+  docs: Array<{ client_id: string | null; doc_type: string | null; status: string | null }>
+  projects: Array<{
+    client_id: string | null
+    type: string | null
+    status: string | null
+    service_mode: string | null
+  }>
+}> {
+  const [docsRes, projectsRes] = await Promise.all([
+    supabase
+      .from('commercial_documents')
+      .select('client_id, doc_type, status')
+      .in('status', ['draft', 'issued', 'accepted', 'signed']),
+    supabase
+      .from('projects')
+      .select('client_id, type, status, service_mode, commercial_stage')
+      .neq('status', 'cancelled'),
+  ])
+  if (docsRes.error) throw docsRes.error
+  if (projectsRes.error) throw projectsRes.error
+  return {
+    docs: docsRes.data ?? [],
+    projects: (projectsRes.data ?? []) as Array<{
+      client_id: string | null
+      type: string | null
+      status: string | null
+      service_mode: string | null
+      commercial_stage: string | null
+    }>,
+  }
+}
+
 export async function getContact(contactId: string): Promise<Contact | null> {
   const { data, error } = await supabase
     .from('contacts')

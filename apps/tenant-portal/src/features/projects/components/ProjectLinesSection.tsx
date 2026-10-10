@@ -119,6 +119,7 @@ export function ProjectLinesSection({ projectId, siteId }: ProjectLinesSectionPr
       const { error } = await supabase.rpc('delete_project_line', { p_line_id: line.id })
       if (error) throw error
       queryClient.invalidateQueries({ queryKey: ['project_lines', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['project_lines_count', projectId] })
       queryClient.invalidateQueries({ queryKey: ['commercial_documents', projectId] })
     } catch (err) {
       const copy = priceSheetRpcErrorCopy(err, priceSheetTitle)
@@ -134,6 +135,7 @@ export function ProjectLinesSection({ projectId, siteId }: ProjectLinesSectionPr
     setAddingLine(false)
     setEditLine(null)
     queryClient.invalidateQueries({ queryKey: ['project_lines', projectId] })
+    queryClient.invalidateQueries({ queryKey: ['project_lines_count', projectId] })
     queryClient.invalidateQueries({ queryKey: ['commercial_documents', projectId] })
   }
 

@@ -26,6 +26,7 @@ import {
   type CommercialAgreementKind,
 } from '../api/commercialFlowService'
 import { defaultDecisionExpiresAt } from '../utils/commercialDecisionSend'
+import { isDecisionRequestsDisabledError } from '../utils/commercialErrorMessage'
 import {
   COMMERCIAL_AGREEMENT_TEMPLATE_ID_KEY,
   parseCommercialSettingId,
@@ -317,8 +318,7 @@ export function PrepareAgreementDialog({
         })
         createdRequestId = decisionRequestId
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err)
-        if (!msg.includes('decision_requests_disabled')) throw err
+        if (!isDecisionRequestsDisabledError(err)) throw err
       }
       const result = await callSignDocumentRouter({
         tenant_id: tenantId,

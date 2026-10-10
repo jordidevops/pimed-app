@@ -92,6 +92,7 @@
     "empty": {
       "filtered": "No visits match these filters",
       "none": "No scheduled visits",
+      "today": "No visits this day",
       "from_tray": "Schedule from the tray",
       "orders": "View orders"
     }
@@ -146,6 +147,23 @@
     "phase_do": "Do",
     "phase_deliver": "Deliver",
     "phases_aria": "Order phases",
+    "prospect_badge": "Prospect",
+    "prospect_help": "Commercial order to prepare the quote. It stays off Today until accepted.",
+    "back_to_prepare": "Back to quote",
+    "prospect_guide": {
+      "aria": "Quote-first prospect flow guide",
+      "title": "Progress (contact → quote → reply)",
+      "contact": "Contact",
+      "price_sheet": "Price sheet",
+      "issue": "Issue",
+      "followup": "Follow-up",
+      "tip_contact": "A contact is required before issuing the quote.",
+      "tip_price_sheet": "Fill the price sheet (lines). This is not a quote document yet.",
+      "tip_issue": "Issue or send the quote from the authorize panel. The order stays off Today.",
+      "tip_followup": "Wait for the client reply. If accepted, this becomes an execution order.",
+      "tip_followup_closed": "Quote closed with no open work. You can duplicate or archive.",
+      "tip_followup_accepted": "Accepted: this order moves to execution (Do / Deliver)."
+    },
     "phase_prepare_done": "Authorized",
     "phase_prepare_lines": "{{count}} lines",
     "phase_prepare_empty": "No prices",
@@ -165,6 +183,7 @@
     "primary_sync_pending": "Pending sync",
     "primary_review_sync_error": "Review sync error",
     "primary_need_lines": "Add lines to the pricing sheet before continuing.",
+    "primary_choose_formalization": "Choose formalization and issue the quote on Prepare.",
     "punch_elapsed": "Elapsed time",
     "punch_total": "Time worked",
     "punch_total_short": "Project total",

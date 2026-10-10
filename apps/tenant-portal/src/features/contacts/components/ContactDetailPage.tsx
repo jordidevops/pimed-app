@@ -20,9 +20,12 @@ import { useIsFieldService, useSectorLabel } from '@/hooks/useSectorLabel'
 import {
   getContact,
   getContactSites,
+  getContactLifecycleSignalRows,
   archiveContact,
   setContactIsConsumer,
 } from '../api/contactsService'
+import { buildLifecycleByContactId } from '../utils/contactCommercialLifecycle'
+import { ContactLifecycleBadge } from './ContactLifecycleBadge'
 import { ContactSitesList } from './ContactSitesList'
 import { ContactRelationshipsPanel } from './ContactRelationshipsPanel'
 import { ContactDeliveryChannelsPanel } from './ContactDeliveryChannelsPanel'
@@ -126,6 +129,21 @@ export function ContactDetailPage() {
     queryFn: () => getContactSites(id!),
     enabled: !!id,
   })
+
+  const { data: lifecycleSignals } = useQuery({
+    queryKey: ['contacts', 'lifecycle_signals', activeTenant?.id],
+    queryFn: () => getContactLifecycleSignalRows(),
+    enabled: !!activeTenant && !!contact?.id,
+  })
+
+  const lifecycle =
+    contact?.id && lifecycleSignals
+      ? buildLifecycleByContactId(
+          [{ id: contact.id, source: contact.source }],
+          lifecycleSignals.docs,
+          lifecycleSignals.projects,
+        ).get(contact.id)
+      : undefined
 
   const archiveMut = useMutation({
     mutationFn: () => archiveContact(id!),
@@ -232,6 +250,7 @@ export function ContactDetailPage() {
                   ? t('contacts.kind.company', 'Empresa')
                   : t('contacts.kind.person', 'Persona')}
               </span>
+              {lifecycle ? <ContactLifecycleBadge lifecycle={lifecycle} /> : null}
               <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                 <input
                   type="checkbox"

@@ -26,7 +26,7 @@ export function commercialFullBodyPromptSection(
     if (category === 'delivery_note') {
       lines.push('- Signatura: <signature-field role="client_delivery"></signature-field>')
     } else {
-      lines.push('- Signatures: <signature-field role="client_accept"></signature-field> i <signature-field role="client_reject"></signature-field>')
+      lines.push('- Signatura obligatòria: <signature-field role="client_accept"></signature-field> (el refús és per enllaç de decisió, no cal client_reject)')
     }
     lines.push('- Bucle de línies: {% for line in lines %} … {% endfor %}')
     lines.push('- sample_values del JSON ha de ser niuat (tenant, document, buyer, lines[], totals), no claus planes.')
@@ -34,7 +34,7 @@ export function commercialFullBodyPromptSection(
     if (category === 'delivery_note') {
       lines.push('- Signatura: {{Conformitat;role=client_delivery;type=signature}}')
     } else {
-      lines.push('- Signatures: {{Accepto;role=client_accept;type=signature}} i {{Refuso;role=client_reject;type=signature}}')
+      lines.push('- Signatura obligatòria: {{Accepto;role=client_accept;type=signature}} (client_reject no és obligatori)')
     }
     lines.push('- Bucle de línies: [[#lines]] … [[/lines]]')
     lines.push('- sample_values del JSON ha de ser niuat (tenant, document, buyer, lines[], totals), no claus planes.')
@@ -43,7 +43,7 @@ export function commercialFullBodyPromptSection(
   lines.push(
     category === 'delivery_note'
       ? 'Als "roles" del JSON declara només client_delivery (entity_type contact).'
-      : 'Als "roles" del JSON declara només client_accept i client_reject (entity_type contact).',
+      : 'Als "roles" del JSON declara client_accept (entity_type contact). client_reject és opcional/històric.',
   )
   lines.push('Deixa "variables" buit o mínim: les dades venen del context, no de camps manuals.')
   return lines.join('\n')
