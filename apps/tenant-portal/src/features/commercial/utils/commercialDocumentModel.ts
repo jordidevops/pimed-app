@@ -286,6 +286,7 @@ export const COMMERCIAL_LIFECYCLE_EVENT_TYPES = [
   'invoice_cancelled',
   'payment_recorded',
   'project_linked',
+  'project_not_needed',
 ] as const
 
 export function commercialFilename(

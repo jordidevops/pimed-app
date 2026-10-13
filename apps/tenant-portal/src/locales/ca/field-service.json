@@ -37,6 +37,7 @@
     "empty": "Encara no tens cap ordre de servei",
     "filter_mine": "Les meves",
     "filter_open": "Obertes",
+    "filter_unscheduled": "Sense data",
     "filter_today": "Avui",
     "filter_all": "Totes",
     "summary": "{{count}} ordres",
@@ -79,15 +80,45 @@
       "work_order": "Ordre de servei",
       "maintenance": "Manteniment",
       "status": "Estat",
+      "status_draft": "Esborrany",
+      "status_active": "Activa",
+      "status_in_progress": "En curs",
+      "status_on_hold": "En espera",
       "technician": "Tècnic",
       "technician_help": "Mantén Ctrl/Cmd per seleccionar-ne més d’un.",
       "clear": "Netejar filtres"
     },
+    "range": {
+      "list": "{{days}} dies · {{from}} – {{to}}",
+      "prev": "Anterior",
+      "next": "Següent",
+      "set_start": "Mostrar a partir d’aquest dia"
+    },
+    "multi_day": "Diversos dies",
     "unscheduled": {
       "title": "Sense planificar",
       "short": "Safata",
       "empty": "No hi ha ordres sense data",
-      "plan": "Planificar"
+      "plan": "Planificar",
+      "open": "Obrir"
+    },
+    "schedule": {
+      "title": "Planificar visita",
+      "description": "Assigna les dates previstes sense sortir de l’agenda.",
+      "client": "Client",
+      "address": "Adreça",
+      "type": "Tipus",
+      "start": "Inici previst",
+      "end": "Fi prevista",
+      "save": "Desar dates",
+      "saving": "Desant…",
+      "cancel": "Cancel·lar",
+      "saved": "Dates desades",
+      "start_required": "Cal una data d'inici",
+      "end_before_start": "La fi ha de ser igual o posterior a l'inici",
+      "site_required": "Cal assignar el local a la fitxa de l'ordre abans de canviar tipus o local.",
+      "open_detail": "Obrir fitxa",
+      "no_address": "Aquesta ordre no té adreça d'intervencenció. Pots desar les dates i completar l'adreça a la fitxa."
     },
     "empty": {
       "filtered": "Cap visita amb aquests filtres",

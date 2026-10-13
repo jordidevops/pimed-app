@@ -15,7 +15,11 @@ import {
   startOfWeek,
   toUiLocale,
 } from './calendarDateUtils'
-import { projectEventsOntoDays, resolveEventColor } from './projectEventsOntoDays'
+import {
+  daysSpannedByEvent,
+  projectEventsOntoDays,
+  resolveEventColor,
+} from './projectEventsOntoDays'
 
 export type CalendarGridView = 'week' | 'month'
 
@@ -62,6 +66,8 @@ export type CalendarGridProps = {
    * Default still calls onSelectDay (company calendar opens the day).
    */
   keepViewOnToday?: boolean
+  /** When false, omit Avui / prev / next / period label (host page owns chrome). */
+  showNav?: boolean
 }
 
 const TONE_CLASS: Record<NonNullable<CalendarGridEvent['tone']>, string> = {
@@ -121,19 +127,24 @@ function DefaultEventCard({
   allDayWhenMidnight,
   onClick,
   compact = false,
+  continuesFrom = false,
+  continuesTo = false,
 }: {
   event: CalendarGridEvent
   allDayWhenMidnight: boolean
   onClick?: () => void
   compact?: boolean
+  continuesFrom?: boolean
+  continuesTo?: boolean
 }) {
   const start = new Date(event.start)
   const treatAllDay = Boolean(event.allDay) || (allDayWhenMidnight && isMidnightLocal(start))
-  const showTime = !treatAllDay
+  const showTime = !treatAllDay && !continuesFrom
   const timeLabel = showTime
     ? start.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
     : null
   const surface = eventSurfaceStyle(event)
+  const multiDay = continuesFrom || continuesTo
 
   if (compact) {
     return (
@@ -147,12 +158,16 @@ function DefaultEventCard({
           'w-full truncate rounded px-1 py-0.5 text-left text-[10px] leading-tight transition hover:opacity-90',
           surface.className,
           event.dimmed && 'opacity-60',
+          continuesFrom && 'rounded-l-none border-l-2 border-white/50 pl-0.5',
+          continuesTo && 'rounded-r-none',
         )}
         style={surface.style}
         title={event.title}
       >
+        {continuesFrom ? <span className="opacity-80">… </span> : null}
         {timeLabel && <span className="font-semibold tabular-nums">{timeLabel} </span>}
         <span className="font-medium">{event.title}</span>
+        {continuesTo ? <span className="opacity-80"> …</span> : null}
       </button>
     )
   }
@@ -165,11 +180,16 @@ function DefaultEventCard({
         'w-full rounded-md px-2 py-1.5 text-left text-xs transition hover:opacity-90',
         surface.className,
         event.dimmed && 'opacity-60',
+        continuesFrom && 'rounded-l-none border-l-2 border-white/40',
+        continuesTo && 'rounded-r-none',
+        multiDay && 'ring-1 ring-inset ring-white/25',
       )}
       style={surface.style}
     >
+      {continuesFrom ? <span className="opacity-80">… </span> : null}
       {timeLabel && <span className="font-semibold tabular-nums">{timeLabel} </span>}
       <span className="font-medium">{event.title}</span>
+      {continuesTo ? <span className="opacity-80"> …</span> : null}
       {event.subtitle && (
         <span className="mt-0.5 block truncate opacity-90">{event.subtitle}</span>
       )}
@@ -200,6 +220,7 @@ export function CalendarGrid({
   monthMaxCards = 2,
   notice,
   keepViewOnToday = false,
+  showNav = true,
 }: CalendarGridProps) {
   const { t, i18n } = useTranslation('calendar')
   const locale = toUiLocale(i18n.resolvedLanguage)
@@ -264,6 +285,26 @@ export function CalendarGrid({
     onSelectDay?.(today)
   }
 
+  function continuationFor(event: CalendarGridEvent, day: Date) {
+    const keys = daysSpannedByEvent(
+      {
+        id: event.id,
+        start: event.start,
+        end: event.end,
+        allDay: event.allDay,
+      },
+      addDays(startOfDay(day), -60),
+      addDays(startOfDay(day), 60),
+    )
+    const key = dateKey(day)
+    const idx = keys.indexOf(key)
+    if (idx < 0) return { continuesFrom: false, continuesTo: false }
+    return {
+      continuesFrom: idx > 0,
+      continuesTo: idx < keys.length - 1,
+    }
+  }
+
   function renderDayEvents(day: Date, compact: boolean) {
     const dayEvents = eventsByDay.get(dateKey(day)) ?? []
     if (dayEvents.length === 0) {
@@ -285,8 +326,9 @@ export function CalendarGrid({
             <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               {resolvedAllDayLabel}
             </p>
-            {allDay.map((event) =>
-              renderEvent ? (
+            {allDay.map((event) => {
+              const cont = continuationFor(event, day)
+              return renderEvent ? (
                 <div key={event.id}>{renderEvent(event)}</div>
               ) : (
                 <DefaultEventCard
@@ -294,13 +336,17 @@ export function CalendarGrid({
                   event={event}
                   allDayWhenMidnight={allDayWhenMidnight}
                   onClick={() => onEventClick?.(event)}
+                  compact={compact}
+                  continuesFrom={cont.continuesFrom}
+                  continuesTo={cont.continuesTo}
                 />
-              ),
-            )}
+              )
+            })}
           </div>
         )}
-        {timed.map((event) =>
-          renderEvent ? (
+        {timed.map((event) => {
+          const cont = continuationFor(event, day)
+          return renderEvent ? (
             <div key={event.id}>{renderEvent(event)}</div>
           ) : (
             <DefaultEventCard
@@ -308,36 +354,43 @@ export function CalendarGrid({
               event={event}
               allDayWhenMidnight={allDayWhenMidnight}
               onClick={() => onEventClick?.(event)}
+              compact={compact}
+              continuesFrom={cont.continuesFrom}
+              continuesTo={cont.continuesTo}
             />
-          ),
-        )}
+          )
+        })}
       </div>
     )
   }
 
   return (
     <div className={cn('space-y-3', className)}>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={goToday}>
-          {t('calendar.today', 'Avui')}
-        </Button>
-        <div className="flex items-center gap-1">
-          <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={goPrev} aria-label={t('calendar.prev', 'Anterior')}>
-            <ChevronLeft className="h-4 w-4" />
+      {showNav ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={goToday}>
+            {t('calendar.today', 'Avui')}
           </Button>
-          <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={goNext} aria-label={t('calendar.next', 'Següent')}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={goPrev} aria-label={t('calendar.prev', 'Anterior')}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={goNext} aria-label={t('calendar.next', 'Següent')}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <p className="text-sm font-semibold capitalize">
+            {view === 'month' ? monthLabel : weekLabel}
+          </p>
+          <div className="flex min-h-5 min-w-0 flex-1 items-center sm:justify-end">
+            {notice ? (
+              <p className="text-sm text-muted-foreground">{notice}</p>
+            ) : null}
+          </div>
         </div>
-        <p className="text-sm font-semibold capitalize">
-          {view === 'month' ? monthLabel : weekLabel}
-        </p>
-        <div className="flex min-h-5 min-w-0 flex-1 items-center sm:justify-end">
-          {notice ? (
-            <p className="text-sm text-muted-foreground">{notice}</p>
-          ) : null}
-        </div>
-      </div>
+      ) : notice ? (
+        <p className="text-sm text-muted-foreground">{notice}</p>
+      ) : null}
 
       {view === 'week' ? (
         <div className="grid grid-cols-1 gap-2 md:grid-cols-7">
@@ -490,8 +543,9 @@ export function CalendarGrid({
                     )
                   ) : (
                     <div className="space-y-0.5">
-                      {visibleCards.map((event) =>
-                        renderEvent ? (
+                      {visibleCards.map((event) => {
+                        const cont = continuationFor(event, day)
+                        return renderEvent ? (
                           <div
                             key={event.id}
                             onClick={(e) => e.stopPropagation()}
@@ -504,10 +558,12 @@ export function CalendarGrid({
                             event={event}
                             allDayWhenMidnight={allDayWhenMidnight}
                             compact
+                            continuesFrom={cont.continuesFrom}
+                            continuesTo={cont.continuesTo}
                             onClick={() => onEventClick?.(event)}
                           />
-                        ),
-                      )}
+                        )
+                      })}
                       {overflow > 0 && (
                         <p className="px-1 text-[10px] text-muted-foreground">+{overflow}</p>
                       )}

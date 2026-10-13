@@ -37,6 +37,7 @@
     "empty": "You have no work orders yet",
     "filter_mine": "Mine",
     "filter_open": "Open",
+    "filter_unscheduled": "No date",
     "filter_today": "Today",
     "filter_all": "All",
     "summary": "{{count}} orders",
@@ -79,15 +80,45 @@
       "work_order": "Work order",
       "maintenance": "Maintenance",
       "status": "Status",
+      "status_draft": "Draft",
+      "status_active": "Active",
+      "status_in_progress": "In progress",
+      "status_on_hold": "On hold",
       "technician": "Technician",
       "technician_help": "Hold Ctrl/Cmd to select more than one.",
       "clear": "Clear filters"
     },
+    "range": {
+      "list": "{{days}} days · {{from}} – {{to}}",
+      "prev": "Previous",
+      "next": "Next",
+      "set_start": "Show starting from this day"
+    },
+    "multi_day": "Multi-day",
     "unscheduled": {
       "title": "Unscheduled",
       "short": "Tray",
       "empty": "No orders without a date",
-      "plan": "Schedule"
+      "plan": "Schedule",
+      "open": "Open"
+    },
+    "schedule": {
+      "title": "Schedule visit",
+      "description": "Set planned dates without leaving the agenda.",
+      "client": "Client",
+      "address": "Address",
+      "type": "Type",
+      "start": "Planned start",
+      "end": "Planned end",
+      "save": "Save dates",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "saved": "Dates saved",
+      "start_required": "A start date is required",
+      "end_before_start": "End must be on or after the start",
+      "site_required": "Assign a site on the order page before changing type or site.",
+      "open_detail": "Open order",
+      "no_address": "This order has no intervention address. You can save the dates and add the address on the order page."
     },
     "empty": {
       "filtered": "No visits match these filters",

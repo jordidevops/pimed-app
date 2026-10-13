@@ -25,7 +25,7 @@ import { ClientFilterControl } from '@/features/contacts/components/ClientFilter
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const
 const SORT_FIELDS = ['created_at', 'name', 'type', 'status', 'planned_start', 'task_count'] as const
-const FS_SCOPE_FILTERS = ['all', 'mine', 'open'] as const
+const FS_SCOPE_FILTERS = ['all', 'mine', 'open', 'unscheduled'] as const
 const FS_DATE_RANGES: PlannedDateRangeKey[] = ['today', 'this_week', 'last_week', 'month']
 const PROJECT_TYPES = ['internal', 'work_order', 'maintenance'] as const
 
@@ -232,7 +232,8 @@ export function ProjectsPage({
     sortField,
     sortDirection,
     createdBy: isFieldService && fsQuickFilter === 'mine' ? (user?.id ?? undefined) : undefined,
-    openOnly: isFieldService && fsQuickFilter === 'open',
+    openOnly: isFieldService && (fsQuickFilter === 'open' || fsQuickFilter === 'unscheduled'),
+    unscheduled: isFieldService && fsQuickFilter === 'unscheduled',
     clientId: urlFilterClientId || undefined,
     // Prospect OS stay off Avui/agenda, but must appear in the orders list.
     includeProspect: isFieldService ? true : undefined,
@@ -283,8 +284,11 @@ export function ProjectsPage({
           .toLowerCase()
         if (!hay.includes(q)) return false
       }
-      if (isFieldService && fsQuickFilter === 'open') {
+      if (isFieldService && (fsQuickFilter === 'open' || fsQuickFilter === 'unscheduled')) {
         if (project.status === 'completed' || project.status === 'cancelled') return false
+      }
+      if (isFieldService && fsQuickFilter === 'unscheduled' && project.planned_start) {
+        return false
       }
       if (isFieldService && fsQuickFilter === 'mine' && user?.id && project.created_by !== user.id) {
         return false
@@ -393,7 +397,7 @@ export function ProjectsPage({
     if (!filter || filter === 'all') next.delete('fsFilter')
     else next.set('fsFilter', filter)
 
-    if (filter === 'open' && !next.get('type')) {
+    if ((filter === 'open' || filter === 'unscheduled') && !next.get('type')) {
       next.set('type', 'work_order')
     }
 

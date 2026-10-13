@@ -28,6 +28,7 @@ import {
   listQuoteAgreementStates,
   revokeCommercialDecisionRequest,
   ensureProjectFromOrphanQuote,
+  markOrphanQuoteProjectNotNeeded,
   cancelCommercialDocument,
   createOrphanQuoteDraft,
   setCommercialDocumentTitle,
@@ -411,9 +412,16 @@ export function CommercialDocumentDetail({
   const [prepareOpen, setPrepareOpen] = useState(false)
   const [preview, setPreview] = useState<IssuedCommercialPreview | null>(null)
   const [htmlFallbackOpen, setHtmlFallbackOpen] = useState(false)
-  const [ensureSitePickOpen, setEnsureSitePickOpen] = useState(false)
+  const [ensureCreateOpen, setEnsureCreateOpen] = useState(false)
   const [ensureSiteId, setEnsureSiteId] = useState<string>('')
+  const [ensureProjectType, setEnsureProjectType] = useState<'work_order' | 'maintenance'>(
+    'work_order',
+  )
+  const [ensureVisitIntent, setEnsureVisitIntent] = useState<
+    'generic' | 'inspection' | 'corrective'
+  >('generic')
   const [ensureBusy, setEnsureBusy] = useState(false)
+  const [declineOsBusy, setDeclineOsBusy] = useState(false)
   const pendingCardRef = useRef<HTMLElement | null>(null)
   const cancelActorIds = useMemo(() => {
     const ids = new Set<string>()
@@ -1093,6 +1101,8 @@ export function CommercialDocumentDetail({
                   : t('projects.commercial.event_accepted', 'Acceptat')
               case 'project_linked':
                 return t('projects.orphan.os_created', 'Ordre creada')
+              case 'project_not_needed':
+                return t('projects.orphan.no_os_marked', 'Sense ordre de camp')
               case 'rejected':
                 return t('projects.commercial.event_rejected', 'Refusat')
               case 'cancelled':
@@ -1329,6 +1339,7 @@ export function CommercialDocumentDetail({
   const orphanCreatedFromQuote = (doc?.events ?? []).some(
     (e) => e.payload?.project_created_from_quote === true,
   )
+  const projectNotNeeded = (doc?.events ?? []).some((e) => e.event_type === 'project_not_needed')
   const quoteOriginChip =
     doc && (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment')
       ? issuedAsOrphan
@@ -1340,11 +1351,13 @@ export function CommercialDocumentDetail({
     (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment')
       ? orphanCreatedFromQuote
         ? t('projects.orphan.chip_os_new', 'Acceptat · OS nova')
-        : !doc.project_id && (doc.status === 'accepted' || doc.status === 'signed')
-          ? t('projects.orphan.chip_os_pending', 'Acceptat · OS pendent')
-          : !doc.project_id && (doc.status === 'draft' || doc.status === 'issued')
-            ? t('projects.orphan.chip_orphan', 'Sense ordre')
-            : null
+        : projectNotNeeded
+          ? t('projects.orphan.chip_no_os', 'Acceptat · Sense ordre de camp')
+          : !doc.project_id && (doc.status === 'accepted' || doc.status === 'signed')
+            ? t('projects.orphan.chip_os_deferred', 'Acceptat · Sense ordre')
+            : !doc.project_id && (doc.status === 'draft' || doc.status === 'issued')
+              ? t('projects.orphan.chip_orphan', 'Sense ordre')
+              : null
       : null
 
   const orphanQuote =
@@ -1352,11 +1365,19 @@ export function CommercialDocumentDetail({
     (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment') &&
     !doc.project_id
   const orphanDraft = orphanQuote && doc.status === 'draft'
+  const canCreateOrDeclineOs =
+    orphanQuote &&
+    (doc.status === 'accepted' || doc.status === 'signed') &&
+    !projectNotNeeded
 
   async function runEnsureOs(siteId: string | null) {
     setEnsureBusy(true)
     try {
-      const projectId = await ensureProjectFromOrphanQuote(documentId, siteId)
+      const projectId = await ensureProjectFromOrphanQuote(documentId, {
+        siteId,
+        projectType: ensureProjectType,
+        visitIntent: ensureVisitIntent,
+      })
       try {
         const key = 'orphan-os-ack'
         const raw = localStorage.getItem(key)
@@ -1370,10 +1391,10 @@ export function CommercialDocumentDetail({
         title: t('projects.orphan.os_created', 'Ordre creada'),
         description: t(
           'projects.orphan.os_created_help',
-          'Planifica-la a Agenda → Sense planificar.',
+          'Planifica-la a Agenda → Sense planificar o filtra Sense data a Ordres.',
         ),
       })
-      setEnsureSitePickOpen(false)
+      setEnsureCreateOpen(false)
       setReloadToken((n) => n + 1)
       onChanged?.()
       navigate(`/field/orders/${projectId}?tab=prepare`)
@@ -1395,16 +1416,33 @@ export function CommercialDocumentDetail({
       selectedSiteId,
       sites: tenantSites,
     })
-    if (resolved) {
-      void runEnsureOs(resolved)
-      return
+    setEnsureSiteId(resolved ?? tenantSites[0]?.id ?? '')
+    setEnsureProjectType('work_order')
+    setEnsureVisitIntent('generic')
+    setEnsureCreateOpen(true)
+  }
+
+  async function handleDeclineOs() {
+    setDeclineOsBusy(true)
+    try {
+      await markOrphanQuoteProjectNotNeeded(documentId)
+      toast({
+        title: t('projects.orphan.no_os_marked', 'Sense ordre de camp'),
+        description: t(
+          'projects.orphan.no_os_marked_help',
+          'Aquest pressupost queda atès sense crear ordre.',
+        ),
+      })
+      setReloadToken((n) => n + 1)
+      onChanged?.()
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        description: err instanceof Error ? err.message : t('common:error', 'Error'),
+      })
+    } finally {
+      setDeclineOsBusy(false)
     }
-    if (tenantSites.length > 1) {
-      setEnsureSiteId(tenantSites[0]?.id ?? '')
-      setEnsureSitePickOpen(true)
-      return
-    }
-    void runEnsureOs(null)
   }
 
   async function correctIssuedQuote() {
@@ -1493,15 +1531,26 @@ export function CommercialDocumentDetail({
           onChanged?.()
         }}
       />
-      {doc.status === 'accepted' ? (
-        <Button
-          type="button"
-          size="sm"
-          disabled={ensureBusy}
-          onClick={() => handleEnsureOsClick()}
-        >
-          {t('projects.orphan.ensure_os', 'Crear / reintentar ordre')}
-        </Button>
+      {canCreateOrDeclineOs ? (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            disabled={ensureBusy || declineOsBusy}
+            onClick={() => handleEnsureOsClick()}
+          >
+            {t('projects.orphan.ensure_os', 'Crear ordre')}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={ensureBusy || declineOsBusy}
+            onClick={() => void handleDeclineOs()}
+          >
+            {t('projects.orphan.no_os', 'No cal ordre')}
+          </Button>
+        </div>
       ) : null}
     </div>
   ) : null
@@ -1670,48 +1719,104 @@ export function CommercialDocumentDetail({
         }}
       />
 
-      <Dialog open={ensureSitePickOpen} onOpenChange={setEnsureSitePickOpen}>
+      <Dialog open={ensureCreateOpen} onOpenChange={setEnsureCreateOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {t('projects.orphan.tenant_site_pick_title', 'Tria el local de l’ordre')}
-            </DialogTitle>
+            <DialogTitle>{t('projects.orphan.create_os_title', 'Crear ordre')}</DialogTitle>
             <DialogDescription>
               {t(
-                'projects.orphan.tenant_site_pick_help',
-                'Aquest pressupost no té local. Tria quin centre de l’empresa crearà l’ordre de servei.',
+                'projects.orphan.create_os_help',
+                'Tria el tipus i l’intent. La data dels treballs s’acorda després (Agenda → Sense planificar).',
               )}
             </DialogDescription>
           </DialogHeader>
-          <label className="block space-y-1.5">
-            <span className="text-sm font-medium">
-              {t('projects.orphan.tenant_site_label', 'Local')}
-            </span>
-            <select
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-              value={ensureSiteId}
-              onChange={(e) => setEnsureSiteId(e.target.value)}
-            >
-              {tenantSites.map((site) => (
-                <option key={site.id} value={site.id}>
-                  {site.name}
+          <div className="space-y-3">
+            {tenantSites.length > 1 ? (
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium">
+                  {t('projects.orphan.tenant_site_label', 'Local')}
+                </span>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                  value={ensureSiteId}
+                  onChange={(e) => setEnsureSiteId(e.target.value)}
+                >
+                  {tenantSites.map((site) => (
+                    <option key={site.id} value={site.id}>
+                      {site.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">
+                {t('projects.orphan.create_os_type', 'Tipus')}
+              </span>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                value={ensureProjectType}
+                onChange={(e) =>
+                  setEnsureProjectType(
+                    e.target.value === 'maintenance' ? 'maintenance' : 'work_order',
+                  )
+                }
+              >
+                <option value="work_order">
+                  {t('projects.type.work_order', 'Ordre de treball')}
                 </option>
-              ))}
-            </select>
-          </label>
+                <option value="maintenance">
+                  {t('projects.type.maintenance', 'Manteniment')}
+                </option>
+              </select>
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">
+                {t('projects.orphan.create_os_intent', 'Intent de visita')}
+              </span>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                value={ensureVisitIntent}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setEnsureVisitIntent(
+                    v === 'inspection' || v === 'corrective' ? v : 'generic',
+                  )
+                }}
+              >
+                <option value="generic">
+                  {t('field-service:intent.generic', 'Genèrica')}
+                </option>
+                <option value="inspection">
+                  {t('field-service:intent.inspection', 'Inspecció')}
+                </option>
+                <option value="corrective">
+                  {t('field-service:intent.corrective', 'Correctiva')}
+                </option>
+              </select>
+            </label>
+          </div>
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
               disabled={ensureBusy}
-              onClick={() => setEnsureSitePickOpen(false)}
+              onClick={() => setEnsureCreateOpen(false)}
             >
               {t('common:cancel', 'Cancel·lar')}
             </Button>
             <Button
               type="button"
-              disabled={ensureBusy || !ensureSiteId}
-              onClick={() => void runEnsureOs(ensureSiteId || null)}
+              disabled={
+                ensureBusy || (tenantSites.length > 1 && !ensureSiteId)
+              }
+              onClick={() => {
+                const site =
+                  tenantSites.length > 1
+                    ? ensureSiteId || null
+                    : resolveTenantSiteId({ selectedSiteId, sites: tenantSites })
+                void runEnsureOs(site)
+              }}
             >
               {t('projects.orphan.tenant_site_pick_confirm', 'Crear ordre')}
             </Button>

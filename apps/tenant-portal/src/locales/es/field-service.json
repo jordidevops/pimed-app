@@ -37,6 +37,7 @@
     "empty": "Aún no tienes ninguna orden de servicio",
     "filter_mine": "Las mías",
     "filter_open": "Abiertas",
+    "filter_unscheduled": "Sin fecha",
     "filter_today": "Hoy",
     "filter_all": "Todas",
     "summary": "{{count}} órdenes",
@@ -79,15 +80,45 @@
       "work_order": "Orden de servicio",
       "maintenance": "Mantenimiento",
       "status": "Estado",
+      "status_draft": "Borrador",
+      "status_active": "Activa",
+      "status_in_progress": "En curso",
+      "status_on_hold": "En espera",
       "technician": "Técnico",
       "technician_help": "Mantén Ctrl/Cmd para seleccionar más de uno.",
       "clear": "Limpiar filtros"
     },
+    "range": {
+      "list": "{{days}} días · {{from}} – {{to}}",
+      "prev": "Anterior",
+      "next": "Siguiente",
+      "set_start": "Mostrar a partir de este día"
+    },
+    "multi_day": "Varios días",
     "unscheduled": {
       "title": "Sin planificar",
       "short": "Bandeja",
       "empty": "No hay órdenes sin fecha",
-      "plan": "Planificar"
+      "plan": "Planificar",
+      "open": "Abrir"
+    },
+    "schedule": {
+      "title": "Planificar visita",
+      "description": "Asigna las fechas previstas sin salir de la agenda.",
+      "client": "Cliente",
+      "address": "Dirección",
+      "type": "Tipo",
+      "start": "Inicio previsto",
+      "end": "Fin prevista",
+      "save": "Guardar fechas",
+      "saving": "Guardando…",
+      "cancel": "Cancelar",
+      "saved": "Fechas guardadas",
+      "start_required": "Se necesita una fecha de inicio",
+      "end_before_start": "El fin debe ser igual o posterior al inicio",
+      "site_required": "Asigna el local en la ficha de la orden antes de cambiar tipo o local.",
+      "open_detail": "Abrir ficha",
+      "no_address": "Esta orden no tiene dirección de intervención. Puedes guardar las fechas y completar la dirección en la ficha."
     },
     "empty": {
       "filtered": "Ninguna visita con estos filtros",

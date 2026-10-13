@@ -1,6 +1,5 @@
--- CF-24 V2 orphan quote (+ hotfix): draft → lines → issue → accept → OS;
--- immutable formalization fields; gate without link (pending + active);
--- membership when sub null; reject no OS; N orphans.
+-- CF-24 V2 orphan quote (1A defer OS): draft → lines → issue → accept (no auto OS)
+-- → ensure manual → OS; immutable formalization; gate; reject no OS; N orphans.
 DO $$
 DECLARE
   v_tenant uuid := '10000000-0000-0000-0000-000000000003';
@@ -102,18 +101,29 @@ BEGIN
     END IF;
   END;
 
-  -- T3: accept → OS + project_lines with source_quote_line_id
+  -- T3: accept must NOT auto-create OS (1A); then ensure manual
   PERFORM api.accept_commercial_document(
     v_issued,
     '{"method":"sql_test"}'::jsonb,
     '91000000-0000-0000-0000-00000000a004'::uuid
   );
   SELECT project_id INTO v_project FROM data.commercial_documents WHERE id = v_issued;
-  IF v_project IS NULL THEN
-    v_project := api.ensure_project_from_orphan_quote(v_issued);
+  IF v_project IS NOT NULL THEN
+    RAISE EXCEPTION 'T3 accept must not auto-create project (1A)';
   END IF;
+
+  SELECT count(*) INTO v_accept_events
+  FROM data.commercial_document_events
+  WHERE document_id = v_issued AND event_type = 'accepted';
+  IF v_accept_events <> 1 THEN
+    RAISE EXCEPTION 'T3 expected single accepted event, got %', v_accept_events;
+  END IF;
+
+  v_project := api.ensure_project_from_orphan_quote(
+    v_issued, NULL, 'work_order', 'generic'
+  );
   IF v_project IS NULL THEN
-    RAISE EXCEPTION 'T3 expected project after accept/ensure';
+    RAISE EXCEPTION 'T3 expected project after manual ensure';
   END IF;
   SELECT count(*) INTO v_line_count
   FROM data.project_lines
@@ -127,6 +137,9 @@ BEGIN
   IF (SELECT commercial_stage FROM data.projects WHERE id = v_project) <> 'execute' THEN
     RAISE EXCEPTION 'T3 OS must be execute';
   END IF;
+  IF (SELECT visit_intent FROM data.projects WHERE id = v_project) <> 'generic' THEN
+    RAISE EXCEPTION 'T3 expected visit_intent generic';
+  END IF;
 
   SELECT count(*) INTO v_member_count
   FROM data.project_members WHERE project_id = v_project;
@@ -134,20 +147,13 @@ BEGIN
     RAISE EXCEPTION 'T3 expected at least one project_member';
   END IF;
 
-  SELECT count(*) INTO v_accept_events
-  FROM data.commercial_document_events
-  WHERE document_id = v_issued AND event_type = 'accepted';
-  IF v_accept_events <> 1 THEN
-    RAISE EXCEPTION 'T3 expected single accepted event, got %', v_accept_events;
-  END IF;
-
   SELECT COALESCE((payload->>'project_created_from_quote')::boolean, false) INTO v_flag
   FROM data.commercial_document_events
-  WHERE document_id = v_issued AND event_type = 'accepted'
+  WHERE document_id = v_issued AND event_type = 'project_linked'
   ORDER BY occurred_at DESC
   LIMIT 1;
   IF v_flag IS NOT TRUE THEN
-    RAISE EXCEPTION 'T3 accepted payload must flag project_created_from_quote';
+    RAISE EXCEPTION 'T3 project_linked must flag project_created_from_quote';
   END IF;
 
   -- T3b: ensure idempotent
@@ -242,15 +248,16 @@ BEGIN
 
   PERFORM set_config('request.jwt.claim.sub', '', true);
   PERFORM set_config('request.jwt.claim', '', true);
-  -- Status→accepted fires orphan ensure trigger with auth.uid() null
+  -- Status→accepted notifies only (1A); OS via explicit ensure with null auth.uid
   UPDATE data.commercial_documents
   SET status = 'accepted', updated_at = now()
   WHERE id = v_issued AND status = 'issued';
 
   SELECT project_id INTO v_project FROM data.commercial_documents WHERE id = v_issued;
-  IF v_project IS NULL THEN
-    v_project := api.ensure_project_from_orphan_quote(v_issued);
+  IF v_project IS NOT NULL THEN
+    RAISE EXCEPTION 'T7 accept must not auto-create project';
   END IF;
+  v_project := api.ensure_project_from_orphan_quote(v_issued);
   SELECT count(*) INTO v_member_count
   FROM data.project_members WHERE project_id = v_project;
   IF v_member_count < 1 THEN

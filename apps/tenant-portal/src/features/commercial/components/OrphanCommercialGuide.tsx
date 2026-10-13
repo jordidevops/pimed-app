@@ -132,7 +132,7 @@ export function OrphanCommercialGuide({
           : current === 'os'
             ? t(
                 'projects.orphan.tip_os_pending',
-                'Acceptat. Si no hi ha ordre, usa «Crear ordre» o reintenta des de l’oficina.',
+                'Acceptat. Acorda la data amb el client i crea l’ordre, o marca «No cal ordre».',
               )
             : hasProject
               ? t(

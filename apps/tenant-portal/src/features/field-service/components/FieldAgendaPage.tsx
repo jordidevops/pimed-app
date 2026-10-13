@@ -23,7 +23,8 @@ import { UnderlineTabs } from '@/components/layout/UnderlineTabs'
 import { CalendarGrid, type CalendarGridEvent } from '@/features/calendar'
 import {
   addDays,
-  dateKey,
+  endOfWeek,
+  formatShortRange,
   startOfDay,
   startOfWeekMonday,
   toUiLocale,
@@ -38,7 +39,13 @@ import { withReturnTo } from '@/lib/navigationReturn'
 import { cn } from '@/lib/utils'
 import { useFieldVisits } from '../hooks/useFieldVisits'
 import type { FieldVisit } from '../api/fieldVisitsService'
+import { FieldAgendaScheduleSheet } from './FieldAgendaScheduleSheet'
 import { rangeForView, startOfMonthAnchor } from '../utils/agendaRange'
+import {
+  placeVisitsOnDays,
+  visitTimeLabelsForDay,
+  type VisitDayPlacement,
+} from '../utils/agendaVisitDisplay'
 import {
   defaultAgendaViewForWidth,
   formatAnchorDate,
@@ -144,10 +151,10 @@ function FiltersPanel({
         <div className="flex flex-wrap gap-2">
           {(
             [
-              ['draft', t('status.draft', 'Esborrany')],
-              ['active', t('status.active', 'Activa')],
-              ['in_progress', t('status.in_progress', 'En curs')],
-              ['on_hold', t('status.on_hold', 'En espera')],
+              ['draft', t('agenda.filters.status_draft', 'Esborrany')],
+              ['active', t('agenda.filters.status_active', 'Activa')],
+              ['in_progress', t('agenda.filters.status_in_progress', 'En curs')],
+              ['on_hold', t('agenda.filters.status_on_hold', 'En espera')],
             ] as const
           ).map(([value, label]) => {
             const active = state.statuses.includes(value)
@@ -308,6 +315,7 @@ export function FieldAgendaPage() {
 
   const [createOpen, setCreateOpen] = useState(false)
   const [createDay, setCreateDay] = useState<string | null>(null)
+  const [scheduleVisitId, setScheduleVisitId] = useState<string | null>(null)
   const [panelOpen, setPanelOpen] = useState(false)
   const [listFlash, setListFlash] = useState(0)
   const [dayFlash, setDayFlash] = useState(0)
@@ -350,25 +358,19 @@ export function FieldAgendaPage() {
   }
 
   const todayKey = formatAnchorDate(startOfDay(new Date()))
-
-  const groupedList = useMemo(() => {
-    const map = new Map<string, FieldVisit[]>()
-    for (const visit of visits) {
-      const key = visit.planned_start ? dateKey(visit.planned_start) : '—'
-      const list = map.get(key) ?? []
-      list.push(visit)
-      map.set(key, list)
-    }
-    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
-  }, [visits])
+  const listWindowStart = useMemo(() => startOfDay(anchor), [anchor])
+  const listWindowEnd = useMemo(() => addDays(listWindowStart, 13), [listWindowStart])
 
   const listSections = useMemo(() => {
-    const start = formatAnchorDate(startOfDay(anchor))
-    const end = formatAnchorDate(addDays(startOfDay(anchor), 14))
-    const todayInWindow = todayKey >= start && todayKey < end
-    if (!todayInWindow || groupedList.some(([day]) => day === todayKey)) return groupedList
-    return [...groupedList, [todayKey, [] as FieldVisit[]]].sort(([a], [b]) => a.localeCompare(b))
-  }, [anchor, groupedList, todayKey])
+    const placed = placeVisitsOnDays(visits, listWindowStart, listWindowEnd)
+    const startKey = formatAnchorDate(listWindowStart)
+    const endKeyExclusive = formatAnchorDate(addDays(listWindowStart, 14))
+    const todayInWindow = todayKey >= startKey && todayKey < endKeyExclusive
+    if (todayInWindow && !placed.has(todayKey)) {
+      placed.set(todayKey, [])
+    }
+    return [...placed.entries()].sort(([a], [b]) => a.localeCompare(b))
+  }, [visits, listWindowStart, listWindowEnd, todayKey])
 
   useEffect(() => {
     if (listFlash === 0 || state.view !== 'list') return
@@ -380,12 +382,14 @@ export function FieldAgendaPage() {
     [visits, assessmentLabel],
   )
 
-  function openVisit(id: string, focusPlanned = false) {
-    const base = focusPlanned
-      ? `/field/orders/${id}?tab=prepare&focus=planned_start`
-      : `/field/orders/${id}`
-    navigate(withReturnTo(base, returnTo))
+  function openVisit(id: string) {
+    navigate(withReturnTo(`/field/orders/${id}`, returnTo))
   }
+
+  const scheduleVisit = useMemo(
+    () => unscheduled.find((v) => v.id === scheduleVisitId) ?? null,
+    [unscheduled, scheduleVisitId],
+  )
 
   function formatDayLabel(key: string): string {
     if (key === '—') return key
@@ -397,31 +401,67 @@ export function FieldAgendaPage() {
     })
   }
 
-  function formatTime(iso: string | null | undefined): string {
-    if (!iso) return ''
-    const d = new Date(iso)
-    if (d.getHours() === 0 && d.getMinutes() === 0) return ''
-    return d.toLocaleTimeString(uiLocale, { hour: '2-digit', minute: '2-digit' })
+  function stepPeriod(direction: -1 | 1) {
+    if (state.view === 'month') {
+      patchState({
+        anchor: formatAnchorDate(
+          startOfMonthAnchor(new Date(anchor.getFullYear(), anchor.getMonth() + direction, 1)),
+        ),
+      })
+      return
+    }
+    if (state.view === 'week') {
+      patchState({
+        anchor: formatAnchorDate(addDays(startOfWeekMonday(anchor), direction * 7)),
+      })
+      return
+    }
+    patchState({ anchor: formatAnchorDate(addDays(anchor, direction)) })
   }
 
-  const viewTabs = (
-    <UnderlineTabs
-      activeKey={state.view}
-      aria-label={t('field-service:agenda.view.label', 'Vista')}
-      items={(
-        [
-          ['list', t('field-service:agenda.view.list', 'Llista')],
-          ['day', t('field-service:agenda.view.day', 'Dia')],
-          ['week', t('field-service:agenda.view.week', 'Setmana')],
-          ['month', t('field-service:agenda.view.month', 'Mes')],
-        ] as const
-      ).map(([value, label]) => ({
-        key: value,
-        label,
-        onSelect: () => setAgendaView(value),
-      }))}
-    />
-  )
+  function goToday() {
+    const today = startOfDay(new Date())
+    if (state.view === 'month') {
+      patchState({ anchor: formatAnchorDate(startOfMonthAnchor(today)) })
+    } else if (state.view === 'week') {
+      patchState({ anchor: formatAnchorDate(startOfWeekMonday(today)) })
+    } else {
+      patchState({ anchor: formatAnchorDate(today) })
+    }
+    if (state.view === 'list') setListFlash((n) => n + 1)
+    if (state.view === 'day') setDayFlash((n) => n + 1)
+  }
+
+  const periodLabel = useMemo(() => {
+    if (state.view === 'month') {
+      return new Intl.DateTimeFormat(uiLocale, { month: 'long', year: 'numeric' }).format(anchor)
+    }
+    if (state.view === 'week') {
+      const weekStart = startOfWeekMonday(anchor)
+      return formatShortRange(weekStart, endOfWeek(anchor, 1), uiLocale)
+    }
+    if (state.view === 'list') {
+      const from = formatAnchorDate(listWindowStart)
+      const to = formatAnchorDate(listWindowEnd)
+      const [fy, fm, fd] = from.split('-').map(Number)
+      const [ty, tm, td] = to.split('-').map(Number)
+      const fromLabel = new Date(fy, fm - 1, fd).toLocaleDateString(uiLocale, {
+        day: 'numeric',
+        month: 'short',
+      })
+      const toLabel = new Date(ty, tm - 1, td).toLocaleDateString(uiLocale, {
+        day: 'numeric',
+        month: 'short',
+      })
+      return t('field-service:agenda.range.list', {
+        days: 14,
+        from: fromLabel,
+        to: toLabel,
+        defaultValue: '14 dies · {{from}} – {{to}}',
+      })
+    }
+    return formatDayLabel(formatAnchorDate(anchor))
+  }, [state.view, anchor, uiLocale, t, listWindowStart, listWindowEnd])
 
   const shellActions = (
     <Button
@@ -503,17 +543,32 @@ export function FieldAgendaPage() {
               <ul className="space-y-2">
                 {unscheduled.slice(0, 30).map((visit) => (
                   <li key={visit.id} className="rounded-xl border border-border p-3">
-                    <p className="truncate text-sm font-medium">{visit.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{visitSubtitle(visit)}</p>
-                    <Button
+                    <button
                       type="button"
-                      size="sm"
-                      variant="outline"
-                      className="mt-2"
-                      onClick={() => openVisit(visit.id, true)}
+                      className="block w-full truncate text-left text-sm font-medium text-primary hover:underline"
+                      onClick={() => openVisit(visit.id)}
                     >
-                      {t('field-service:agenda.unscheduled.plan', 'Planificar')}
-                    </Button>
+                      {visit.name}
+                    </button>
+                    <p className="truncate text-xs text-muted-foreground">{visitSubtitle(visit)}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setScheduleVisitId(visit.id)}
+                      >
+                        {t('field-service:agenda.unscheduled.plan', 'Planificar')}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openVisit(visit.id)}
+                      >
+                        {t('field-service:agenda.unscheduled.open', 'Obrir')}
+                      </Button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -532,18 +587,9 @@ export function FieldAgendaPage() {
     />
   )
 
-  const dayNav = (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => {
-          patchState({ anchor: formatAnchorDate(startOfDay(new Date())) })
-          if (state.view === 'list') setListFlash((n) => n + 1)
-          if (state.view === 'day') setDayFlash((n) => n + 1)
-        }}
-      >
+  const periodNav = (
+    <div className="flex flex-wrap items-center gap-2 pb-2">
+      <Button type="button" variant="outline" size="sm" onClick={goToday}>
         {t('field-service:agenda.today', 'Avui')}
       </Button>
       <div className="flex items-center gap-1">
@@ -552,8 +598,8 @@ export function FieldAgendaPage() {
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={() => patchState({ anchor: formatAnchorDate(addDays(anchor, -1)) })}
-          aria-label={t('field-service:agenda.prev_day', 'Dia anterior')}
+          onClick={() => stepPeriod(-1)}
+          aria-label={t('field-service:agenda.range.prev', 'Anterior')}
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -562,16 +608,14 @@ export function FieldAgendaPage() {
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={() => patchState({ anchor: formatAnchorDate(addDays(anchor, 1)) })}
-          aria-label={t('field-service:agenda.next_day', 'Dia següent')}
+          onClick={() => stepPeriod(1)}
+          aria-label={t('field-service:agenda.range.next', 'Següent')}
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
-      <p className="text-sm font-semibold capitalize">
-        {formatDayLabel(formatAnchorDate(anchor))}
-      </p>
-      {state.view !== 'day' && visits.length === 0 ? (
+      <p className="text-sm font-semibold capitalize">{periodLabel}</p>
+      {visits.length === 0 && !isLoading ? (
         <div className="flex min-h-5 min-w-0 flex-1 items-center sm:justify-end">
           {emptyNotice}
         </div>
@@ -579,6 +623,27 @@ export function FieldAgendaPage() {
     </div>
   )
 
+  const viewTabs = (
+    <div>
+      <UnderlineTabs
+        activeKey={state.view}
+        aria-label={t('field-service:agenda.view.label', 'Vista')}
+        items={(
+          [
+            ['list', t('field-service:agenda.view.list', 'Llista')],
+            ['day', t('field-service:agenda.view.day', 'Dia')],
+            ['week', t('field-service:agenda.view.week', 'Setmana')],
+            ['month', t('field-service:agenda.view.month', 'Mes')],
+          ] as const
+        ).map(([value, label]) => ({
+          key: value,
+          label,
+          onSelect: () => setAgendaView(value),
+        }))}
+      />
+      {periodNav}
+    </div>
+  )
 
   const showInitialSpinner = isLoading && visits.length === 0
 
@@ -588,12 +653,11 @@ export function FieldAgendaPage() {
     </div>
   ) : state.view === 'list' ? (
     <div className="space-y-3">
-      {dayNav}
       {listSections.length === 0 ? (
         <EmptyAgenda filtered={hasActiveAgendaFilters(state)} onClear={clearFilters} />
       ) : (
         <div className="space-y-5">
-          {listSections.map(([day, dayVisits]) => {
+          {listSections.map(([day, dayPlacements]) => {
             const isToday = day === todayKey
             const flash = isToday && listFlash > 0
             return (
@@ -606,17 +670,23 @@ export function FieldAgendaPage() {
                   flash && 'agenda-today-flash',
                 )}
               >
-                <h2
+                <button
+                  type="button"
                   className={cn(
-                    'text-xs font-semibold uppercase tracking-wide',
+                    'text-left text-xs font-semibold uppercase tracking-wide hover:underline',
                     isToday ? 'text-primary' : 'text-muted-foreground',
+                  )}
+                  onClick={() => patchState({ anchor: day })}
+                  title={t(
+                    'field-service:agenda.range.set_start',
+                    'Mostrar a partir d’aquest dia',
                   )}
                 >
                   {isToday
                     ? `${t('field-service:agenda.today', 'Avui')} · ${formatDayLabel(day)}`
                     : formatDayLabel(day)}
-                </h2>
-                {dayVisits.length === 0 ? (
+                </button>
+                {dayPlacements.length === 0 ? (
                   <DayEmptyState
                     compact
                     filtered={false}
@@ -624,7 +694,12 @@ export function FieldAgendaPage() {
                     onClear={clearFilters}
                   />
                 ) : (
-                  <VisitDayList visits={dayVisits} formatTime={formatTime} onOpen={openVisit} />
+                  <VisitDayList
+                    placements={dayPlacements}
+                    day={day}
+                    locale={uiLocale}
+                    onOpen={openVisit}
+                  />
                 )}
               </section>
             )
@@ -637,7 +712,6 @@ export function FieldAgendaPage() {
       key={dayFlash > 0 ? `day-flash-${dayFlash}` : 'day'}
       className={cn('space-y-3', dayFlash > 0 && 'agenda-today-flash rounded-xl')}
     >
-      {dayNav}
       {!isPlaceholderData && visits.length === 0 ? (
         <DayEmptyState
           filtered={hasActiveAgendaFilters(state)}
@@ -654,7 +728,7 @@ export function FieldAgendaPage() {
           className={cn(isPlaceholderData && 'pointer-events-none opacity-60')}
           aria-busy={isPlaceholderData || undefined}
         >
-          <VisitDayCards visits={visits} formatTime={formatTime} onOpen={openVisit} />
+          <VisitDayCards visits={visits} day={anchor} locale={uiLocale} onOpen={openVisit} />
         </div>
       )}
     </div>
@@ -679,8 +753,9 @@ export function FieldAgendaPage() {
         monthCellMode="cards"
         monthMaxCards={2}
         keepViewOnToday
+        showNav={false}
         allDayLabel={t('field-service:agenda.all_day', 'Tot el dia')}
-        notice={visits.length === 0 ? emptyNotice : null}
+        notice={null}
       />
     </div>
   )
@@ -701,8 +776,7 @@ export function FieldAgendaPage() {
           <aside
             className={cn(
               'hidden lg:block',
-              'sticky top-[calc(var(--app-sticky-chrome,0px)+1rem)] self-start',
-              'max-h-[calc(100dvh-var(--app-sticky-chrome,0px)-2rem)] overflow-y-auto',
+              'self-start',
               'rounded-2xl border border-border bg-card p-4',
             )}
           >
@@ -734,17 +808,31 @@ export function FieldAgendaPage() {
         initialType="work_order"
         initialPlannedStart={createDay}
       />
+
+      <FieldAgendaScheduleSheet
+        visit={scheduleVisit}
+        open={Boolean(scheduleVisitId)}
+        onOpenChange={(next) => {
+          if (!next) setScheduleVisitId(null)
+        }}
+        onOpenDetail={(id) => {
+          setScheduleVisitId(null)
+          openVisit(id)
+        }}
+      />
     </>
   )
 }
 
 function VisitDayCards({
   visits,
-  formatTime,
+  day,
+  locale,
   onOpen,
 }: {
   visits: FieldVisit[]
-  formatTime: (iso: string | null | undefined) => string
+  day: Date
+  locale: string
   onOpen: (id: string) => void
 }) {
   const { t } = useTranslation(['field-service', 'projects'])
@@ -756,9 +844,7 @@ function VisitDayCards({
     <ul className="space-y-3">
       {ordered.map((visit) => {
         const maintenance = visit.type === 'maintenance'
-        const startLabel = formatTime(visit.planned_start)
-        const endLabel = formatTime(visit.planned_end)
-        const allDay = !startLabel
+        const times = visitTimeLabelsForDay(visit, day, locale)
         const place = [visit.contact_site_name, visit.contact_site_city].filter(Boolean).join(' · ')
         const regimeKey =
           visit.commercial_regime === 'consumer' || visit.commercial_regime === 'contractual'
@@ -768,6 +854,13 @@ function VisitDayCards({
           ? t('field-service:agenda.filters.maintenance', 'Manteniment')
           : t('field-service:agenda.filters.work_order', 'Ordre de servei')
         const extraBadges: { key: string; label: string; variant: 'outline' | 'secondary' }[] = []
+        if (times.continuesFrom || times.continuesTo) {
+          extraBadges.push({
+            key: 'multi-day',
+            label: t('field-service:agenda.multi_day', 'Diversos dies'),
+            variant: 'secondary',
+          })
+        }
         if (visit.service_mode === 'assessment') {
           extraBadges.push({
             key: 'assessment',
@@ -803,7 +896,11 @@ function VisitDayCards({
             <button
               type="button"
               onClick={() => onOpen(visit.id)}
-              className="flex w-full overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm transition hover:border-primary/50 hover:shadow-md"
+              className={cn(
+                'flex w-full overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm transition hover:border-primary/50 hover:shadow-md',
+                times.continuesFrom && 'rounded-l-md border-l-4 border-l-primary/40',
+                times.continuesTo && 'rounded-r-md',
+              )}
             >
               <span
                 className={cn('w-1.5 shrink-0', maintenance ? 'bg-emerald-600' : 'bg-sky-600')}
@@ -813,22 +910,24 @@ function VisitDayCards({
                 <span
                   className={cn(
                     'flex shrink-0 flex-row items-baseline justify-between gap-2 rounded-xl px-3 py-2 sm:flex-col sm:items-center sm:justify-center',
-                    allDay ? 'sm:w-auto' : 'sm:w-[5.5rem]',
+                    times.allDay || times.endLabel.length > 8 ? 'sm:w-auto sm:min-w-[5.5rem]' : 'sm:w-[5.5rem]',
                     maintenance ? 'bg-emerald-500/15' : 'bg-sky-500/15',
                   )}
                 >
                   <span
                     className={cn(
                       'font-bold leading-none',
-                      allDay ? 'text-sm' : 'text-lg tabular-nums',
+                      times.allDay ? 'text-sm' : 'text-lg tabular-nums',
                     )}
                   >
-                    {allDay
+                    {times.allDay
                       ? t('field-service:agenda.all_day', 'Tot el dia')
-                      : startLabel}
+                      : times.startLabel || '—'}
                   </span>
-                  {!allDay && endLabel ? (
-                    <span className="text-xs tabular-nums text-muted-foreground">{endLabel}</span>
+                  {!times.allDay && times.endLabel ? (
+                    <span className="max-w-[9rem] text-xs tabular-nums text-muted-foreground sm:text-center">
+                      {times.endLabel}
+                    </span>
                   ) : null}
                 </span>
                 <span className="min-w-0 flex-1 space-y-1.5">
@@ -844,7 +943,6 @@ function VisitDayCards({
                   {place ? (
                     <span className="block truncate text-xs text-muted-foreground">{place}</span>
                   ) : null}
-                  {/* Mobile: type + overflow only. Desktop: full badge row. */}
                   <span className="flex flex-wrap items-center gap-1.5 pt-0.5 sm:hidden">
                     <Badge variant="outline">{typeLabel}</Badge>
                     {mobileOverflow > 0 ? (
@@ -871,39 +969,60 @@ function VisitDayCards({
 }
 
 function VisitDayList({
-  visits,
-  formatTime,
+  placements,
+  day,
+  locale,
   onOpen,
 }: {
-  visits: FieldVisit[]
-  formatTime: (iso: string | null | undefined) => string
+  placements: VisitDayPlacement[]
+  day: string
+  locale: string
   onOpen: (id: string) => void
 }) {
   const { t } = useTranslation(['field-service', 'projects'])
+  const [y, m, d] = day.split('-').map(Number)
+  const dayDate = new Date(y, m - 1, d)
+
   return (
     <ul className="space-y-2">
-      {visits.map((visit) => (
-        <li key={visit.id}>
-          <button
-            type="button"
-            onClick={() => onOpen(visit.id)}
-            className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3 min-h-12 text-left hover:bg-accent/30"
-          >
-            <div className="min-w-0 space-y-0.5">
-              <p className="truncate font-medium">{visit.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {[formatTime(visit.planned_start), visitSubtitle(visit)].filter(Boolean).join(' · ')}
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <Badge variant={getProjectStatusVariant(visit.status)}>
-                {getProjectStatusLabel(t, visit.status, { fieldService: true })}
-              </Badge>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </button>
-        </li>
-      ))}
+      {placements.map(({ visit, continuesFrom, continuesTo }) => {
+        const times = visitTimeLabelsForDay(visit, dayDate, locale)
+        const timeBits = [
+          times.allDay
+            ? t('field-service:agenda.all_day', 'Tot el dia')
+            : [times.startLabel, times.endLabel].filter(Boolean).join(' – '),
+          visitSubtitle(visit),
+        ].filter(Boolean)
+        return (
+          <li key={`${visit.id}-${day}`}>
+            <button
+              type="button"
+              onClick={() => onOpen(visit.id)}
+              className={cn(
+                'flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3 min-h-12 text-left hover:bg-accent/30',
+                continuesFrom && 'rounded-l-md border-l-4 border-l-primary/40',
+                continuesTo && 'rounded-r-md',
+              )}
+            >
+              <div className="min-w-0 space-y-0.5">
+                <p className="truncate font-medium">{visit.name}</p>
+                <p className="text-xs text-muted-foreground">{timeBits.join(' · ')}</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {(continuesFrom || continuesTo) && (
+                  <Badge variant="secondary" className="hidden sm:inline-flex">
+                    {t('field-service:agenda.multi_day', 'Diversos dies')}
+                  </Badge>
+                )}
+                <Badge variant={getProjectStatusVariant(visit.status)}>
+                  {getProjectStatusLabel(t, visit.status, { fieldService: true })}
+                </Badge>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </button>
+          </li>
+        )
+      })}
     </ul>
   )
 }

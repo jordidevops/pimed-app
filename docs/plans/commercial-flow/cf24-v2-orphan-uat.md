@@ -3,7 +3,7 @@
 > **Estat:** pendent d’execució  
 > **Spec:** [`06-sales-entry-modes-quote-first.md`](./06-sales-entry-modes-quote-first.md) · Spike: [`cf24-v2-orphan-spike.md`](./cf24-v2-orphan-spike.md)  
 > **Tenant per defecte:** Riera (owner/manager). Repetir al 2n tenant si cal intensiu.  
-> **Prerequisit:** migracions `20261231*` + `20261232000001` aplicades; sessió oficina autenticada.
+> **Prerequisit:** migracions fins `20261245000001_orphan_accept_defer_os` (1A defer OS); sessió oficina autenticada.
 
 ## Com registrar
 
@@ -27,8 +27,10 @@ flowchart LR
   Issue --> AcceptSQ[Accept_signed_quote]
   Issue --> Prep[Prepare_agreement]
   Prep --> Sign[Firma_acord]
-  AcceptSQ --> OS[OS_execute]
-  Sign --> OS
+  AcceptSQ --> Notify[QUOTE_ACCEPTED]
+  Sign --> Notify
+  Notify --> Create[Crear_ordre_manual]
+  Create --> OS[OS_execute]
   OS --> Agenda[Sense_planificar]
   Prep -->|gate_sense_link| BlockPunch[Punch_bloquejat]
 ```
@@ -50,14 +52,14 @@ flowchart LR
 |-----|--------|---------|----|
 | 1.1 | Nou pressupost → Només pressupost → client → Formalització → Continuar | Esborrany `/sales/quotes/{id}`; **sense** `doc_number`; «Sense ordre» | ☐ |
 | 1.2 | Composer ≥1 línia → Formalització/plantilla → Emetre | `issued` + `doc_number`; llistat «Sense ordre» | ☐ |
-| 1.3 | Acceptar (oficina / decisió client) | `accepted`; OS auto **o** botó «Crear / reintentar ordre» | ☐ |
-| 1.4 | Si pendent: ensure | Toast + navegació SPA a `/field/orders/{id}?tab=prepare` | ☐ |
-| 1.5 | Fitxa quote | Chip «Acceptat · OS nova» només amb `project_created_from_quote` | ☐ |
-| 1.6 | Llistat `/sales/quotes` | Sense «OS nova» en files amb `project_id` (tampoc order-first) | ☐ |
-| 1.7 | Agenda | OS a **Sense planificar**; **no** Avui; `execute` | ☐ |
+| 1.3 | Acceptar (oficina / decisió client) | `accepted`; **sense** `project_id`; chip «Acceptat · Sense ordre»; notify gestors | ☐ |
+| 1.4 | «Crear ordre» → tipus/intent → confirmar | Toast + `/field/orders/{id}?tab=prepare`; chip «OS nova» | ☐ |
+| 1.5 | Alternativa: «No cal ordre» | Event `project_not_needed`; CTA amagat | ☐ |
+| 1.6 | Llistat `/sales/quotes` | Origen «Només pressupost»; sense OS fins a crear | ☐ |
+| 1.7 | Agenda + `/field/orders?fsFilter=unscheduled` | OS a Sense planificar / Sense data; **no** Avui | ☐ |
 | 1.8 | OS → línies | Mateixes línies (`source_quote_line_id`) | ☐ |
 
-**FAIL si:** OS a draft/issue; Avui mostra l’OS; llistat «OS nova» en quotes order-first.
+**FAIL si:** OS es crea sola a l’acceptar; Avui mostra l’OS; falta notify.
 
 ---
 
@@ -82,7 +84,7 @@ flowchart LR
 
 1. Quote **order-first** acceptada amb `project_id` → llistat **sense** «OS nova».
 2. Fitxa orfe acceptat amb OS (Cas 1) → «OS nova» **sí**.
-3. Orfe acceptat sense OS → «OS pendent» + ensure OK.
+3. Orfe acceptat sense OS → «Acceptat · Sense ordre» + «Crear ordre» OK.
 
 ---
 
@@ -93,7 +95,7 @@ flowchart LR
 | 5.1 | Orfe amb formalització `separate_agreement` | Mode correcte a fitxa | ☐ |
 | 5.2 | Emetre | `issued`, sense OS | ☐ |
 | 5.3 | Prepare amb `work_gate = require_signed_agreement` | Acord creat; sense link projecte (encara no OS) | ☐ |
-| 5.4 | Accept / firma acord | Quote `accepted`; OS; idealment `commercial_agreement_projects` | ☐ |
+| 5.4 | Accept / firma acord | Quote `accepted` **sense** OS auto; crear OS manual; idealment link acord | ☐ |
 | 5.5 | Punch / start visit amb OS i acord **sense** link | `agreement_work_gate_blocked` | ☐ |
 | 5.6 | Després d’enllaç + acord `active` | Punch permès | ☐ |
 

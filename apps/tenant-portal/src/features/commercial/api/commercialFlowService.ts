@@ -536,14 +536,27 @@ export async function cancelOrphanQuoteDraft(
 
 export async function ensureProjectFromOrphanQuote(
   documentId: string,
-  siteId?: string | null,
+  options?: {
+    siteId?: string | null
+    projectType?: 'work_order' | 'maintenance'
+    visitIntent?: 'generic' | 'inspection' | 'corrective'
+  },
 ): Promise<string> {
   const { data, error } = await supabase.rpc('ensure_project_from_orphan_quote' as never, {
     p_document_id: documentId,
-    p_site_id: siteId ?? null,
+    p_site_id: options?.siteId ?? null,
+    p_project_type: options?.projectType ?? 'work_order',
+    p_visit_intent: options?.visitIntent ?? 'generic',
   } as never)
   if (error) throw error
   return data as string
+}
+
+export async function markOrphanQuoteProjectNotNeeded(documentId: string): Promise<void> {
+  const { error } = await supabase.rpc('mark_orphan_quote_project_not_needed' as never, {
+    p_document_id: documentId,
+  } as never)
+  if (error) throw error
 }
 
 export async function linkAgreementProjectFromQuote(documentId: string): Promise<string | null> {

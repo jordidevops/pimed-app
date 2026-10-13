@@ -59,7 +59,7 @@ function orphanOfficeChip(
 ): string | null {
   if (doc.project_id) return null
   if (doc.status === 'accepted' || doc.status === 'signed') {
-    return t('projects.orphan.chip_os_pending', 'Acceptat · OS pendent')
+    return t('projects.orphan.chip_os_deferred', 'Acceptat · Sense ordre')
   }
   if (doc.status === 'draft' || doc.status === 'issued') {
     return t('projects.orphan.chip_orphan', 'Sense ordre')

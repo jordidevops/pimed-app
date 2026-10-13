@@ -30,6 +30,8 @@ export interface ProjectListParams {
   clientId?: string
   /** When false (default), field queues hide prospect OS. Contact lists pass true via clientId. */
   includeProspect?: boolean
+  /** Field orders without planned_start (Sense data). */
+  unscheduled?: boolean
 }
 
 export interface ProjectListResponse {
@@ -76,6 +78,7 @@ export async function getProjectsPage(
     p_open_only: params.openOnly ?? false,
     p_client_id: params.clientId || undefined,
     p_include_prospect: params.includeProspect ?? Boolean(params.clientId),
+    p_unscheduled: params.unscheduled ?? false,
   })
 
   if (error) throw error

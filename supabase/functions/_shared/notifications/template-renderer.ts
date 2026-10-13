@@ -41,6 +41,21 @@ const EVENT_TITLES: Record<string, Record<string, string>> = {
     es: "Nuevo lead",
     en: "New lead",
   },
+  QUOTE_ACCEPTED: {
+    ca: "Pressupost acceptat",
+    es: "Presupuesto aceptado",
+    en: "Quote accepted",
+  },
+  QUOTE_REJECTED: {
+    ca: "Pressupost refusat",
+    es: "Presupuesto rechazado",
+    en: "Quote rejected",
+  },
+  ORPHAN_OS_CREATED: {
+    ca: "Nova ordre des de pressupost",
+    es: "Nueva orden desde presupuesto",
+    en: "New order from quote",
+  },
   NOTIFICATION_TEST: {
     ca: "Notificació de prova",
     es: "Notificación de prueba",
@@ -146,6 +161,24 @@ function resolveBody(
     return {
       body: bodyI18n[locale] ?? bodyI18n.ca,
       bodyI18n,
+    };
+  }
+
+  if (
+    input.eventType === "QUOTE_ACCEPTED"
+    || input.eventType === "QUOTE_REJECTED"
+    || input.eventType === "ORPHAN_OS_CREATED"
+  ) {
+    const summary = typeof input.payload.summary === "string" && input.payload.summary.trim()
+      ? input.payload.summary.trim()
+      : input.eventType === "QUOTE_ACCEPTED"
+      ? "Pressupost acceptat"
+      : input.eventType === "QUOTE_REJECTED"
+      ? "Pressupost refusat"
+      : "Nova ordre des de pressupost";
+    return {
+      body: summary,
+      bodyI18n: { ca: summary, es: summary, en: summary },
     };
   }
 

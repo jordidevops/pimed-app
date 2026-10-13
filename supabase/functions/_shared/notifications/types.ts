@@ -10,6 +10,9 @@ export type NotificationEventCode =
   | "DLQ_ERROR"
   | "LEAD_RECEIVED"
   | "NOTIFICATION_TEST"
+  | "QUOTE_ACCEPTED"
+  | "QUOTE_REJECTED"
+  | "ORPHAN_OS_CREATED"
   | string;
 
 export type NotificationRecipient =
