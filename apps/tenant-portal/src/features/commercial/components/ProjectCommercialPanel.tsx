@@ -81,6 +81,10 @@ interface ProjectCommercialPanelProps {
   serviceMode?: 'execute' | 'assessment' | null
   /** Quote-first prospect OS: never offer waiver / work-without-quote. */
   allowWorkWithoutQuote?: boolean
+  /** Wizard choice, so Preparar opens with the mode already selected. */
+  initialFormalizationMode?: FormalizationMode | null
+  /** Prepare wizard owns the issue form. */
+  hideIssueComposer?: boolean
   /** Optional controlled dialogs driven by the primary action bar */
   forceViewDocId?: string | null
   forceCollectDocId?: string | null
@@ -117,6 +121,8 @@ export function ProjectCommercialPanel({
   showHeader = true,
   serviceMode = null,
   allowWorkWithoutQuote = true,
+  initialFormalizationMode = null,
+  hideIssueComposer = false,
   forceViewDocId = null,
   forceCollectDocId = null,
   forceReceiptPaymentId = null,
@@ -134,7 +140,9 @@ export function ProjectCommercialPanel({
   const isOffice = !gatesLoading && passesGate('isOffice', ctx)
   const isOfficeRole = activeRole === 'owner' || activeRole === 'manager'
   const [busy, setBusy] = useState(false)
-  const [formalizationMode, setFormalizationMode] = useState<FormalizationMode | null>(null)
+  const [formalizationMode, setFormalizationMode] = useState<FormalizationMode | null>(
+    initialFormalizationMode,
+  )
   const [quoteTemplateId, setQuoteTemplateId] = useState('')
   const [waiverOpen, setWaiverOpen] = useState(false)
   const [viewDocId, setViewDocId] = useState<string | null>(null)
@@ -589,7 +597,7 @@ export function ProjectCommercialPanel({
             )}
           </span>
         ) : null}
-        {showAuthorizeActions && !latestQuote ? (
+        {showAuthorizeActions && !latestQuote && !hideIssueComposer ? (
           <div id="commercial-issue-quote" className="space-y-3">
             <QuoteFormalizationFields
               mode={quoteFormalizationMode}
@@ -659,6 +667,16 @@ export function ProjectCommercialPanel({
               ) : null}
             </div>
           </div>
+        ) : null}
+        {hideIssueComposer &&
+        showAuthorizeActions &&
+        allowWorkWithoutQuote &&
+        showWaiverCta &&
+        !hasWaiver &&
+        !isAssessment ? (
+          <Button type="button" variant="outline" disabled={busy} onClick={() => setWaiverOpen(true)}>
+            {t('projects.commercial.work_without_quote', 'Treballar sense pressupost')}
+          </Button>
         ) : null}
         {showDeliverActions && isAssessment && !latestDelivery ? (
           <div className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">

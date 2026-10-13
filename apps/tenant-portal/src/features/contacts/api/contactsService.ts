@@ -207,6 +207,15 @@ export async function createContact(params: CreateContactParams): Promise<string
   return data as string
 }
 
+export type UpdateContactParams = CreateContactParams & {
+  p_contact_id: string
+}
+
+export async function updateContact(params: UpdateContactParams): Promise<void> {
+  const { error } = await supabase.rpc('update_contact' as never, params as never)
+  if (error) throw error
+}
+
 export async function archiveContact(contactId: string): Promise<void> {
   const { error } = await supabase.rpc('archive_contact', { p_contact_id: contactId })
   if (error) throw error

@@ -424,14 +424,14 @@ export function PublicSignPage() {
             Esteu signant com a: <span className="underline decoration-dotted">{roleLabel}</span>
           </p>
           <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">
-            Al PDF, la vostra signatura s&apos;incrustarà a la caixa de signatura etiquetada
-            «{roleLabel}» (línia discontínua).
+            Al PDF, la vostra signatura s&apos;incrustarà a la casella amb línia discontínua
+            etiquetada «{roleLabel}». Feu scroll avall per dibuixar-la.
           </p>
         </div>
 
-        {/* Visor PDF */}
+        {/* Visor PDF — altura limitada perquè el pad de firma quedi visible sota */}
         {pdfUrl ? (
-          <div className="rounded-lg border shadow overflow-hidden" style={{ height: 500 }}>
+          <div className="rounded-lg border shadow overflow-hidden h-[min(42vh,22rem)] min-h-[14rem]">
             <iframe
               src={pdfUrl}
               title="Document a signar"
@@ -439,7 +439,7 @@ export function PublicSignPage() {
             />
           </div>
         ) : (
-          <div className="rounded-lg border bg-gray-50 flex flex-col items-center justify-center gap-2" style={{ height: 200 }}>
+          <div className="rounded-lg border bg-gray-50 flex flex-col items-center justify-center gap-2 h-40">
             <p className="text-gray-500 text-sm">No s&apos;ha pogut carregar la vista prèvia del document.</p>
             <p className="text-gray-400 text-xs">Podeu continuar signant; la signatura s&apos;aplicarà al document correcte.</p>
           </div>
@@ -536,20 +536,18 @@ export function PublicSignPage() {
 // ---------------------------------------------------------------------------
 
 function PublicLayout({ children }: { children: React.ReactNode }) {
+  // App shell uses overflow-hidden; this page must scroll so the signature pad is reachable.
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header mínim */}
-      <header className="bg-white border-b px-6 py-4 flex items-center gap-3">
+    <div className="h-full min-h-0 overflow-y-auto overscroll-contain bg-gray-50">
+      <header className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex items-center gap-3">
         <div className="w-6 h-6 bg-indigo-600 rounded-md" />
         <span className="font-semibold text-gray-800">Portal de Signatura</span>
       </header>
 
-      {/* Contingut */}
-      <main className="max-w-3xl mx-auto px-4 py-8">
+      <main className="max-w-3xl mx-auto px-4 py-8 pb-16">
         {children}
       </main>
 
-      {/* Footer */}
       <footer className="text-center text-xs text-gray-400 py-6">
         Signatura electrònica simple · Reglament eIDAS (UE) 910/2014
       </footer>

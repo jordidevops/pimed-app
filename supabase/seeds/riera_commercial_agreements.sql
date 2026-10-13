@@ -291,7 +291,7 @@ VALUES
     NULL, NULL, NULL,
     'accepted',
     '{"display_name":"Riera Instal·lacions","legal_name":"Riera Instal·lacions"}'::jsonb,
-    '{"display_name":"Marta Roca","email":"marta.roca@clot.cat"}'::jsonb,
+    '{"display_name":"Marta Roca","email":"jordi.devops@gmail.com"}'::jsonb,
     '{}'::jsonb,
     'ca', 'EUR', 45.00, '[{"tax_rate":21,"tax_base":45,"tax_amount":9.45}]'::jsonb, 54.45, true,
     encode(extensions.digest('P-2026-9010|45.00', 'sha256'), 'hex'),

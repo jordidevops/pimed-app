@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageShell } from '@/components/layout/PageShell'
+import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
 import { useIsLargeScreen } from '@/hooks/useIsLargeScreen'
 import {
@@ -27,9 +28,15 @@ import {
   listQuoteAgreementStates,
   revokeCommercialDecisionRequest,
   ensureProjectFromOrphanQuote,
+  cancelCommercialDocument,
+  createOrphanQuoteDraft,
+  setCommercialDocumentTitle,
+  upsertCommercialDocumentLine,
 } from '../api/commercialFlowService'
 import { CommercialSummaryLines } from './CommercialSummaryLines'
 import { OrphanQuoteComposer } from './OrphanQuoteComposer'
+import { OrphanCommercialGuide } from './OrphanCommercialGuide'
+import { DeliverChoiceDialog } from './DeliverChoiceDialog'
 import { CommercialNativeSignDialog } from './CommercialNativeSignDialog'
 import { CommercialOfficeRejectDialog } from './CommercialOfficeRejectDialog'
 import { CommercialOfficeAcceptDialog } from './CommercialOfficeAcceptDialog'
@@ -47,7 +54,11 @@ import {
   commercialSigningProviderLabelKey,
 } from '../utils/commercialSigningBadges'
 import type { CommercialDocumentDetail as DocDetail } from '../utils/commercialDocumentModel'
-import { isOfficeAcceptedEvent } from '../utils/commercialDocumentModel'
+import {
+  collapseQuoteLifecycleEvents,
+  isOfficeAcceptedEvent,
+  isQuoteIssuedAsOrphan,
+} from '../utils/commercialDocumentModel'
 import { parseAllowOfficeAccept } from '../utils/deviationApprovalThreshold'
 import {
   commercialFilename,
@@ -248,6 +259,117 @@ function PdfPanel({
   )
 }
 
+function deliveryChannelLabel(
+  channel: string | null | undefined,
+  t: (key: string, fallback: string) => string,
+): string {
+  switch (channel) {
+    case 'email':
+      return t('projects.commercial.share_channel_email', 'Correu')
+    case 'whatsapp':
+    case 'whatsapp_portal_nudge':
+      return t('projects.commercial.share_channel_whatsapp', 'WhatsApp')
+    case 'copy_link':
+      return t('projects.commercial.share_channel_link', 'Enllaç')
+    case 'portal':
+      return t('projects.commercial.share_channel_portal', 'Portal')
+    case 'presential':
+      return t('projects.commercial.share_channel_presential', 'Presencial')
+    default:
+      return channel || '—'
+  }
+}
+
+function QuoteDeliveryTrace({
+  sentEvents,
+  decisionDelivery,
+  signatureOpen,
+}: {
+  sentEvents: DocDetail['events']
+  decisionDelivery: {
+    id: string
+    channel: string
+    status: string
+    recipient_masked: string | null
+    created_at: string
+    error_code: string | null
+  } | null
+  signatureOpen: boolean
+}) {
+  const { t } = useTranslation('projects')
+  const rows = [
+    ...sentEvents.map((event) => {
+      const payload = event.payload
+      const recipient =
+        payload && typeof payload.recipient_masked === 'string'
+          ? payload.recipient_masked
+          : payload && typeof payload.recipient === 'string'
+            ? payload.recipient
+            : null
+      return {
+        id: event.id,
+        channel: event.channel,
+        at: event.occurred_at,
+        recipient,
+        status: null as string | null,
+        error: null as string | null,
+      }
+    }),
+    ...(decisionDelivery
+      ? [
+          {
+            id: decisionDelivery.id,
+            channel: decisionDelivery.channel,
+            at: decisionDelivery.created_at,
+            recipient: decisionDelivery.recipient_masked,
+            status: decisionDelivery.status,
+            error: decisionDelivery.error_code,
+          },
+        ]
+      : []),
+  ]
+  const delivered = rows.length > 0
+
+  return (
+    <section className="space-y-2 rounded-xl border border-border px-3 py-3">
+      <p className="text-sm font-semibold text-foreground">
+        {delivered
+          ? t('projects.orphan.delivered', 'Entregat')
+          : t('projects.orphan.not_delivered', 'No entregat')}
+      </p>
+      {signatureOpen ? (
+        <p className="text-sm text-muted-foreground">
+          {t(
+            'projects.orphan.reply_pending',
+            'Resposta pendent. Acceptar o refusar es fa dins la firma, no des d’aquests botons.',
+          )}
+        </p>
+      ) : null}
+      {delivered ? (
+        <ul className="space-y-1 text-sm text-muted-foreground">
+          {rows.map((row) => (
+            <li key={row.id}>
+              {deliveryChannelLabel(row.channel, t)}
+              {' · '}
+              {formatCommercialEventDate(row.at)}
+              {row.recipient ? ` · ${row.recipient}` : ''}
+              {row.status ? ` · ${row.status}` : ''}
+              {row.error ? ` · ${row.error}` : ''}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          {t(
+            'projects.orphan.not_delivered_help',
+            'Encara no hi ha cap enviament ni cap sol·licitud de firma.',
+          )}
+        </p>
+      )}
+    </section>
+  )
+}
+
 export function CommercialDocumentDetail({
   documentId,
   backTo,
@@ -282,6 +404,8 @@ export function CommercialDocumentDetail({
   const [officeRejectOpen, setOfficeRejectOpen] = useState(false)
   const [officeAcceptOpen, setOfficeAcceptOpen] = useState(false)
   const [sendDecisionOpen, setSendDecisionOpen] = useState(false)
+  const [deliverChoiceOpen, setDeliverChoiceOpen] = useState(false)
+  const [correctBusy, setCorrectBusy] = useState(false)
   const [sendDecisionResend, setSendDecisionResend] = useState(false)
   const [decisionBusy, setDecisionBusy] = useState(false)
   const [prepareOpen, setPrepareOpen] = useState(false)
@@ -291,6 +415,29 @@ export function CommercialDocumentDetail({
   const [ensureSiteId, setEnsureSiteId] = useState<string>('')
   const [ensureBusy, setEnsureBusy] = useState(false)
   const pendingCardRef = useRef<HTMLElement | null>(null)
+  const cancelActorIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const event of doc?.events ?? []) {
+      if (event.event_type === 'cancelled' && event.actor_id) ids.add(event.actor_id)
+    }
+    return [...ids].sort()
+  }, [doc?.events])
+  const cancelActorsQuery = useQuery({
+    queryKey: ['commercial', 'cancel-actors', cancelActorIds],
+    enabled: cancelActorIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('id, full_name')
+        .in('id', cancelActorIds)
+      if (error) throw error
+      const names = new Map<string, string>()
+      for (const row of data ?? []) {
+        if (row.id && row.full_name) names.set(row.id, row.full_name)
+      }
+      return names
+    },
+  })
 
   const { data: signingHub } = useCommercialDocumentSigningHub(documentId)
   const signedPreviewVersionId =
@@ -332,6 +479,26 @@ export function CommercialDocumentDetail({
     enabled: !!documentId && doc?.doc_type !== 'delivery_note',
   })
   const agreement = agreementStates[0] ?? null
+  const { data: linkedProject } = useQuery({
+    queryKey: ['projects', 'linked-from-quote', doc?.project_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, name')
+        .eq('id', doc!.project_id!)
+        .maybeSingle()
+      if (error) throw error
+      return data as { id: string; name: string } | null
+    },
+    enabled: !!doc?.project_id,
+  })
+  const issuedAsOrphan = useMemo(
+    () =>
+      !!doc &&
+      (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment') &&
+      isQuoteIssuedAsOrphan(doc.events, doc.project_id),
+    [doc],
+  )
   const quoteExpired =
     !!doc?.valid_until && new Date(doc.valid_until).getTime() < Date.now()
   const sendCta = commercialDecisionSendCta({
@@ -460,8 +627,23 @@ export function CommercialDocumentDetail({
       effectiveStatus === 'signed')
 
   const signedPdfId = commercialSignedPdfDocumentId(signingHub)
+  const isQuoteDoc = doc?.doc_type === 'quote' || doc?.doc_type === 'quote_amendment'
+  const sentEvents = (doc?.events ?? []).filter((event) => event.event_type === 'sent')
+  const decisionDelivery = openDecision?.latest_delivery ?? null
+  const hasDelivery = sentEvents.length > 0 || Boolean(decisionDelivery)
+  const signatureOpen = sendCta === 'view_pending'
+  const officeHeardReply = showDecideFooter && sentEvents.length > 0 && !signatureOpen
+  const canCorrect =
+    !!doc &&
+    doc.doc_type === 'quote' &&
+    doc.status === 'issued' &&
+    !hasDelivery &&
+    canEditPricing &&
+    !correctBusy
+
   const showHtmlFallback =
-    Boolean(preview?.kind === 'html') &&
+    doc?.status !== 'draft' &&
+    preview?.kind === 'html' &&
     (pdf.status === 'pending' || pdf.status === 'loading' || pdf.status === 'error' || pdf.status === 'offline')
 
   const title = doc
@@ -475,18 +657,23 @@ export function CommercialDocumentDetail({
       (sendCta === 'send_for_accept' || sendCta === 'view_pending')
     )
 
+  const orphanDraftHeader =
+    !!doc &&
+    !doc.project_id &&
+    doc.status === 'draft' &&
+    (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment')
+
   const commercialHeaderActions = (
     <>
-      {sendCta === 'send_for_accept' ? (
+      {canCorrect ? (
         <Button
           type="button"
           size="sm"
-          onClick={() => {
-            setSendDecisionResend(false)
-            setSendDecisionOpen(true)
-          }}
+          variant="outline"
+          disabled={correctBusy}
+          onClick={() => void correctIssuedQuote()}
         >
-          {t('projects.commercial.decision_send_title', 'Enviar per acceptar')}
+          {t('projects.orphan.correct', 'Corregir')}
         </Button>
       ) : null}
       {sendCta === 'view_pending' && openDecision ? (
@@ -500,13 +687,22 @@ export function CommercialDocumentDetail({
           {t('projects.commercial.decision_view_pending', 'Veure resposta pendent')}
         </Button>
       ) : null}
-      {doc && onShare && doc.status !== 'cancelled' && doc.status !== 'draft' ? (
+      {doc &&
+      isQuoteDoc &&
+      doc.status !== 'cancelled' &&
+      doc.status !== 'draft' &&
+      doc.status !== 'rejected' &&
+      doc.status !== 'expired' ? (
         <Button
           type="button"
           size="sm"
-          variant={sendCta === 'send_for_accept' || sendCta === 'view_pending' ? 'outline' : 'default'}
-          onClick={onShare}
+          variant={signatureOpen ? 'outline' : 'default'}
+          onClick={() => setDeliverChoiceOpen(true)}
         >
+          {t('projects.orphan.deliver', 'Entregar')}
+        </Button>
+      ) : doc && onShare && doc.status !== 'cancelled' && doc.status !== 'draft' ? (
+        <Button type="button" size="sm" variant="outline" onClick={onShare}>
           {t('projects.commercial.share_title_deliver', 'Només entregar')}
         </Button>
       ) : null}
@@ -515,7 +711,7 @@ export function CommercialDocumentDetail({
           {t('projects.commercial.sign_delivery', 'Signar conformitat')}
         </Button>
       ) : null}
-      {showDecideFooter && !decisionEnabled ? (
+      {officeHeardReply ? (
         <>
           <Button
             type="button"
@@ -524,42 +720,9 @@ export function CommercialDocumentDetail({
             disabled={decisionBusy}
             onClick={() => setOfficeRejectOpen(true)}
           >
-            {t('projects.commercial.reject', 'Refusar')}
-          </Button>
-          {showOfficeAccept ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={decisionBusy}
-              onClick={() => setOfficeAcceptOpen(true)}
-            >
-              {t(
-                'projects.commercial.office_accept_cta',
-                'Registrar acceptació (oficina)',
-              )}
-            </Button>
-          ) : null}
-          <Button
-            type="button"
-            size="sm"
-            disabled={decisionBusy}
-            onClick={() => setSignAction('accept')}
-          >
-            {t('projects.commercial.accept', 'Acceptar')}
-          </Button>
-        </>
-      ) : null}
-      {showDecideFooter && decisionEnabled ? (
-        <>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={decisionBusy}
-            onClick={() => setOfficeRejectOpen(true)}
-          >
-            {t('projects.commercial.decision_register_reject', 'Registrar refús')}
+            {decisionEnabled
+              ? t('projects.commercial.decision_register_reject', 'Registrar refús')
+              : t('projects.commercial.reject', 'Refusar')}
           </Button>
           {showOfficeAccept ? (
             <Button
@@ -585,8 +748,8 @@ export function CommercialDocumentDetail({
         </Button>
       ) : null}
       {commercialActions}
-      {doc ? (
-        <DropdownMenu>
+      {doc && !orphanDraftHeader ? (
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button type="button" size="sm" variant="outline" className="gap-1">
               <MoreHorizontal className="h-4 w-4" aria-hidden />
@@ -594,17 +757,10 @@ export function CommercialDocumentDetail({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {pdf.renderedDocumentId ? (
+            {signedPdfId || pdf.renderedDocumentId ? (
               <DropdownMenuItem asChild>
-                <Link to={dmsHref(pdf.renderedDocumentId)}>
+                <Link to={dmsHref(signedPdfId ?? pdf.renderedDocumentId!)}>
                   {t('projects.commercial.open_dms', 'Obrir al DMS')}
-                </Link>
-              </DropdownMenuItem>
-            ) : null}
-            {signedPdfId && signedPdfId !== pdf.renderedDocumentId ? (
-              <DropdownMenuItem asChild>
-                <Link to={dmsHref(signedPdfId)}>
-                  {t('projects.commercial.open_signed_pdf', 'Obrir PDF firmat')}
                 </Link>
               </DropdownMenuItem>
             ) : null}
@@ -647,7 +803,7 @@ export function CommercialDocumentDetail({
                 {t('projects.commercial.share_print', 'Imprimir HTML')}
               </DropdownMenuItem>
             ) : null}
-            {showDecideFooter && decisionEnabled && effectiveStatus === 'issued' ? (
+            {signatureOpen && decisionEnabled && effectiveStatus === 'issued' ? (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -682,6 +838,24 @@ export function CommercialDocumentDetail({
       </p>
     ) : (
       <div className="space-y-5">
+        {doc && isQuoteDoc && doc.status !== 'draft' ? (
+          <>
+            <OrphanCommercialGuide
+              hasLines={doc.lines.length > 0}
+              status={effectiveStatus ?? doc.status}
+              hasProject={!!doc.project_id}
+              issuedAsOrphan={issuedAsOrphan}
+              formalizationMode={doc.formalization_mode}
+              hasAgreement={!!agreement}
+              delivered={hasDelivery}
+            />
+            <QuoteDeliveryTrace
+              sentEvents={sentEvents}
+              decisionDelivery={decisionDelivery}
+              signatureOpen={signatureOpen}
+            />
+          </>
+        ) : null}
         {artifactStatus?.artifact_status === 'failed' ||
         (artifactStatus?.artifact_status === 'pending' &&
           artifactStatus.request_status === 'accepted' &&
@@ -884,12 +1058,28 @@ export function CommercialDocumentDetail({
         ) : null}
 
         {(() => {
-          const lifecycle = (doc.events ?? []).filter((event) =>
-            (COMMERCIAL_LIFECYCLE_EVENT_TYPES as readonly string[]).includes(event.event_type),
-          )
+          // Quote pages already list sends under «Entregat»; skip them in Dates.
+          const showDeliveryTrace = isQuoteDoc && doc.status !== 'draft'
+          const rawLifecycle = (doc.events ?? []).filter((event) => {
+            if (
+              !(COMMERCIAL_LIFECYCLE_EVENT_TYPES as readonly string[]).includes(
+                event.event_type,
+              )
+            ) {
+              return false
+            }
+            if (showDeliveryTrace && event.event_type === 'sent') return false
+            return true
+          })
+          const lifecycle = isQuoteDoc
+            ? collapseQuoteLifecycleEvents(rawLifecycle)
+            : rawLifecycle.map((event) => ({ ...event }))
           if (lifecycle.length === 0 && !doc.issued_at) return null
-          const eventLabel = (type: string) => {
-            switch (type) {
+          const eventLabel = (event: (typeof lifecycle)[number]) => {
+            if (event.displayKind === 'order_created') {
+              return t('projects.orphan.os_created', 'Ordre creada')
+            }
+            switch (event.event_type) {
               case 'issued':
                 return t('projects.commercial.event_issued', 'Emès')
               case 'sent':
@@ -901,6 +1091,8 @@ export function CommercialDocumentDetail({
                       'Acceptat per oficina',
                     )
                   : t('projects.commercial.event_accepted', 'Acceptat')
+              case 'project_linked':
+                return t('projects.orphan.os_created', 'Ordre creada')
               case 'rejected':
                 return t('projects.commercial.event_rejected', 'Refusat')
               case 'cancelled':
@@ -914,7 +1106,7 @@ export function CommercialDocumentDetail({
               case 'signed':
                 return t('projects.commercial.event_signed', 'Signat')
               default:
-                return type
+                return event.event_type
             }
           }
           return (
@@ -928,12 +1120,46 @@ export function CommercialDocumentDetail({
                   {formatCommercialEventDate(doc.issued_at)}
                 </p>
               ) : null}
-              {lifecycle.map((event) => (
-                <p key={event.id} className="text-sm text-muted-foreground">
-                  {eventLabel(event.event_type)} {formatCommercialEventDate(event.occurred_at)}
-                  {event.event_type === 'sent' && event.channel ? ` · ${event.channel}` : ''}
-                </p>
-              ))}
+              {lifecycle.map((event) => {
+                const reason =
+                  event.event_type === 'cancelled' &&
+                  typeof event.payload?.reason === 'string' &&
+                  event.payload.reason &&
+                  event.payload.reason !== 'orphan_draft_discard'
+                    ? event.payload.reason
+                    : null
+                const actorName =
+                  event.event_type === 'cancelled' && event.actor_id
+                    ? cancelActorsQuery.data?.get(event.actor_id)
+                    : null
+                const orderId =
+                  event.displayKind === 'order_created' &&
+                  typeof event.payload?.project_id === 'string'
+                    ? event.payload.project_id
+                    : null
+                return (
+                  <p
+                    key={event.displayKey ?? event.id}
+                    className="text-sm text-muted-foreground"
+                  >
+                    {eventLabel(event)} {formatCommercialEventDate(event.occurred_at)}
+                    {event.event_type === 'sent' && event.channel ? ` · ${event.channel}` : ''}
+                    {actorName ? ` · ${actorName}` : ''}
+                    {reason ? ` · ${reason}` : ''}
+                    {orderId ? (
+                      <>
+                        {' · '}
+                        <Link
+                          to={`/field/orders/${orderId}`}
+                          className="text-primary underline-offset-2 hover:underline"
+                        >
+                          {t('projects.quotes.open_order', 'Obrir ordre')}
+                        </Link>
+                      </>
+                    ) : null}
+                  </p>
+                )
+              })}
             </section>
           )
         })()}
@@ -969,6 +1195,36 @@ export function CommercialDocumentDetail({
             ) : null}
           </div>
         </section>
+
+        {doc.project_id && isQuoteDoc ? (
+          <section className="rounded-xl border border-border px-4 py-3">
+            <p className="text-xs text-muted-foreground">
+              {t('projects.quotes.col_order', 'Ordre')}
+            </p>
+            <Link
+              to={`/field/orders/${doc.project_id}`}
+              className="mt-0.5 inline-flex items-center gap-1.5 font-medium text-primary underline-offset-2 hover:underline"
+            >
+              {linkedProject?.name?.trim() ||
+                t('projects.quotes.open_order', 'Obrir ordre')}
+            </Link>
+            {issuedAsOrphan ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t(
+                  'projects.quotes.origin_orphan_linked',
+                  'Creada en acceptar el pressupost (Només pressupost).',
+                )}
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t(
+                  'projects.quotes.origin_with_job',
+                  'Flux Feina amb pressupost.',
+                )}
+              </p>
+            )}
+          </section>
+        ) : null}
 
         <CommercialSummaryLines
           lines={doc.lines}
@@ -1073,6 +1329,12 @@ export function CommercialDocumentDetail({
   const orphanCreatedFromQuote = (doc?.events ?? []).some(
     (e) => e.payload?.project_created_from_quote === true,
   )
+  const quoteOriginChip =
+    doc && (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment')
+      ? issuedAsOrphan
+        ? t('projects.quotes.wizard_type_orphan_title', 'Només pressupost')
+        : t('projects.quotes.wizard_type_prospect_title', 'Feina amb pressupost')
+      : null
   const orphanDetailChip =
     doc &&
     (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment')
@@ -1145,6 +1407,76 @@ export function CommercialDocumentDetail({
     void runEnsureOs(null)
   }
 
+  async function correctIssuedQuote() {
+    if (!doc || !canCorrect) return
+    setCorrectBusy(true)
+    try {
+      if (doc.project_id) {
+        await cancelCommercialDocument({
+          documentId: doc.id,
+          reason: 'correct_before_delivery',
+        })
+        toast({
+          title: t('projects.orphan.corrected', 'Número anul·lat'),
+          description: t(
+            'projects.orphan.corrected_project_help',
+            'El número queda a l’historial. Torna a Preparar per emetre un altre.',
+          ),
+        })
+        navigate(`/field/orders/${doc.project_id}?tab=prepare`)
+        return
+      }
+      const newId = await createOrphanQuoteDraft({
+        tenantId: doc.tenant_id,
+        clientId: doc.client_id,
+        formalizationMode:
+          doc.formalization_mode === 'separate_agreement' ? 'separate_agreement' : 'signed_quote',
+      })
+      if (doc.title?.trim()) {
+        await setCommercialDocumentTitle({ documentId: newId, title: doc.title.trim() })
+      }
+      for (const [index, line] of doc.lines.entries()) {
+        await upsertCommercialDocumentLine({
+          documentId: newId,
+          catalogItemId: null,
+          kind: line.kind,
+          name: line.name,
+          description: line.description,
+          unit: line.unit,
+          quantity: line.quantity,
+          unitPrice: line.unit_price,
+          discountPct: line.discount_pct,
+          taxRate: line.tax_rate,
+          position: index + 1,
+        })
+      }
+      await cancelCommercialDocument({
+        documentId: doc.id,
+        reason: 'correct_before_delivery',
+      })
+      toast({
+        title: t('projects.orphan.corrected', 'Número anul·lat'),
+        description: t(
+          'projects.orphan.corrected_help',
+          'S’ha obert un esborrany nou amb el mateix títol, línies i formalització.',
+        ),
+      })
+      navigate(`/sales/quotes/${newId}`, {
+        state: {
+          templateId: doc.full_body_template_id ?? null,
+          step: doc.lines.length > 0 ? 'issue' : 'lines',
+        },
+      })
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        description: err instanceof Error ? err.message : t('common:error', 'Error'),
+      })
+    } finally {
+      setCorrectBusy(false)
+    }
+  }
+
   const orphanForm = orphanQuote ? (
     <div className="space-y-2">
       <OrphanQuoteComposer
@@ -1154,7 +1486,8 @@ export function CommercialDocumentDetail({
         lines={doc.lines}
         title={doc.title}
         formalizationMode={doc.formalization_mode}
-        hasAgreement={!!agreement}
+        doc={doc}
+        clientId={doc.client_id}
         onChanged={() => {
           setReloadToken((n) => n + 1)
           onChanged?.()
@@ -1173,15 +1506,7 @@ export function CommercialDocumentDetail({
     </div>
   ) : null
 
-  const orphanComposer =
-    isLarge && orphanDraft ? (
-      <div className="mb-4 flex flex-wrap items-start gap-4">
-        <div className="w-full min-w-0 max-w-3xl">{orphanForm}</div>
-        <aside className="sticky top-2 w-full max-w-sm shrink-0 space-y-4 lg:w-80">{summaryBody}</aside>
-      </div>
-    ) : (
-      orphanForm && <div className="mb-4">{orphanForm}</div>
-    )
+  const orphanComposer = orphanForm ? <div className="mb-4">{orphanForm}</div> : null
 
   return (
     <>
@@ -1209,6 +1534,11 @@ export function CommercialDocumentDetail({
                 </span>
               ) : null}
               <CommercialRelationshipBadges kinds={relationshipBadges} />
+              {quoteOriginChip ? (
+                <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                  {quoteOriginChip}
+                </span>
+              ) : null}
               {orphanDetailChip ? (
                 <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
                   {orphanDetailChip}
@@ -1222,7 +1552,9 @@ export function CommercialDocumentDetail({
             <Button asChild variant="ghost" size="sm" className="gap-1">
               <Link to={backTo}>
                 <ArrowLeft className="h-4 w-4" aria-hidden />
-                {t('common:back', 'Tornar')}
+                {backTo.startsWith('/sales/quotes')
+                  ? t('projects.quotes.title', 'Pressupostos')
+                  : t('common:back', 'Tornar')}
               </Link>
             </Button>
             {commercialHeaderActions}
@@ -1230,16 +1562,14 @@ export function CommercialDocumentDetail({
         }
       >
         {orphanComposer}
-        {isLarge && orphanDraft ? (
-          <div className="min-h-[min(70dvh,48rem)]">{pdfBlock}</div>
-        ) : isLarge ? (
+        {isLarge && orphanDraft ? null : isLarge ? (
           <div className="grid min-h-[calc(100dvh-10rem)] grid-cols-[minmax(0,18rem)_minmax(0,1fr)] gap-4 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
             <div className="min-w-0 space-y-4 overflow-y-auto pr-1">{summaryBody}</div>
             <div className="min-h-0 sticky top-2 self-start h-[calc(100dvh-8rem)]">
               {pdfBlock}
             </div>
           </div>
-        ) : (
+        ) : orphanDraft ? null : (
           <Tabs defaultValue="document" className="w-full">
             <TabsList>
               <TabsTrigger value="summary">
@@ -1258,6 +1588,22 @@ export function CommercialDocumentDetail({
           </Tabs>
         )}
       </PageShell>
+
+      <DeliverChoiceDialog
+        open={deliverChoiceOpen}
+        onOpenChange={setDeliverChoiceOpen}
+        clientId={doc?.client_id}
+        buyerSnapshot={doc?.buyer_snapshot}
+        onPdfOnly={() => onShare?.()}
+        onAskReply={() => {
+          if (decisionEnabled) {
+            setSendDecisionResend(false)
+            setSendDecisionOpen(true)
+            return
+          }
+          setSignAction('accept')
+        }}
+      />
 
       {doc && showPrepareAgreement ? (
         <PrepareAgreementDialog

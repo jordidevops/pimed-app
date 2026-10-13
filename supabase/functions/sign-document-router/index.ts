@@ -2105,6 +2105,89 @@ Deno.serve(async (req: Request) => {
             commercial_decision_request_id: commercialReuse.requestId,
           },
         });
+      } else if (
+        body.source_type === "document_existing" &&
+        sourceFile.documentId &&
+        body.source_document_version_id
+      ) {
+        // DMS canònic: mai crear un document germà. PDF ja emès → reutilitza la versió;
+        // HTML/DOCX → converteix i afegeix versió al mateix document.
+        try {
+          if (sourceIsPdf) {
+            syncDocumentId = sourceFile.documentId;
+            syncVersionId = body.source_document_version_id;
+            pdfBytesForFieldMap = fileBytesNative;
+            log("info", FEATURE, "sign_native reuse existing DMS PDF version", {
+              extra: { document_id: syncDocumentId, version_id: syncVersionId },
+            });
+          } else {
+            if (cfgNative["pdf_enabled"] !== true) throw new Error("pdf_disabled");
+
+            const gotNative = createGotenbergClientFromConfig(cfgNative);
+            let pdfBytesNative: Uint8Array;
+            if (!isDocxNative && htmlForSigning) {
+              pdfBytesNative = await gotNative.htmlToPdf(htmlForSigning, {
+                profile:    "pdfa2b",
+                headerHtml: nativePageHeaderHtml ?? undefined,
+                footerHtml: nativePageFooterHtml ?? undefined,
+              });
+            } else if (isDocxNative) {
+              pdfBytesNative = await gotNative.docxToPdf(fileBytesNative, { profile: "pdfa2b" });
+            } else {
+              pdfBytesNative = fileBytesNative;
+            }
+            pdfBytesForFieldMap = pdfBytesNative;
+
+            const titleNative = body.document_title ?? sourceFile.name.replace(/\.[^.]+$/, "");
+            const pdfNameNative = sanitizeFileName(titleNative) + "_to_sign.pdf";
+            const pdfPathNative = `${body.tenant_id}/${crypto.randomUUID()}/${pdfNameNative}`;
+
+            const { error: upErrNative } = await adminClient.storage
+              .from(DOCUMENTS_BUCKET)
+              .upload(pdfPathNative, new Blob([pdfBytesNative], { type: "application/pdf" }), {
+                contentType: "application/pdf", upsert: false,
+              });
+            if (upErrNative) throw upErrNative;
+
+            const { data: verNative, error: verErrNative } = await userClient.rpc("add_document_version", {
+              p_document_id:      sourceFile.documentId,
+              p_file_path_or_url: pdfPathNative,
+              p_mime_type:        "application/pdf",
+              p_size_bytes:       pdfBytesNative.byteLength,
+              p_storage_type:     "native",
+            });
+            if (verErrNative || !verNative) {
+              throw new Error(verErrNative?.message ?? "add_document_version error");
+            }
+            const parsedVer = (typeof verNative === "string" ? JSON.parse(verNative) : verNative) as Record<string, unknown>;
+            syncDocumentId = sourceFile.documentId;
+            syncVersionId = ((parsedVer?.version as Record<string, unknown>)?.id
+              ?? parsedVer?.version_id
+              ?? parsedVer?.id
+              ?? null) as string | null;
+
+            log("info", FEATURE, "sign_native PDF added as version on existing DMS document", {
+              extra: { document_id: syncDocumentId, version_id: syncVersionId },
+            });
+          }
+        } catch (gotErrNative) {
+          const isUnreachable = gotErrNative instanceof GotenbergError && gotErrNative.isUnreachable;
+          const isPdfDisabled = (gotErrNative as Error).message === "pdf_disabled";
+
+          if (sourceIsPdf) {
+            // Reuse path should not fall through to create_document_with_version.
+            throw gotErrNative instanceof AppError
+              ? gotErrNative
+              : new AppError(500, "pdf_generation_error", (gotErrNative as Error).message);
+          }
+
+          if (!isUnreachable && !isPdfDisabled) {
+            throw new AppError(500, "pdf_generation_error", (gotErrNative as Error).message);
+          }
+          log("warn", FEATURE, "sign_native async fallback (existing document)", {
+            extra: { reason: isPdfDisabled ? "pdf disabled" : "Gotenberg unreachable" },
+          });
+        }
       } else {
         try {
           if (cfgNative["pdf_enabled"] !== true) throw new Error("pdf_disabled");
@@ -2136,6 +2219,7 @@ Deno.serve(async (req: Request) => {
             });
           if (upErrNative) throw upErrNative;
 
+          // Només plantilles / fonts sense document DMS: crea document nou.
           const { data: rpcNative, error: rpcErrNative } = await userClient.rpc("create_document_with_version", {
             p_tenant_id:        body.tenant_id,
             p_folder_id:        body.folder_id ?? null,

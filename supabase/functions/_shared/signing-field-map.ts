@@ -34,6 +34,9 @@ const A4_HEIGHT_PT = 841.89;
 export const SIGNER_ROLE_LABELS: Record<string, string> = {
   worker:  "Treballador/a",
   manager: "Responsable",
+  client_accept: "Accepto",
+  client_reject: "Refús",
+  client_delivery: "Conformitat de lliurament",
 };
 
 export function roleDisplayLabel(role: string, name?: string): string {
@@ -81,7 +84,8 @@ export function injectHtmlSignatureMarkers(html: string): {
       `style="display:block;width:${wPx};height:${hPx};` +
       `border:1px dashed #999;position:relative;box-sizing:border-box;margin:10px 0;">` +
       `<span style="position:absolute;left:6px;top:6px;font-size:10pt;color:#555;">${label}</span>` +
-      `<span style="position:absolute;left:6px;bottom:6px;font-size:9pt;color:#888;font-family:monospace;">` +
+      `<span aria-hidden="true" style="position:absolute;left:6px;bottom:4px;font-size:1px;` +
+      `line-height:1px;color:#ffffff;opacity:0.01;font-family:monospace;">` +
       `${markerTokenForRole(role)}</span>` +
       `</div>`
     );

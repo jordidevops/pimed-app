@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,10 @@ type DocumentTemplateSelectProps = {
   emptyPreviewTemplateId?: string | null
   emptyPreviewMessage?: string
   emptySystemDefaultDocType?: 'quote' | 'delivery_note' | null
+  /** Shown in the picker when the empty option is highlighted. */
+  emptyPreview?: ReactNode
+  /** Live preview for the highlighted template, including the empty option. */
+  previewFor?: (templateId: string) => ReactNode
 }
 
 export function DocumentTemplateSelect({
@@ -44,6 +48,8 @@ export function DocumentTemplateSelect({
   emptyPreviewTemplateId,
   emptyPreviewMessage,
   emptySystemDefaultDocType,
+  emptyPreview,
+  previewFor,
 }: DocumentTemplateSelectProps) {
   const { t } = useTranslation('projects')
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -113,6 +119,8 @@ export function DocumentTemplateSelect({
         emptyPreviewTemplateId={emptyPreviewTemplateId}
         emptyPreviewMessage={emptyPreviewMessage}
         emptySystemDefaultDocType={emptySystemDefaultDocType}
+        emptyPreview={emptyPreview}
+        previewFor={previewFor}
       />
     </div>
   )

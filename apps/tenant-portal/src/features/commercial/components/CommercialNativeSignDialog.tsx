@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/contexts/TenantContext'
+import { getContact } from '@/features/contacts/api/contactsService'
 import { generateClientOpId } from '@/features/attendance/api/clientOpId'
 import { SignaturePad } from '@/features/signing/components/SignaturePad'
 import {
@@ -34,6 +35,7 @@ import {
   isDecisionRequestsDisabledError,
 } from '../utils/commercialErrorMessage'
 import { docTypeLabel, partyDisplayName } from '../utils/commercialDocumentModel'
+import { withLiveBuyerContact } from '../utils/commercialShare'
 
 interface CommercialNativeSignDialogProps {
   documentId: string
@@ -80,15 +82,25 @@ export function CommercialNativeSignDialog({
     setPdfPreviewUrl(null)
     setRejectReason('')
     let cancelled = false
-    void getCommercialDocumentDetail(documentId)
-      .then((doc) => {
+    void (async () => {
+      try {
+        const doc = await getCommercialDocumentDetail(documentId)
         if (cancelled) return
-        setSignerName(partyDisplayName(doc.buyer_snapshot).replace('—', '').trim())
-        setSignerEmail(doc.buyer_snapshot.email?.trim() ?? '')
-      })
-      .catch(() => {
+        let buyerDoc = doc
+        if (doc.client_id) {
+          try {
+            buyerDoc = withLiveBuyerContact(doc, await getContact(doc.client_id))
+          } catch {
+            /* keep snapshot if contact cannot be loaded */
+          }
+        }
+        if (cancelled) return
+        setSignerName(partyDisplayName(buyerDoc.buyer_snapshot).replace('—', '').trim())
+        setSignerEmail(buyerDoc.buyer_snapshot.email?.trim() ?? '')
+      } catch {
         /* fields stay empty; user can type them */
-      })
+      }
+    })()
     return () => {
       cancelled = true
     }

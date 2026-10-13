@@ -412,6 +412,29 @@ export async function previewDeliveryNote(projectId: string): Promise<DeliveryNo
   }
 }
 
+/** Empty select option («Format estàndard») sends ""; Postgres uuid rejects ''. */
+function asUuidOrNull(value: string | null | undefined): string | null {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
+export async function setCommercialQuoteDraftProgress(params: {
+  documentId: string
+  templateId?: string | null
+  setTemplate?: boolean
+  formalizationMode?: 'signed_quote' | 'separate_agreement' | null
+  wizardStep?: 'lines' | 'template' | 'issue' | null
+}): Promise<void> {
+  const { error } = await supabase.rpc('set_commercial_quote_draft_progress' as never, {
+    p_document_id: params.documentId,
+    p_full_body_template_id: params.setTemplate ? asUuidOrNull(params.templateId) : null,
+    p_set_template: params.setTemplate === true,
+    p_formalization_mode: params.formalizationMode ?? null,
+    p_wizard_step: params.wizardStep ?? null,
+  } as never)
+  if (error) throw error
+}
+
 export async function setCommercialDocumentTitle(params: {
   documentId: string
   title: string
@@ -494,15 +517,19 @@ export async function issueOrphanCommercialDocument(params: {
     p_client_op_id: params.clientOpId ?? generateClientOpId(),
     p_show_prices: params.showPrices ?? null,
     p_formalization_mode: params.formalizationMode ?? null,
-    p_full_body_template_id: params.fullBodyTemplateId ?? null,
+    p_full_body_template_id: asUuidOrNull(params.fullBodyTemplateId),
   } as never)
   if (error) throw error
   return data as string
 }
 
-export async function cancelOrphanQuoteDraft(documentId: string): Promise<void> {
+export async function cancelOrphanQuoteDraft(
+  documentId: string,
+  reason?: string | null,
+): Promise<void> {
   const { error } = await supabase.rpc('cancel_orphan_quote_draft' as never, {
     p_document_id: documentId,
+    p_reason: reason?.trim() || null,
   } as never)
   if (error) throw error
 }
@@ -545,7 +572,7 @@ export async function issueCommercialDocument(params: {
     p_formalization_mode:
       params.docType === 'delivery_note' ? null : (params.formalizationMode ?? null),
     p_full_body_template_id:
-      params.docType === 'delivery_note' ? null : (params.fullBodyTemplateId ?? null),
+      params.docType === 'delivery_note' ? null : asUuidOrNull(params.fullBodyTemplateId),
   } as never)
   if (error) throw error
   return data as string
@@ -2166,6 +2193,8 @@ export async function listPrimaryLineNames(
 export type CommercialDocumentSearchHit = CommercialDocument & {
   client_display_name: string | null
   project_name: string | null
+  /** Només pressupost (ordre després d’acceptar). False = Feina amb pressupost. */
+  issued_as_orphan?: boolean | null
 }
 
 export type SearchCommercialDocumentsParams = {
@@ -2331,7 +2360,7 @@ export async function getCommercialDocumentDetail(
 
   const { data: events, error: eventsError } = await supabase
     .from('commercial_document_events' as never)
-    .select('id, event_type, occurred_at, channel, payload, signature')
+    .select('id, event_type, occurred_at, channel, actor_id, payload, signature')
     .eq('document_id', documentId)
     .order('occurred_at', { ascending: true })
   if (eventsError) throw eventsError
@@ -2369,6 +2398,12 @@ export async function getCommercialDocumentDetail(
     formalization_mode:
       row.formalization_mode === 'separate_agreement' || row.formalization_mode === 'signed_quote'
         ? row.formalization_mode
+        : null,
+    draft_wizard_step:
+      row.draft_wizard_step === 'lines' ||
+      row.draft_wizard_step === 'template' ||
+      row.draft_wizard_step === 'issue'
+        ? row.draft_wizard_step
         : null,
     external_invoice_ref: (row.external_invoice_ref as string | null | undefined) ?? null,
     supersedes_id: (row.supersedes_id as string | null | undefined) ?? null,

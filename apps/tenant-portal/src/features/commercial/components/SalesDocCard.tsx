@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
 type SalesDocCardProps = {
@@ -64,9 +64,9 @@ export function SalesDocCard({
       <div className="space-y-3 p-4 pl-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
-            <p className="truncate text-base font-semibold tracking-tight text-foreground">
+            <div className="truncate text-base font-semibold tracking-tight text-foreground">
               {title}
-            </p>
+            </div>
             {subtitle ? (
               <p className="truncate text-sm text-muted-foreground">{subtitle}</p>
             ) : null}
@@ -90,10 +90,23 @@ export function SalesDocCard({
   )
 
   if (onClick) {
+    // Div (not <button>) so title/footer can host nested links or buttons.
+    function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        onClick()
+      }
+    }
     return (
-      <button type="button" onClick={onClick} className={classNames}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onClick}
+        onKeyDown={handleKeyDown}
+        className={classNames}
+      >
         {body}
-      </button>
+      </div>
     )
   }
 

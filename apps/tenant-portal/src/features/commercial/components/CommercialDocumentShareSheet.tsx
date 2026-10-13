@@ -7,6 +7,7 @@ import {
   documentPathWithReturn,
   isAllowedReturnTo,
 } from '@/lib/navigationReturn'
+import { getContact } from '@/features/contacts/api/contactsService'
 import {
   getCommercialDocumentDetail,
   recordCommercialDocumentSent,
@@ -27,10 +28,14 @@ import { ISSUED_COMMERCIAL_DOCX_UNAVAILABLE } from '../utils/buildIssuedCommerci
 import {
   buildCommercialMailto,
   buildCommercialWhatsAppUrl,
+  buyerDeliveryDiscrepancies,
   copyCommercialShareText,
   generateCommercialShareQrDataUrl,
   tryNativeCommercialShare,
+  withLiveBuyerContact,
+  type BuyerDeliveryDiscrepancy,
 } from '../utils/commercialShare'
+import { BuyerDeliveryDiscrepancyNotice } from './BuyerDeliveryDiscrepancyNotice'
 
 interface CommercialDocumentShareSheetProps {
   documentId: string
@@ -54,6 +59,7 @@ export function CommercialDocumentShareSheet({
   const dmsHref = (docId: string) => documentPathWithReturn(docId, resolvedDmsReturn)
   const { toast } = useToast()
   const [doc, setDoc] = useState<CommercialDocumentDetail | null>(null)
+  const [discrepancies, setDiscrepancies] = useState<BuyerDeliveryDiscrepancy[]>([])
   const [loading, setLoading] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [busyChannel, setBusyChannel] = useState<string | null>(null)
@@ -79,12 +85,26 @@ export function CommercialDocumentShareSheet({
     let cancelled = false
     setLoading(true)
     setQrDataUrl(null)
+    setDiscrepancies([])
     void (async () => {
       try {
         const detail = await getCommercialDocumentDetail(documentId)
         if (cancelled) return
-        setDoc(detail)
-        const qr = await generateCommercialShareQrDataUrl(detail)
+        let shareDoc = detail
+        let nextDiscrepancies: BuyerDeliveryDiscrepancy[] = []
+        if (detail.client_id) {
+          try {
+            const contact = await getContact(detail.client_id)
+            nextDiscrepancies = buyerDeliveryDiscrepancies(detail.buyer_snapshot, contact)
+            shareDoc = withLiveBuyerContact(detail, contact)
+          } catch {
+            // Keep snapshot if contact cannot be loaded.
+          }
+        }
+        if (cancelled) return
+        setDiscrepancies(nextDiscrepancies)
+        setDoc(shareDoc)
+        const qr = await generateCommercialShareQrDataUrl(shareDoc)
         if (!cancelled) setQrDataUrl(qr)
       } catch (err) {
         if (!cancelled) {
@@ -179,6 +199,8 @@ export function CommercialDocumentShareSheet({
             <p className="text-sm font-medium text-foreground">
               {doc.doc_number ?? '—'} · {doc.doc_type} · {Number(doc.total).toFixed(2)} €
             </p>
+
+            <BuyerDeliveryDiscrepancyNotice discrepancies={discrepancies} />
 
             {isDraft ? (
               <p className="text-sm text-amber-800 dark:text-amber-200 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2">
@@ -336,17 +358,10 @@ export function CommercialDocumentShareSheet({
               >
                 {t('projects.commercial.share_download', 'Descarregar HTML')}
               </Button>
-              {pdf.renderedDocumentId ? (
+              {signedPdfId || pdf.renderedDocumentId ? (
                 <Button type="button" variant="outline" asChild>
-                  <Link to={dmsHref(pdf.renderedDocumentId)}>
+                  <Link to={dmsHref(signedPdfId ?? pdf.renderedDocumentId!)}>
                     {t('projects.commercial.open_dms', 'Obrir al DMS')}
-                  </Link>
-                </Button>
-              ) : null}
-              {signedPdfId && signedPdfId !== pdf.renderedDocumentId ? (
-                <Button type="button" variant="outline" asChild>
-                  <Link to={dmsHref(signedPdfId)}>
-                    {t('projects.commercial.open_signed_pdf', 'Obrir PDF firmat')}
                   </Link>
                 </Button>
               ) : null}

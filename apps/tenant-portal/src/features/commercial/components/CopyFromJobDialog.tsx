@@ -18,20 +18,28 @@ const moneyFmt = new Intl.NumberFormat('ca-ES', {
   currency: 'EUR',
 })
 
+const NIL_PROJECT = '00000000-0000-0000-0000-000000000000'
+
 interface CopyFromJobDialogProps {
-  projectId: string
+  projectId?: string | null
+  /** When there is no order yet, search jobs for this client. */
+  clientId?: string | null
   currentLineCount: number
   open: boolean
   onClose: () => void
   onCopied: () => void
+  /** Orphan quote: parent copies source project lines onto the document. */
+  onCopySource?: (sourceProjectId: string, mode: 'append' | 'replace') => Promise<void>
 }
 
 export function CopyFromJobDialog({
-  projectId,
+  projectId = null,
+  clientId = null,
   currentLineCount,
   open,
   onClose,
   onCopied,
+  onCopySource,
 }: CopyFromJobDialogProps) {
   const { t } = useTranslation('projects')
   const { toast } = useToast()
@@ -62,13 +70,15 @@ export function CopyFromJobDialog({
       const { data, error } = await supabase
         .from('projects')
         .select('id, client_id, name')
-        .eq('id', projectId)
+        .eq('id', projectId ?? '')
         .single()
       if (error) throw error
       return data
     },
-    enabled: open && !!projectId,
+    enabled: open && !!projectId && !clientId,
   })
+
+  const searchClientId = clientId ?? project?.client_id ?? null
 
   const { data: jobs = [], isFetching } = useQuery({
     queryKey: [
@@ -76,16 +86,16 @@ export function CopyFromJobDialog({
       projectId,
       debouncedQuery,
       completedOnly,
-      project?.client_id,
+      searchClientId,
     ],
     queryFn: () =>
       searchJobsForPricing({
         query: debouncedQuery || undefined,
-        clientId: project?.client_id,
-        excludeProjectId: projectId,
+        clientId: searchClientId,
+        excludeProjectId: projectId || NIL_PROJECT,
         completedOnly,
       }),
-    enabled: open && !!projectId,
+    enabled: open && !!searchClientId,
   })
 
   if (!open) return null
@@ -94,6 +104,14 @@ export function CopyFromJobDialog({
     if (!selectedId) return
     setSubmitting(true)
     try {
+      if (onCopySource) {
+        await onCopySource(selectedId, mode)
+        toast({ title: t('projects.lines.copy_success', 'Línies copiades') })
+        onCopied()
+        onClose()
+        return
+      }
+      if (!projectId) return
       const result = await copyProjectLines({
         sourceProjectId: selectedId,
         targetProjectId: projectId,

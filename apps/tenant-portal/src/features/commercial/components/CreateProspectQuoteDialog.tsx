@@ -16,8 +16,10 @@ import {
 } from '@/components/ui/dialog'
 import { useTenant } from '@/contexts/TenantContext'
 import { useToast } from '@/hooks/use-toast'
+import { useIsFieldService, useSectorContactListLabel, useSectorLabel } from '@/hooks/useSectorLabel'
 import { searchContacts } from '@/features/contacts/api/contactsService'
 import { createProspectWorkOrder } from '@/features/projects/api/projectsService'
+import type { FormalizationMode } from '../utils/deviationApprovalThreshold'
 import { cn } from '@/lib/utils'
 
 interface CreateProspectQuoteDialogProps {
@@ -26,6 +28,7 @@ interface CreateProspectQuoteDialogProps {
   /** When set (contact tab / filter), skip the contact step. */
   clientId?: string | null
   clientName?: string | null
+  formalizationMode: FormalizationMode
   onBack?: () => void
 }
 
@@ -58,10 +61,16 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
   return debounced
 }
 
+function inSentence(label: string): string {
+  if (!label) return label
+  return label.charAt(0).toLocaleLowerCase('ca') + label.slice(1)
+}
+
 const JOURNEY_STEPS = [
-  { id: 'contact', labelKey: 'projects.prospect.journey_contact', fallback: 'Contacte' },
+  { id: 'contact', labelKey: 'projects.prospect.journey_contact', fallback: '{{contact}}' },
   { id: 'order', labelKey: 'projects.prospect.journey_order', fallback: 'Ordre' },
   { id: 'lines', labelKey: 'projects.prospect.journey_lines', fallback: 'Full de preus' },
+  { id: 'template', labelKey: 'projects.prospect.journey_template', fallback: 'Plantilla' },
   { id: 'issue', labelKey: 'projects.prospect.journey_issue', fallback: 'Emetre' },
   { id: 'followup', labelKey: 'projects.prospect.journey_followup', fallback: 'Seguiment' },
 ] as const
@@ -71,29 +80,39 @@ export function CreateProspectQuoteDialog({
   onOpenChange,
   clientId: fixedClientId = null,
   clientName: fixedClientName = null,
+  formalizationMode,
   onBack,
 }: CreateProspectQuoteDialogProps) {
   const { t } = useTranslation(['projects', 'common'])
+  const isFieldService = useIsFieldService()
+  const contactLabel = useSectorLabel('contact', isFieldService ? 'Client' : 'Contacte')
+  const contactWord = inSentence(contactLabel)
+  const contactsLabel = useSectorContactListLabel()
+  const lockedClient = Boolean(fixedClientId && fixedClientName)
   const { activeTenant } = useTenant()
   const { toast } = useToast()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const [step, setStep] = useState<WizardStep>(() => (fixedClientId ? 'details' : 'contact'))
-  const [pickedClientId, setPickedClientId] = useState<string | null>(fixedClientId)
-  const [pickedClientName, setPickedClientName] = useState<string | null>(fixedClientName)
+  const [step, setStep] = useState<WizardStep>(() => (fixedClientId && fixedClientName ? 'details' : 'contact'))
+  const [pickedClientId, setPickedClientId] = useState<string | null>(
+    fixedClientId && fixedClientName ? fixedClientId : null,
+  )
+  const [pickedClientName, setPickedClientName] = useState<string | null>(
+    fixedClientId && fixedClientName ? fixedClientName : null,
+  )
   const [clientQuery, setClientQuery] = useState('')
   const debouncedClientQuery = useDebouncedValue(clientQuery, 250)
   const [name, setName] = useState(() => defaultOrderName(fixedClientName, t))
   const [busy, setBusy] = useState(false)
 
-  const effectiveClientId = fixedClientId ?? pickedClientId
-  const effectiveClientName = fixedClientName ?? pickedClientName
+  const effectiveClientId = (lockedClient ? fixedClientId : null) ?? pickedClientId
+  const effectiveClientName = (lockedClient ? fixedClientName : null) ?? pickedClientName
 
   const contactsQuery = useQuery({
     queryKey: ['contacts', 'search', 'prospect-wizard', debouncedClientQuery],
     queryFn: () => searchContacts({ q: debouncedClientQuery, limit: 20 }),
-    enabled: open && !fixedClientId && step === 'contact',
+    enabled: open && !lockedClient && step === 'contact',
   })
 
   const contactOptions = useMemo(
@@ -103,9 +122,9 @@ export function CreateProspectQuoteDialog({
 
   useEffect(() => {
     if (!open) return
-    setStep(fixedClientId ? 'details' : 'contact')
-    setPickedClientId(fixedClientId)
-    setPickedClientName(fixedClientName)
+    setStep(lockedClient ? 'details' : 'contact')
+    setPickedClientId(lockedClient ? fixedClientId : null)
+    setPickedClientName(lockedClient ? fixedClientName : null)
     setClientQuery('')
     setName(defaultOrderName(fixedClientName, t))
     setBusy(false)
@@ -142,7 +161,7 @@ export function CreateProspectQuoteDialog({
         ),
       })
       onOpenChange(false)
-      navigate(`/field/orders/${projectId}?tab=prepare`)
+      navigate(`/field/orders/${projectId}?tab=prepare&formalization=${formalizationMode}`)
     } catch (err) {
       toast({
         variant: 'destructive',
@@ -172,7 +191,7 @@ export function CreateProspectQuoteDialog({
           <DialogDescription>
             {t(
               'projects.prospect.dialog_help',
-              'Creem una ordre en preparació. Allà ompliràs el full de preus i triaràs la formalització abans d’emetre. No apareix a Avui fins que s’accepti.',
+              'Creem una ordre en preparació. La formalització ja està triada. Allà ompliràs el full de preus, la plantilla i emetràs. No apareix a Avui fins que s’accepti.',
             )}
           </DialogDescription>
         </DialogHeader>
@@ -198,7 +217,9 @@ export function CreateProspectQuoteDialog({
                 )}
               >
                 <span className="tabular-nums opacity-70">{index + 1}.</span>
-                {t(item.labelKey, item.fallback)}
+                {item.id === 'contact'
+                  ? t(item.labelKey, item.fallback, { contact: contactLabel })
+                  : t(item.labelKey, item.fallback)}
               </li>
             )
           })}
@@ -209,7 +230,8 @@ export function CreateProspectQuoteDialog({
             <p className="text-sm text-muted-foreground">
               {t(
                 'projects.prospect.pick_client_help',
-                'Tria el contacte (potencial o client) per a qui prepares el pressupost.',
+                'Tria el {{contact}} per a qui prepares el pressupost.',
+                { contact: contactWord },
               )}
             </p>
             <label className="relative block">
@@ -220,7 +242,8 @@ export function CreateProspectQuoteDialog({
                 onChange={(e) => setClientQuery(e.target.value)}
                 placeholder={t(
                   'projects.prospect.pick_client_placeholder',
-                  'Cerca contacte…',
+                  'Cerca {{contact}}…',
+                  { contact: contactWord },
                 )}
                 autoFocus
               />
@@ -232,7 +255,8 @@ export function CreateProspectQuoteDialog({
                     ? t('common:loading', 'Carregant…')
                     : t(
                         'projects.prospect.pick_client_empty',
-                        'Cap contacte. Crea’n un a Contactes o amplia la cerca.',
+                        'Cap {{contact}}. Crea’n un a {{contacts}} o amplia la cerca.',
+                        { contact: contactWord, contacts: contactsLabel },
                       )}
                 </li>
               ) : (
@@ -256,9 +280,9 @@ export function CreateProspectQuoteDialog({
           <div className="space-y-3 py-1">
             {effectiveClientName ? (
               <p className="text-sm text-muted-foreground">
-                {t('projects.prospect.client', 'Client')}:{' '}
+                {contactLabel}:{' '}
                 <span className="font-medium text-foreground">{effectiveClientName}</span>
-                {!fixedClientId ? (
+                {!lockedClient ? (
                   <Button
                     type="button"
                     variant="link"
@@ -274,8 +298,19 @@ export function CreateProspectQuoteDialog({
             <p className="text-xs text-muted-foreground">
               {t(
                 'projects.prospect.details_help',
-                'Es crea una ordre en preparació. Després, a Preparar, ompliràs el full de preus, triaràs la formalització i emetràs el pressupost.',
+                'Es crea una ordre en preparació. A Preparar ompliràs el full de preus, la plantilla i emetràs el pressupost amb la formalització ja triada.',
               )}
+            </p>
+            <p className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+              {formalizationMode === 'separate_agreement'
+                ? t(
+                    'projects.quotes.wizard_formalization_separate_title',
+                    'Pressupost i contracte a part',
+                  )
+                : t(
+                    'projects.quotes.wizard_formalization_signed_title',
+                    'El pressupost és el contracte',
+                  )}
             </p>
             <div className="space-y-1.5">
               <Label htmlFor="prospect-name">
@@ -292,7 +327,7 @@ export function CreateProspectQuoteDialog({
         )}
 
         <DialogFooter className="gap-2 sm:gap-0">
-          {step === 'details' && !fixedClientId ? (
+          {step === 'details' && !lockedClient ? (
             <Button
               type="button"
               variant="outline"

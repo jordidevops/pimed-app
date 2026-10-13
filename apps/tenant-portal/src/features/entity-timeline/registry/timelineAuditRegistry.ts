@@ -2,14 +2,23 @@ import type { TFunction } from 'i18next'
 
 const FIELD_LABELS: Record<string, string> = {
   full_name: 'nom',
+  display_name: 'nom',
+  given_name: 'nom de pila',
+  family_name: 'cognoms',
+  legal_name: 'raó social',
+  kind: 'tipus',
   status: 'estat',
   job_position_id: 'Lloc de treball',
   job_title: 'Lloc de treball',
   department_id: 'departament',
   site_id: 'local',
   weekly_hours: 'hores setmanals',
-  email: 'email',
+  email: 'correu',
   phone: 'telèfon',
+  phone_alt: 'telèfon alternatiu',
+  tax_id: 'NIF/CIF',
+  preferred_channel: 'canal preferit',
+  source: 'origen',
   document_id: 'document',
   starts_on: 'data d\'alta',
   ends_on: 'data de baixa',
@@ -106,12 +115,26 @@ export function formatAuditMessage(
       }
       if (changes.length > 1) {
         const fields = changes.map((c) => FIELD_LABELS[c.field] ?? c.field).join(', ')
-        return prefix + t('activity:audit.EMPLOYEE_UPDATED_many', {
+        const manyKey =
+          action === 'CONTACT_UPDATED'
+            ? 'activity:audit.CONTACT_UPDATED_many'
+            : 'activity:audit.EMPLOYEE_UPDATED_many'
+        return prefix + t(manyKey, {
           count: changes.length,
+          fields,
           defaultValue: `ha actualitzat ${changes.length} camps: ${fields}`,
         })
       }
-      return prefix + t('activity:audit.GENERIC', { action: stripEntityActionPrefix(action), defaultValue: stripEntityActionPrefix(action) })
+      return prefix + t(
+        action === 'CONTACT_UPDATED'
+          ? 'activity:audit.CONTACT_UPDATED_fallback'
+          : 'activity:audit.EMPLOYEE_UPDATED_fallback',
+        {
+          defaultValue: action === 'CONTACT_UPDATED'
+            ? 'ha actualitzat el contacte'
+            : 'ha actualitzat l\'empleat',
+        },
+      )
     }
     case 'employees.reveal_iban':
       return prefix + t('activity:audit.employees_reveal_iban', {
@@ -326,6 +349,63 @@ export function formatAuditMessage(
               defaultValue: 'ha registrat un cobrament a {{doc_number}}',
             }))
       )
+    }
+    case 'DOCUMENT_CREATED': {
+      const title = String(messageVars.title ?? messageVars.document_title ?? name ?? '').trim()
+      return title
+        ? t('activity:audit.DOCUMENT_CREATED', {
+            title,
+            defaultValue: `Document creat: {{title}}`,
+          })
+        : t('activity:audit.DOCUMENT_CREATED_generic', {
+            defaultValue: 'Document creat',
+          })
+    }
+    case 'DOCUMENT_UPDATED':
+      return prefix + t('activity:audit.DOCUMENT_UPDATED', {
+        defaultValue: 'ha actualitzat el document',
+      })
+    case 'DOCUMENT_DELETED': {
+      const title = String(messageVars.title ?? '').trim()
+      return title
+        ? t('activity:audit.DOCUMENT_DELETED', {
+            title,
+            defaultValue: `Document eliminat: {{title}}`,
+          })
+        : t('activity:audit.DOCUMENT_DELETED_generic', {
+            defaultValue: 'Document eliminat',
+          })
+    }
+    case 'DOCUMENT_SIGNATURE_ACCEPTED': {
+      const signer = String(messageVars.signer_name ?? '').trim()
+      const docTitle = String(messageVars.document_title ?? '').trim()
+      if (signer && docTitle) {
+        return t('activity:audit.DOCUMENT_SIGNATURE_ACCEPTED', {
+          signer,
+          title: docTitle,
+          defaultValue: `{{signer}} ha signat «{{title}}»`,
+        })
+      }
+      if (signer) {
+        return t('activity:audit.DOCUMENT_SIGNATURE_ACCEPTED_signer', {
+          signer,
+          defaultValue: `{{signer}} ha signat el document`,
+        })
+      }
+      return t('activity:audit.DOCUMENT_SIGNATURE_ACCEPTED_generic', {
+        defaultValue: 'Document signat',
+      })
+    }
+    case 'DOCUMENT_SIGNATURE_REJECTED': {
+      const signer = String(messageVars.signer_name ?? '').trim()
+      return signer
+        ? t('activity:audit.DOCUMENT_SIGNATURE_REJECTED', {
+            signer,
+            defaultValue: `{{signer}} ha rebutjat la signatura`,
+          })
+        : t('activity:audit.DOCUMENT_SIGNATURE_REJECTED_generic', {
+            defaultValue: 'Signatura rebutjada',
+          })
     }
     default:
       return prefix + t('activity:audit.GENERIC', {

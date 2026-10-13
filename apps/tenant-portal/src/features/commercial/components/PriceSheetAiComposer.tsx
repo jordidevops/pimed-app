@@ -35,6 +35,11 @@ interface PriceSheetAiComposerProps {
   open: boolean
   onClose: () => void
   onApplied: () => void
+  /** Orphan quote: persist lines on the document and skip the checklist. */
+  onApplyLines?: (
+    lines: PriceSheetLineInput[],
+    mode: 'append' | 'replace',
+  ) => Promise<void>
 }
 
 export function PriceSheetAiComposer({
@@ -43,6 +48,7 @@ export function PriceSheetAiComposer({
   open,
   onClose,
   onApplied,
+  onApplyLines,
 }: PriceSheetAiComposerProps) {
   const { t } = useTranslation('projects')
   const { toast } = useToast()
@@ -130,9 +136,10 @@ export function PriceSheetAiComposer({
       if (lines.length === 0) {
         throw new Error(t('projects.lines.ai_fill_empty', 'Encara no hi ha proposta.'))
       }
-      const checklistName = parsed.checklist_name?.trim() || null
-      const checklistId =
-        (typeof parsed.checklist_template_id === 'string' &&
+      const checklistName = onApplyLines ? null : parsed.checklist_name?.trim() || null
+      const checklistId = onApplyLines
+        ? null
+        : (typeof parsed.checklist_template_id === 'string' &&
         checklists.some((tpl) => tpl.id === parsed.checklist_template_id)
           ? parsed.checklist_template_id
           : checklistName
@@ -162,6 +169,15 @@ export function PriceSheetAiComposer({
     if (!proposal) return
     setApplying(true)
     try {
+      if (onApplyLines) {
+        await onApplyLines(proposal.lines, mode)
+        toast({ title: `${priceSheetTitle} escrit` })
+        onApplied()
+        onClose()
+        setProposal(null)
+        setPrompt('')
+        return
+      }
       const result = await applyPriceSheet({
         projectId,
         lines: proposal.lines,

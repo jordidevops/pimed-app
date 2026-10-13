@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useIsFieldService } from '@/hooks/useSectorLabel'
 import { SalesDataTable, type SalesDataTableColumn } from './SalesDataTable'
 import {
+  getCommercialDocumentDetail,
   listPaymentsForDocuments,
   listPrimaryLineNames,
   listQuoteAgreementStates,
@@ -26,6 +27,8 @@ import {
   type CommercialDocumentSearchHit,
   type QuoteAgreementState,
 } from '../api/commercialFlowService'
+import { formatCommercialEventDate } from '../utils/commercialDocumentModel'
+import { CommercialSummaryLines } from './CommercialSummaryLines'
 import { accountedPaidCents } from '../utils/paymentAllocation'
 import { useDocumentTemplates } from '@/features/signing/api/useDocumentTemplates'
 import { useTenant } from '@/contexts/TenantContext'
@@ -62,6 +65,18 @@ function orphanOfficeChip(
     return t('projects.orphan.chip_orphan', 'Sense ordre')
   }
   return null
+}
+
+function quoteOriginLabel(
+  doc: Pick<CommercialDocumentSearchHit, 'issued_as_orphan' | 'project_id'>,
+  t: (key: string, fallback: string) => string,
+): string {
+  const orphan =
+    doc.issued_as_orphan === true ||
+    (doc.issued_as_orphan == null && !doc.project_id)
+  return orphan
+    ? t('projects.quotes.wizard_type_orphan_title', 'Només pressupost')
+    : t('projects.quotes.wizard_type_prospect_title', 'Feina amb pressupost')
 }
 
 const moneyFmt = new Intl.NumberFormat('ca-ES', {
@@ -148,6 +163,31 @@ function statusLabel(
     cancelled: 'Anul·lat',
   }
   return t(`projects.commercial.status_${status}`, fallbacks[status] ?? status)
+}
+
+function canSendQuote(status: string): boolean {
+  return status !== 'draft' && status !== 'cancelled'
+}
+
+function deliveryChannelLabel(
+  channel: string | null | undefined,
+  t: (key: string, fallback: string) => string,
+): string {
+  switch (channel) {
+    case 'email':
+      return t('projects.commercial.share_channel_email', 'Correu')
+    case 'whatsapp':
+    case 'whatsapp_portal_nudge':
+      return t('projects.commercial.share_channel_whatsapp', 'WhatsApp')
+    case 'copy_link':
+      return t('projects.commercial.share_channel_link', 'Enllaç')
+    case 'portal':
+      return t('projects.commercial.share_channel_portal', 'Portal')
+    case 'presential':
+      return t('projects.commercial.share_channel_presential', 'Presencial')
+    default:
+      return channel || '—'
+  }
 }
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
@@ -285,12 +325,12 @@ export function QuotesPage({
   }
 
   function openView(id: string) {
-    if (isSalesHub && !embedded) {
+    // Same detail page as /sales/quotes «Obrir fitxa» (including contact tab).
+    if (isSalesHub || embedded) {
       void navigate(`/sales/quotes/${id}`)
       return
     }
     setViewDocId(id)
-    if (embedded) return
     const next = new URLSearchParams(searchParams)
     next.set('view', id)
     setSearchParams(next, { replace: true })
@@ -303,6 +343,12 @@ export function QuotesPage({
     }
     openView(id)
   }
+
+  const { data: inspectedDetail, isLoading: inspectedDetailLoading } = useQuery({
+    queryKey: ['commercial_document', inspectId, 'inspector'],
+    queryFn: () => getCommercialDocumentDetail(inspectId!),
+    enabled: Boolean(isSalesHub && !embedded && inspectId),
+  })
 
   useEffect(() => {
     if (!isSalesHub || !inspectId) return
@@ -780,6 +826,9 @@ export function QuotesPage({
       ? (visibleHits.find((doc) => doc.id === inspectId) ?? null)
       : null
 
+  const inspectedSentEvents =
+    inspectedDetail?.events.filter((event) => event.event_type === 'sent') ?? []
+
   const salesInspector =
     inspectedQuote ? (
       <InspectorSheet
@@ -791,6 +840,9 @@ export function QuotesPage({
         badges={
           <>
             <CommercialDocumentStatusBadges doc={inspectedQuote} t={t} />
+            <Badge variant="outline" className="text-[10px] font-normal">
+              {quoteOriginLabel(inspectedQuote, t)}
+            </Badge>
             <Badge variant="secondary" className="text-[10px]">
               {orderLinkLabel(inspectedQuote, t)}
             </Badge>
@@ -814,6 +866,10 @@ export function QuotesPage({
             value: `${moneyFmt.format(Number(inspectedQuote.total))} €`,
           },
           {
+            label: t('projects.quotes.col_origin', 'Origen'),
+            value: quoteOriginLabel(inspectedQuote, t),
+          },
+          {
             label: t('projects.quotes.col_order', 'Ordre'),
             value: orderLinkLabel(inspectedQuote, t),
           },
@@ -835,7 +891,7 @@ export function QuotesPage({
             >
               {t('common:list.open_record', 'Obrir fitxa')}
             </Button>
-            {inspectedQuote.status !== 'cancelled' ? (
+            {canSendQuote(inspectedQuote.status) ? (
               <Button
                 type="button"
                 size="sm"
@@ -847,7 +903,79 @@ export function QuotesPage({
             ) : null}
           </>
         }
-      />
+      >
+        <section className="space-y-2 rounded-xl border border-border px-3 py-3">
+          <p className="text-sm font-semibold text-foreground">
+            {inspectedQuote.status === 'draft'
+              ? t('projects.orphan.not_delivered', 'No entregat')
+              : inspectedSentEvents.length > 0
+                ? t('projects.orphan.delivered', 'Entregat')
+                : t('projects.orphan.not_delivered', 'No entregat')}
+          </p>
+          {inspectedQuote.status === 'draft' ? (
+            <p className="text-xs text-muted-foreground">
+              {t(
+                'projects.quotes.inspector_draft_send_help',
+                'Encara no s’ha emès. L’enviament al client es fa després d’emetre el pressupost.',
+              )}
+            </p>
+          ) : inspectedDetailLoading ? (
+            <p className="text-xs text-muted-foreground">
+              {t('projects.commercial.share_loading', 'Carregant…')}
+            </p>
+          ) : inspectedSentEvents.length > 0 ? (
+            <ul className="space-y-1 text-sm text-muted-foreground">
+              {inspectedSentEvents.map((event) => {
+                const payload = event.payload
+                const recipient =
+                  payload && typeof payload.recipient_masked === 'string'
+                    ? payload.recipient_masked
+                    : payload && typeof payload.recipient === 'string'
+                      ? payload.recipient
+                      : null
+                return (
+                  <li key={event.id}>
+                    {deliveryChannelLabel(event.channel, t)}
+                    {' · '}
+                    {formatCommercialEventDate(event.occurred_at)}
+                    {recipient ? ` · ${recipient}` : ''}
+                  </li>
+                )
+              })}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {t(
+                'projects.orphan.not_delivered_help',
+                'Encara no hi ha cap enviament ni cap sol·licitud de firma.',
+              )}
+            </p>
+          )}
+        </section>
+
+        <section className="space-y-2">
+          <p className="text-sm font-semibold text-foreground">
+            {t('projects.orphan.journey_lines', 'Full de preus')}
+          </p>
+          {inspectedDetailLoading || !inspectedDetail ? (
+            <p className="text-xs text-muted-foreground">
+              {t('projects.commercial.share_loading', 'Carregant…')}
+            </p>
+          ) : inspectedDetail.lines.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {t('projects.quotes.inspector_empty_lines', 'Aquest pressupost encara no té línies.')}
+            </p>
+          ) : (
+            <CommercialSummaryLines
+              lines={inspectedDetail.lines}
+              currency={inspectedDetail.currency || 'EUR'}
+              showPrices={inspectedDetail.show_prices !== false}
+              subtotal={Number(inspectedDetail.subtotal)}
+              total={Number(inspectedDetail.total)}
+            />
+          )}
+        </section>
+      </InspectorSheet>
     ) : null
 
   const quoteColumns = useMemo<SalesDataTableColumn<CommercialDocumentSearchHit>[]>(
@@ -861,7 +989,7 @@ export function QuotesPage({
             <button
               type="button"
               className="text-left hover:underline"
-              onClick={() => openInspect(doc.id)}
+              onClick={() => openView(doc.id)}
             >
               <span className="block font-semibold">{quoteListTitle(doc, t)}</span>
               {numberLabel ? (
@@ -880,6 +1008,15 @@ export function QuotesPage({
               cell: (doc: CommercialDocumentSearchHit) => doc.client_display_name || '—',
             } satisfies SalesDataTableColumn<CommercialDocumentSearchHit>,
           ]),
+      {
+        id: 'origin',
+        header: t('projects.quotes.col_origin', 'Origen'),
+        cell: (doc) => (
+          <Badge variant="outline" className="text-[10px] font-normal">
+            {quoteOriginLabel(doc, t)}
+          </Badge>
+        ),
+      },
       {
         id: 'order',
         header: t('projects.quotes.col_order', 'Ordre'),
@@ -967,9 +1104,18 @@ export function QuotesPage({
               <li key={doc.id}>
                 <SalesDocCard
                   title={
-                    hideClientColumn
-                      ? quoteListTitle(doc, t)
-                      : `${quoteListTitle(doc, t)} · ${doc.client_display_name || t('projects.quotes.unknown_client', 'Client')}`
+                    <button
+                      type="button"
+                      className="text-left hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openView(doc.id)
+                      }}
+                    >
+                      {hideClientColumn
+                        ? quoteListTitle(doc, t)
+                        : `${quoteListTitle(doc, t)} · ${doc.client_display_name || t('projects.quotes.unknown_client', 'Client')}`}
+                    </button>
                   }
                   subtitle={numberLabel ?? orderLinkLabel(doc, t)}
                   amount={`${moneyFmt.format(Number(doc.total))} €`}
@@ -979,6 +1125,9 @@ export function QuotesPage({
                   badges={
                     <>
                       <CommercialDocumentStatusBadges doc={doc} t={t} />
+                      <Badge variant="outline" className="text-[10px] font-normal">
+                        {quoteOriginLabel(doc, t)}
+                      </Badge>
                       <Badge variant="secondary" className="text-[10px]">
                         {orderLinkLabel(doc, t)}
                       </Badge>
@@ -1015,17 +1164,19 @@ export function QuotesPage({
                       >
                         {t('common:list.open_record', 'Obrir fitxa')}
                       </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setShareDocId(doc.id)
-                        }}
-                      >
-                        {t('projects.commercial.send', 'Enviar')}
-                      </Button>
+                      {canSendQuote(doc.status) ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setShareDocId(doc.id)
+                          }}
+                        >
+                          {t('projects.commercial.send', 'Enviar')}
+                        </Button>
+                      ) : null}
                     </div>
                   }
                 />
@@ -1087,11 +1238,15 @@ export function QuotesPage({
               label: t('common:list.open_record', 'Obrir fitxa'),
               onSelect: () => openView(doc.id),
             },
-            {
-              key: 'send',
-              label: t('projects.commercial.send', 'Enviar'),
-              onSelect: () => setShareDocId(doc.id),
-            },
+            ...(canSendQuote(doc.status)
+              ? [
+                  {
+                    key: 'send',
+                    label: t('projects.commercial.send', 'Enviar'),
+                    onSelect: () => setShareDocId(doc.id),
+                  },
+                ]
+              : []),
           ]}
         />
       ) : null}
@@ -1106,8 +1261,8 @@ export function QuotesPage({
           setWizardOpen(next)
           if (!next) setWizardInitialType(null)
         }}
-        clientId={effectiveClientId}
-        clientName={clientName}
+        clientId={clientId ?? null}
+        clientName={clientName ?? null}
         initialType={wizardInitialType}
       />
 
@@ -1303,9 +1458,11 @@ function QuoteRow({
         <Button type="button" size="sm" variant="outline" onClick={() => onView(doc.id)}>
           {t('projects.commercial.view', 'Veure')}
         </Button>
-        <Button type="button" size="sm" variant="outline" onClick={() => onShare(doc.id)}>
-          {t('projects.commercial.send', 'Enviar')}
-        </Button>
+        {canSendQuote(doc.status) ? (
+          <Button type="button" size="sm" variant="outline" onClick={() => onShare(doc.id)}>
+            {t('projects.commercial.send', 'Enviar')}
+          </Button>
+        ) : null}
         {onDuplicate ? (
           <Button type="button" size="sm" variant="outline" onClick={onDuplicate}>
             {t('projects.quotes.duplicate', 'Duplicar')}

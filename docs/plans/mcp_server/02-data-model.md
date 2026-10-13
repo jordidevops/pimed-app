@@ -74,9 +74,11 @@ UNIQUE `(tenant_id, user_id)`.
 | `revoked_at` | timestamptz null | |
 | `created_via` | text | `consent` \| `admin` |
 
-UNIQUE actiu: `(user_id, oauth_client_id, tenant_id, site_id)` on `revoked_at IS NULL` (índex únic parcial).
+UNIQUE actiu: índex únic parcial amb `site_id` tractat de forma explícita (`COALESCE(site_id, '00000000-0000-0000-0000-000000000000')` o dos índexs parcials) — a Postgres els `NULL` no col·lisionen sols.
 
-**RLS:** policies que exigeixen `(auth.jwt() ->> 'client_id') IS NULL` per INSERT/DELETE humans al portal; agents **no** llegeixen ni amplien grants. El resource server comprova grants amb **admin client** + filtres explícits `user_id`, `oauth_client_id`, `tenant_id`, `site_id`.
+**RLS:** policies que exigeixen `(auth.jwt() ->> 'client_id') IS NULL` per INSERT/DELETE humans al portal; agents **no** llegeixen ni amplien grants. El resource server comprova grants amb **admin client** + filtres explícits `user_id`, `oauth_client_id`, `tenant_id`, `site_id` (aquest admin **no** es passa al ToolContext de les tools).
+
+**Revocació:** a més de `revoked_at` a aquesta taula, revocar també el grant OAuth a Supabase Auth (endpoints de grant management / UI connected apps) perquè els refresh tokens no sobrevisquin a la revocació de producte.
 
 ## 5) Usage logs (ops)
 

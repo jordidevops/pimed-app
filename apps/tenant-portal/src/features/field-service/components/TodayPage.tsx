@@ -244,11 +244,12 @@ export function TodayPage() {
                   ? { ...storedLocalState, closeState: 'none' as const }
                   : undefined
                 : storedLocalState
+            const closeState = localState?.closeState ?? 'none'
             const canStart =
               !activeProjectId
               && order.status !== 'completed'
               && order.status !== 'cancelled'
-              && localState?.closeState === 'none'
+              && closeState === 'none'
             return (
               <li key={order.id} className="flex items-stretch gap-2">
                 <Link

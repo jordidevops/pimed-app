@@ -1,6 +1,7 @@
 
 ## Documentacio PiMed
 
+- [Desenvolupament local](docs/01-supabase-local-setup.md)
 - [Guia de cues (PGMQ)](docs/queues.md)
 - [Infraestructura async](docs/async-infraestructure.md)
 - [Product design - index](docs/product-design/00-README.md)
@@ -58,3 +59,18 @@ supabase status
 ```
 
 Mostra les URLs locals (Studio, Mailpit, APIs, DB) i les claus d'autenticació generades per aquest entorn. Les claus canvien cada `supabase start` — no les copiïs mai al README, consulta-les directament amb la comanda anterior.
+
+
+
+
+
+Supabase Studio
+http://127.0.0.1:54323
+
+
+
+# Email a DEV
+
+
+veure docs\email.md
+veure supabase\tests\resend.md

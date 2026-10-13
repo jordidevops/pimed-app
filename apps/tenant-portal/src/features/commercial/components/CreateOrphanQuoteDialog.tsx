@@ -15,16 +15,14 @@ import {
 } from '@/components/ui/dialog'
 import { useTenant } from '@/contexts/TenantContext'
 import { useToast } from '@/hooks/use-toast'
-import { useEffectiveSettings } from '@/hooks/useSettings'
+import { useIsFieldService, useSectorLabel } from '@/hooks/useSectorLabel'
 import { getContactSites, searchContacts } from '@/features/contacts/api/contactsService'
-import { useDocumentTemplates } from '@/features/signing/api/useDocumentTemplates'
-import { createOrphanQuoteDraft } from '../api/commercialFlowService'
-import { commercialErrorMessage } from '../utils/commercialErrorMessage'
 import {
-  parseFormalizationModeDefault,
-  type FormalizationMode,
-} from '../utils/deviationApprovalThreshold'
-import { QuoteFormalizationFields } from './QuoteFormalizationFields'
+  createOrphanQuoteDraft,
+  setCommercialDocumentTitle,
+} from '../api/commercialFlowService'
+import { commercialErrorMessage } from '../utils/commercialErrorMessage'
+import type { FormalizationMode } from '../utils/deviationApprovalThreshold'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +31,7 @@ interface CreateOrphanQuoteDialogProps {
   onOpenChange: (open: boolean) => void
   clientId?: string | null
   clientName?: string | null
+  formalizationMode: FormalizationMode
   onBack?: () => void
 }
 
@@ -45,13 +44,34 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
   return debounced
 }
 
+function inSentence(label: string): string {
+  if (!label) return label
+  return label.charAt(0).toLocaleLowerCase('ca') + label.slice(1)
+}
+
 const JOURNEY = [
-  { id: 'contact', labelKey: 'projects.orphan.journey_contact', fallback: 'Contacte' },
+  { id: 'contact', labelKey: 'projects.orphan.journey_contact', fallback: '{{contact}}' },
   { id: 'lines', labelKey: 'projects.orphan.journey_lines', fallback: 'Full de preus' },
+  { id: 'template', labelKey: 'projects.orphan.journey_template', fallback: 'Plantilla' },
   { id: 'issue', labelKey: 'projects.orphan.journey_issue', fallback: 'Emetre' },
   { id: 'reply', labelKey: 'projects.orphan.journey_reply', fallback: 'Resposta' },
   { id: 'os', labelKey: 'projects.orphan.journey_os', fallback: 'Ordre' },
 ] as const
+
+function defaultQuoteTitle(
+  clientName: string,
+  t: (key: string, fallback: string, opts?: Record<string, string>) => string,
+) {
+  const date = new Date().toLocaleDateString('ca-ES', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+  return t('projects.orphan.default_title', 'Pressupost — {{client}} — {{date}}', {
+    client: clientName,
+    date,
+  })
+}
 
 async function countOpenIssuedOrphans(clientId: string): Promise<number> {
   const { count, error } = await supabase
@@ -70,36 +90,44 @@ export function CreateOrphanQuoteDialog({
   onOpenChange,
   clientId: fixedClientId = null,
   clientName: fixedClientName = null,
+  formalizationMode,
   onBack,
 }: CreateOrphanQuoteDialogProps) {
   const { t } = useTranslation(['projects', 'common'])
+  const isFieldService = useIsFieldService()
+  const contactLabel = useSectorLabel('contact', isFieldService ? 'Client' : 'Contacte')
+  const contactWord = inSentence(contactLabel)
   const { activeTenant, sites: tenantSites, selectedSiteId } = useTenant()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const [pickedId, setPickedId] = useState<string | null>(fixedClientId)
-  const [pickedName, setPickedName] = useState<string | null>(fixedClientName)
+  const [pickedId, setPickedId] = useState<string | null>(
+    fixedClientId && fixedClientName ? fixedClientId : null,
+  )
+  const [pickedName, setPickedName] = useState<string | null>(
+    fixedClientId && fixedClientName ? fixedClientName : null,
+  )
   const [contactSiteId, setContactSiteId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const debounced = useDebouncedValue(query, 250)
   const [busy, setBusy] = useState(false)
-  const [mode, setMode] = useState<FormalizationMode>('signed_quote')
-  const [modeTouched, setModeTouched] = useState(false)
-  const [templateId, setTemplateId] = useState('')
+  const [title, setTitle] = useState('')
+  const [titleTouched, setTitleTouched] = useState(false)
 
-  const clientId = fixedClientId ?? pickedId
-
-  const { data: effective } = useEffectiveSettings(
-    { tenantId: activeTenant?.id ?? '' },
-    { enabled: open && !!activeTenant?.id },
-  )
-  const { data: templates = [] } = useDocumentTemplates(open ? activeTenant?.id : undefined)
+  const lockedClientId = fixedClientId && fixedClientName ? fixedClientId : null
 
   const contactsQuery = useQuery({
     queryKey: ['contacts', 'search', 'orphan-wizard', debounced],
     queryFn: () => searchContacts({ q: debounced, limit: 20 }),
-    enabled: open && !fixedClientId,
+    enabled: open && !lockedClientId,
   })
+
+  const options = useMemo(
+    () => (contactsQuery.data ?? []).filter((c) => !!c.id),
+    [contactsQuery.data],
+  )
+  const pickedVisible = pickedId && options.some((c) => c.id === pickedId) ? pickedId : null
+  const clientId = lockedClientId ?? pickedVisible
 
   const sitesQuery = useQuery({
     queryKey: ['contact_sites', 'orphan-wizard', clientId],
@@ -113,11 +141,6 @@ export function CreateOrphanQuoteDialog({
     enabled: open && !!clientId,
   })
 
-  const options = useMemo(
-    () => (contactsQuery.data ?? []).filter((c) => !!c.id),
-    [contactsQuery.data],
-  )
-
   const contactSites = (sitesQuery.data ?? []).filter((s) => !!s.id)
   const showContactSitePicker = contactSites.length > 1
   const resolvedTenantSiteId =
@@ -125,20 +148,21 @@ export function CreateOrphanQuoteDialog({
 
   useEffect(() => {
     if (!open) return
-    setPickedId(fixedClientId)
-    setPickedName(fixedClientName)
+    setPickedId(fixedClientId && fixedClientName ? fixedClientId : null)
+    setPickedName(fixedClientId && fixedClientName ? fixedClientName : null)
     setContactSiteId(null)
     setQuery('')
     setBusy(false)
-    setMode('signed_quote')
-    setModeTouched(false)
-    setTemplateId('')
+    setTitle('')
+    setTitleTouched(false)
   }, [open, fixedClientId, fixedClientName])
 
+  const clientName = lockedClientId ? fixedClientName : pickedName
+
   useEffect(() => {
-    if (!open || modeTouched) return
-    setMode(parseFormalizationModeDefault(effective))
-  }, [open, effective, modeTouched])
+    if (!open || !clientName || titleTouched) return
+    setTitle(defaultQuoteTitle(clientName, t))
+  }, [open, clientName, titleTouched, t])
 
   useEffect(() => {
     const list = (sitesQuery.data ?? []).filter((s) => !!s.id)
@@ -164,8 +188,12 @@ export function CreateOrphanQuoteDialog({
         clientId,
         contactSiteId,
         siteId: resolvedTenantSiteId,
-        formalizationMode: mode,
+        formalizationMode,
       })
+      const nextTitle = title.trim()
+      if (nextTitle) {
+        await setCommercialDocumentTitle({ documentId: docId, title: nextTitle })
+      }
       await queryClient.invalidateQueries({ queryKey: ['commercial_documents', 'search'] })
       await queryClient.invalidateQueries({ queryKey: ['commercial_documents', 'client'] })
       toast({
@@ -202,7 +230,8 @@ export function CreateOrphanQuoteDialog({
           <DialogDescription>
             {t(
               'projects.orphan.dialog_help',
-              'Flux: contacte → full de preus → emetre. L’ordre de servei només es crea si el client accepta.',
+              'Flux: {{contact}} → full de preus → plantilla → emetre. L’ordre de servei només es crea si el client accepta.',
+              { contact: contactWord },
             )}
           </DialogDescription>
         </DialogHeader>
@@ -219,15 +248,17 @@ export function CreateOrphanQuoteDialog({
               )}
             >
               <span className="tabular-nums opacity-70">{index + 1}.</span>
-              {t(step.labelKey, step.fallback)}
+              {step.id === 'contact'
+                ? t(step.labelKey, step.fallback, { contact: contactLabel })
+                : t(step.labelKey, step.fallback)}
             </li>
           ))}
         </ol>
 
         <div className="space-y-3 py-1">
-          {fixedClientId && fixedClientName ? (
+          {lockedClientId && fixedClientName ? (
             <p className="text-sm text-muted-foreground">
-              {t('projects.orphan.client', 'Client')}:{' '}
+              {contactLabel}:{' '}
               <span className="font-medium text-foreground">{fixedClientName}</span>
             </p>
           ) : (
@@ -238,7 +269,9 @@ export function CreateOrphanQuoteDialog({
                   className="pl-9"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder={t('projects.orphan.pick_placeholder', 'Cerca contacte…')}
+                  placeholder={t('projects.orphan.pick_placeholder', 'Cerca {{contact}}…', {
+                    contact: contactWord,
+                  })}
                   autoFocus
                 />
               </label>
@@ -247,7 +280,9 @@ export function CreateOrphanQuoteDialog({
                   <li className="px-3 py-4 text-sm text-muted-foreground">
                     {contactsQuery.isFetching
                       ? t('common:loading', 'Carregant…')
-                      : t('projects.orphan.pick_empty', 'Cap contacte trobat.')}
+                      : t('projects.orphan.pick_empty', 'Cap {{contact}} trobat.', {
+                          contact: contactWord,
+                        })}
                   </li>
                 ) : (
                   options.map((c) => (
@@ -294,11 +329,34 @@ export function CreateOrphanQuoteDialog({
             </label>
           ) : null}
 
+          {clientId ? (
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">
+                {t('projects.orphan.title_label', 'Títol')}
+              </span>
+              <Input
+                value={title}
+                maxLength={120}
+                onChange={(e) => {
+                  setTitleTouched(true)
+                  setTitle(e.target.value)
+                }}
+              />
+              <span className="block text-xs text-muted-foreground">
+                {t(
+                  'projects.orphan.title_prefill_help',
+                  'Ja ve ple. Pots canviar-lo abans de continuar, i també a Emetre.',
+                )}
+              </span>
+            </label>
+          ) : null}
+
           {clientId && contactSites.length === 1 ? (
             <p className="text-xs text-muted-foreground">
               {t(
                 'projects.orphan.site_auto_one',
-                'S’usarà l’única adreça del client.',
+                'S’usarà l’única adreça del {{contact}}.',
+                { contact: contactWord },
               )}{' '}
               <span className="font-medium text-foreground">
                 {contactSites[0]?.name?.trim() ||
@@ -315,24 +373,23 @@ export function CreateOrphanQuoteDialog({
             >
               {t(
                 'projects.orphan.open_issued_warn',
-                'Aquest client ja té {{count}} pressupost(os) emès(os) sense ordre. Pots crear-ne un altre.',
-                { count: openIssuedCount },
+                'Aquest {{contact}} ja té {{count}} pressupost(os) emès(os) sense ordre. Pots crear-ne un altre.',
+                { contact: contactWord, count: openIssuedCount },
               )}
             </p>
           ) : null}
 
-          <QuoteFormalizationFields
-            mode={mode}
-            templateId={templateId}
-            templates={templates}
-            disabled={busy}
-            showTemplate={false}
-            onModeChange={(next) => {
-              setModeTouched(true)
-              setMode(next)
-            }}
-            onTemplateChange={setTemplateId}
-          />
+          <p className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            {formalizationMode === 'separate_agreement'
+              ? t(
+                  'projects.quotes.wizard_formalization_separate_title',
+                  'Pressupost i contracte a part',
+                )
+              : t(
+                  'projects.quotes.wizard_formalization_signed_title',
+                  'El pressupost és el contracte',
+                )}
+          </p>
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
@@ -345,7 +402,10 @@ export function CreateOrphanQuoteDialog({
               {t('common:cancel', 'Cancel·lar')}
             </Button>
           )}
-          <Button onClick={() => void handleCreate()} disabled={busy || !clientId}>
+          <Button
+            onClick={() => void handleCreate()}
+            disabled={busy || !clientId || !title.trim()}
+          >
             {busy
               ? t('common:saving', 'Creant…')
               : t('projects.orphan.submit', 'Continuar amb el full de preus')}

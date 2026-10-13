@@ -1,112 +1,150 @@
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { useIsFieldService, useSectorLabel } from '@/hooks/useSectorLabel'
 
 type Props = {
-  hasClient: boolean
   hasLines: boolean
   status: string
   hasProject: boolean
+  /** Origin of the flow: true = Només pressupost (ordre al final). */
+  issuedAsOrphan: boolean
   formalizationMode?: string | null
-  /** Agreement prepared/linked — required to mark Contract step done for separate_agreement. */
   hasAgreement?: boolean
+  delivered?: boolean
 }
 
 export function OrphanCommercialGuide({
-  hasClient,
   hasLines,
   status,
   hasProject,
+  issuedAsOrphan,
   formalizationMode,
   hasAgreement = false,
+  delivered = false,
 }: Props) {
   const { t } = useTranslation('projects')
+  const isFieldService = useIsFieldService()
+  const contactLabel = useSectorLabel('contact', isFieldService ? 'Client' : 'Contacte')
   const issued = ['issued', 'accepted', 'signed', 'rejected', 'expired', 'cancelled'].includes(status)
   const answered = ['accepted', 'signed', 'rejected', 'expired'].includes(status)
   const separate = formalizationMode === 'separate_agreement'
   const contractDone = !separate || hasAgreement
-  const needContract = separate && issued && !hasAgreement
+  const needContract = separate && issued && delivered && !hasAgreement
+  /** Feina amb pressupost: l’ordre ja existia abans d’emetre. Orfe: l’ordre ve després de la resposta. */
+  const orderFirst = hasProject && !issuedAsOrphan
 
-  let current = 'contact'
-  if (!hasClient) current = 'contact'
-  else if (!hasLines) current = 'lines'
-  else if (!issued) current = 'issue'
+  let current = 'delivery'
+  if (!delivered) current = 'delivery'
   else if (needContract) current = 'contract'
   else if (!answered) current = 'reply'
-  else if (!hasProject && status === 'accepted') current = 'os_pending'
-  else current = 'os'
+  else if (!hasProject && (status === 'accepted' || status === 'signed')) current = 'os'
+  else current = 'done'
 
-  const steps = [
-    {
-      id: 'contact',
-      label: t('projects.orphan.guide_contact', 'Contacte'),
-      done: hasClient,
-      current: current === 'contact',
-    },
-    {
-      id: 'lines',
-      label: t('projects.orphan.guide_lines', 'Full de preus'),
-      done: hasLines,
-      current: current === 'lines',
-    },
-    {
-      id: 'issue',
-      label: t('projects.orphan.guide_issue', 'Emetre'),
-      done: issued,
-      current: current === 'issue',
-    },
-    ...(separate
-      ? [
-          {
-            id: 'contract',
-            label: t('projects.orphan.guide_contract', 'Contracte'),
-            done: contractDone,
-            current: current === 'contract',
-          },
-        ]
-      : []),
-    {
-      id: 'reply',
-      label: t('projects.orphan.guide_reply', 'Resposta'),
-      // With separate_agreement, do not mark reply done until the contract step is done
-      // (avoids “Resposta ✓” while “Contracte” is still the current step after office accept).
-      done: answered && contractDone,
-      current: current === 'reply' || current === 'os_pending',
-    },
-    {
-      id: 'os',
-      label: t('projects.orphan.guide_os', 'Ordre'),
-      done: hasProject,
-      current: current === 'os' || current === 'os_pending',
-    },
-  ]
+  const contactStep = {
+    id: 'contact',
+    label: t('projects.orphan.guide_contact', '{{contact}}', { contact: contactLabel }),
+    done: true,
+    current: false,
+  }
+  const orderStep = {
+    id: 'os',
+    label: t('projects.orphan.guide_os', 'Ordre'),
+    done: hasProject,
+    current: current === 'os',
+  }
+  const linesStep = {
+    id: 'lines',
+    label: t('projects.orphan.guide_lines', 'Full de preus'),
+    done: hasLines || issued,
+    current: false,
+  }
+  const templateStep = {
+    id: 'template',
+    label: t('projects.orphan.guide_template', 'Plantilla'),
+    done: issued,
+    current: false,
+  }
+  const issueStep = {
+    id: 'issue',
+    label: t('projects.orphan.guide_issue', 'Emetre'),
+    done: issued,
+    current: false,
+  }
+  const contractStep = separate
+    ? {
+        id: 'contract',
+        label: t('projects.orphan.guide_contract', 'Contracte'),
+        done: contractDone && delivered,
+        current: current === 'contract',
+      }
+    : null
+  const deliveryStep = {
+    id: 'delivery',
+    label: t('projects.orphan.guide_delivery', 'Entrega'),
+    done: delivered,
+    current: current === 'delivery',
+  }
+  const replyStep = {
+    id: 'reply',
+    label: t('projects.orphan.guide_reply', 'Resposta'),
+    done: answered && contractDone,
+    current: current === 'reply',
+  }
+
+  const steps = orderFirst
+    ? [
+        contactStep,
+        orderStep,
+        linesStep,
+        templateStep,
+        issueStep,
+        ...(contractStep ? [contractStep] : []),
+        deliveryStep,
+        replyStep,
+      ]
+    : [
+        contactStep,
+        linesStep,
+        templateStep,
+        issueStep,
+        ...(contractStep ? [contractStep] : []),
+        deliveryStep,
+        replyStep,
+        orderStep,
+      ]
 
   const tip =
-    current === 'lines'
-      ? t('projects.orphan.tip_lines', 'Omple el full de preus. Encara no hi ha ordre de servei.')
-      : current === 'issue'
-        ? t('projects.orphan.tip_issue', 'Emet el PDF. El número de document es assigna ara.')
-        : current === 'contract'
-          ? answered
-            ? t(
-                'projects.orphan.tip_contract_after_office',
-                'El pressupost ja està acceptat. Encara cal preparar i firmar l’acord si el work_gate ho exigeix.',
-              )
-            : t('projects.orphan.tip_contract', 'Prepara i envia l’acord. La firma accepta també el pressupost.')
+    current === 'delivery'
+      ? t(
+          'projects.orphan.tip_delivery',
+          'Encara no ha sortit de l’oficina. Entrega el PDF, o entrega’l i demana resposta.',
+        )
+      : current === 'contract'
+        ? t(
+            'projects.orphan.tip_contract',
+            'Prepara i envia l’acord. La firma accepta també el pressupost.',
+          )
           : current === 'reply'
-            ? t('projects.orphan.tip_reply', 'Espera la resposta del client.')
-            : current === 'os_pending'
+          ? t(
+              'projects.orphan.tip_reply_after_delivery',
+              'Ja s’ha entregat. Pots registrar l’acceptació o el refús des de l’oficina.',
+            )
+          : current === 'os'
+            ? t(
+                'projects.orphan.tip_os_pending',
+                'Acceptat. Si no hi ha ordre, usa «Crear ordre» o reintenta des de l’oficina.',
+              )
+            : hasProject
               ? t(
-                  'projects.orphan.tip_os_pending',
-                  'Acceptat. Si no hi ha ordre, usa «Crear ordre» o reintenta des de l’oficina.',
+                  'projects.prospect.tip_followup_done',
+                  'Pressupost i ordre enllaçats. Continua el seguiment des de l’ordre.',
                 )
-              : hasProject
-                ? t('projects.orphan.tip_os_done', 'Ordre creada. Planifica-la a Agenda → Sense planificar.')
-                : t('projects.orphan.tip_contact', 'Tria el contacte del pressupost.')
+              : t('projects.orphan.tip_delivery', 'Encara no ha sortit de l’oficina.')
 
   return (
-    <aside aria-label={t('projects.orphan.guide_aria', 'Guia pressupost sense ordre')}>
-      <p className="mb-1.5 text-[11px] font-medium text-amber-900/80 dark:text-amber-100/80">
-        {t('projects.orphan.guide_title', 'Seguiment (sense ordre fins a acceptar)')}
+    <aside aria-label={t('projects.orphan.trail_aria', 'Recorregut del pressupost')}>
+      <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">
+        {t('projects.orphan.trail_title', 'Recorregut del pressupost')}
       </p>
       <ol className="flex flex-wrap gap-2">
         {steps.map((step, index) => (

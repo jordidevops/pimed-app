@@ -25,12 +25,26 @@ import {
   priceSheetRpcErrorTitle,
 } from '../utils/rpcError'
 
+export type DocumentPriceLineDraft = {
+  catalogItemId?: string | null
+  kind?: string
+  name: string
+  description?: string | null
+  unit?: string
+  quantity: number
+  unitPrice: number
+  discountPct: number
+  taxRate: number
+}
+
 interface ApplyPricingTemplateDialogProps {
   projectId: string
   open: boolean
   onClose: () => void
   onApplied: () => void
   initialTemplateId?: string | null
+  /** Orphan quote: write commercial document lines instead of project lines. */
+  onApplyLines?: (rows: DocumentPriceLineDraft[]) => Promise<void>
 }
 
 export function ApplyPricingTemplateDialog({
@@ -39,6 +53,7 @@ export function ApplyPricingTemplateDialog({
   onClose,
   onApplied,
   initialTemplateId,
+  onApplyLines,
 }: ApplyPricingTemplateDialogProps) {
   const { t } = useTranslation(['projects', 'catalog'])
   const { toast } = useToast()
@@ -107,17 +122,37 @@ export function ApplyPricingTemplateDialog({
     if (!templateId) return
     setSubmitting(true)
     try {
-      await applyPricingTemplate({
-        projectId,
-        templateId,
-        quantities,
-        // Without commercial.pricing.edit the RPC rejects any non-zero override.
-        // null keeps template default_discount_pct (allowed); 0 is an explicit office override.
-        discountPct: canEditPricing ? discountPct : null,
-      })
-      await queryClient.invalidateQueries({ queryKey: ['project_lines', projectId] })
-      await queryClient.invalidateQueries({ queryKey: ['checklist_runs', projectId] })
-      await queryClient.invalidateQueries({ queryKey: ['project_lines_count', projectId] })
+      if (onApplyLines) {
+        await onApplyLines(
+          items.map((item) => {
+            const catalog = catalogById.get(item.catalog_item_id)
+            return {
+              catalogItemId: item.catalog_item_id,
+              kind: catalog?.kind === 'product' ? 'product' : 'service',
+              name: catalog?.name ?? item.catalog_item_name ?? '',
+              unit: catalog?.unit ?? item.catalog_item_unit ?? 'u',
+              quantity: Number(quantities[item.id] ?? item.default_quantity ?? 1),
+              unitPrice: Number(catalog?.unit_price ?? item.catalog_item_unit_price ?? 0),
+              discountPct: canEditPricing
+                ? discountPct
+                : Number(item.default_discount_pct ?? 0),
+              taxRate: Number(catalog?.tax_rate ?? 21),
+            }
+          }),
+        )
+      } else {
+        await applyPricingTemplate({
+          projectId,
+          templateId,
+          quantities,
+          // Without commercial.pricing.edit the RPC rejects any non-zero override.
+          // null keeps template default_discount_pct (allowed); 0 is an explicit office override.
+          discountPct: canEditPricing ? discountPct : null,
+        })
+        await queryClient.invalidateQueries({ queryKey: ['project_lines', projectId] })
+        await queryClient.invalidateQueries({ queryKey: ['checklist_runs', projectId] })
+        await queryClient.invalidateQueries({ queryKey: ['project_lines_count', projectId] })
+      }
       toast({
         title: t('projects.lines.template_applied', 'Servei habitual aplicat'),
       })

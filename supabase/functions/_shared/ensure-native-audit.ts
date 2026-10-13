@@ -63,17 +63,46 @@ export async function ensureNativeGroupAuditCertificate(
   if (job.status === "completed") {
     const meta = (job.metadata ?? {}) as Record<string, unknown>;
     const path = (meta.audit_storage_path as string | null) ?? null;
-    if (path) return { auditPath: path, jobId };
+    // Reuse only when the submission still points at the certificate.
+    // If audit_trail was cleared (e.g. regen after empty events), rebuild.
+    if (path && existing) return { auditPath: path, jobId };
 
-    const { data: subAfter } = await db
-      .from("signing_submissions")
-      .select("audit_trail_storage_path")
-      .eq("id", input.submissionId)
-      .maybeSingle();
-    return {
-      auditPath: (subAfter?.audit_trail_storage_path as string | null) ?? null,
-      jobId,
-    };
+    if (path && !existing) {
+      await db.from("document_pdf_jobs").update({
+        status:             "queued",
+        locked_at:          null,
+        locked_by:          null,
+        completed_at:       null,
+        last_error_code:    null,
+        last_error_message: null,
+        updated_at:         new Date().toISOString(),
+        metadata:           { ...meta, audit_storage_path: null },
+      }).eq("id", jobId);
+
+      const { data: regenJob } = await db
+        .from("document_pdf_jobs")
+        .select("*")
+        .eq("id", jobId)
+        .maybeSingle();
+
+      if (regenJob) {
+        await processAuditCertificateJob(db, regenJob as Record<string, unknown>, {
+          jobId,
+          tenantId: input.tenantId,
+          workerId: input.workerId ?? "ensure-native-audit-regen",
+        });
+      }
+    } else {
+      const { data: subAfter } = await db
+        .from("signing_submissions")
+        .select("audit_trail_storage_path")
+        .eq("id", input.submissionId)
+        .maybeSingle();
+      return {
+        auditPath: (subAfter?.audit_trail_storage_path as string | null) ?? null,
+        jobId,
+      };
+    }
   }
 
   if (job.status === "failed" || job.status === "dead_letter") {

@@ -1,4 +1,4 @@
-import { useState, KeyboardEvent } from 'react'
+import { useEffect, useState, KeyboardEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -12,7 +12,12 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { createContact, type CreateContactParams } from '../api/contactsService'
+import {
+  createContact,
+  updateContact,
+  type Contact,
+  type CreateContactParams,
+} from '../api/contactsService'
 import { useToast } from '@/hooks/use-toast'
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -33,17 +38,46 @@ const contactSchema = z.object({
 
 type ContactFormValues = z.infer<typeof contactSchema>
 
+function valuesFromContact(contact: Contact): ContactFormValues {
+  const channel = contact.preferred_channel
+  return {
+    kind: contact.kind === 'company' ? 'company' : 'person',
+    display_name: contact.display_name ?? '',
+    given_name: contact.given_name ?? '',
+    family_name: contact.family_name ?? '',
+    legal_name: contact.legal_name ?? '',
+    tax_id: contact.tax_id ?? '',
+    email: contact.email ?? '',
+    phone: contact.phone ?? '',
+    phone_alt: contact.phone_alt ?? '',
+    preferred_channel:
+      channel === 'email' || channel === 'sms' || channel === 'whatsapp' ? channel : 'none',
+    source:
+      contact.source === 'import' ||
+      contact.source === 'web' ||
+      contact.source === 'referral'
+        ? contact.source
+        : 'manual',
+  }
+}
+
 // ─── ContactForm ──────────────────────────────────────────────────────────────
 
 interface ContactFormProps {
   open: boolean
   onClose: () => void
-  onCreated: (id: string) => void
+  /** Create mode: called with the new contact id. */
+  onCreated?: (id: string) => void
+  /** Edit mode: existing contact to update. */
+  contact?: Contact | null
+  /** Edit mode: called after a successful save. */
+  onSaved?: () => void
 }
 
-export function ContactForm({ open, onClose, onCreated }: ContactFormProps) {
+export function ContactForm({ open, onClose, onCreated, contact = null, onSaved }: ContactFormProps) {
   const { t } = useTranslation('contacts')
   const { toast } = useToast()
+  const isEdit = Boolean(contact?.id)
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
 
@@ -60,7 +94,17 @@ export function ContactForm({ open, onClose, onCreated }: ContactFormProps) {
 
   const kind = watch('kind')
 
-  // ─── Tag input ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!open) return
+    if (contact?.id) {
+      reset(valuesFromContact(contact))
+      setTags(contact.tags ?? [])
+    } else {
+      reset({ kind: 'person', source: 'manual', preferred_channel: 'none' })
+      setTags([])
+    }
+    setTagInput('')
+  }, [open, contact, reset])
 
   function addTag(value: string) {
     const trimmed = value.trim()
@@ -83,32 +127,36 @@ export function ContactForm({ open, onClose, onCreated }: ContactFormProps) {
     setTags((prev) => prev.filter((t) => t !== tag))
   }
 
-  // ─── Submit ─────────────────────────────────────────────────────────────
-
-  async function onSubmit(values: ContactFormValues) {
-    // Add any pending tag input
-    const finalTags = tagInput.trim()
-      ? [...tags, tagInput.trim()]
-      : tags
-
-    const params: CreateContactParams = {
+  function buildParams(values: ContactFormValues): CreateContactParams {
+    const finalTags = tagInput.trim() ? [...tags, tagInput.trim()] : tags
+    return {
       p_kind: values.kind,
       p_display_name: values.display_name,
       p_source: values.source,
-      ...(values.given_name && { p_given_name: values.given_name }),
-      ...(values.family_name && { p_family_name: values.family_name }),
-      ...(values.legal_name && { p_legal_name: values.legal_name }),
-      ...(values.tax_id && { p_tax_id: values.tax_id }),
-      ...(values.email && { p_email: values.email }),
-      ...(values.phone && { p_phone: values.phone }),
-      ...(values.phone_alt && { p_phone_alt: values.phone_alt }),
-      ...(values.preferred_channel && values.preferred_channel !== 'none' && {
-        p_preferred_channel: values.preferred_channel,
-      }),
-      ...(finalTags.length > 0 && { p_tags: finalTags }),
+      p_given_name: values.given_name?.trim() || undefined,
+      p_family_name: values.family_name?.trim() || undefined,
+      p_legal_name: values.legal_name?.trim() || undefined,
+      p_tax_id: values.tax_id?.trim() || undefined,
+      p_email: values.email?.trim() || undefined,
+      p_phone: values.phone?.trim() || undefined,
+      p_phone_alt: values.phone_alt?.trim() || undefined,
+      p_preferred_channel: values.preferred_channel ?? 'none',
+      p_tags: finalTags,
     }
+  }
 
+  async function onSubmit(values: ContactFormValues) {
+    const params = buildParams(values)
     try {
+      if (isEdit && contact?.id) {
+        await updateContact({ ...params, p_contact_id: contact.id })
+        toast({
+          title: t('contacts.success.updated', 'Contacte actualitzat correctament'),
+        })
+        onSaved?.()
+        handleClose()
+        return
+      }
       const id = await createContact(params)
       toast({
         title: t('contacts.success.created', 'Contacte creat correctament'),
@@ -116,11 +164,13 @@ export function ContactForm({ open, onClose, onCreated }: ContactFormProps) {
       reset()
       setTags([])
       setTagInput('')
-      onCreated(id)
+      onCreated?.(id)
     } catch {
       toast({
         variant: 'destructive',
-        title: t('contacts.errors.create_failed', 'Error en crear el contacte'),
+        title: isEdit
+          ? t('contacts.errors.update_failed', 'Error en actualitzar el contacte')
+          : t('contacts.errors.create_failed', 'Error en crear el contacte'),
       })
     }
   }
@@ -132,17 +182,18 @@ export function ContactForm({ open, onClose, onCreated }: ContactFormProps) {
     onClose()
   }
 
-  // ─── Render ─────────────────────────────────────────────────────────────
-
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose() }}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{t('contacts.form.title_create', 'Nou contacte')}</DialogTitle>
+          <DialogTitle>
+            {isEdit
+              ? t('contacts.form.title_edit', 'Editar contacte')
+              : t('contacts.form.title_create', 'Nou contacte')}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
-          {/* Kind */}
           <div>
             <label className="text-sm font-medium text-foreground block mb-1.5">
               {t('contacts.form.kind_label', 'Tipus de contacte')}
@@ -167,7 +218,6 @@ export function ContactForm({ open, onClose, onCreated }: ContactFormProps) {
             </div>
           </div>
 
-          {/* display_name */}
           <div>
             <label className="text-sm font-medium text-foreground block mb-1">
               {t('contacts.fields.display_name', 'Nom')}
@@ -181,7 +231,6 @@ export function ContactForm({ open, onClose, onCreated }: ContactFormProps) {
             )}
           </div>
 
-          {/* Person-specific fields */}
           {kind === 'person' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -199,7 +248,6 @@ export function ContactForm({ open, onClose, onCreated }: ContactFormProps) {
             </div>
           )}
 
-          {/* Company-specific fields */}
           {kind === 'company' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -217,7 +265,6 @@ export function ContactForm({ open, onClose, onCreated }: ContactFormProps) {
             </div>
           )}
 
-          {/* Email + Phone */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-foreground block mb-1">
@@ -233,7 +280,6 @@ export function ContactForm({ open, onClose, onCreated }: ContactFormProps) {
             </div>
           </div>
 
-          {/* Phone alt */}
           <div>
             <label className="text-sm font-medium text-foreground block mb-1">
               {t('contacts.fields.phone_alt', 'Telèfon alternatiu')}
@@ -241,7 +287,6 @@ export function ContactForm({ open, onClose, onCreated }: ContactFormProps) {
             <Input type="tel" {...register('phone_alt')} />
           </div>
 
-          {/* Preferred channel */}
           <div>
             <label className="text-sm font-medium text-foreground block mb-1">
               {t('contacts.fields.preferred_channel', 'Canal preferit')}
@@ -257,7 +302,6 @@ export function ContactForm({ open, onClose, onCreated }: ContactFormProps) {
             </select>
           </div>
 
-          {/* Tags */}
           <div>
             <label className="text-sm font-medium text-foreground block mb-1">
               {t('contacts.fields.tags', 'Etiquetes')}
@@ -269,7 +313,13 @@ export function ContactForm({ open, onClose, onCreated }: ContactFormProps) {
                   className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 text-xs font-medium"
                 >
                   {tag}
-                  <button type="button" onClick={() => removeTag(tag)} className="hover:opacity-70" title={t('contacts.actions.remove_tag', 'Eliminar etiqueta')} aria-label={t('contacts.actions.remove_tag', 'Eliminar etiqueta')}>
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="hover:opacity-70"
+                    title={t('contacts.actions.remove_tag', 'Eliminar etiqueta')}
+                    aria-label={t('contacts.actions.remove_tag', 'Eliminar etiqueta')}
+                  >
                     <X className="h-3 w-3" />
                   </button>
                 </span>
@@ -279,14 +329,19 @@ export function ContactForm({ open, onClose, onCreated }: ContactFormProps) {
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleTagKeyDown}
-                onBlur={() => { if (tagInput.trim()) addTag(tagInput) }}
-                placeholder={tags.length === 0 ? t('contacts.form.tags_hint', 'Prem Enter o coma per afegir') : ''}
+                onBlur={() => {
+                  if (tagInput.trim()) addTag(tagInput)
+                }}
+                placeholder={
+                  tags.length === 0
+                    ? t('contacts.form.tags_hint', 'Prem Enter o coma per afegir')
+                    : ''
+                }
                 className="flex-1 min-w-20 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
             </div>
           </div>
 
-          {/* Source */}
           <div>
             <label className="text-sm font-medium text-foreground block mb-1">
               {t('contacts.fields.source', 'Origen')}
@@ -302,7 +357,6 @@ export function ContactForm({ open, onClose, onCreated }: ContactFormProps) {
             </select>
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-2 pt-2 border-t border-border">
             <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
               {t('contacts.form.cancel', 'Cancel·lar')}

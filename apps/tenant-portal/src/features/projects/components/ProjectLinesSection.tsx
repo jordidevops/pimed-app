@@ -391,6 +391,12 @@ export function ProjectLinesSection({ projectId, siteId }: ProjectLinesSectionPr
                   {moneyFmt.format(totalSubtotal)}
                 </span>
               </div>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>{t('projects.lines.totals.tax', 'IVA')}</span>
+                <span className="font-medium tabular-nums text-foreground">
+                  {moneyFmt.format(totalWithTax - totalSubtotal)}
+                </span>
+              </div>
               <div className="flex justify-between text-sm font-semibold text-foreground">
                 <span>{t('projects.lines.totals.total', 'Total (amb IVA)')}</span>
                 <span className="tabular-nums">{moneyFmt.format(totalWithTax)}</span>
@@ -533,6 +539,18 @@ export function ProjectLinesSection({ projectId, siteId }: ProjectLinesSectionPr
                 </td>
                 <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-foreground">
                   {moneyFmt.format(totalSubtotal)}
+                </td>
+                <td colSpan={2} />
+              </tr>
+              <tr className="border-t border-border bg-muted/10">
+                <td
+                  colSpan={6}
+                  className="px-4 py-2.5 text-right text-sm font-medium text-muted-foreground"
+                >
+                  {t('projects.lines.totals.tax', 'IVA')}
+                </td>
+                <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-foreground">
+                  {moneyFmt.format(totalWithTax - totalSubtotal)}
                 </td>
                 <td colSpan={2} />
               </tr>

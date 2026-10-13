@@ -28,6 +28,19 @@ export interface AuditSignerBlock {
   events:            Array<{ event_type: string; created_at: string }>;
 }
 
+const EVIDENCE_EVENT_LABELS: Record<string, string> = {
+  link_sent: "Enllaç enviat",
+  link_opened: "Enllaç obert",
+  document_viewed: "Document visualitzat",
+  signature_drawn: "Signatura dibuixada",
+  signed: "Document signat",
+  declined: "Signatura rebutjada",
+};
+
+function evidenceEventLabel(eventType: string): string {
+  return EVIDENCE_EVENT_LABELS[eventType] ?? eventType.replace(/_/g, " ");
+}
+
 export function buildGroupAuditHtml(data: {
   documentTitle:    string;
   submissionId?:    string;
@@ -47,7 +60,7 @@ export function buildGroupAuditHtml(data: {
     const eventsHtml = s.events.map(e => `
       <tr>
         <td>${formatDate(e.created_at)}</td>
-        <td>${e.event_type.replace(/_/g, " ")}</td>
+        <td>${evidenceEventLabel(e.event_type)}</td>
       </tr>
     `).join("");
 
@@ -228,7 +241,11 @@ export async function processAuditCertificateJob(
     const sid = session.id as string;
     const auditRecord = auditBySession.get(sid);
 
-    const { data: evidences = [] } = await db
+    // Evidences live in data.*; api view may be missing on older deploys — prefer data schema.
+    const evidencesDb = typeof (db as { schema?: (s: string) => typeof db }).schema === "function"
+      ? (db as { schema: (s: string) => typeof db }).schema("data")
+      : db;
+    const { data: evidences = [] } = await evidencesDb
       .from("document_signature_evidences")
       .select("event_type, created_at")
       .eq("session_id", sid)

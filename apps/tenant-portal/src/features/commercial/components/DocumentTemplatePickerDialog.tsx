@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Search } from 'lucide-react'
 import {
@@ -40,6 +40,13 @@ type DocumentTemplatePickerDialogProps = {
    * sample preview for this doc type.
    */
   emptySystemDefaultDocType?: 'quote' | 'delivery_note' | null
+  /** Replaces the empty-option preview (for example the live draft). */
+  emptyPreview?: ReactNode
+  /**
+   * When set, every highlighted option (including the empty one) previews with
+   * this render instead of the sample playground.
+   */
+  previewFor?: (templateId: string) => ReactNode
 }
 
 export function DocumentTemplatePickerDialog({
@@ -56,6 +63,8 @@ export function DocumentTemplatePickerDialog({
   emptyPreviewTemplateId = null,
   emptyPreviewMessage,
   emptySystemDefaultDocType = null,
+  emptyPreview = null,
+  previewFor,
 }: DocumentTemplatePickerDialogProps) {
   const { t } = useTranslation(['projects', 'common'])
   const [query, setQuery] = useState('')
@@ -216,7 +225,21 @@ export function DocumentTemplatePickerDialog({
                 ? `: ${previewTemplate.name}`
                 : ''}
             </p>
-            {previewTemplateId || (previewingEmptyDefault && emptySystemDefaultDocType) ? (
+            {previewFor ? (
+              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto">
+                {previewingEmptyDefault && emptyPreviewMessage ? (
+                  <p className="shrink-0 text-[11px] text-muted-foreground">{emptyPreviewMessage}</p>
+                ) : null}
+                {previewFor(highlightId)}
+              </div>
+            ) : previewingEmptyDefault && emptyPreview ? (
+              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto">
+                {emptyPreviewMessage ? (
+                  <p className="shrink-0 text-[11px] text-muted-foreground">{emptyPreviewMessage}</p>
+                ) : null}
+                {emptyPreview}
+              </div>
+            ) : previewTemplateId || (previewingEmptyDefault && emptySystemDefaultDocType) ? (
               <div className="flex min-h-0 flex-1 flex-col gap-2">
                 {previewingEmptyDefault && previewTemplateId ? (
                   <p className="shrink-0 text-[11px] text-muted-foreground">

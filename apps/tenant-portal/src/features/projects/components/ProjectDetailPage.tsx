@@ -90,6 +90,7 @@ import {
   type ServiceMode,
 } from '@/features/commercial/utils/commercialRegimePolicy'
 import { ProjectCommercialPanel } from '@/features/commercial/components/ProjectCommercialPanel'
+import { PrepareQuoteWizard } from '@/features/commercial/components/PrepareQuoteWizard'
 import { ProjectProfitabilityCard } from '@/features/commercial/components/ProjectProfitabilityCard'
 import {
   ProjectAgreementsSection,
@@ -1461,9 +1462,32 @@ export function ProjectDetailPage() {
         )}
 
         <TabsContent value="prepare" className="space-y-4">
-          <section className="rounded-xl border border-border p-4 sm:p-5">
-            <ProjectLinesSection projectId={project.id!} siteId={project.site_id} />
-          </section>
+          {isFieldService &&
+          !commercialDocs.some(
+            (doc) =>
+              (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment') &&
+              !['cancelled', 'rejected', 'expired'].includes(doc.status),
+          ) ? (
+            <PrepareQuoteWizard
+              projectId={project.id!}
+              projectName={project.name ?? ''}
+              clientId={project.client_id ?? null}
+              siteId={project.site_id}
+              hasLines={linesCount > 0}
+              isAssessment={commercialPolicy.service_mode === 'assessment'}
+              initialFormalizationMode={
+                searchParams.get('formalization') === 'separate_agreement'
+                  ? 'separate_agreement'
+                  : searchParams.get('formalization') === 'signed_quote'
+                    ? 'signed_quote'
+                    : null
+              }
+            />
+          ) : (
+            <section className="rounded-xl border border-border p-4 sm:p-5">
+              <ProjectLinesSection projectId={project.id!} siteId={project.site_id} />
+            </section>
+          )}
           <ProjectProfitabilityCard projectId={project.id!} siteId={project.site_id} />
           {isFieldService && (
             <ProjectCommercialPanel
@@ -1472,6 +1496,20 @@ export function ProjectDetailPage() {
               section="authorize"
               serviceMode={commercialPolicy.service_mode}
               allowWorkWithoutQuote={!isProspect}
+              hideIssueComposer={
+                !commercialDocs.some(
+                  (doc) =>
+                    (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment') &&
+                    !['cancelled', 'rejected', 'expired'].includes(doc.status),
+                )
+              }
+              initialFormalizationMode={
+                searchParams.get('formalization') === 'separate_agreement'
+                  ? 'separate_agreement'
+                  : searchParams.get('formalization') === 'signed_quote'
+                    ? 'signed_quote'
+                    : null
+              }
               forceViewDocId={forceViewDocId}
               onForceViewHandled={clearForceView}
             />

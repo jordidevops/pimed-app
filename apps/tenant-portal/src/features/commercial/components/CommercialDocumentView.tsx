@@ -26,6 +26,7 @@ import {
 } from '../utils/commercialSigningBadges'
 import type { CommercialDocumentDetail } from '../utils/commercialDocumentModel'
 import {
+  collapseQuoteLifecycleEvents,
   commercialFilename,
   COMMERCIAL_LIFECYCLE_EVENT_TYPES,
   docTypeLabel,
@@ -270,17 +271,10 @@ export function CommercialDocumentView({
               {t('projects.commercial.pdf_generating', 'Generant PDF…')}
             </Button>
           ) : null}
-          {pdf.renderedDocumentId ? (
+          {signedPdfId || pdf.renderedDocumentId ? (
             <Button type="button" size="sm" variant="outline" asChild>
-              <Link to={dmsHref(pdf.renderedDocumentId)}>
+              <Link to={dmsHref(signedPdfId ?? pdf.renderedDocumentId!)}>
                 {t('projects.commercial.open_dms', 'Obrir al DMS')}
-              </Link>
-            </Button>
-          ) : null}
-          {signedPdfId && signedPdfId !== pdf.renderedDocumentId ? (
-            <Button type="button" size="sm" variant="outline" asChild>
-              <Link to={dmsHref(signedPdfId)}>
-                {t('projects.commercial.open_signed_pdf', 'Obrir PDF firmat')}
               </Link>
             </Button>
           ) : null}
@@ -453,20 +447,30 @@ export function CommercialDocumentView({
             </section>
 
             {(() => {
-              const lifecycle = (doc.events ?? []).filter((event) =>
+              const isQuote =
+                doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment'
+              const rawLifecycle = (doc.events ?? []).filter((event) =>
                 (COMMERCIAL_LIFECYCLE_EVENT_TYPES as readonly string[]).includes(
                   event.event_type,
                 ),
               )
+              const lifecycle = isQuote
+                ? collapseQuoteLifecycleEvents(rawLifecycle)
+                : rawLifecycle.map((event) => ({ ...event }))
               if (lifecycle.length === 0 && !doc.issued_at) return null
-              const eventLabel = (type: string) => {
-                switch (type) {
+              const eventLabel = (event: (typeof lifecycle)[number]) => {
+                if (event.displayKind === 'order_created') {
+                  return t('projects.orphan.os_created', 'Ordre creada')
+                }
+                switch (event.event_type) {
                   case 'issued':
                     return t('projects.commercial.event_issued', 'Emès')
                   case 'sent':
                     return t('projects.commercial.event_sent', 'Enviat')
                   case 'accepted':
                     return t('projects.commercial.event_accepted', 'Acceptat')
+                  case 'project_linked':
+                    return t('projects.orphan.os_created', 'Ordre creada')
                   case 'rejected':
                     return t('projects.commercial.event_rejected', 'Refusat')
                   case 'cancelled':
@@ -480,7 +484,7 @@ export function CommercialDocumentView({
                   case 'signed':
                     return t('projects.commercial.event_signed', 'Signat')
                   default:
-                    return type
+                    return event.event_type
                 }
               }
               const paymentAmountLabel = (payload: Record<string, unknown> | null | undefined) => {
@@ -503,8 +507,11 @@ export function CommercialDocumentView({
                     </p>
                   ) : null}
                   {lifecycle.map((event) => (
-                    <p key={event.id} className="text-sm text-muted-foreground">
-                      {eventLabel(event.event_type)}{' '}
+                    <p
+                      key={event.displayKey ?? event.id}
+                      className="text-sm text-muted-foreground"
+                    >
+                      {eventLabel(event)}{' '}
                       {formatCommercialEventDate(event.occurred_at)}
                       {event.event_type === 'sent' && event.channel
                         ? ` · ${event.channel}`

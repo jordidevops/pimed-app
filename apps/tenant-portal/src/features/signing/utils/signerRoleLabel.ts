@@ -2,7 +2,8 @@
 export const NATIVE_SIGNER_ROLE_LABELS: Record<string, string> = {
   worker:  'Treballador/a',
   manager: 'Responsable',
-  client_accept: 'Acceptació',
+  /** Matches signature-field name on the PDF box («Accepto»), not the section heading. */
+  client_accept: 'Accepto',
   client_reject: 'Refús',
   client_delivery: 'Conformitat de lliurament',
 }

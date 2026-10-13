@@ -27,6 +27,40 @@ export function buildMailtoTextUrl(subject: string, body: string, email?: string
   return `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
 }
 
+export type {
+  BuyerDeliveryDiscrepancy,
+  BuyerDeliveryField,
+  LiveBuyerContact,
+} from './buyerDeliveryDiscrepancy'
+export { buyerDeliveryDiscrepancies } from './buyerDeliveryDiscrepancy'
+
+import {
+  liveContactPhone,
+  type LiveBuyerContact,
+} from './buyerDeliveryDiscrepancy'
+
+/** Prefer live contact phone/email for delivery; fall back to frozen buyer_snapshot. */
+export function withLiveBuyerContact(
+  doc: CommercialDocumentDetail,
+  contact: LiveBuyerContact | null,
+): CommercialDocumentDetail {
+  if (!contact) return doc
+  const phone = liveContactPhone(contact) || null
+  const email = contact.email?.trim() || null
+  if (!phone && !email && !contact.display_name?.trim()) return doc
+  return {
+    ...doc,
+    buyer_snapshot: {
+      ...doc.buyer_snapshot,
+      ...(email ? { email } : {}),
+      ...(phone ? { phone } : {}),
+      ...(contact.display_name?.trim()
+        ? { display_name: contact.display_name.trim() }
+        : {}),
+    },
+  }
+}
+
 export function buildCommercialWhatsAppUrl(doc: CommercialDocumentDetail): string {
   const text = buildCommercialShareText(doc)
   const phone = doc.buyer_snapshot.phone?.trim()

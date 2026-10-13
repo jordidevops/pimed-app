@@ -67,12 +67,12 @@ function visitSubtitle(visit: FieldVisit): string {
   return parts.join(' · ')
 }
 
-function visitToGridEvent(visit: FieldVisit): CalendarGridEvent {
+function visitToGridEvent(visit: FieldVisit, assessmentLabel: string): CalendarGridEvent {
   const memberNames = visit.members.slice(0, 2).map((m) => memberInitials(m.display_name))
   if (visit.members.length > 2) memberNames.push(`+${visit.members.length - 2}`)
   const badges = [
     ...memberNames,
-    visit.service_mode === 'assessment' ? 'Avaluació' : null,
+    visit.service_mode === 'assessment' ? assessmentLabel : null,
   ].filter(Boolean) as string[]
 
   return {
@@ -310,9 +310,11 @@ export function FieldAgendaPage() {
   const [createDay, setCreateDay] = useState<string | null>(null)
   const [panelOpen, setPanelOpen] = useState(false)
   const [listFlash, setListFlash] = useState(0)
+  const [dayFlash, setDayFlash] = useState(0)
   const listTodayRef = useRef<HTMLElement | null>(null)
   const isLarge = useIsLargeScreen()
   const returnTo = `${location.pathname}${location.search}`
+  const assessmentLabel = t('field-service:service_mode.assessment', 'Avaluació')
 
   const clearFilters = () =>
     patchState({ types: ['work_order', 'maintenance'], statuses: [], memberIds: [] })
@@ -373,7 +375,10 @@ export function FieldAgendaPage() {
     listTodayRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
   }, [listFlash, state.view, state.anchor])
 
-  const gridEvents = useMemo(() => visits.filter((v) => v.planned_start).map(visitToGridEvent), [visits])
+  const gridEvents = useMemo(
+    () => visits.filter((v) => v.planned_start).map((v) => visitToGridEvent(v, assessmentLabel)),
+    [visits, assessmentLabel],
+  )
 
   function openVisit(id: string, focusPlanned = false) {
     const base = focusPlanned
@@ -536,6 +541,7 @@ export function FieldAgendaPage() {
         onClick={() => {
           patchState({ anchor: formatAnchorDate(startOfDay(new Date())) })
           if (state.view === 'list') setListFlash((n) => n + 1)
+          if (state.view === 'day') setDayFlash((n) => n + 1)
         }}
       >
         {t('field-service:agenda.today', 'Avui')}
@@ -611,9 +617,12 @@ export function FieldAgendaPage() {
                     : formatDayLabel(day)}
                 </h2>
                 {dayVisits.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    {t('field-service:agenda.empty.today', 'Cap visita aquest dia')}
-                  </p>
+                  <DayEmptyState
+                    compact
+                    filtered={false}
+                    trayVisible={trayVisible}
+                    onClear={clearFilters}
+                  />
                 ) : (
                   <VisitDayList visits={dayVisits} formatTime={formatTime} onOpen={openVisit} />
                 )}
@@ -624,18 +633,29 @@ export function FieldAgendaPage() {
       )}
     </div>
   ) : state.view === 'day' ? (
-    <div className="space-y-3">
+    <div
+      key={dayFlash > 0 ? `day-flash-${dayFlash}` : 'day'}
+      className={cn('space-y-3', dayFlash > 0 && 'agenda-today-flash rounded-xl')}
+    >
       {dayNav}
-      {isPlaceholderData && visits.length > 0 ? (
-        <div className="min-h-72" aria-hidden />
-      ) : visits.length === 0 ? (
+      {!isPlaceholderData && visits.length === 0 ? (
         <DayEmptyState
           filtered={hasActiveAgendaFilters(state)}
           trayVisible={trayVisible}
           onClear={clearFilters}
         />
+      ) : visits.length === 0 ? (
+        <div className="min-h-72 space-y-3 py-2" aria-busy="true">
+          <div className="h-24 animate-pulse rounded-2xl bg-muted/50" />
+          <div className="h-24 animate-pulse rounded-2xl bg-muted/40" />
+        </div>
       ) : (
-        <VisitDayCards visits={visits} formatTime={formatTime} onOpen={openVisit} />
+        <div
+          className={cn(isPlaceholderData && 'pointer-events-none opacity-60')}
+          aria-busy={isPlaceholderData || undefined}
+        >
+          <VisitDayCards visits={visits} formatTime={formatTime} onOpen={openVisit} />
+        </div>
       )}
     </div>
   ) : (
@@ -740,11 +760,43 @@ function VisitDayCards({
         const endLabel = formatTime(visit.planned_end)
         const allDay = !startLabel
         const place = [visit.contact_site_name, visit.contact_site_city].filter(Boolean).join(' · ')
-        const members = visit.members.map((m) => m.display_name).filter(Boolean)
         const regimeKey =
           visit.commercial_regime === 'consumer' || visit.commercial_regime === 'contractual'
             ? visit.commercial_regime
             : null
+        const typeLabel = maintenance
+          ? t('field-service:agenda.filters.maintenance', 'Manteniment')
+          : t('field-service:agenda.filters.work_order', 'Ordre de servei')
+        const extraBadges: { key: string; label: string; variant: 'outline' | 'secondary' }[] = []
+        if (visit.service_mode === 'assessment') {
+          extraBadges.push({
+            key: 'assessment',
+            label: t('field-service:service_mode.assessment', 'Avaluació'),
+            variant: 'secondary',
+          })
+        }
+        if (regimeKey) {
+          extraBadges.push({
+            key: `regime-${regimeKey}`,
+            label: t(`field-service:regime.${regimeKey}`, regimeKey),
+            variant: 'outline',
+          })
+        }
+        for (const member of visit.members.slice(0, 3)) {
+          extraBadges.push({
+            key: member.user_id,
+            label: member.display_name,
+            variant: 'secondary',
+          })
+        }
+        if (visit.members.length > 3) {
+          extraBadges.push({
+            key: 'members-overflow',
+            label: `+${visit.members.length - 3}`,
+            variant: 'secondary',
+          })
+        }
+        const mobileOverflow = extraBadges.length
 
         return (
           <li key={visit.id}>
@@ -792,30 +844,20 @@ function VisitDayCards({
                   {place ? (
                     <span className="block truncate text-xs text-muted-foreground">{place}</span>
                   ) : null}
-                  <span className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <Badge variant="outline">
-                      {maintenance
-                        ? t('field-service:agenda.filters.maintenance', 'Manteniment')
-                        : t('field-service:agenda.filters.work_order', 'Ordre de servei')}
-                    </Badge>
-                    {visit.service_mode === 'assessment' ? (
-                      <Badge variant="secondary">
-                        {t('field-service:service_mode.assessment', 'Avaluació')}
-                      </Badge>
+                  {/* Mobile: type + overflow only. Desktop: full badge row. */}
+                  <span className="flex flex-wrap items-center gap-1.5 pt-0.5 sm:hidden">
+                    <Badge variant="outline">{typeLabel}</Badge>
+                    {mobileOverflow > 0 ? (
+                      <Badge variant="secondary">+{mobileOverflow}</Badge>
                     ) : null}
-                    {regimeKey ? (
-                      <Badge variant="outline">
-                        {t(`field-service:regime.${regimeKey}`, regimeKey)}
-                      </Badge>
-                    ) : null}
-                    {visit.members.slice(0, 3).map((member) => (
-                      <Badge key={member.user_id} variant="secondary">
-                        {member.display_name}
+                  </span>
+                  <span className="hidden flex-wrap items-center gap-1.5 pt-0.5 sm:flex">
+                    <Badge variant="outline">{typeLabel}</Badge>
+                    {extraBadges.map((badge) => (
+                      <Badge key={badge.key} variant={badge.variant}>
+                        {badge.label}
                       </Badge>
                     ))}
-                    {members.length > 3 ? (
-                      <Badge variant="secondary">+{members.length - 3}</Badge>
-                    ) : null}
                   </span>
                 </span>
                 <ChevronRight className="hidden h-4 w-4 shrink-0 self-center text-muted-foreground sm:block" />
@@ -871,30 +913,56 @@ function DayEmptyState({
   filtered,
   trayVisible,
   onClear,
+  compact = false,
 }: {
   filtered: boolean
   trayVisible: boolean
   onClear: () => void
+  /** Smaller block for list-section empty (today with no visits). */
+  compact?: boolean
 }) {
   const { t } = useTranslation('field-service')
   return (
-    <div className="flex min-h-72 flex-col items-center justify-center px-6 py-16 text-center">
-      <CalendarDays className="mb-3 h-10 w-10 text-muted-foreground/40" aria-hidden />
-      <p className="text-base font-medium text-foreground">
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center text-center',
+        compact ? 'px-2 py-4' : 'min-h-72 px-6 py-16',
+      )}
+    >
+      <CalendarDays
+        className={cn(
+          'text-muted-foreground/40',
+          compact ? 'mb-1.5 h-6 w-6' : 'mb-3 h-10 w-10',
+        )}
+        aria-hidden
+      />
+      <p
+        className={cn(
+          'font-medium text-foreground',
+          compact ? 'text-sm' : 'text-base',
+        )}
+      >
         {filtered
           ? t('agenda.empty.filtered', 'Cap visita amb aquests filtres')
           : t('agenda.empty.today', 'Cap visita aquest dia')}
       </p>
       {filtered ? (
-        <Button type="button" variant="outline" size="sm" className="mt-4" onClick={onClear}>
+        <Button type="button" variant="outline" size="sm" className="mt-3" onClick={onClear}>
           <Search className="mr-1 h-4 w-4" />
           {t('agenda.filters.clear', 'Netejar filtres')}
         </Button>
       ) : trayVisible ? (
-        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-          {t('agenda.empty.tray_hint', 'Pots planificar des de la safata')}
+        <p className={cn('max-w-sm text-muted-foreground', compact ? 'mt-0.5 text-xs' : 'mt-1 text-sm')}>
+          {t('agenda.empty.from_tray', 'Planificar des de la safata')}
         </p>
-      ) : null}
+      ) : (
+        <Link
+          to="/field/orders"
+          className={cn('text-primary', compact ? 'mt-2 text-xs' : 'mt-3 text-sm')}
+        >
+          {t('agenda.empty.orders', 'Veure ordres')}
+        </Link>
+      )}
     </div>
   )
 }
@@ -928,7 +996,7 @@ function AgendaEmptyNotice({
     <span>
       {t('agenda.empty.none', 'Cap visita planificada')}
       {trayVisible
-        ? ` · ${t('agenda.empty.tray_hint', 'Pots planificar des de la safata')}`
+        ? ` · ${t('agenda.empty.from_tray', 'Planificar des de la safata')}`
         : null}
     </span>
   )

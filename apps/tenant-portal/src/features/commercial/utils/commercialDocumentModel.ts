@@ -76,6 +76,7 @@ export type CommercialDocumentDetail = {
     document_template_id?: string | null
     full_body_template_id?: string | null
     formalization_mode?: 'signed_quote' | 'separate_agreement' | null
+    draft_wizard_step?: 'lines' | 'template' | 'issue' | null
     invoice_id?: string | null
     invoice_doc_number?: string | null
     external_invoice_ref?: string | null
@@ -89,8 +90,86 @@ export type CommercialDocumentEvent = {
   event_type: string
   occurred_at: string
   channel: string | null
+  actor_id?: string | null
   payload?: Record<string, unknown> | null
   signature?: Record<string, unknown> | null
+}
+
+/** True when the quote was issued (or created) without an order — «Només pressupost». */
+export function isQuoteIssuedAsOrphan(
+  events: CommercialDocumentEvent[] | null | undefined,
+  projectId: string | null | undefined,
+): boolean {
+  const list = events ?? []
+  if (
+    list.some(
+      (e) =>
+        e.event_type === 'issued' &&
+        e.payload != null &&
+        e.payload.orphan === true,
+    )
+  ) {
+    return true
+  }
+  if (list.some((e) => e.payload?.project_created_from_quote === true)) {
+    return true
+  }
+  if (list.some((e) => e.event_type === 'project_linked')) {
+    return true
+  }
+  return !projectId
+}
+
+export type CommercialLifecycleDisplayEvent = CommercialDocumentEvent & {
+  /** UI-only; collapsed accepted / ordre creada rows share underlying event ids. */
+  displayKind?: 'accepted' | 'order_created'
+  displayKey?: string
+}
+
+/**
+ * One Acceptat row + optional Ordre creada when ensure_project tagged a duplicate accept.
+ */
+export function collapseQuoteLifecycleEvents(
+  events: CommercialDocumentEvent[],
+): CommercialLifecycleDisplayEvent[] {
+  const accepted = events.filter((e) => e.event_type === 'accepted')
+  const rest = events.filter(
+    (e) => e.event_type !== 'accepted' && e.event_type !== 'project_linked',
+  )
+  const projectLinked = events.filter((e) => e.event_type === 'project_linked')
+  const orderFromAccept = accepted.find(
+    (e) => e.payload?.project_created_from_quote === true,
+  )
+  const orderEvent = orderFromAccept ?? projectLinked[0] ?? null
+
+  const preferredAccept =
+    accepted.find((e) => e.payload?.project_created_from_quote !== true) ?? accepted[0]
+
+  const out: CommercialLifecycleDisplayEvent[] = rest.map((e) => ({ ...e }))
+  if (preferredAccept) {
+    out.push({
+      ...preferredAccept,
+      displayKind: 'accepted',
+      displayKey: `${preferredAccept.id}-accepted`,
+    })
+  }
+  if (orderEvent) {
+    out.push({
+      ...orderEvent,
+      displayKind: 'order_created',
+      displayKey: `${orderEvent.id}-order`,
+    })
+  }
+
+  out.sort((a, b) => {
+    const ta = new Date(a.occurred_at).getTime()
+    const tb = new Date(b.occurred_at).getTime()
+    if (ta !== tb) return ta - tb
+    if (a.displayKind === 'accepted' && b.displayKind === 'order_created') return -1
+    if (a.displayKind === 'order_created' && b.displayKind === 'accepted') return 1
+    return (a.displayKey ?? a.id).localeCompare(b.displayKey ?? b.id)
+  })
+  return out
 }
 
 /** True when the latest accept event was an office attestation (no client pad). */
@@ -206,6 +285,7 @@ export const COMMERCIAL_LIFECYCLE_EVENT_TYPES = [
   'signed',
   'invoice_cancelled',
   'payment_recorded',
+  'project_linked',
 ] as const
 
 export function commercialFilename(

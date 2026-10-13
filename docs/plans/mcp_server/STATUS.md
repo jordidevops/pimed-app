@@ -1,6 +1,6 @@
 # MCP Server — Estat d’implementació
 
-> **Última actualització:** 2026-09-15  
+> **Última actualització:** 2026-10-13  
 > **Propòsit:** seguir el desenvolupament dels epics MCP i deixar constància honesta del que falta.  
 > **Pla:** [`README.md`](./README.md) · backlog [`03-phases-and-backlog.md`](./03-phases-and-backlog.md) · ordre [`EXECUTION.md`](./EXECUTION.md)
 
@@ -18,9 +18,9 @@
 
 ## Resum
 
-**Pla documental creat.** Cap runtime MCP implementat. Fase activa: **MCP-0**.
+**Pla documental actualitzat** (Library headless MCP + SELECT 2026). Cap runtime MCP implementat. Fase activa: **MCP-0**.
 
-Auth acordat: OAuth usuaris + API keys S2S; sense JWT sessió. Controls: admin global/per-tenant/submodes + tenant self-serve + usage + `audit_logs`.
+Auth: OAuth **extern** (`client_id` + grants) + API keys S2S; session JWT / embedded **fora** de l’MCP públic. Bootstrap: `npx shadcn@latest add @supabase/mcp`. DCR ON. Controls admin/tenant + usage + `audit_logs`.
 
 ---
 
@@ -31,15 +31,15 @@ Auth acordat: OAuth usuaris + API keys S2S; sense JWT sessió. Controls: admin g
 | MCP-0 | Disseny / threat model / allowlist | ❌ | Fase activa |
 | MCP-1 | DDL + RLS + purge | ❌ | |
 | MCP-2 | Feature flags + kill switch | ❌ | |
-| MCP-4 | Edge skeleton Streamable HTTP | ❌ | |
+| MCP-4 | `shadcn @supabase/mcp` + pre-auth | ❌ | |
 | MCP-5 | Auth API key S2S | ❌ | |
 
 ## Tall B — OAuth humà
 
 | Epic | Nom | Estat | Notes |
 |------|-----|-------|-------|
-| MCP-3 | OAuth Server + consent + PRM | ❌ | |
-| MCP-6 | Auth OAuth + grants | ❌ | |
+| MCP-3 | OAuth Server + Consent + DCR ON | ❌ | |
+| MCP-6 | Gate `client_id` + grants | ❌ | |
 
 ## Tall C — Producte portals + tools
 
@@ -63,4 +63,5 @@ Auth acordat: OAuth usuaris + API keys S2S; sense JWT sessió. Controls: admin g
 
 | Data | Canvi |
 |------|-------|
-| 2026-09-15 | Creat paquet documental MCP (README, arquitectura, DDL, fases, acceptació, EXECUTION, STATUS). Decisions: OAuth+API keys, sense JWT sessió, jerarquia admin, usage + audit_logs. |
+| 2026-09-15 | Creat paquet documental MCP. Decisions: OAuth+API keys, sense JWT sessió, jerarquia admin, usage + audit_logs. |
+| 2026-10-13 | Impacte [SELECT 2026](https://supabase.com/blog/select-2026-build-anything) + [Library headless MCP](https://supabase.com/library/docs/headless/mcp): bootstrap `shadcn @supabase/mcp`, DCR ON, JWT asimètric, gate `client_id`, Consent block, prompt Library+PiMed combinat, no Compute, embedded session fora de l’MCP públic. Cap codi runtime encara. |

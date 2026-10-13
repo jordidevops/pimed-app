@@ -12,12 +12,15 @@ export function injectIssuedHtmlSignatureMarkers(html: string): string {
     const hMatch = attrs.match(/height:\s*(\d+)px/i)
     const widthPx = wMatch ? parseInt(wMatch[1], 10) : 180
     const heightPx = hMatch ? parseInt(hMatch[1], 10) : 60
+    // Visible label = field name (e.g. «Accepto»). [FIRMA:role] stays in the HTML/PDF
+    // text layer for stamp detection but is visually hidden from the signer.
     return (
       `<div class="sig-slot" data-sig-role="${role}" ` +
       `style="display:block;width:${widthPx}px;height:${heightPx}px;` +
       `border:1px dashed #999;position:relative;box-sizing:border-box;margin:10px 0;">` +
       `<span style="position:absolute;left:6px;top:6px;font-size:10pt;color:#555;">${name}</span>` +
-      `<span style="position:absolute;left:6px;bottom:6px;font-size:9pt;color:#888;font-family:monospace;">` +
+      `<span aria-hidden="true" style="position:absolute;left:6px;bottom:4px;font-size:1px;` +
+      `line-height:1px;color:#ffffff;opacity:0.01;font-family:monospace;">` +
       `[FIRMA:${role}]</span>` +
       `</div>`
     )

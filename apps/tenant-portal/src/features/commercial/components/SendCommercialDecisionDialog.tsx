@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/contexts/TenantContext'
+import { getContact } from '@/features/contacts/api/contactsService'
 import { generateClientOpId } from '@/features/attendance/api/clientOpId'
 import { callSignDocumentRouter } from '@/features/signing/api/signingService'
 import { useSigningConfig } from '@/features/signing/api/useSigningConfig'
@@ -42,7 +43,13 @@ import {
 } from '../utils/commercialDecisionSend'
 import { commercialSignerRoleForAction } from '../utils/commercialNativeSign'
 import { docTypeLabel, partyDisplayName } from '../utils/commercialDocumentModel'
-import { buildWhatsAppTextUrl } from '../utils/commercialShare'
+import {
+  buildWhatsAppTextUrl,
+  buyerDeliveryDiscrepancies,
+  withLiveBuyerContact,
+  type BuyerDeliveryDiscrepancy,
+} from '../utils/commercialShare'
+import { BuyerDeliveryDiscrepancyNotice } from './BuyerDeliveryDiscrepancyNotice'
 
 type SigningProviderChoice = 'native' | 'docuseal'
 
@@ -77,6 +84,7 @@ export function SendCommercialDecisionDialog({
   const [deliveryStatus, setDeliveryStatus] = useState<string | null>(null)
   const [isAgreementTarget, setIsAgreementTarget] = useState(false)
   const [hasPortalGrant, setHasPortalGrant] = useState(false)
+  const [discrepancies, setDiscrepancies] = useState<BuyerDeliveryDiscrepancy[]>([])
 
   const isResend = !!existingRequest?.id
   const portalPending = customerPortalPendingUrl()
@@ -101,6 +109,7 @@ export function SendCommercialDecisionDialog({
     setDeliveryStatus(null)
     setBusy(false)
     setHasPortalGrant(false)
+    setDiscrepancies([])
     setIsAgreementTarget(!!existingRequest?.agreement_version_id)
     void (async () => {
       try {
@@ -108,8 +117,20 @@ export function SendCommercialDecisionDialog({
           getCommercialDocumentDetail(documentId),
           hasActiveCustomerPortalGrantForDocument(documentId).catch(() => false),
         ])
-        setSignerName(partyDisplayName(doc.buyer_snapshot) || '')
-        setSignerEmail(doc.buyer_snapshot?.email?.trim() || '')
+        let buyerDoc = doc
+        let nextDiscrepancies: BuyerDeliveryDiscrepancy[] = []
+        if (doc.client_id) {
+          try {
+            const contact = await getContact(doc.client_id)
+            nextDiscrepancies = buyerDeliveryDiscrepancies(doc.buyer_snapshot, contact)
+            buyerDoc = withLiveBuyerContact(doc, contact)
+          } catch {
+            /* keep snapshot */
+          }
+        }
+        setDiscrepancies(nextDiscrepancies)
+        setSignerName(partyDisplayName(buyerDoc.buyer_snapshot) || '')
+        setSignerEmail(buyerDoc.buyer_snapshot?.email?.trim() || '')
         setHasPortalGrant(grantOk)
         if (!existingRequest?.agreement_version_id) {
           setIsAgreementTarget(doc.formalization_mode === 'separate_agreement')
@@ -241,6 +262,14 @@ export function SendCommercialDecisionDialog({
         markedAgreementVersionId = null
         createdRequestId = null
 
+        let whatsappDoc = doc
+        if (doc.client_id) {
+          try {
+            whatsappDoc = withLiveBuyerContact(doc, await getContact(doc.client_id))
+          } catch {
+            /* keep snapshot phone */
+          }
+        }
         const tenantLabel = activeTenant.name?.trim() || 'PiMed'
         const docLabel = doc.doc_number
           ? `${docTypeLabel(doc.doc_type)} ${doc.doc_number}`
@@ -250,7 +279,11 @@ export function SendCommercialDecisionDialog({
           '{{tenant}}: tens uns documents pendents de resposta ({{doc}}). Entra al portal del client: {{url}}',
           { tenant: tenantLabel, doc: docLabel, url: portalPending },
         )
-        window.open(buildWhatsAppTextUrl(shareText), '_blank', 'noopener,noreferrer')
+        window.open(
+          buildWhatsAppTextUrl(shareText, whatsappDoc.buyer_snapshot.phone),
+          '_blank',
+          'noopener,noreferrer',
+        )
         setDeliveryStatus('prepared')
         toast({
           title: t('projects.commercial.decision_whatsapp_opened', 'WhatsApp obert'),
@@ -458,6 +491,8 @@ export function SendCommercialDecisionDialog({
                 )}
           </DialogDescription>
         </DialogHeader>
+
+        <BuyerDeliveryDiscrepancyNotice discrepancies={discrepancies} />
 
         <div className="space-y-3">
           <div className="space-y-1">

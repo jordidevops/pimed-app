@@ -8,6 +8,7 @@ import {
   Phone,
   MessageSquare,
   Archive,
+  Pencil,
   User,
   Calendar,
 } from 'lucide-react'
@@ -26,6 +27,7 @@ import {
 } from '../api/contactsService'
 import { buildLifecycleByContactId } from '../utils/contactCommercialLifecycle'
 import { ContactLifecycleBadge } from './ContactLifecycleBadge'
+import { ContactForm } from './ContactForm'
 import { ContactSitesList } from './ContactSitesList'
 import { ContactRelationshipsPanel } from './ContactRelationshipsPanel'
 import { ContactDeliveryChannelsPanel } from './ContactDeliveryChannelsPanel'
@@ -100,6 +102,7 @@ export function ContactDetailPage() {
     t('contacts.detail.tab_agreements', 'Acords comercials'),
   )
   const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
   const activeTab: ContactTab = isContactTab(tabParam)
     ? tabParam
@@ -301,6 +304,10 @@ export function ContactDetailPage() {
           </div>
 
           <div className="flex gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              <Pencil className="h-4 w-4 mr-1.5" />
+              {t('contacts.actions.edit', 'Editar')}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -313,6 +320,16 @@ export function ContactDetailPage() {
           </div>
         </div>
       </div>
+
+      <ContactForm
+        open={editOpen}
+        contact={contact}
+        onClose={() => setEditOpen(false)}
+        onSaved={() => {
+          void queryClient.invalidateQueries({ queryKey: ['contacts', id] })
+          void queryClient.invalidateQueries({ queryKey: ['contacts'] })
+        }}
+      />
 
       {archiveConfirmOpen && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-700 p-4 flex items-center justify-between gap-3">
