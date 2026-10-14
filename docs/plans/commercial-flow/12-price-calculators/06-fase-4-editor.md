@@ -14,8 +14,7 @@ Primera capa, només:
 - constants de tarifa (`hour_eur` i similars): valor o buit
 - files de taules: columnes ja declarades a la definició, cel·les numèriques o buides, etiqueta de fila
 - línies: nom, unitat, `kind` (`product` | `service`), `allow_zero_price`, i un interruptor `when` limitat a **sempre** / **mai** / **si un paràmetre booleà és cert**
-- previsualització: l’usuari posa valors d’exemple i veu línies, nets, IVA i total amb `previewTotals`
-
+- previsualització: l’usuari posa valors d’exemple i veu línies, nets, IVA i total amb `previewTotals`- tags (D16): text lliure normalitzat, fins a 8, amb autocompletar sobre els ja usats pel tenant. No restringeixen res; només filtren la llista d’aquesta pantalla i el selector de la fase 6.
 La lògica arbitrària (AST que no sigui const, lookup o el `when` simple) es mostra en només lectura, amb un avís «aquesta part no s’edita aquí». No hi ha caixa de fórmules. Això és la fase 8.
 
 ## Estats
@@ -38,7 +37,7 @@ El primer cop, «Usar la previsualització com a resultat esperat» copia la sor
 ## Fitxers
 
 - Ruta nova sota configuració o catàleg, al costat de les plantilles de preu. Punt de partida de navegació: el mateix grup que `CatalogPacksPage` / `PricingTemplateForm` (`apps/tenant-portal/src/features/catalog/`). No barrejar el formulari de l’hàbit amb aquest.
-- Components nous: llista, editor de taules, formulari de paràmetres de previsualització, llista de casos.
+- Components nous: llista (amb filtre per tags), editor de taules, formulari de paràmetres de previsualització, llista de casos.
 - Servei: RPCs a `commercialFlowService.ts` (o un `calculatorService.ts` al mateix feature si el fitxer ja és gran).
 - Locales ca/es/en.
 - Permís de UI: amagar l’editor si el rol no és owner/manager (D7). El servidor torna a comprovar-ho.
@@ -50,6 +49,7 @@ El primer cop, «Usar la previsualització com a resultat esperat» copia la sor
 - [ ] Desar el cas des de la previsualització, activar, veure l’estat activa.
 - [ ] Canviar la tarifa: l’estat deixa d’estar actiu per a la versió nova; un pressupost que ja s’hagués aplicat a la fase 2 (o un run de prova) conserva els imports vells.
 - [ ] Arxivar la treu del selector d’execució (el selector arriba a la fase 6; aquí n’hi ha prou que `list` d’actives no la retorni).
+- [ ] Afegir tags a dues calculadores i filtrar la llista per un tag: només les que el tenen hi apareixen.
 - [ ] Vista estreta: la taula de tarifes es pot editar sense perdre columnes fora de pantalla (scroll o fitxa).
 
 ## Acceptació

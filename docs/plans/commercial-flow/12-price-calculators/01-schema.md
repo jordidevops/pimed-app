@@ -116,8 +116,8 @@ type Expr =
   | { op: "and" | "or"; args: Expr[] }
   | { op: "not"; arg: Expr }
   | { op: "lookup_exact"; table: string; field: string }
-  | { op: "lookup_tier"; table: string; price: Expr }
-  | { op: "row"; field: string } // només legal dins lookup_tier.price
+  | { op: "lookup_tier"; table: string; value: Expr }
+  | { op: "row"; field: string } // només legal dins lookup_tier.value
   | { op: "coalesce"; args: Expr[] }
 ```
 
@@ -126,7 +126,7 @@ Regles:
 - `div` amb divisor 0 → error `division_by_zero`. No retorna 0.
 - `lookup_exact` sense fila, o fila amb el camp null → error `lookup_miss` (si el null és un forat de tarifa, el missatge és `tariff_incomplete`).
 - `lookup_tier` tria la primera fila amb `input <= bound_column`. La fila amb `bound_column: null` només pot ser l’última i vol dir tram obert. Si cap fila tanca l’entrada → `lookup_miss`.
-- `row` fora de `lookup_tier.price` → el validador el rebutja.
+- `row` fora de `lookup_tier.value` → el validador el rebutja.
 - `const_ref` amb `value: null` → `tariff_incomplete` en executar. El validador d’activació també ho bloqueja.
 - Comparacions numèriques. `eq` entre nombres és igualtat després de `round` si l’expressió ja és arrodonida; no hi ha epsilon amagat.
 - El validador exigeix que `quantity` i `unit_price` acabin en `round` (quantitat decimals 3, preu decimals 2), directament o perquè un `if` té les dues branques arrodonides. `discount_pct` i `tax_rate` s’arrodoneixen a 2 en escriure la línia si l’expressió no ho fa; el valor ha de caure a \[0, 100\].
@@ -264,7 +264,7 @@ Hores segons potència: ≤5 → 2 h; ≤15 → 4 h; obert → 8 h.
       "unit_price": {
         "op": "lookup_tier",
         "table": "travel",
-        "price": {
+        "value": {
           "op": "round",
           "decimals": 2,
           "mode": "half_away_from_zero",
@@ -295,7 +295,7 @@ Hores segons potència: ≤5 → 2 h; ≤15 → 4 h; obert → 8 h.
         "op": "round",
         "decimals": 3,
         "mode": "half_away_from_zero",
-        "value": {"op": "lookup_tier", "table": "labor", "price": {"op": "row", "field": "hours"}}
+        "value": {"op": "lookup_tier", "table": "labor", "value": {"op": "row", "field": "hours"}}
       },
       "unit_price": {
         "op": "round",
@@ -419,6 +419,7 @@ Esquema `data`. RLS activat. Lectura: membre del tenant actiu. Escriptura de def
 | published_version_id | uuid null |
 | cloned_from_catalog_id | uuid null |
 | cloned_from_catalog_version | int null |
+| tags | text[], normalitzats (minúscules, trim, deduplicats), màxim 8. No formen part de `draft_definition` ni de la versió immutable: canviar-los no crea versió nova, no invalida casos, no toca el hash (D16) |
 | created_by, created_at, updated_at | |
 
 ### `calculator_versions`
@@ -465,6 +466,7 @@ Sense `tenant_id`. Escriptura només per migració / service role.
 | target_archetypes | text[] |
 | catalog_version | int |
 | definition | jsonb (forats null, sense preus reals) |
+| tags | text[] opcionals; el clon els copia a `calculator_definitions.tags` (editables després, D16) |
 | is_active | |
 
 Vista `api` de lectura per a qualsevol autenticat, o RPC `list_calculator_catalog`. No es clona per enllaç: el clon copia el JSON i guarda `cloned_from_*`.
@@ -487,14 +489,14 @@ Les vistes `api.project_lines` i la projecció de línies de document han d’ex
 
 ### RPC
 
-`api.apply_calculator_lines(...)` la crida l’Edge, no el navegador directament, perquè el SQL no avalua l’AST (D3 ≠ C).
+`api.apply_calculator_lines(...)` la crida l’Edge, no el navegador directament, perquè el SQL no avalua l’AST (D3 ≠ C). És `service_role`: `authenticated` no la pot cridar (D7), per tant `auth.uid()` no hi serveix per identificar qui demana l’aplicació.
 
-Entrada: `version_id`, `params`, `project_id` xor `document_id`, `lines` (ja calculades), `lines_hash`, `client_op_id`.
+Entrada: `version_id`, `params`, `project_id` xor `document_id`, `lines` (ja calculades), `lines_hash`, `client_op_id`, **`p_actor_user_id`** (l’usuari real, derivat i verificat per l’Edge a partir del JWT; mai del cos de la petició).
 
 El que comprova el SQL:
 
 - tenant, document esborrany o projecte mutable (`data.assert_price_sheet_mutable` al projecte; a l’orfe, només `draft`)
-- permís D7
+- permís D7 de `p_actor_user_id` amb `data.can_edit_commercial_pricing(tenant_id, site_id)` — el mateix que ja usen `apply_pricing_template` i `apply_price_sheet`, però amb l’actor passat explícitament en lloc de `auth.uid()`
 - versió publicada i definició `active` d’aquest tenant
 - hash coincident amb el que l’Edge ha recalculat (l’Edge és qui compara; el SQL desa el hash que l’Edge li passa i rebutja un segon `client_op_id`)
 - preu 0 només amb `allow_zero_price`
@@ -510,7 +512,11 @@ Idempotència: el mateix `client_op_id` retorna el run existent sense duplicar l
 
 ### Edge `apply-calculator-run`
 
-JWT de l’usuari. Carrega la versió, executa `run`, calcula el hash, el compara amb el del client, i crida la RPC amb service role només després de la paritat. Si difereix: `calculator_parity_mismatch`, zero escriptures.
+1. `createUserClient(req)` + `auth.getUser()` (patró de `supabase/functions/invite-member/index.ts`) per obtenir l’usuari real del JWT entrant. Sense usuari vàlid, 401 abans de tocar res més.
+2. Carrega la versió, executa `run`, calcula el hash, el compara amb el del client.
+3. Si coincideix, crida la RPC amb `createAdminClient()` (service role), passant `p_actor_user_id` = l’usuari del pas 1. Si no coincideix: `calculator_parity_mismatch`, zero escriptures.
+
+El permís (D7) el verifica el SQL amb `p_actor_user_id`, no l’Edge: l’Edge només identifica qui truca, no decideix si pot escriure.
 
 ## Excel (només disseny, no s’implementa)
 

@@ -23,14 +23,14 @@ No es dissenya UI, ni taules, ni RPC.
    - `apps/tenant-portal/src/features/commercial/utils/priceCalculator/`
    - `supabase/functions/_shared/price-calculator/`
    i deixar un test que diffi els dos resultats contra la mateixa fixture JSON (opció B).
-4. Mesurar Postgres, si hi ha stack local: `ROUND(1.005, 2)`, `ROUND(1.004, 2)`, `ROUND(-1.5, 0)`, i un vector on `api.project_lines.total_with_tax` divergeixi de net+IVA en dos passos. Anotar el resultat a D3 i D10. Si no hi ha Postgres a mà, deixar-ho com a hipòtesi i verificar-ho a la fase 1 amb un test SQL.
+4. Mesurar Postgres, si hi ha stack local: `ROUND(1.005, 2)`, `ROUND(1.004, 2)`, `ROUND(-1.5, 0)`, i confirmar el vector de D10 (quantitat `1.236`, preu `81.00`, IVA `21%`): `total_with_tax` ha de donar `121.14` i els dos passos `121.15`. No és una hipòtesi a validar; és a reproduir. Anotar el resultat a D3 i D10. Si no hi ha Postgres a mà, deixar-ho pendent i verificar-ho a la fase 1 amb un test SQL, però sense reobrir si divergeix o no: ja se sap que sí.
 5. Escriure el resultat a [`00-decisions.md`](./00-decisions.md) § D3 («Resultat del spike») i al registre si es descarta A.
 
 ## Acceptació
 
 - [ ] Vitest (`npm run test:unit` a `apps/tenant-portal`) i `deno test` del fitxer nou passen amb els oracles dels dos exemples.
 - [ ] Els decimals de sortida són strings idèntics als dos costats.
-- [ ] D3 queda escrit: A o B. D10 queda escrit: vector de divergència, o «no n’hi ha dins el domini provat».
+- [ ] D3 queda escrit: A o B. D10 queda escrit amb el vector reproduït a Postgres (mai «no n’hi ha divergència»: ja se sap que sí).
 - [ ] Cap pantalla nova.
 
 ## Fora

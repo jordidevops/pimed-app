@@ -86,9 +86,13 @@ No hi ha taula de verticals. `sector_profiles.archetype` no té `electrician`.
 
 ## D10 — Vista `total_with_tax`
 
-La vista arrodoneix en un sol pas. L’emissió fa `line_net` i després l’IVA. Poden diferir un cèntim. No s’ha verificat un vector concret en aquest pla: la fase 0 l’ha de trobar a Postgres, o documentar que dins el domini (preus ≥ 0, 2 decimals, IVA 0/4/10/21, quantitat a 3 decimals) no n’hi ha.
+La vista arrodoneix en un sol pas. L’emissió fa `line_net` i després l’IVA en un segon pas. **Ja hi ha un vector provat que divergeix**, dins el domini del v1 (preu 2 decimals, quantitat 3 decimals, IVA 21%): quantitat `1.236`, preu `81,00 €`, descompte `0%`.
 
-**Supòsit de treball:** la previsualització i l’adaptador usen sempre els dos passos de l’emissió. A la fase 1, si el spike troba un vector que divergeix, s’alinea la vista amb els dos passos i un test de regressió. Si no n’hi ha, la vista no es toca.
+- Dos passos (el que fa `issue_commercial_document` i el que farà la calculadora): net = ROUND(1,236 × 81, 2) = `100,12`; IVA = ROUND(100,12 × 0,21, 2) = `21,03` → total `121,15`.
+- Un pas (vista `total_with_tax` avui): ROUND(1,236 × 81 × 1,21, 2) = `121,14`.
+- Divergeixen 1 cèntim. No és un cas vora: amb quantitat de 3 decimals passa sempre que l’arrodoniment intermedi de `net` canviï el resultat, cosa freqüent.
+
+**Supòsit de treball:** la previsualització i l’adaptador usen sempre els dos passos de l’emissió. La fase 1 no «busca» el vector: l’incorpora com a test obligatori (vegeu [`03-fase-1-motor.md`](./03-fase-1-motor.md)) i **alinea la vista `total_with_tax` als dos passos** amb una migració `CREATE OR REPLACE VIEW` nova més un test de regressió SQL. No es tanca aquesta decisió documentant «no n’hi ha cap dins el domini»: ja se n’ha trobat un.
 
 ## D11 — Activar
 
@@ -111,8 +115,24 @@ La vista arrodoneix en un sol pas. L’emissió fa `line_net` i després l’IVA
 
 **Supòsit de treball:** l’Edge executa el mateix motor que el portal. El client envia un hash de les línies de sortida. Si el servidor calcula un altre hash, no escriu i torna `calculator_parity_mismatch`. El SQL no avalua l’AST al v1 (això només canvia si D3 acaba sent C).
 
+L’Edge no pot confiar en `auth.uid()` dins la RPC si aquesta és `service_role` (D7, fase 2): ha de derivar `user_id` del JWT amb `createUserClient(req).auth.getUser()` (patró de `supabase/functions/invite-member/index.ts`) i passar-lo com a paràmetre explícit `p_actor_user_id` a `api.apply_calculator_lines`, que fa la comprovació de D7 amb aquest valor, no amb `auth.uid()`. Només després crida `createAdminClient()` per escriure.
+
+## D15 — Confirmació de xifres noves proposades per la IA
+
+La fase 7 permet que la IA proposi constants, cel·les de tarifa o línies noves. Un número fals que el model no marqui `assumed` no ha d’arribar a `active`.
+
+**Supòsit de treball:** qualsevol valor numèric (constant, cel·la, llindar) que la IA proposi com a NO `assumed` exigeix una confirmació explícita de l’usuari abans de desar-se — un check «aquest import l’he dit jo», un per número. Si l’usuari no confirma, el valor es desa com `value: null` i `assumed: true`, encara que el model no l’hagi marcat així. El servidor no pot saber «qui ho ha dit»; la UI és l’única frontera que ho sap, i és obligatòria abans de qualsevol desat.
+
+## D16 — Tags de classificació
+
+Totes les calculadores actives són universals: apareixen al full de preus, al composer orfe i al flux ràpid sense distinció (cap pla de restringir-ho per destí). Amb molts tenants creant-ne diverses, cal un filtre de cerca, no una porta d’accés.
+
+**Supòsit de treball:** `tags` és text lliure del tenant (`text[]` a `calculator_definitions`), normalitzat en desar (minúscules, trim, deduplicat), màxim 8 per calculadora. No és vocabulari tancat: no hi ha taula de valors permesos ni pantalla d’administració nova. L’editor (fase 4) suggereix autocompletar amb els tags ja usats pel tenant. Les entrades del catàleg (fase 5) poden portar `tags` opcionals; clonar els copia a la calculadora del tenant, que els pot editar després sense cap víncol amb el catàleg. Els tags viuen fora de `draft_definition` i de la versió immutable: no afecten `schema_version`, el hash (D14) ni els casos (D11). S’usen només per filtrar la llista de gestió (fase 4) i els selectors d’ús (fase 6); mai per restringir on una calculadora pot aplicar-se.
+
 ## Registre de canvis de supòsit
 
 | Data | Decisió | Canvi | Qui |
 |------|---------|-------|-----|
 | 2026-10-14 | — | Supòsits inicials d’aquest document | pla CF-29 |
+| 2026-10-14 | D10, D15 | D10 reescrit amb vector provat (deixa de ser una incògnita); D15 afegida (confirmació IA, abans amagada dins fase 7) | revisió CF-29 |
+| 2026-10-14 | D16 | Tags de classificació afegits (text lliure normalitzat, heretat del catàleg, només filtre, mai restricció) | revisió CF-29 |

@@ -9,7 +9,7 @@
 
 Al full de preus (`ProjectLinesSection`) i a l’orfe (`OrphanQuoteComposer`), una tercera acció al costat de «Servei habitual» i la línia manual: «Calculadora».
 
-1. Llista només definicions `active` del tenant.
+1. Llista només definicions `active` del tenant, amb un filtre opcional per tags (D16) quan n’hi ha moltes.
 2. Formulari generat pels paràmetres: number, integer, money, boolean, enum (opcions de la taula `options_from`). Etiquetes amb D8.
 3. Previsualització local amb el motor (línies + totals).
 4. Confirmar crida `apply-calculator-run` amb el hash. Error `calculator_parity_mismatch` es mostra; no es deixa l’usuari amb línies a mitges.
@@ -44,6 +44,7 @@ Tres accions de l’usuari quan no cal formulari ni «Canviar»: contacte, font,
 - [ ] Flux ràpid amb defaults: contacte, calculadora, emetre. El document queda `issued`, orfe, amb `line_origin=calculator`, versió i run. No s’ha creat projecte.
 - [ ] Sense defaults, el flux ràpid encara deixa «Canviar» / el pas de plantilla que la fase 3 conserva.
 - [ ] Sense `commercial.pricing.edit`, l’acció no hi és.
+- [ ] Amb diverses calculadores actives i tags assignats (D16), el filtre de tags redueix la llista del selector al full de preus, a l’orfe i al flux ràpid.
 - [ ] Desktop i una amplada mòbil del formulari de paràmetres.
 
 ## Acceptació

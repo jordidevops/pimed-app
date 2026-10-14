@@ -6,7 +6,7 @@ Marcar en tancar la fase. El detall és al document de la fase. Aquí hi ha la p
 
 - [ ] Vitest i Deno, mateixos oracles, decimals com a string
 - [ ] D3 escrit (A o B) a [`00-decisions.md`](./00-decisions.md)
-- [ ] D10 escrit (vector de cèntims, o cap dins el domini)
+- [ ] D10 reproduit (vector 1.236 × 81,00 € amb IVA 21%, divergència d’1 cèntim) i enllaçat a [`00-decisions.md`](./00-decisions.md)
 - [ ] Sense UI
 
 ## Fase 1 — Motor
@@ -16,7 +16,7 @@ Marcar en tancar la fase. El detall és al document de la fase. Aquí hi ha la p
 - [ ] Errors visibles: divisió per zero, lookup buit, preu 0 sense permís de la línia
 - [ ] Hash idèntic als dos runtimes
 - [ ] Totals de previsualització = `line_net` + IVA en dos passos
-- [ ] Vista `total_with_tax` alineada només si D10 ha trobat divergència
+- [ ] Vista `total_with_tax` alineada als dos passos (D10 ja té vector provat) amb migració i test de regressió
 
 ## Fase 2 — Persistència
 
@@ -27,6 +27,9 @@ Marcar en tancar la fase. El detall és al document de la fase. Aquí hi ha la p
 - [ ] Hash distint no escriu; `client_op_id` repetit no duplica
 - [ ] Document emès i projecte no mutable rebutgen
 - [ ] Tests SQL `commercial_cf29_calculator_tests.sql`
+- [ ] Edge deriva `p_actor_user_id` del JWT (no del body) i el permís D7 es comprova amb aquest valor, no amb `auth.uid()`
+- [ ] Test (Deno/integració) que un usuari sense `commercial.pricing.edit` rep rebuig cridant l’Edge directament
+- [ ] `database.types.ts` regenerat a `apps/tenant-portal` **i** copiat a `supabase/functions/_shared`
 
 ## Fase 3 — Flux per defecte
 

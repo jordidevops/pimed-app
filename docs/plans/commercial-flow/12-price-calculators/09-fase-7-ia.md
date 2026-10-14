@@ -3,7 +3,7 @@
 > **Tall desplegable:** sí, només si el tenant té la IA activa
 > **Schema:** cap taula nova. Una feature de prompts.
 > **Depèn de:** fase 4 (casos i estats). No depèn de la biblioteca ni del flux curt.
-> **Supòsits:** D5 (només AST), D12 (forats, no números inventats), D11 (cas obligatori)
+> **Supòsits:** D5 (només AST), D12 (forats, no números inventats), D11 (cas obligatori), D15 (confirmació humana de xifres noves)
 
 ## Què es reutilitza
 
@@ -73,7 +73,7 @@ Cal un tenant amb IA activa i un sense.
 
 ## Acceptació
 
-- [ ] Test del validador sobre tres fixtures: proposta vàlida amb forats, proposta amb preu inventat sense `assumed` (el post-processat del portal la rebutja o la marca; **supòsit:** el portal rebutja qualsevol número en constant o cel·la que el prompt no pugui citar — com que el servidor no veu la cita, el contracte implementable és: la UI obliga a confirmar cada número nou amb un check «aquest import l’he dit jo» abans de desar, i els no confirmats passen a null + `assumed`). Això evita confiar en què el model marqui `assumed` ell sol.
+- [ ] Test del validador sobre tres fixtures: proposta vàlida amb forats, proposta amb preu inventat sense `assumed` (el post-processat del portal la rebutja segons D15: cada número nou exigeix confirmació explícita de l’usuari abans de desar-se; els no confirmats passen a `null` + `assumed`). Això evita confiar en què el model marqui `assumed` ell sol.
 - [ ] Test del diff: un lot invàlid no muta l’esborrany.
 - [ ] Recorreguts de dalt al navegador.
 

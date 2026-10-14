@@ -10,9 +10,9 @@
 1. Migració amb les taules `calculator_definitions`, `calculator_versions`, `calculator_cases`, `calculator_runs`, `calculator_catalog` (buida) i les columnes d’origen a `project_lines` i `commercial_document_lines`.
 2. Trigger d’immutable a `calculator_versions`.
 3. Copiar les columnes noves dins `api.issue_commercial_document` i `api.ensure_project_from_orphan_quote`. Localitzar els `INSERT` actuals (evolució a migracions posteriors a `20261160000001` i `20261245000001`) i reemplaçar la funció sencera a la migració nova, sense perdre la lògica que ja tenen.
-4. Exposar les columnes a les vistes `api`. Regenerar `apps/tenant-portal/src/types/database.types.ts` amb el flux de types que ja usa el repo. No editar el fitxer a mà.
+4. Exposar les columnes a les vistes `api`. Regenerar `apps/tenant-portal/src/types/database.types.ts` amb el flux de types que ja usa el repo, i copiar el resultat a `supabase/functions/_shared/database.types.ts` (l’Edge `apply-calculator-run` el necessita). No editar cap dels dos fitxers a mà.
 5. RPC `api.apply_calculator_lines` tal com la descriu l’esquema. No cridar `apply_price_sheet` ni `apply_pricing_template`.
-6. Edge `supabase/functions/apply-calculator-run`: JWT, `run`, hash, després la RPC. `calculator_parity_mismatch` no escriu.
+6. Edge `supabase/functions/apply-calculator-run`: `createUserClient(req)` + `auth.getUser()` per obtenir l’usuari real (patró `invite-member/index.ts`), `run`, hash, i només llavors `createAdminClient()` per cridar la RPC passant `p_actor_user_id`. `calculator_parity_mismatch` no escriu. Detall complet a [`01-schema.md`](./01-schema.md) § RPC i § Edge.
 7. Una definició de fixture (electricista amb preus omplerts) inserida per test, no per la UI. Camí mínim per aplicar-la a un projecte i a un document orfe esborrany des del servei del portal (`commercialFlowService`), encara sense formulari polit: n’hi ha prou que un test d’integració o un botó temporal darrere de permís ho exerceixi. Si es fa botó, s’ha de poder treure sense deixar cordes; preferible test SQL + test del servei amb el motor.
 8. En aplicar un hàbit (`apply_pricing_template`) i en copiar línies (`copy_project_lines`), estampar `line_origin` `habit` o `copy` a les files noves. Les files velles queden null. No backfill.
 9. `log_audit_event` en publicar (la RPC de publicar versió entra aquí, encara que l’editor sigui la fase 4: `api.publish_calculator_version` ha d’existir perquè l’aplicació exigeix versió publicada).
@@ -32,7 +32,8 @@ Fitxer nou `supabase/tests/commercial_cf29_calculator_tests.sql`, seguint l’es
 - [ ] Tenant A no llegeix ni aplica la definició del tenant B.
 - [ ] Aplicar a projecte i a orfe draft crea línies amb origen, versió, key i run.
 - [ ] Una línia manual i un hàbit sobreviuen a una segona execució; les línies de la calculadora se substitueixen.
-- [ ] Hash distint → cap insert (provocar-lo saltant-se l’Edge no ha de ser possible des d’`authenticated`: la RPC comprova que el hash el signa l’Edge, o la RPC només és `service_role` i l’Edge és l’únic camí). Deixar escrit quin dels dos s’ha triat. **Supòsit:** la RPC és `service_role`; `authenticated` no la pot cridar. L’Edge fa la paritat.
+- [ ] Hash distint → cap insert. La RPC és `service_role`; `authenticated` no la pot cridar, l’Edge és l’únic camí (ja decidit a [`01-schema.md`](./01-schema.md) § RPC).
+- [ ] Un usuari autenticat sense `commercial.pricing.edit` que crida l’Edge directament (amb un hash vàlid) rep rebuig: test d’integració/Deno de l’Edge, no només SQL, perquè el permís es comprova amb `p_actor_user_id` dins la RPC però l’Edge és qui el deriva del JWT.
 - [ ] Emetre un pressupost des del projecte copia les columnes d’origen a `commercial_document_lines`.
 - [ ] `ensure_project_from_orphan_quote` les copia cap a `project_lines`.
 - [ ] Editar `draft_definition` després de publicar no canvia la versió ni les línies ja escrites.
