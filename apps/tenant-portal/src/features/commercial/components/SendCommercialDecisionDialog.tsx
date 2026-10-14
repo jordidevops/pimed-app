@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/contexts/AuthContext'
 import { useTenant } from '@/contexts/TenantContext'
 import { getContact } from '@/features/contacts/api/contactsService'
 import { generateClientOpId } from '@/features/attendance/api/clientOpId'
@@ -33,10 +34,12 @@ import {
   registerCommercialSigningIntent,
   renderCommercialAgreementPdf,
   renderCommercialDocumentPdf,
+  resolveAgreementTemplateSignerRoles,
   revertAgreementSentForSignature,
   revokeCommercialDecisionRequest,
   type OpenCommercialDecisionRequest,
 } from '../api/commercialFlowService'
+import { buildAgreementSignersPayload } from '../utils/agreementSigningRoles'
 import {
   commercialDecisionActionForDocType,
   defaultDecisionExpiresAt,
@@ -73,6 +76,7 @@ export function SendCommercialDecisionDialog({
 }: SendCommercialDecisionDialogProps) {
   const { t } = useTranslation('projects')
   const { toast } = useToast()
+  const { user } = useAuth()
   const { activeTenant } = useTenant()
   const signingConfig = useSigningConfig(activeTenant?.id)
   const [channel, setChannel] = useState<Channel>('email')
@@ -229,7 +233,11 @@ export function SendCommercialDecisionDialog({
       }
 
       const action = commercialDecisionActionForDocType(doc.doc_type)
-      const role = commercialSignerRoleForAction(action === 'reject' ? 'accept' : action)
+      // Agreements use role="client" (+ optional issuer); quotes use client_accept / client_delivery.
+      const role =
+        targetKind === 'agreement_version'
+          ? 'client'
+          : commercialSignerRoleForAction(action === 'reject' ? 'accept' : action)
       const documentTitle =
         targetKind === 'agreement_version'
           ? t('projects.commercial.agreement_pdf_title', 'Contracte de serveis')
@@ -307,12 +315,34 @@ export function SendCommercialDecisionDialog({
         prepareClientOpId = prepared.clientOpId
       }
 
-      const signerPayload = {
-        email: signerEmail.trim() || 'noreply@invalid.local',
-        name: signerName.trim() || partyDisplayName(doc.buyer_snapshot),
-        role,
-        order: 0,
+      let signersPayload: Array<{
+        email: string
+        name: string
+        role: string
+        order: number
+      }>
+      if (targetKind === 'agreement_version' && agreementVersionId) {
+        const roles = await resolveAgreementTemplateSignerRoles(agreementVersionId)
+        signersPayload = buildAgreementSignersPayload({
+          roles,
+          issuerName: activeTenant.name?.trim() || 'Representant',
+          clientName: signerName.trim() || partyDisplayName(doc.buyer_snapshot),
+          issuerEmail: user?.email?.trim() || 'issuer@invalid.local',
+          clientEmail: signerEmail.trim() || 'noreply@invalid.local',
+        })
+      } else {
+        signersPayload = [
+          {
+            email: signerEmail.trim() || 'noreply@invalid.local',
+            name: signerName.trim() || partyDisplayName(doc.buyer_snapshot),
+            role,
+            order: 0,
+          },
+        ]
       }
+      const signerPayload =
+        signersPayload.find((s) => s.role === 'client' || s.role === role) ??
+        signersPayload[signersPayload.length - 1]!
 
       const abortPrepareIfNeeded = async () => {
         if (!prepareClientOpId || !requestId) return
@@ -340,7 +370,7 @@ export function SendCommercialDecisionDialog({
             signer_name: signerPayload.name,
             signer_email: signerPayload.email,
             signer_role: role,
-            signers: [signerPayload],
+            signers: signersPayload,
             notification_mode: 'app_manual',
             client_request_id: opId,
             commercial_decision_request_id: requestId,
@@ -376,7 +406,7 @@ export function SendCommercialDecisionDialog({
             signer_name: signerPayload.name,
             signer_email: signerPayload.email,
             signer_role: role,
-            signers: [signerPayload],
+            signers: signersPayload,
             client_request_id: opId,
             commercial_decision_request_id: requestId,
           })

@@ -23,13 +23,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -75,6 +68,9 @@ import { OrderCommercialGuide } from '@/features/field-service/components/OrderC
 import { ProspectCommercialGuide } from '@/features/field-service/components/ProspectCommercialGuide'
 import { OrderPrimaryActionBar } from '@/features/field-service/components/OrderPrimaryActionBar'
 import { DeliverPhaseView } from '@/features/field-service/components/DeliverPhaseView'
+import { resolvePrimaryCommercialDoc } from '@/features/commercial/utils/resolvePrimaryCommercialDoc'
+import { CommercialTrailNav } from '@/features/commercial/components/CommercialTrailNav'
+import { FieldPolicyChoiceRow } from '@/features/field-service/components/FieldPolicyChoiceSheet'
 import {
   deriveOrderWorkflow,
   resolveOrderTab,
@@ -94,6 +90,7 @@ import { PrepareQuoteWizard } from '@/features/commercial/components/PrepareQuot
 import { ProjectProfitabilityCard } from '@/features/commercial/components/ProjectProfitabilityCard'
 import {
   ProjectAgreementsSection,
+  loadProjectAgreements,
   useProjectAgreementGate,
 } from '@/features/commercial/components/ProjectAgreementsSection'
 import { PaymentPendingChip } from '@/features/commercial/components/PaymentPendingChip'
@@ -216,6 +213,23 @@ export function ProjectDetailPage() {
     enabled: isFieldService && !!project?.id && tenantScopeReady,
   })
   const agreementIncluded = isAgreementIncluded(commercialInclusion)
+
+  const { data: projectAgreementsBundle } = useQuery({
+    queryKey: ['project_agreements', project?.id, project?.client_id ?? null],
+    queryFn: () => loadProjectAgreements(project!.id!, project?.client_id ?? null),
+    enabled: isFieldService && !!project?.id && tenantScopeReady,
+  })
+  const linkedAgreements = projectAgreementsBundle?.agreements ?? []
+  const primaryAgreementId =
+    commercialInclusion?.agreementId ?? linkedAgreements[0]?.id ?? null
+  const agreementTrailSiblings = useMemo(() => {
+    return linkedAgreements
+      .filter((row) => row.id !== primaryAgreementId)
+      .map((row) => ({
+        label: t('field-service:detail.trail_agreement', 'Acord'),
+        href: `/sales/agreements/${row.id}`,
+      }))
+  }, [linkedAgreements, primaryAgreementId, t])
   const { data: linesCount = 0 } = useQuery({
     queryKey: ['project_lines_count', project?.id],
     queryFn: async () => {
@@ -250,6 +264,26 @@ export function ProjectDetailPage() {
   }, [project, tenantRegimes])
 
   const isProspect = project?.commercial_stage === 'prospect'
+
+  const primaryCommercialDoc = useMemo(
+    () => resolvePrimaryCommercialDoc(commercialDocs),
+    [commercialDocs],
+  )
+  const quoteTrailSiblings = useMemo(() => {
+    const quoteLike = commercialDocs.filter(
+      (doc) =>
+        (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment') &&
+        doc.id !== primaryCommercialDoc?.id,
+    )
+    return quoteLike.map((doc) => ({
+      label: doc.doc_number?.trim()
+        ? t('field-service:detail.trail_quote_num', 'Pressupost {{number}}', {
+            number: doc.doc_number,
+          })
+        : t('field-service:detail.trail_quote', 'Pressupost'),
+      href: `/sales/quotes/${doc.id}`,
+    }))
+  }, [commercialDocs, primaryCommercialDoc?.id, t])
 
   const workflow = useMemo(
     () =>
@@ -855,158 +889,13 @@ export function ProjectDetailPage() {
         {backLabel}
       </Link>
 
-      <div className="flex flex-col gap-4 mb-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 max-w-xl space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            {project.type && (
-              <Badge variant="outline" className="text-xs font-normal">
-                {TYPE_LABELS[project.type] ?? project.type}
-              </Badge>
-            )}
-            {project.status && (
-              <Badge
-                variant={getProjectStatusVariant(project.status)}
-                className={`text-xs ${getProjectStatusClass(project.status)}`}
-              >
-                {getProjectStatusLabel(t, project.status, { fieldService: isFieldService })}
-              </Badge>
-            )}
-            {isFieldService && (
-              isOffice && workflow.paymentPending && project.id ? (
-                <Link
-                  to={`/delivery-notes?project_id=${encodeURIComponent(project.id)}&status=open`}
-                  className="inline-flex"
-                  title={t('projects.collections.open_hub', 'Veure a Cobraments')}
-                >
-                  <PaymentPendingChip pending={workflow.paymentPending} />
-                </Link>
-              ) : (
-                <PaymentPendingChip
-                  pending={workflow.paymentPending}
-                  pendingOnInvoice={
-                    workflow.paymentPending && !workflow.collectDeliveryId
-                  }
-                />
-              )
-            )}
-            {isFieldService && (
-              <Select
-                value={(project.visit_intent as string) || 'generic'}
-                disabled={!canEditVisitIntent || workLocked}
-                onValueChange={async (next) => {
-                  if (!project.id || !canEditVisitIntent) return
-                  try {
-                    await setProjectVisitIntent(
-                      project.id,
-                      next as 'inspection' | 'corrective' | 'generic',
-                    )
-                    await queryClient.invalidateQueries({
-                      queryKey: projectsKeys.detail(project.id),
-                    })
-                  } catch {
-                    toast({
-                      variant: 'destructive',
-                      description: t(
-                        'field-service:intent.save_failed',
-                        'No s\'ha pogut desar la intenció',
-                      ),
-                    })
-                  }
-                }}
-              >
-                <SelectTrigger className="h-7 w-auto min-w-[9rem] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="inspection">
-                    {t('field-service:intent.inspection', 'Inspecció')}
-                  </SelectItem>
-                  <SelectItem value="corrective">
-                    {t('field-service:intent.corrective', 'Correctiva')}
-                  </SelectItem>
-                  <SelectItem value="generic">
-                    {t('field-service:intent.generic', 'Genèrica')}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-            {isFieldService && (
-              <Select
-                value={commercialPolicy.commercial_regime}
-                disabled={!canEditVisitIntent || workLocked}
-                onValueChange={async (next) => {
-                  if (!project.id || !canEditVisitIntent) return
-                  try {
-                    await setProjectCommercialRegime(
-                      project.id,
-                      next as CommercialRegime,
-                    )
-                    await queryClient.invalidateQueries({
-                      queryKey: projectsKeys.detail(project.id),
-                    })
-                  } catch {
-                    toast({
-                      variant: 'destructive',
-                      description: t(
-                        'field-service:regime.save_failed',
-                        'No s\'ha pogut desar el règim comercial',
-                      ),
-                    })
-                  }
-                }}
-              >
-                <SelectTrigger className="h-7 w-auto min-w-[8rem] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="consumer">
-                    {t('field-service:regime.consumer', 'Consumidor')}
-                  </SelectItem>
-                  <SelectItem value="contractual">
-                    {t('field-service:regime.contractual', 'Contractual')}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-            {isFieldService && (
-              <Select
-                value={commercialPolicy.service_mode}
-                disabled={!canEditVisitIntent || workLocked}
-                onValueChange={async (next) => {
-                  if (!project.id || !canEditVisitIntent) return
-                  try {
-                    await setProjectServiceMode(project.id, next as ServiceMode)
-                    await queryClient.invalidateQueries({
-                      queryKey: projectsKeys.detail(project.id),
-                    })
-                  } catch {
-                    toast({
-                      variant: 'destructive',
-                      description: t(
-                        'field-service:service_mode.save_failed',
-                        'No s\'ha pogut desar el tipus de visita',
-                      ),
-                    })
-                  }
-                }}
-              >
-                <SelectTrigger className="h-7 w-auto min-w-[8rem] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="execute">
-                    {t('field-service:service_mode.execute', 'Execució')}
-                  </SelectItem>
-                  <SelectItem value="assessment">
-                    {t('field-service:service_mode.assessment', 'Avaluació')}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          </div>
+      {isFieldService ? (
+        <div className="sticky top-0 z-20 -mx-1 mb-4 space-y-2 border-b border-border/60 bg-background/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-snug">
-              {project.name}
+              {t('field-service:detail.order_title', 'Ordre - {{name}}', {
+                name: project.name,
+              })}
             </h1>
             {isProspect ? (
               <span
@@ -1020,6 +909,278 @@ export function ProjectDetailPage() {
               </span>
             ) : null}
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {project.type ? (
+              <Badge variant="outline" className="text-xs font-normal">
+                {TYPE_LABELS[project.type] ?? project.type}
+              </Badge>
+            ) : null}
+            {project.status ? (
+              <Badge
+                variant={getProjectStatusVariant(
+                  project.status === 'active' ? 'in_progress' : project.status,
+                )}
+                className={`text-xs ${getProjectStatusClass(
+                  project.status === 'active' ? 'in_progress' : project.status,
+                )}`}
+              >
+                {getProjectStatusLabel(
+                  t,
+                  project.status === 'active' ? 'in_progress' : project.status,
+                  { fieldService: true },
+                )}
+              </Badge>
+            ) : null}
+            {primaryCommercialDoc ? (
+              <Link
+                to={`/sales/quotes/${primaryCommercialDoc.id}`}
+                className="inline-flex"
+              >
+                <Badge variant="secondary" className="text-xs font-normal hover:bg-secondary/80">
+                  {primaryCommercialDoc.doc_number
+                    ? t('field-service:detail.quote_badge', 'Pressupost {{number}}', {
+                        number: primaryCommercialDoc.doc_number,
+                      })
+                    : t('field-service:detail.quote_badge_unnamed', 'Pressupost')}
+                  {primaryCommercialDoc.status
+                    ? ` · ${t(
+                        `projects.commercial.status_${primaryCommercialDoc.status}`,
+                        primaryCommercialDoc.status,
+                      )}`
+                    : ''}
+                </Badge>
+              </Link>
+            ) : hasWaiver ? (
+              <Badge
+                variant="secondary"
+                className="text-xs font-normal"
+                title={t(
+                  'field-service:detail.waiver_badge_title',
+                  'Treball sense pressupost (renúncia registrada)',
+                )}
+              >
+                {t(
+                  'field-service:detail.waiver_badge',
+                  'Treballar sense pressupost',
+                )}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
+                {t('field-service:detail.no_quote_badge', 'Sense pressupost')}
+              </Badge>
+            )}
+            {isOffice && workflow.paymentPending && project.id ? (
+              <Link
+                to={`/delivery-notes?project_id=${encodeURIComponent(project.id)}&status=open`}
+                className="inline-flex"
+                title={t('projects.collections.open_hub', 'Veure a Cobraments')}
+              >
+                <PaymentPendingChip pending={workflow.paymentPending} />
+              </Link>
+            ) : (
+              <PaymentPendingChip
+                pending={workflow.paymentPending}
+                pendingOnInvoice={
+                  workflow.paymentPending && !workflow.collectDeliveryId
+                }
+              />
+            )}
+          </div>
+          <FieldPolicyChoiceRow
+            visitIntent={(project.visit_intent as string) || 'generic'}
+            commercialRegime={commercialPolicy.commercial_regime}
+            serviceMode={commercialPolicy.service_mode}
+            disabled={!canEditVisitIntent || workLocked}
+            onVisitIntent={async (next) => {
+              if (!project.id || !canEditVisitIntent) return
+              try {
+                await setProjectVisitIntent(
+                  project.id,
+                  next as 'inspection' | 'corrective' | 'generic',
+                )
+                await queryClient.invalidateQueries({
+                  queryKey: projectsKeys.detail(project.id),
+                })
+              } catch (err) {
+                const code =
+                  err && typeof err === 'object' && 'code' in err
+                    ? String((err as { code?: string }).code ?? '')
+                    : ''
+                const message =
+                  err instanceof Error ? err.message : String(err ?? '')
+                toast({
+                  variant: 'destructive',
+                  description:
+                    code === 'P0001' || message.includes('project_report_published')
+                      ? t(
+                          'field-service:policy.locked_after_report',
+                          'No es pot canviar després de publicar l’informe al client.',
+                        )
+                      : t(
+                          'field-service:intent.save_failed',
+                          "No s'ha pogut desar la intenció",
+                        ),
+                })
+              }
+            }}
+            onCommercialRegime={async (next) => {
+              if (!project.id || !canEditVisitIntent) return
+              try {
+                await setProjectCommercialRegime(project.id, next as CommercialRegime)
+                await queryClient.invalidateQueries({
+                  queryKey: projectsKeys.detail(project.id),
+                })
+              } catch (err) {
+                const message =
+                  err instanceof Error ? err.message : String(err ?? '')
+                toast({
+                  variant: 'destructive',
+                  description: message.includes('project_report_published')
+                    ? t(
+                        'field-service:policy.locked_after_report',
+                        'No es pot canviar després de publicar l’informe al client.',
+                      )
+                    : t(
+                        'field-service:regime.save_failed',
+                        "No s'ha pogut desar el règim comercial",
+                      ),
+                })
+              }
+            }}
+            onServiceMode={async (next) => {
+              if (!project.id || !canEditVisitIntent) return
+              try {
+                await setProjectServiceMode(project.id, next as ServiceMode)
+                await queryClient.invalidateQueries({
+                  queryKey: projectsKeys.detail(project.id),
+                })
+              } catch (err) {
+                const message =
+                  err instanceof Error ? err.message : String(err ?? '')
+                toast({
+                  variant: 'destructive',
+                  description: message.includes('project_report_published')
+                    ? t(
+                        'field-service:policy.locked_after_report',
+                        'No es pot canviar després de publicar l’informe al client.',
+                      )
+                    : t(
+                        'field-service:service_mode.save_failed',
+                        "No s'ha pogut desar el tipus de visita",
+                      ),
+                })
+              }
+            }}
+          />
+          {workLocked ? (
+            <p className="text-xs text-muted-foreground">
+              {t(
+                'field-service:policy.locked_after_report',
+                'No es pot canviar després de publicar l’informe al client.',
+              )}
+            </p>
+          ) : null}
+          <CommercialTrailNav
+            links={[
+              {
+                kind: 'order',
+                label: t('field-service:detail.trail_order', 'Ordre'),
+                href: project.id ? `/field/orders/${project.id}` : null,
+                active: true,
+              },
+              {
+                kind: 'quote',
+                label: primaryCommercialDoc?.doc_number
+                  ? t('field-service:detail.trail_quote_num', 'Pressupost {{number}}', {
+                      number: primaryCommercialDoc.doc_number,
+                    })
+                  : t('field-service:detail.trail_quote', 'Pressupost'),
+                href: primaryCommercialDoc
+                  ? `/sales/quotes/${primaryCommercialDoc.id}`
+                  : null,
+                missingLabel: t('field-service:detail.no_quote_badge', 'Sense pressupost'),
+                siblings: quoteTrailSiblings.length > 0 ? quoteTrailSiblings : undefined,
+              },
+              {
+                kind: 'agreement',
+                label: t('field-service:detail.trail_agreement', 'Acord'),
+                href: primaryAgreementId
+                  ? `/sales/agreements/${primaryAgreementId}`
+                  : null,
+                missingLabel: t(
+                  'field-service:detail.trail_agreement_missing',
+                  'Sense acord',
+                ),
+                siblings:
+                  agreementTrailSiblings.length > 0 ? agreementTrailSiblings : undefined,
+              },
+            ]}
+          />
+          {isProspect ? (
+            <ProspectCommercialGuide
+              hasClient={!!project.client_id}
+              hasLines={linesCount > 0}
+              authorizationState={workflow.authorizationState}
+            />
+          ) : (
+            <>
+              <OrderCommercialGuide workflow={workflow} />
+              <OrderPhaseStepper
+                value={
+                  activeTab === 'prepare' || activeTab === 'do' || activeTab === 'deliver'
+                    ? activeTab
+                    : 'do'
+                }
+                onValueChange={(tab) => setTab(tab)}
+                prepareDone={workflow.prepareDone}
+                doDone={workflow.doDone}
+                deliverDone={workflow.deliverDone}
+                prepareMicro={prepareMicro}
+                doMicro={doMicro}
+                deliverMicro={
+                  workflow.deliverDone && workflow.deliveryTotalCents > 0
+                    ? moneyFmt.format(workflow.deliveryTotalCents / 100)
+                    : deliverMicro
+                }
+              />
+              {showPrimaryBar ? (
+                <OrderPrimaryActionBar
+                  action={workflow.primaryAction}
+                  busy={primaryBusy}
+                  onAction={(action) => {
+                    void handlePrimaryAction(action)
+                  }}
+                />
+              ) : null}
+            </>
+          )}
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-4 mb-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 max-w-xl space-y-2">
+          {!isFieldService ? (
+            <>
+              <div className="flex items-center gap-2 flex-wrap">
+                {project.type && (
+                  <Badge variant="outline" className="text-xs font-normal">
+                    {TYPE_LABELS[project.type] ?? project.type}
+                  </Badge>
+                )}
+                {project.status && (
+                  <Badge
+                    variant={getProjectStatusVariant(project.status)}
+                    className={`text-xs ${getProjectStatusClass(project.status)}`}
+                  >
+                    {getProjectStatusLabel(t, project.status)}
+                  </Badge>
+                )}
+              </div>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-snug">
+                {project.name}
+              </h1>
+            </>
+          ) : null}
           {project.description && (
             <p className="text-sm text-muted-foreground line-clamp-3">{project.description}</p>
           )}
@@ -1301,7 +1462,7 @@ export function ProjectDetailPage() {
           </p>
           {commercialInclusion.agreementId ? (
             <Link
-              to={`/sales/agreements?view=${commercialInclusion.agreementId}`}
+              to={`/sales/agreements/${commercialInclusion.agreementId}`}
               className="mt-1 inline-block text-emerald-800 underline dark:text-emerald-200"
             >
               {t('projects.commercial.inclusion_open_agreement', 'Veure l’acord')}
@@ -1401,55 +1562,23 @@ export function ProjectDetailPage() {
             </Button>
           </div>
         ) : null}
-        {isProspect ? (
-          <div className="sticky top-0 z-20 -mx-1 space-y-2 border-b border-border/60 bg-background/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-            <ProspectCommercialGuide
-              hasClient={!!project.client_id}
-              hasLines={linesCount > 0}
-              authorizationState={workflow.authorizationState}
-            />
-          </div>
-        ) : (
-          <div
-            className={
-              isFieldService
-                ? 'sticky top-0 z-20 -mx-1 space-y-2 border-b border-border/60 bg-background/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80'
-                : 'space-y-2'
-            }
-          >
-            {isFieldService ? (
-              <>
-                <OrderCommercialGuide workflow={workflow} />
-                <OrderPhaseStepper
-                  prepareDone={workflow.prepareDone}
-                  doDone={workflow.doDone}
-                  deliverDone={workflow.deliverDone}
-                  prepareMicro={prepareMicro}
-                  doMicro={doMicro}
-                  deliverMicro={
-                    workflow.deliverDone && workflow.deliveryTotalCents > 0
-                      ? moneyFmt.format(workflow.deliveryTotalCents / 100)
-                      : deliverMicro
-                  }
-                />
-              </>
-            ) : (
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="do">
-                  {t('field-service:detail.tab_work', 'Feina')}
-                </TabsTrigger>
-                <TabsTrigger value="punch">
-                  {t('field-service:detail.tab_punch', 'Fitxar')}
-                </TabsTrigger>
-                <TabsTrigger value="activity">
-                  {t('field-service:detail.tab_activity', 'Activitat')}
-                </TabsTrigger>
-                <TabsTrigger value="prepare">
-                  {t('field-service:detail.tab_budget', 'Imports')}
-                </TabsTrigger>
-              </TabsList>
-            )}
-            {showPrimaryBar && (
+        {!isFieldService ? (
+          <div className="space-y-2">
+            <TabsList className="w-full justify-start">
+              <TabsTrigger value="do">
+                {t('field-service:detail.tab_work', 'Feina')}
+              </TabsTrigger>
+              <TabsTrigger value="punch">
+                {t('field-service:detail.tab_punch', 'Fitxar')}
+              </TabsTrigger>
+              <TabsTrigger value="activity">
+                {t('field-service:detail.tab_activity', 'Activitat')}
+              </TabsTrigger>
+              <TabsTrigger value="prepare">
+                {t('field-service:detail.tab_budget', 'Imports')}
+              </TabsTrigger>
+            </TabsList>
+            {showPrimaryBar ? (
               <OrderPrimaryActionBar
                 action={workflow.primaryAction}
                 busy={primaryBusy}
@@ -1457,9 +1586,9 @@ export function ProjectDetailPage() {
                   void handlePrimaryAction(action)
                 }}
               />
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
 
         <TabsContent value="prepare" className="space-y-4">
           {isFieldService &&

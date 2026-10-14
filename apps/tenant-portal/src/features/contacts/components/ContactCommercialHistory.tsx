@@ -108,7 +108,7 @@ function DocumentRow({
               <>
                 {t('contacts.detail.commercial_agreement_linked', 'Acord')}:{' '}
                 <Link
-                  to={`/sales/agreements?view=${agreement.id}`}
+                  to={`/sales/agreements/${agreement.id}`}
                   className="text-indigo-600 hover:underline"
                 >
                   {agreementLine}

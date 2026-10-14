@@ -35,20 +35,20 @@ describe('commercialClosedVocabulary', () => {
     expect(formatUnknownPathMessage(hits)).toContain('buyer.display_name')
   })
 
-  it('allows agreement source_quote paths and rejects client_accept role paths as variables', () => {
+  it('allows agreement source_quote and party paths; rejects unknown quote-only paths', () => {
     const ok = findUnknownCommercialPaths(
-      '{{ source_quote.doc_number }} {{ buyer.display_name }} {% for line in lines %}{{ line.line_subtotal }}{% endfor %}',
+      '{{ source_quote.doc_number }} {{ buyer.display_name }} {{ buyer.tax_id }} {{ tenant.tax_id }} {% for line in lines %}{{ line.line_subtotal }}{% endfor %}',
       'commercial_agreement',
       'html',
     )
     expect(ok).toEqual([])
 
     const bad = findUnknownCommercialPaths(
-      '{{ buyer.tax_id }}',
+      '{{ document.doc_number }}',
       'commercial_agreement',
       'html',
     )
-    expect(bad.map((h) => h.path)).toEqual(['buyer.tax_id'])
+    expect(bad.map((h) => h.path)).toEqual(['document.doc_number'])
   })
 
   it('allows bare line fields in docx loops', () => {

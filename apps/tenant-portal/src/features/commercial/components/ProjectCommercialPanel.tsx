@@ -68,6 +68,7 @@ import {
   liveProjectLinesTotalCents,
 } from '../utils/quotePriceDrift'
 import { canShowQuoteWaiverCta } from '../utils/priceSheetMutability'
+import { resolvePrimaryCommercialDoc } from '../utils/resolvePrimaryCommercialDoc'
 
 export type CommercialPanelSection = 'authorize' | 'deliver' | 'summary'
 
@@ -200,10 +201,20 @@ export function ProjectCommercialPanel({
     () => docs.filter((d) => matchesSection(d, section)),
     [docs, section],
   )
+  const primaryAuthorizeDoc = useMemo(
+    () => (section === 'authorize' ? resolvePrimaryCommercialDoc(sectionDocs) : null),
+    [docs, section, sectionDocs],
+  )
   const visibleDocs =
-    section === 'authorize' ? sectionDocs.slice(0, 1) : sectionDocs
+    section === 'authorize'
+      ? primaryAuthorizeDoc
+        ? [primaryAuthorizeDoc]
+        : []
+      : sectionDocs
   const historyDocs =
-    section === 'authorize' ? sectionDocs.slice(1) : []
+    section === 'authorize'
+      ? sectionDocs.filter((doc) => doc.id !== primaryAuthorizeDoc?.id)
+      : []
 
   const docIds = useMemo(() => docs.map((d) => d.id), [docs])
 
@@ -1008,14 +1019,23 @@ export function ProjectCommercialPanel({
                           'Contracte preparat, encara sense enviar',
                         )
                       })()}
-                      {agreementStates.some((row) => row.sourceQuoteId === doc.id) ? (
-                        <>
-                          {' · '}
-                          <Link to="/sales/agreements" className="text-indigo-600 hover:underline">
-                            {t('projects.commercial.prepare_agreement_open_list', 'Veure a Acords comercials')}
-                          </Link>
-                        </>
-                      ) : null}
+                      {(() => {
+                        const linkedAgreement = agreementStates.find(
+                          (row) => row.sourceQuoteId === doc.id,
+                        )
+                        if (!linkedAgreement) return null
+                        return (
+                          <>
+                            {' · '}
+                            <Link
+                              to={`/sales/agreements/${linkedAgreement.id}`}
+                              className="text-indigo-600 hover:underline"
+                            >
+                              {t('projects.commercial.prepare_agreement_open_list', 'Veure a Acords comercials')}
+                            </Link>
+                          </>
+                        )
+                      })()}
                     </p>
                   ) : null}
                   <p className="text-xs text-muted-foreground tabular-nums">
@@ -1033,28 +1053,36 @@ export function ProjectCommercialPanel({
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {doc.status !== 'draft' && (
-                    <>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => openDocument(doc)}
-                      >
-                        {t('common:list.open_record', 'Obrir fitxa')}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => setShareDocId(doc.id)}
-                      >
-                        {t('projects.commercial.share_title_deliver', 'Només entregar')}
-                      </Button>
-                    </>
-                  )}
+                  {section === 'authorize' ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() =>
+                        navigate(
+                          commercialSalesDetailHref(doc) ?? `/sales/quotes/${doc.id}`,
+                        )
+                      }
+                    >
+                      {doc.status === 'draft'
+                        ? t('common:list.open_record', 'Obrir fitxa')
+                        : t(
+                            'projects.commercial.open_quote_deliver',
+                            'Obrir / Entregar al pressupost',
+                          )}
+                    </Button>
+                  ) : doc.status !== 'draft' ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => openDocument(doc)}
+                    >
+                      {t('common:list.open_record', 'Obrir fitxa')}
+                    </Button>
+                  ) : null}
                   {effectiveStatus(doc) === 'issued' &&
                     (doc.doc_type === 'quote' ||
                       (doc.doc_type === 'quote_amendment' && canEditPricing)) && (

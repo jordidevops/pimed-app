@@ -88,6 +88,7 @@ import { DeliveryNoteDetailPage } from './features/commercial/components/Deliver
 import { QuoteDetailPage } from './features/commercial/components/QuoteDetailPage'
 import { InvoiceDetailPage } from './features/commercial/components/InvoiceDetailPage'
 import { AgreementsPage } from './features/commercial/components/AgreementsPage'
+import { AgreementDetailPage } from './features/commercial/components/AgreementDetailPage'
 import {
   FieldServiceLayout,
   TodayPage,
@@ -210,6 +211,7 @@ export default function App() {
             <Route path="quotes" element={<QuotesPage />} />
             <Route path="quotes/:id" element={<QuoteDetailPage />} />
             <Route path="agreements" element={<AgreementsPage />} />
+            <Route path="agreements/:id" element={<AgreementDetailPage />} />
             <Route path="delivery-notes" element={<DeliveryNotesPage />} />
             <Route path="delivery-notes/:id" element={<DeliveryNoteDetailPage />} />
             <Route path="invoices" element={<InvoicesPage />} />

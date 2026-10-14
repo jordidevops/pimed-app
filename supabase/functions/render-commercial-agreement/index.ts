@@ -172,18 +172,59 @@ Deno.serve(async (req) => {
       .select("name")
       .eq("id", version.tenant_id)
       .maybeSingle();
+    const { data: emailCfg } = await adminData
+      .from("email_configs")
+      .select("logo_url")
+      .eq("tenant_id", version.tenant_id)
+      .limit(1)
+      .maybeSingle();
 
-    let buyerName =
-      typeof buyer.display_name === "string" ? buyer.display_name : null;
-    let sellerName =
-      typeof seller.display_name === "string" ? seller.display_name : null;
-    if (!buyerName && agreement.client_id) {
+    function partyName(snap: Record<string, unknown>): string | null {
+      for (const key of ["display_name", "legal_name", "name"] as const) {
+        const v = snap[key];
+        if (typeof v === "string" && v.trim()) return v.trim();
+      }
+      return null;
+    }
+    function partyStr(snap: Record<string, unknown>, key: string): string | null {
+      const v = snap[key];
+      return typeof v === "string" && v.trim() ? v.trim() : null;
+    }
+    function partyAddress(snap: Record<string, unknown>): string | null {
+      const parts = [
+        partyStr(snap, "address_line1"),
+        partyStr(snap, "address_line2"),
+        [partyStr(snap, "postal_code"), partyStr(snap, "city")].filter(Boolean).join(" "),
+      ].filter(Boolean);
+      return parts.length > 0 ? parts.join(", ") : null;
+    }
+
+    let buyerName = partyName(buyer);
+    let sellerName = partyName(seller);
+    let buyerEmail = partyStr(buyer, "email");
+    let buyerPhone = partyStr(buyer, "phone");
+    let buyerTaxId = partyStr(buyer, "tax_id");
+    let buyerAddress = partyAddress(buyer);
+    const sellerEmail = partyStr(seller, "email");
+    const sellerPhone = partyStr(seller, "phone");
+    const sellerTaxId = partyStr(seller, "tax_id");
+    const sellerAddress = partyAddress(seller);
+    const tenantLogoUrl =
+      partyStr(seller, "logo_url")
+      ?? (typeof emailCfg?.logo_url === "string" && emailCfg.logo_url.trim()
+        ? emailCfg.logo_url.trim()
+        : null);
+
+    if ((!buyerName || !buyerEmail || !buyerPhone || !buyerTaxId) && agreement.client_id) {
       const { data: contact } = await adminData
         .from("contacts")
-        .select("display_name")
+        .select("display_name, email, phone, tax_id")
         .eq("id", agreement.client_id)
         .maybeSingle();
-      buyerName = contact?.display_name ?? null;
+      buyerName = buyerName ?? contact?.display_name ?? null;
+      buyerEmail = buyerEmail ?? contact?.email ?? null;
+      buyerPhone = buyerPhone ?? contact?.phone ?? null;
+      buyerTaxId = buyerTaxId ?? contact?.tax_id ?? null;
     }
     if (!sellerName) {
       sellerName = tenant?.name ?? null;
@@ -249,6 +290,11 @@ Deno.serve(async (req) => {
       currency: (quote?.currency as string | null) ?? "EUR",
       subtotal: Number(quote?.subtotal ?? 0),
       total: Number(quote?.total ?? 0),
+      taxBreakdown: quote?.tax_breakdown != null
+        ? (typeof quote.tax_breakdown === "string"
+          ? quote.tax_breakdown
+          : JSON.stringify(quote.tax_breakdown))
+        : null,
       lines: (lines ?? []).map((line) => ({
         name: line.name,
         description: line.description,
@@ -261,6 +307,22 @@ Deno.serve(async (req) => {
         line_total: line.line_total,
       })),
       tenantName: tenant?.name ?? "",
+      tenantTaxId: sellerTaxId,
+      tenantLogoUrl,
+      seller: {
+        displayName: sellerName,
+        taxId: sellerTaxId,
+        email: sellerEmail,
+        phone: sellerPhone,
+        address: sellerAddress,
+      },
+      buyer: {
+        displayName: buyerName,
+        taxId: buyerTaxId,
+        email: buyerEmail,
+        phone: buyerPhone,
+        address: buyerAddress,
+      },
       sellerName,
       buyerName,
     });

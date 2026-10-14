@@ -204,7 +204,7 @@ export function ContactAgreementsList({ clientId, clientName }: ContactAgreement
             return (
               <li key={row.id} className="space-y-1.5 px-3 py-3">
                 <Link
-                  to={`/sales/agreements?view=${row.id}`}
+                  to={`/sales/agreements/${row.id}`}
                   className="block text-sm font-medium text-foreground hover:underline"
                 >
                   {identity}

@@ -9,10 +9,13 @@ import {
 export function AgreementFlowSteps({
   agreementStatus,
   versionStatus,
+  fromQuote = false,
   className,
 }: {
   agreementStatus?: string | null
   versionStatus?: string | null
+  /** When true, step 1 reads «Acceptat pressupost». */
+  fromQuote?: boolean
   className?: string
 }) {
   const { t } = useTranslation('projects')
@@ -35,7 +38,7 @@ export function AgreementFlowSteps({
                   : 'rounded-md border border-border px-2 py-1 text-muted-foreground'
             }
           >
-            {index + 1}. {agreementFlowStepLabel(step, t)}
+            {index + 1}. {agreementFlowStepLabel(step, t, { fromQuote })}
           </li>
         )
       })}

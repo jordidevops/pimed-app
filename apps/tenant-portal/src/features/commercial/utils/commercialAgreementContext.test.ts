@@ -89,5 +89,45 @@ describe('agreement template context', () => {
     expect(agreement.billing.cadence).toBe('monthly')
     expect(agreement.billing.amount_cents).toBe(12100)
   })
+
+  it('exposes rich seller/buyer/tenant party fields', () => {
+    const context = buildAgreementTemplateContext({
+      agreementId: 'agr',
+      agreementStatus: 'pending_start',
+      workGate: 'none',
+      quoteId: 'q1',
+      quoteNumber: 'P-1',
+      quoteContentHash: 'hash',
+      quoteDocumentId: null,
+      locale: 'ca',
+      currency: 'EUR',
+      subtotal: 10,
+      total: 12.1,
+      taxBreakdown: '21%',
+      lines: [],
+      tenantName: 'Volt',
+      tenantTaxId: 'B123',
+      seller: {
+        displayName: 'Volt SL',
+        taxId: 'B123',
+        email: 'a@volt.test',
+        address: 'Carrer 1',
+      },
+      buyer: {
+        displayName: 'Client SA',
+        taxId: 'A999',
+        email: 'c@client.test',
+      },
+    })
+    const tenant = context.tenant as { name: string; tax_id: string }
+    const seller = context.seller as { display_name: string; email: string }
+    const buyer = context.buyer as { display_name: string; tax_id: string }
+    const totals = context.totals as { tax_breakdown: string }
+    expect(tenant.tax_id).toBe('B123')
+    expect(seller.display_name).toBe('Volt SL')
+    expect(seller.email).toBe('a@volt.test')
+    expect(buyer.tax_id).toBe('A999')
+    expect(totals.tax_breakdown).toBe('21%')
+  })
 })
 

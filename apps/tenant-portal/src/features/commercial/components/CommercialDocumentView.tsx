@@ -418,7 +418,7 @@ export function CommercialDocumentView({
                   </p>
                   {agreement ? (
                     <Link
-                      to={`/sales/agreements?view=${agreement.id}`}
+                      to={`/sales/agreements/${agreement.id}`}
                       className="text-indigo-600 hover:underline"
                     >
                       {t('projects.commercial.prepare_agreement_open_list', 'Veure a Acords comercials')}
@@ -795,7 +795,7 @@ export function CommercialDocumentView({
                 {t('projects.commercial.prepare_agreement_footer_send', 'Enviar el contracte a firmar')}
               </Button>
               <Button type="button" size="lg" variant="outline" className="h-12 w-full" asChild>
-                <Link to="/sales/agreements">
+                <Link to={`/sales/agreements/${agreement.id}`}>
                   {t('projects.commercial.prepare_agreement_open_list', 'Veure a Acords comercials')}
                 </Link>
               </Button>
@@ -813,11 +813,16 @@ export function CommercialDocumentView({
                       'Ja s’ha enviat al client. El PDF i la firma són al Centre de signatures.',
                     )}
               </p>
-              <Button type="button" size="lg" className="h-12 w-full" asChild>
-                <Link to="/documents/signing">
-                  {t('projects.commercial.prepare_agreement_centre', 'Centre de signatures')}
-                </Link>
-              </Button>
+              {signingHub?.submissionId ? (
+                <Button type="button" size="lg" className="h-12 w-full" asChild>
+                  <Link to={commercialSigningCentreHref(signingHub.submissionId)}>
+                    {t(
+                      'projects.commercial.view_signing_centre',
+                      'Veure al Centre de signatures',
+                    )}
+                  </Link>
+                </Button>
+              ) : null}
               {agreement.renderedDocumentId ? (
                 <Button type="button" size="lg" variant="outline" className="h-12 w-full" asChild>
                   <Link to={dmsHref(agreement.renderedDocumentId)}>
@@ -833,7 +838,7 @@ export function CommercialDocumentView({
               className="h-12 w-full"
               onClick={() => setPrepareOpen(true)}
             >
-              {t('projects.commercial.prepare_agreement', 'Preparar acord')}
+              {t('projects.commercial.generate_contract', 'Generar contracte')}
             </Button>
           )}
         </footer>

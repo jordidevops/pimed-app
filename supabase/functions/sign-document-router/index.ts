@@ -1999,7 +1999,8 @@ Deno.serve(async (req: Request) => {
         return jsonError(403, "native_signing_disabled", "La firma nativa no està activada. Activeu-la a l'admin portal.");
       }
 
-      const fallbackSigners = (signingType === "remote" && signersList.length > 0
+      // Prefer explicit signers[] for both remote and presential (CS-D6 dual-sign acords).
+      const fallbackSigners = (signersList.length > 0
         ? signersList
         : [{
             email: body.signer_email ?? null,
@@ -2318,7 +2319,8 @@ Deno.serve(async (req: Request) => {
       };
       const createdSessions: CreatedSession[] = [];
 
-      const sessionsToCreate = signingType === "remote" && signersList.length > 0
+      // Presential multi-signer (issuer+client): create one session per role.
+      const sessionsToCreate = signersList.length > 0
         ? signersList
         : [primarySigner];
 

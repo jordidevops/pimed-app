@@ -13,6 +13,9 @@ export type CommercialSigningHubLink = {
   sourceDocumentId: string | null
   resultDocumentVersionId: string | null
   resultDocumentId: string | null
+  agreementId: string | null
+  agreementVersionId: string | null
+  createdAt: string | null
 }
 
 export function commercialSignedPdfDocumentId(
@@ -31,6 +34,22 @@ export function commercialSignedPdfDocumentId(
 
 export function commercialQuoteViewHref(documentId: string): string {
   return `/sales/quotes/${documentId}`
+}
+
+export function commercialAgreementViewHref(agreementId: string): string {
+  return `/sales/agreements/${agreementId}`
+}
+
+/** Prefer the agreement when the submission signs a contract; otherwise quote or delivery note. */
+export function commercialHubDocumentHref(
+  link: Pick<
+    CommercialSigningHubLink,
+    'agreementId' | 'commercialDocumentId' | 'docType'
+  >,
+): string | null {
+  if (link.agreementId) return commercialAgreementViewHref(link.agreementId)
+  if (!link.commercialDocumentId) return null
+  return commercialSalesDetailHref(link.commercialDocumentId, link.docType)
 }
 
 /** Hub sales detail path for quote / delivery note documents. */

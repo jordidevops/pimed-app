@@ -12,21 +12,14 @@ import {
 } from '@/components/ui/dialog'
 import { useDocumentTemplates } from '@/features/signing/api/useDocumentTemplates'
 import { useEffectiveSettings } from '@/hooks/useSettings'
-import { callSignDocumentRouter } from '@/features/signing/api/signingService'
-import { generateClientOpId } from '@/features/attendance/api/clientOpId'
+import { useTenant } from '@/contexts/TenantContext'
 import { supabase } from '@/lib/supabase'
 import {
-  createCommercialDecisionRequest,
-  markAgreementSentForSignature,
   prepareAgreementFromQuote,
-  registerCommercialSigningIntent,
-  renderCommercialAgreementPdf,
-  revertAgreementSentForSignature,
-  revokeCommercialDecisionRequest,
+  sendAgreementVersionForSignature,
   type CommercialAgreementKind,
 } from '../api/commercialFlowService'
-import { defaultDecisionExpiresAt } from '../utils/commercialDecisionSend'
-import { isDecisionRequestsDisabledError } from '../utils/commercialErrorMessage'
+import { commercialSigningCentreHref } from '../utils/commercialSigningHub'
 import {
   COMMERCIAL_AGREEMENT_TEMPLATE_ID_KEY,
   parseCommercialSettingId,
@@ -76,6 +69,7 @@ export function PrepareAgreementDialog({
   onChanged,
 }: PrepareAgreementDialogProps) {
   const { t } = useTranslation('projects')
+  const { activeTenant } = useTenant()
   const { data: templates = [] } = useDocumentTemplates(open ? tenantId : undefined)
   const { data: effective } = useEffectiveSettings(
     { tenantId },
@@ -99,6 +93,7 @@ export function PrepareAgreementDialog({
   const [billingCadence, setBillingCadence] = useState<'none' | 'monthly' | 'quarterly' | 'yearly'>('none')
   const [billingAmountEur, setBillingAmountEur] = useState('')
   const [billingAnchorDay, setBillingAnchorDay] = useState('1')
+  const [lastSubmissionId, setLastSubmissionId] = useState<string | null>(null)
 
   const agreementTemplates = templates.filter(
     (tpl) => tpl.category === 'commercial_agreement' && tpl.template_type === 'html' && tpl.id,
@@ -283,91 +278,19 @@ export function PrepareAgreementDialog({
     if (!version || busy) return
     setBusy(true)
     setError(null)
-    let markedVersionId: string | null = null
-    let createdRequestId: string | null = null
     try {
-      const rendered = await renderCommercialAgreementPdf({
+      const result = await sendAgreementVersionForSignature({
         versionId: version.id,
         tenantId,
+        documentTitle: t('projects.commercial.agreement_pdf_title', 'Contracte de serveis'),
+        signerName: buyerName,
+        issuerName: activeTenant?.name ?? null,
+        sourceQuoteId: documentId,
       })
-      if (!rendered.version_id) throw new Error('agreement_pdf_required')
-      await reload()
-      const fresh = version
-      const { data: versionData } = await supabase
-        .from('commercial_agreement_versions' as never)
-        .select('id, status, source_quote_content_hash, rendered_document_id')
-        .eq('id', fresh.id)
-        .maybeSingle()
-      const nextVersion = (versionData ?? null) as VersionRow | null
-      setVersion(nextVersion)
-      if (!nextVersion?.rendered_document_id) throw new Error('agreement_pdf_required')
-      const opId = generateClientOpId()
-      await markAgreementSentForSignature({
-        versionId: nextVersion.id,
-        submissionId: null,
-        clientOpId: opId,
-      })
-      markedVersionId = nextVersion.id
-      let decisionRequestId: string | null = null
-      try {
-        decisionRequestId = await createCommercialDecisionRequest({
-          targetKind: 'agreement_version',
-          targetId: nextVersion.id,
-          expiresAt: defaultDecisionExpiresAt(14),
-          clientOpId: opId,
-        })
-        createdRequestId = decisionRequestId
-      } catch (err) {
-        if (!isDecisionRequestsDisabledError(err)) throw err
-      }
-      const result = await callSignDocumentRouter({
-        tenant_id: tenantId,
-        action: 'sign_native',
-        source_type: 'document_existing',
-        source_document_version_id: rendered.version_id,
-        document_title: t('projects.commercial.agreement_pdf_title', 'Contracte de serveis'),
-        native_sign_type: 'presential',
-        output_format: 'pdf',
-        output_profile: 'pdfa2b',
-        signer_name: buyerName,
-        signer_role: 'client',
-        client_request_id: opId,
-        ...(decisionRequestId
-          ? { commercial_decision_request_id: decisionRequestId }
-          : {}),
-      })
-      if (!result.session_id) {
-        throw new Error(
-          t('projects.commercial.sign_session_missing', "No s'ha creat la sessió de firma"),
-        )
-      }
-      markedVersionId = null
-      createdRequestId = null
-      await registerCommercialSigningIntent({
-        documentId,
-        sessionId: result.session_id,
-        action: 'accept',
-        clientOpId: generateClientOpId(),
-        submissionId: result.submission_id ?? null,
-        decisionRequestId,
-      })
+      setLastSubmissionId(result.submissionId)
       await reload()
       onChanged()
     } catch (err) {
-      if (createdRequestId) {
-        try {
-          await revokeCommercialDecisionRequest({ requestId: createdRequestId })
-        } catch {
-          /* surface original */
-        }
-      }
-      if (markedVersionId) {
-        try {
-          await revertAgreementSentForSignature({ versionId: markedVersionId })
-        } catch {
-          /* surface original */
-        }
-      }
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setBusy(false)
@@ -418,6 +341,7 @@ export function PrepareAgreementDialog({
           <AgreementFlowSteps
             agreementStatus={agreement?.status}
             versionStatus={version?.status}
+            fromQuote
             className="flex flex-wrap gap-2 text-xs"
           />
         </div>
@@ -715,9 +639,9 @@ export function PrepareAgreementDialog({
               {t('projects.commercial.prepare_agreement_send', 'Enviar a firmar (client)')}
             </Button>
           ) : null}
-          {followup ? (
+          {followup && agreement?.id ? (
             <Button type="button" variant="outline" asChild>
-              <Link to="/sales/agreements">
+              <Link to={`/sales/agreements/${agreement.id}`}>
                 {t('projects.commercial.prepare_agreement_open_list', 'Veure a Acords comercials')}
               </Link>
             </Button>
@@ -729,10 +653,13 @@ export function PrepareAgreementDialog({
               </Link>
             </Button>
           ) : null}
-          {pending || signed ? (
+          {(pending || signed) && lastSubmissionId ? (
             <Button type="button" variant="outline" asChild>
-              <Link to="/documents/signing">
-                {t('projects.commercial.prepare_agreement_centre', 'Centre de signatures')}
+              <Link to={commercialSigningCentreHref(lastSubmissionId)}>
+                {t(
+                  'projects.commercial.view_signing_centre',
+                  'Veure al Centre de signatures',
+                )}
               </Link>
             </Button>
           ) : null}

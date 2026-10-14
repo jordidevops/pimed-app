@@ -22,6 +22,7 @@
 | [09-sales-comercial/](./09-sales-comercial/README.md) | **CF-27 ✅:** `/sales` factures natives, sèries, gestoria, export ZIP — [`LOG`](./09-sales-comercial/IMPLEMENTATION-LOG.md) |
 | [10-positioning-invoicing-a.md](./10-positioning-invoicing-a.md) | **P0:** posicionament opció A (factura interna + gestoria; Verifactu = futur C); glossari i regles de copy |
 | [11-commercial-signing-ux/](./11-commercial-signing-ux/README.md) | **CF-28 📄:** enviar per acceptar, decisió atòmica, `/sign` comercial, un DMS, portal client i DocuSeal opcional |
+| [12-price-calculators/](./12-price-calculators/README.md) | **CF-29 📄:** calculadora declarativa, biblioteca, flux per defecte i flux ràpid de pressupost. Encara no implementat |
 | [EXECUTION.md](./EXECUTION.md) | Font de veritat de l'ordre real de treball |
 | [STATUS.md](./STATUS.md) | Estat per epic; actualitzar durant la implementació |
 | [Acords comercials](../commercial-agreements/pla-pressupost-contracte-acords.md) | Formalització (pressupost signat vs acord separat); CF-21 ✅; CF-22 spec [`cf22-obra/`](../commercial-agreements/cf22-obra/README.md) |

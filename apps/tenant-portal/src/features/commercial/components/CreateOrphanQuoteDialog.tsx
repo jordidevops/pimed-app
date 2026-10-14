@@ -49,13 +49,27 @@ function inSentence(label: string): string {
   return label.charAt(0).toLocaleLowerCase('ca') + label.slice(1)
 }
 
-const JOURNEY = [
+const JOURNEY_SIGNED_QUOTE = [
   { id: 'contact', labelKey: 'projects.orphan.journey_contact', fallback: '{{contact}}' },
   { id: 'lines', labelKey: 'projects.orphan.journey_lines', fallback: 'Full de preus' },
   { id: 'template', labelKey: 'projects.orphan.journey_template', fallback: 'Plantilla' },
   { id: 'issue', labelKey: 'projects.orphan.journey_issue', fallback: 'Emetre' },
   { id: 'reply', labelKey: 'projects.orphan.journey_reply', fallback: 'Resposta' },
   { id: 'os', labelKey: 'projects.orphan.journey_os', fallback: 'Ordre' },
+] as const
+
+/** separate_agreement: after accept → contract (not Ordre as step 6). */
+const JOURNEY_SEPARATE_AGREEMENT = [
+  { id: 'contact', labelKey: 'projects.orphan.journey_contact', fallback: '{{contact}}' },
+  { id: 'lines', labelKey: 'projects.orphan.journey_lines', fallback: 'Full de preus' },
+  { id: 'template', labelKey: 'projects.orphan.journey_template', fallback: 'Plantilla' },
+  { id: 'issue', labelKey: 'projects.orphan.journey_issue', fallback: 'Emetre' },
+  { id: 'reply', labelKey: 'projects.orphan.journey_reply', fallback: 'Resposta' },
+  {
+    id: 'contract',
+    labelKey: 'projects.orphan.journey_contract',
+    fallback: 'Contracte',
+  },
 ] as const
 
 function defaultQuoteTitle(
@@ -97,6 +111,10 @@ export function CreateOrphanQuoteDialog({
   const isFieldService = useIsFieldService()
   const contactLabel = useSectorLabel('contact', isFieldService ? 'Client' : 'Contacte')
   const contactWord = inSentence(contactLabel)
+  const journey =
+    formalizationMode === 'separate_agreement'
+      ? JOURNEY_SEPARATE_AGREEMENT
+      : JOURNEY_SIGNED_QUOTE
   const { activeTenant, sites: tenantSites, selectedSiteId } = useTenant()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -228,16 +246,22 @@ export function CreateOrphanQuoteDialog({
             {t('projects.quotes.wizard_type_orphan_title', 'Només pressupost')}
           </DialogTitle>
           <DialogDescription>
-            {t(
-              'projects.orphan.dialog_help',
-              'Flux: {{contact}} → full de preus → plantilla → emetre. L’ordre de servei només es crea si el client accepta.',
-              { contact: contactWord },
-            )}
+            {formalizationMode === 'separate_agreement'
+              ? t(
+                  'projects.orphan.dialog_help_contract',
+                  'Flux: {{contact}} → full de preus → plantilla → emetre → resposta. Si s’accepta, genera el contracte i envia’l a firmar.',
+                  { contact: contactWord },
+                )
+              : t(
+                  'projects.orphan.dialog_help',
+                  'Flux: {{contact}} → full de preus → plantilla → emetre. L’ordre de servei només es crea si el client accepta.',
+                  { contact: contactWord },
+                )}
           </DialogDescription>
         </DialogHeader>
 
         <ol className="flex flex-wrap gap-1.5" aria-label={t('projects.orphan.journey_aria', 'Passos')}>
-          {JOURNEY.map((step, index) => (
+          {journey.map((step, index) => (
             <li
               key={step.id}
               className={cn(

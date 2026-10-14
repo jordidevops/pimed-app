@@ -211,15 +211,18 @@ export function docTypeLabel(docType: string): string {
   }
 }
 
-/** Heading for the document page. The official code is `doc_number`, not the title. */
+/** Heading for the document page. Prefer official `doc_number` in the title. */
 export function commercialDocumentHeading(
   doc: {
     doc_type: string
     title?: string | null
+    doc_number?: string | null
     buyer_snapshot?: CommercialPartySnapshot | null
   },
   typeLabel: string,
 ): string {
+  const number = doc.doc_number?.trim()
+  if (number) return `${typeLabel} · ${number}`
   const custom = doc.title?.trim()
   if (custom) return custom
   const client = partyDisplayName(doc.buyer_snapshot)

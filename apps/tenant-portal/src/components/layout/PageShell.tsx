@@ -152,33 +152,44 @@ export function PageShell({
         >
           <div
             className={cn(
-              'flex w-full shrink-0 flex-wrap items-start gap-3',
+              'flex w-full shrink-0 flex-col',
               tabs ? 'pb-3' : 'pb-4',
-              dense ? 'gap-2' : 'gap-3',
+              dense ? 'gap-1.5' : 'gap-2',
             )}
           >
-            {icon ? (
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                {icon}
-              </div>
-            ) : null}
-            <div className="min-w-0 flex-1">
-              {title ? (
-                <h1
-                  className={cn(
-                    'font-bold tracking-tight text-foreground',
-                    dense ? 'text-xl' : 'text-2xl',
-                  )}
-                >
-                  {title}
-                </h1>
+            <div
+              className={cn(
+                'flex w-full flex-col items-stretch gap-2',
+                // Detail chrome: keep title and actions on separate rows below `sm`
+                // so action clusters (Enrere / Entregar / …) are not squeezed.
+                dense ? 'sm:flex-row sm:flex-wrap sm:items-start sm:gap-2' : 'gap-3 sm:flex-row sm:flex-wrap sm:items-start',
+              )}
+            >
+              {icon ? (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  {icon}
+                </div>
               ) : null}
-              {subtitle ? (
-                <div className="mt-0.5 text-sm text-muted-foreground">{subtitle}</div>
+              <div className="min-w-0 sm:flex-1">
+                {title ? (
+                  <h1
+                    className={cn(
+                      'font-bold tracking-tight text-foreground',
+                      dense ? 'text-xl' : 'text-2xl',
+                    )}
+                  >
+                    {title}
+                  </h1>
+                ) : null}
+              </div>
+              {actions ? (
+                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
+                  {actions}
+                </div>
               ) : null}
             </div>
-            {actions ? (
-              <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
+            {subtitle ? (
+              <div className="w-full min-w-0 text-sm text-muted-foreground">{subtitle}</div>
             ) : null}
           </div>
 

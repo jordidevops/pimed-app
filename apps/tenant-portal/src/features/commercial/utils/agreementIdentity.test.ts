@@ -34,7 +34,8 @@ describe('agreementIdentity', () => {
 
   it('maps version status to flow steps', () => {
     expect(agreementFlowStep({})).toBe('prepare')
-    expect(agreementFlowStep({ versionStatus: 'draft' })).toBe('send')
+    expect(agreementFlowStep({ versionStatus: 'draft' })).toBe('prepare')
+    expect(agreementFlowStep({ agreementStatus: 'pending_start' })).toBe('prepare')
     expect(agreementFlowStep({ versionStatus: 'pending_signature' })).toBe('send')
     expect(agreementFlowStep({ versionStatus: 'signed' })).toBe('signed')
     expect(AGREEMENT_FLOW_STEPS).toEqual(['accepted', 'prepare', 'send', 'signed'])

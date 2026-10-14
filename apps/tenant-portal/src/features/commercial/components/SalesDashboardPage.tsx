@@ -29,7 +29,7 @@ const moneyFmt = new Intl.NumberFormat('ca-ES', {
 
 function attentionHref(item: SalesDashboardAttentionItem): string {
   if (item.kind === 'quote_prepare') return `/sales/quotes/${item.id}`
-  return `/sales/agreements?view=${item.id}`
+  return `/sales/agreements/${item.id}`
 }
 
 export function SalesDashboardPage() {

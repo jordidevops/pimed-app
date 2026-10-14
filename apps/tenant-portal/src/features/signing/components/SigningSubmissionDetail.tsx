@@ -29,9 +29,12 @@ import {
 import { DocumentIntegrityPanel, DocuSealIntegrityNote } from './DocumentIntegrityPanel'
 import { useCommercialSigningHubBySubmissions } from '@/features/commercial/api/useCommercialSigningHub'
 import {
+  commercialHubDocumentHref,
   commercialQuoteViewHref,
   commercialSigningHubTitle,
 } from '@/features/commercial/utils/commercialSigningHub'
+import { parseSignerProgress, signerEffectiveStatus } from '../utils/signerProgress'
+import { SignerProgressLine, signerProgressRoleLabel } from './SignerProgressLine'
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -100,18 +103,21 @@ function formatSigningStatusReason(
 
 // ─── Signer status color ──────────────────────────────────────────────────────
 
+function humanSignerRole(
+  signer: SignerSnapshot,
+  t: (key: string, fallback: string) => string,
+): string {
+  const [item] = parseSignerProgress([signer])
+  if (!item) return signer.role ?? ''
+  return signerProgressRoleLabel(item, t)
+}
+
 function signerStatusClass(status: string | undefined): string {
   if (status === 'completed' || status === 'signed') return 'text-green-600'
   if (status === 'declined')                          return 'text-red-500'
   if (status === 'opened')                            return 'text-blue-500'
+  if (status === 'cancelled')                         return 'text-muted-foreground'
   return 'text-muted-foreground'
-}
-
-function signerEffectiveStatus(s: SignerSnapshot): string {
-  if (s.completed_at || s.status === 'completed' || s.status === 'signed') return 'completed'
-  if (s.status === 'declined') return 'declined'
-  if (s.status === 'opened') return 'opened'
-  return 'pending'
 }
 
 // ─── Main component ────────────────────────────────────────────────────────────
@@ -132,6 +138,12 @@ export function SigningSubmissionDetail() {
     submission?.id ? [submission.id] : [],
   )
   const commercialLink = submission?.id ? commercialHub[submission.id] : undefined
+  const commercialHref = commercialLink
+    ? commercialHubDocumentHref(commercialLink)
+      ?? (commercialLink.commercialDocumentId
+        ? commercialQuoteViewHref(commercialLink.commercialDocumentId)
+        : null)
+    : null
 
   const [selectedSigner, setSelectedSigner] = useState<SignerSnapshot | null>(null)
   const [sendingNotifIdx, setSendingNotifIdx] = useState<number | null>(null)
@@ -433,6 +445,7 @@ export function SigningSubmissionDetail() {
             </span>
           )}
         </div>
+        {signers.length > 0 && <SignerProgressLine signers={submission.signers} />}
 
         <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-sm">
           <div className="text-muted-foreground">{t('detail.sourceType', 'Origen')}</div>
@@ -456,21 +469,23 @@ export function SigningSubmissionDetail() {
             </>
           )}
 
-          {commercialLink && (
+          {commercialLink && commercialHref && (
             <>
               <div className="text-muted-foreground">{t('detail.commercialDocument', 'Document comercial')}</div>
               <div>
                 <Link
-                  to={commercialQuoteViewHref(commercialLink.commercialDocumentId)}
+                  to={commercialHref}
                   className="text-indigo-600 hover:underline text-sm"
                 >
                   {commercialSigningHubTitle(
                     commercialLink,
-                    commercialLink.docType === 'delivery_note'
-                      ? t('center.sourceDeliveryNote', 'Albarà')
-                      : commercialLink.docType === 'quote_amendment'
-                        ? t('center.sourceAmendment', 'Ampliació')
-                        : t('center.sourceQuote', 'Pressupost'),
+                    commercialLink.agreementId
+                      ? t('center.sourceContract', 'Contracte')
+                      : commercialLink.docType === 'delivery_note'
+                        ? t('center.sourceDeliveryNote', 'Albarà')
+                        : commercialLink.docType === 'quote_amendment'
+                          ? t('center.sourceAmendment', 'Ampliació')
+                          : t('center.sourceQuote', 'Pressupost'),
                   )}
                 </Link>
               </div>
@@ -622,12 +637,17 @@ export function SigningSubmissionDetail() {
           {signers.length > 0 && (
             <TabsContent value="signers" className="mt-0">
               <div className="rounded-xl border divide-y">
-                {signers.map((s, i) => (
+                {signers.map((s, i) => {
+                  const roleLabel = humanSignerRole(s, t)
+                  const signerStatus = signerEffectiveStatus(s)
+                  return (
                   <div key={i} className="flex items-start justify-between px-4 py-2.5 text-sm gap-3">
                     <div className="min-w-0 flex-1">
                       <span className="font-medium">{s.name || s.email}</span>
                       {s.name && <span className="text-muted-foreground ml-2">{s.email}</span>}
-                      {s.role && <span className="ml-2 text-xs text-muted-foreground">({s.role})</span>}
+                      {roleLabel
+                        ? <span className="ml-2 text-xs text-muted-foreground">({roleLabel})</span>
+                        : null}
                       {s.completed_at && (
                         <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
                           {t('detail.signerSignedAt', 'Firmat')}: {formatDateTime(s.completed_at)}
@@ -635,9 +655,9 @@ export function SigningSubmissionDetail() {
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                      {s.status && (
-                        <span className={`text-xs font-medium ${signerStatusClass(signerEffectiveStatus(s))}`}>
-                          {t(`detail.signerStatus.${signerEffectiveStatus(s)}`, s.status)}
+                      {(s.status || signerStatus !== 'pending') && (
+                        <span className={`text-xs font-medium ${signerStatusClass(signerStatus)}`}>
+                          {t(`detail.signerStatus.${signerStatus}`, s.status ?? signerStatus)}
                         </span>
                       )}
                       {notificationMode && notificationMode !== 'docuseal_auto' && !isTerminal && (
@@ -667,7 +687,8 @@ export function SigningSubmissionDetail() {
                       </Button>
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </TabsContent>
           )}
@@ -772,7 +793,7 @@ export function SigningSubmissionDetail() {
 
               <div>
                 <p className="text-xs text-muted-foreground">{t('detail.signerRole', 'Rol')}</p>
-                <p>{selectedSigner.role || t('detail.emptyValue', '—')}</p>
+                <p>{humanSignerRole(selectedSigner, t) || t('detail.emptyValue', '—')}</p>
               </div>
 
               <div>

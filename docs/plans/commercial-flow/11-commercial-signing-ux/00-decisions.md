@@ -12,14 +12,14 @@
 | **CS-D3** | `purpose`: `acceptance` per quote/amendment/agreement i `delivery_confirmation` per albarà. No existeix `rejection_signature`. |
 | **CS-D4** | Estat request: `open \| accepted \| declined \| expired \| revoked \| superseded`. Només `open` es pot decidir. |
 | **CS-D5** | Una sola request `open` per target, garantida amb dos índexs únics parcials (document i agreement version). |
-| **CS-D6** | V1 té un sol signant responsable. N lliuraments poden apuntar a la request, però només hi ha un outcome. Multi-signatura és V2. |
+| **CS-D6** | Quotes/albarans: V1 un sol signant responsable a la decision request. **Acords (`commercial_agreement`)**: si la plantilla defineix N `signature-field` (p. ex. `issuer` + `client`), calen N firmes digitals (DMS multi-signer); la versió no es tanca fins que tots els roles requerits han firmat. N lliuraments poden apuntar a la request. |
 
 ## Snapshot i integritat
 
 | ID | Decisió |
 |----|---------|
 | **CS-D7** | Crear una request fixa `snapshot_json`, `content_hash`, `rendered_document_id` i `document_version_id`. La pàgina pública no renderitza plantilles o files vives. |
-| **CS-D8** | `separate_agreement`: l'oficina pot preparar l'acord des d'una quote `issued`; signar l'acord posa versió `signed`, acord actiu i quote origen `accepted` atòmicament. Això substitueix el gate as-built «quote accepted abans de prepare», però no crea acords automàticament. |
+| **CS-D8** | `separate_agreement`: cal quote **`accepted`** (acceptació d’oficina o decisió sobre el pressupost) abans de `prepare_agreement_from_quote`. Firmar l’acord **no** canvia l’estat de la quote (cada firma accepta el seu document). Un sol acord no cancel·lat per `source_quote_id`. |
 | **CS-D9** | `signed_quote`: s'accepta el document comercial; `separate_agreement`: només s'envia la versió d'acord. Prohibit demanar dues firmes pel mateix encàrrec. |
 | **CS-D10** | Un canvi de snapshot, hash o versió exigeix una request nova; l'anterior passa a `superseded`. No es modifica una request oberta per apuntar a contingut nou. |
 | **CS-D11** | La versió PDF acceptada queda al mateix `document_id` DMS que el render comercial; el PDF estampat és una nova `document_version`. |

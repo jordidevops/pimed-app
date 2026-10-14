@@ -53,6 +53,7 @@ describe('commercialDecisionSend', () => {
       }),
     ).toBe('none')
 
+    // CS-D8: issued + prepared must not offer send (quote must be accepted first).
     expect(
       commercialDecisionSendCta({
         docStatus: 'issued',
@@ -62,7 +63,7 @@ describe('commercialDecisionSend', () => {
         agreementVersionStatus: 'pending_signature',
         agreementRendered: true,
       }),
-    ).toBe('send_for_accept')
+    ).toBe('none')
 
     expect(
       commercialDecisionSendCta({
@@ -74,6 +75,17 @@ describe('commercialDecisionSend', () => {
         agreementRendered: true,
       }),
     ).toBe('send_for_accept')
+
+    expect(
+      commercialDecisionSendCta({
+        docStatus: 'accepted',
+        formalizationMode: 'separate_agreement',
+        hasOpenRequest: true,
+        decisionRequestsEnabled: true,
+        agreementVersionStatus: 'pending_signature',
+        agreementRendered: true,
+      }),
+    ).toBe('view_pending')
 
     expect(
       commercialDecisionSendCta({

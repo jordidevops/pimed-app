@@ -133,8 +133,9 @@ BEGIN
   PERFORM api.revoke_commercial_decision_request(v_req, gen_random_uuid());
 
   -- 3) Agreement version (separate_agreement path)
-  -- Use a fresh quote so formalization_mode can be set at draft time via issue defaults,
-  -- or attach agreement to the existing issued quote (CS-D8 allows prepare from issued).
+  -- CS-D8 (2026-10): prepare requires accepted quote; this test inserts the agreement
+  -- row directly (not via prepare) so resolve/delivery still covers agreement_version.
+  UPDATE data.commercial_documents SET status = 'accepted' WHERE id = v_quote;
   INSERT INTO data.commercial_agreements (
     tenant_id, client_id, kind, status, source_quote_id, work_gate, created_by
   ) VALUES (

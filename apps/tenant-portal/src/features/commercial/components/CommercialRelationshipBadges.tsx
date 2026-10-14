@@ -33,7 +33,7 @@ export function CommercialRelationshipBadges({
       {kinds.map((kind) => (
         <span
           key={kind}
-          className="inline-flex items-center rounded-full border border-border bg-background px-2 py-0.5 text-xs text-foreground"
+          className="inline-flex shrink-0 items-center rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground"
         >
           {t(LABEL[kind].key, LABEL[kind].fallback)}
         </span>

@@ -164,7 +164,7 @@ export function CreateQuoteWizardDialog({
               title={t('projects.quotes.wizard_type_orphan_title', 'Només pressupost')}
               description={t(
                 'projects.quotes.wizard_type_orphan_help',
-                'Envies una oferta. No s’obre cap ordre fins que el client accepti.',
+                'Envies una oferta sense obrir ordre. L’ordre (si cal) es crea quan el client accepta.',
               )}
             />
             <TypeCard
@@ -175,7 +175,7 @@ export function CreateQuoteWizardDialog({
               title={t('projects.quotes.wizard_type_prospect_title', 'Feina amb pressupost')}
               description={t(
                 'projects.quotes.wizard_type_prospect_help',
-                'Creem una ordre en preparació: omples el full de preus allà i després emets.',
+                'Creem una ordre en preparació: omples el full de preus allà i després emets el pressupost.',
               )}
             />
           </div>

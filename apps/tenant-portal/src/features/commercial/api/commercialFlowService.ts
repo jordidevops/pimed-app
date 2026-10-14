@@ -778,14 +778,103 @@ export async function createCommercialDecisionDelivery(params: {
 }
 
 export async function getOpenCommercialDecisionRequest(
-  documentId: string,
+  documentIdOrOpts:
+    | string
+    | {
+        documentId?: string | null
+        agreementVersionId?: string | null
+      },
 ): Promise<OpenCommercialDecisionRequest | null> {
+  const opts =
+    typeof documentIdOrOpts === 'string'
+      ? { documentId: documentIdOrOpts, agreementVersionId: null }
+      : documentIdOrOpts
   const { data, error } = await supabase.rpc('get_open_commercial_decision_request' as never, {
-    p_target_document_id: documentId,
+    p_target_document_id: opts.documentId ?? null,
+    p_agreement_version_id: opts.agreementVersionId ?? null,
   } as never)
   if (error) throw error
   if (!data) return null
   return data as OpenCommercialDecisionRequest
+}
+
+export type AgreementDecisionDeliveryRow = {
+  id: string
+  channel: string
+  status: string
+  recipient_masked: string | null
+  created_at: string
+  error_code: string | null
+}
+
+/** Latest decision request (any status) + its deliveries for an agreement version. */
+export async function listAgreementVersionDecisionDeliveries(
+  agreementVersionId: string,
+): Promise<{
+  requestId: string | null
+  requestStatus: string | null
+  deliveries: AgreementDecisionDeliveryRow[]
+}> {
+  const { data: req, error: reqErr } = await supabase
+    .from('commercial_decision_requests' as never)
+    .select('id, status')
+    .eq('agreement_version_id', agreementVersionId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (reqErr) throw reqErr
+  const request = req as { id: string; status: string } | null
+  if (!request?.id) {
+    return { requestId: null, requestStatus: null, deliveries: [] }
+  }
+  const { data: dels, error: delErr } = await supabase
+    .from('commercial_decision_deliveries' as never)
+    .select('id, channel, status, recipient_masked, created_at, error_code')
+    .eq('request_id', request.id)
+    .order('created_at', { ascending: false })
+  if (delErr) throw delErr
+  return {
+    requestId: request.id,
+    requestStatus: request.status,
+    deliveries: ((dels ?? []) as AgreementDecisionDeliveryRow[]).map((d) => ({
+      id: d.id,
+      channel: d.channel,
+      status: d.status,
+      recipient_masked: d.recipient_masked,
+      created_at: d.created_at,
+      error_code: d.error_code,
+    })),
+  }
+}
+
+/** Roles required by the agreement version template (CS-D6). */
+export async function resolveAgreementTemplateSignerRoles(
+  versionId: string,
+): Promise<import('../utils/agreementSigningRoles').AgreementSignerRole[]> {
+  const { parseAgreementSigningRoles } = await import('../utils/agreementSigningRoles')
+  const { data: version, error: versionErr } = await supabase
+    .from('commercial_agreement_versions' as never)
+    .select('full_body_template_id')
+    .eq('id', versionId)
+    .maybeSingle()
+  if (versionErr) throw versionErr
+  const templateId = (version as { full_body_template_id?: string | null } | null)
+    ?.full_body_template_id
+  if (!templateId) return ['client']
+  const { data: locales, error: locErr } = await supabase
+    .from('document_template_locales' as never)
+    .select('signing_roles_schema, locale, is_active')
+    .eq('template_id', templateId)
+    .eq('is_active', true)
+    .limit(5)
+  if (locErr) throw locErr
+  const rows = (locales ?? []) as Array<{
+    signing_roles_schema: unknown
+    locale: string
+  }>
+  const preferred =
+    rows.find((r) => r.locale === 'ca') ?? rows.find((r) => r.locale === 'es') ?? rows[0]
+  return parseAgreementSigningRoles(preferred?.signing_roles_schema)
 }
 
 export async function revokeCommercialDecisionRequest(params: {
@@ -3096,6 +3185,16 @@ function mapAgreementListRow(row: Record<string, unknown>): AgreementListPageRow
   }
 }
 
+export async function getCommercialAgreement(id: string): Promise<AgreementListPageRow | null> {
+  const { data, error } = await supabase.rpc('get_commercial_agreement' as never, {
+    p_id: id,
+  } as never)
+  if (error) throw error
+  const rows = (data ?? []) as Array<Record<string, unknown>>
+  if (rows.length === 0) return null
+  return mapAgreementListRow(rows[0]!)
+}
+
 export async function listCommercialAgreementsPage(params: {
   limit?: number
   cursor?: AgreementsListCursor | null
@@ -3160,21 +3259,46 @@ export async function resumeCommercialAgreement(params: {
   return data as string
 }
 
+export type SendAgreementVersionResult = {
+  submissionId: string
+  sessionId: string | null
+  requestId: string | null
+}
+
+/**
+ * Unified presential send for agreement versions: PDF → mark sent → decision
+ * request → presential delivery → native session → signing intent (hub).
+ */
 export async function sendAgreementVersionForSignature(params: {
   versionId: string
   tenantId: string
   documentTitle: string
+  /** Client / buyer display name (role=client). */
   signerName: string
-}): Promise<string> {
+  /** Tenant / seller representative (role=issuer). Defaults to «Representant». */
+  issuerName?: string | null
+  /** Quote id for commercial_signing_hub / intent (required when linked). */
+  sourceQuoteId?: string | null
+}): Promise<SendAgreementVersionResult> {
   const rendered = await renderCommercialAgreementPdf({
     versionId: params.versionId,
     tenantId: params.tenantId,
   })
   if (!rendered.version_id) throw new Error('agreement_pdf_required')
   const { callSignDocumentRouter } = await import('@/features/signing/api/signingService')
+  const { buildAgreementSignersPayload } = await import('../utils/agreementSigningRoles')
   const opId = generateClientOpId()
   let marked = false
   let createdRequestId: string | null = null
+  const issuerLabel = params.issuerName?.trim() || 'Representant'
+  const clientLabel = params.signerName?.trim() || 'Client'
+  const roles = await resolveAgreementTemplateSignerRoles(params.versionId)
+  const signers = buildAgreementSignersPayload({
+    roles,
+    issuerName: issuerLabel,
+    clientName: clientLabel,
+  })
+  const primaryClient = signers.find((s) => s.role === 'client') ?? signers[signers.length - 1]!
   try {
     await markAgreementSentForSignature({
       versionId: params.versionId,
@@ -3191,6 +3315,11 @@ export async function sendAgreementVersionForSignature(params: {
         clientOpId: opId,
       })
       createdRequestId = decisionRequestId
+      await createCommercialDecisionDelivery({
+        requestId: decisionRequestId,
+        channel: 'presential',
+        clientOpId: generateClientOpId(),
+      })
     } catch (err) {
       if (!isDecisionRequestsDisabledError(err)) throw err
     }
@@ -3203,14 +3332,31 @@ export async function sendAgreementVersionForSignature(params: {
       native_sign_type: 'presential',
       output_format: 'pdf',
       output_profile: 'pdfa2b',
-      signer_name: params.signerName,
-      signer_role: 'client',
+      // CS-D6: N template roles ⇒ N signers (not always issuer+client).
+      signers,
+      signer_name: primaryClient.name,
+      signer_role: primaryClient.role,
       client_request_id: opId,
       ...(decisionRequestId
         ? { commercial_decision_request_id: decisionRequestId }
         : {}),
     })
-    return result.submission_id ?? params.versionId
+    const submissionId = result.submission_id ?? params.versionId
+    if (params.sourceQuoteId && result.session_id) {
+      await registerCommercialSigningIntent({
+        documentId: params.sourceQuoteId,
+        sessionId: result.session_id,
+        action: 'accept',
+        clientOpId: generateClientOpId(),
+        submissionId: result.submission_id ?? null,
+        decisionRequestId,
+      })
+    }
+    return {
+      submissionId,
+      sessionId: result.session_id ?? null,
+      requestId: decisionRequestId,
+    }
   } catch (err) {
     if (createdRequestId) {
       try {

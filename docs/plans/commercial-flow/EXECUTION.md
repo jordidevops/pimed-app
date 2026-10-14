@@ -5,7 +5,7 @@
 > **Pla:** [`README.md`](./README.md) · estat per epic: [`STATUS.md`](./STATUS.md)
 > **Fase activa (producte en curs):** Gate Tall 2→3 UAT residual ⚠️ / pista acords **CF-22** — CF-20 ✅ ([`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md)).
 > **Anterior:** **CF-26** + **CF-27** ✅ — hub Albarans + Comercial `/sales` ([`07`](./07-collections-and-ar-hub.md), [`09`](./09-sales-comercial/README.md))
-> **Altres:** **CF-21** ✅ (pista acords); **CF-22** ❌; **CF-28** 📄 firma comercial/portal; Gate Tall 1→2 diferit; CF-16 UAT offline; Stripe/Holded API 📦; **CF-24** quote-first 🔄 V1 C ✅ + **V2 orphan** ([`06`](./06-sales-entry-modes-quote-first.md), UAT [`cf24-v2-orphan-uat.md`](./cf24-v2-orphan-uat.md)); **CF-25-b** 📦
+> **Altres:** **CF-21** ✅ (pista acords); **CF-22** ❌; **CF-28** 📄 firma comercial/portal; Gate Tall 1→2 diferit; CF-16 UAT offline; Stripe/Holded API 📦; **CF-24** quote-first 🔄 V1 C ✅ + **V2 orphan** ([`06`](./06-sales-entry-modes-quote-first.md), UAT [`cf24-v2-orphan-uat.md`](./cf24-v2-orphan-uat.md)); **CF-25-b** 📦; **CF-29** 📄 calculadores ([`12-price-calculators/`](./12-price-calculators/README.md)) — no és la fase activa fins que es triï explícitament
 
 ## Disciplina
 

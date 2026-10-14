@@ -14,10 +14,13 @@ import { getSigningProvider } from '../api/signingService'
 import type { SigningSubmissionListItem, SubmissionsFilter } from '../api/useSigningSubmissions'
 import { useCommercialSigningHubBySubmissions } from '@/features/commercial/api/useCommercialSigningHub'
 import {
+  commercialHubDocumentHref,
   commercialQuoteViewHref,
   commercialSigningHubTitle,
   matchesSigningCenterSearch,
+  type CommercialSigningHubLink,
 } from '@/features/commercial/utils/commercialSigningHub'
+import { SignerProgressLine } from './SignerProgressLine'
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -43,12 +46,15 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-function signersSummary(signers: unknown): string {
-  if (!Array.isArray(signers) || signers.length === 0) return '—'
-  const first = signers[0] as { email?: string; name?: string }
-  const rest  = signers.length - 1
-  const label = first.name || first.email || '?'
-  return rest > 0 ? `${label} +${rest}` : label
+function commercialDocumentHref(
+  hub: CommercialSigningHubLink,
+  sourceDocumentId: string | null,
+): string | null {
+  return (
+    commercialHubDocumentHref(hub)
+    ?? (hub.commercialDocumentId ? commercialQuoteViewHref(hub.commercialDocumentId) : null)
+    ?? (sourceDocumentId ? `/documents/${sourceDocumentId}` : null)
+  )
 }
 
 // ─── Main component ────────────────────────────────────────────────────────────
@@ -108,10 +114,36 @@ export function SigningCenterPage() {
     setPage(0)
   }
 
-  function commercialSourceLabel(docType: string): string {
-    if (docType === 'delivery_note') return t('center.sourceDeliveryNote', 'Albarà')
-    if (docType === 'quote_amendment') return t('center.sourceAmendment', 'Ampliació')
+  function commercialSourceLabel(hub: Pick<CommercialSigningHubLink, 'agreementId' | 'docType'>): string {
+    if (hub.agreementId) return t('center.sourceContract', 'Contracte')
+    if (hub.docType === 'delivery_note') return t('center.sourceDeliveryNote', 'Albarà')
+    if (hub.docType === 'quote_amendment') return t('center.sourceAmendment', 'Ampliació')
     return t('center.sourceQuote', 'Pressupost')
+  }
+
+  function renderCommercialLink(
+    row: SigningSubmissionListItem,
+    className: string,
+  ) {
+    const hub = row.id ? commercialHub[row.id] : undefined
+    const title = hub
+      ? commercialSigningHubTitle(hub, commercialSourceLabel(hub))
+      : row.document_title
+    const href = hub
+      ? commercialDocumentHref(hub, row.source_document_id)
+      : (row.source_document_id ? `/documents/${row.source_document_id}` : null)
+    if (href && title) {
+      return (
+        <Link
+          to={href}
+          onClick={e => e.stopPropagation()}
+          className={className}
+        >
+          {title}
+        </Link>
+      )
+    }
+    return null
   }
 
   return (
@@ -231,41 +263,23 @@ export function SigningCenterPage() {
                         {t('center.providerNative', 'Firma pròpia')}
                       </span>
                     )}
+                    {renderCommercialLink(row, 'md:hidden text-xs text-indigo-600 hover:underline truncate block max-w-40')}
                   </div>
                 </td>
                 <td className="px-4 py-3 hidden md:table-cell">
-                  {(() => {
-                    const hub = row.id ? commercialHub[row.id] : undefined
-                    const title = hub
-                      ? commercialSigningHubTitle(hub, commercialSourceLabel(hub.docType))
-                      : row.document_title
-                    const href = hub
-                      ? commercialQuoteViewHref(hub.commercialDocumentId)
-                      : (row.source_document_id ? `/documents/${row.source_document_id}` : null)
-                    if (href && title) {
-                      return (
-                        <Link
-                          to={href}
-                          onClick={e => e.stopPropagation()}
-                          className="text-xs text-indigo-600 hover:underline truncate block max-w-40"
-                        >
-                          {title}
-                        </Link>
-                      )
-                    }
-                    return <span className="text-muted-foreground text-xs">—</span>
-                  })()}
+                  {renderCommercialLink(row, 'text-xs text-indigo-600 hover:underline truncate block max-w-40')
+                    ?? <span className="text-muted-foreground text-xs">—</span>}
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
                   {(() => {
                     const hub = row.id ? commercialHub[row.id] : undefined
-                    if (hub) return commercialSourceLabel(hub.docType)
+                    if (hub) return commercialSourceLabel(hub)
                     return row.source_type === 'document_existing'
                       ? t('center.sourceDocument', 'Document existent')
                       : t('center.sourceTemplate', 'Plantilla')
                   })()}
                 </td>
-                <td className="px-4 py-3">{signersSummary(row.signers)}</td>
+                <td className="px-4 py-3"><SignerProgressLine signers={row.signers} /></td>
                 <td className="px-4 py-3 text-muted-foreground tabular-nums">{formatDate(row.created_at)}</td>
                 <td className="px-4 py-3 text-muted-foreground tabular-nums hidden lg:table-cell">{formatDate(row.last_event_at)}</td>
               </tr>

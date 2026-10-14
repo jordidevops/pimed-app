@@ -34,6 +34,9 @@
     "subtitle": "Les teves ordres i visites",
     "new": "Nova ordre",
     "new_short": "Nova",
+    "with_quote": "Feina amb pressupost",
+    "with_quote_help": "Crea una ordre prospecte i prepara el pressupost amb formalització.",
+    "without_quote": "Nova ordre sense pressupost",
     "empty": "Encara no tens cap ordre de servei",
     "filter_mine": "Les meves",
     "filter_open": "Obertes",
@@ -180,6 +183,17 @@
     "phases_aria": "Fases de l'ordre",
     "prospect_badge": "Prospecte",
     "prospect_help": "Ordre comercial per preparar el pressupost. No surt a Avui fins que s’accepti.",
+    "order_title": "Ordre - {{name}}",
+    "quote_badge": "Pressupost {{number}}",
+    "quote_badge_unnamed": "Pressupost",
+    "no_quote_badge": "Sense pressupost",
+    "waiver_badge": "Treballar sense pressupost",
+    "waiver_badge_title": "Treball sense pressupost (renúncia registrada)",
+    "trail_order": "Ordre",
+    "trail_quote": "Pressupost",
+    "trail_quote_num": "Pressupost {{number}}",
+    "trail_agreement": "Acord",
+    "trail_agreement_missing": "Sense acord",
     "back_to_prepare": "Tornar al pressupost",
     "prospect_guide": {
       "aria": "Guia del flux pressupost (prospecte)",
@@ -554,12 +568,22 @@
     "inspection": "Inspecció",
     "corrective": "Correctiva",
     "generic": "Genèrica",
-    "save_failed": "No s'ha pogut desar la intenció"
+    "save_failed": "No s'ha pogut desar la intenció",
+    "generic_help": "Visita habitual de servei sense un tipus especial.",
+    "generic_implication": "No implica checklist ni flux d’inspecció/correctiva per defecte.",
+    "inspection_help": "Revisió o diagnosi (p.ex. manteniment preventiu / avaluació).",
+    "inspection_implication": "Ajuda a etiquetar la feina i plantilles orientades a inspecció.",
+    "corrective_help": "Intervenció per reparar o corregir una avaria o desviació.",
+    "corrective_implication": "Útil per distingir correctives de visites rutinàries o d’inspecció."
   },
   "regime": {
     "consumer": "Consumidor",
     "contractual": "Contractual",
-    "save_failed": "No s'ha pogut desar el règim comercial"
+    "save_failed": "No s'ha pogut desar el règim comercial",
+    "contractual_help": "Client amb relació B2B / contracte (no tractament de consumidor).",
+    "contractual_implication": "Fluxos comercials i autorització segueixen el règim contractual.",
+    "consumer_help": "Particular o consumidor final (proteccions i tracte específic).",
+    "consumer_implication": "Pot afectar com es presenta i es formalitza el pressupost."
   },
   "service_mode": {
     "label": "Tipus de visita",
@@ -567,7 +591,23 @@
     "assessment": "Avaluació",
     "help": "Avaluació: visita per valorar i fer pressupost des d’oficina (sense pack de preus per defecte).",
     "save_failed": "No s'ha pogut desar el tipus de visita",
-    "save_failed_create_help": "L’ordre s’ha creat com a execució. Canvia el tipus a la capçalera de l’ordre."
+    "save_failed_create_help": "L’ordre s’ha creat com a execució. Canvia el tipus a la capçalera de l’ordre.",
+    "execute_help": "Visita per fer la feina autoritzada (reparar, instal·lar, mantenir).",
+    "execute_implication": "Cal autorització comercial segons la política del tenant abans de treballar.",
+    "assessment_help": "Visita per valorar i preparar pressupost des d’oficina.",
+    "assessment_implication": "No exigeix pack de preus ni el mateix bloqueig d’autorització que l’execució."
+  },
+  "policy": {
+    "intent_chip": "Intent",
+    "regime_chip": "Règim",
+    "mode_chip": "Mode",
+    "intent_title": "Intenció de la visita",
+    "intent_description": "Defineix el caràcter de la visita. Es pot canviar fins que es publiqui l’informe.",
+    "regime_title": "Règim comercial",
+    "regime_description": "Consumidor vs contractual: afecta el tracte comercial del pressupost.",
+    "mode_title": "Mode de servei",
+    "mode_description": "Execució fa la feina; avaluació prepara el pressupost sense el mateix pack.",
+    "locked_after_report": "No es pot canviar després de publicar l’informe al client."
   },
   "materials": {
     "title": "Materials",

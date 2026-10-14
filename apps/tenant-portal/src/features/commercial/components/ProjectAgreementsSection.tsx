@@ -56,7 +56,7 @@ type Candidate = {
   primaryLineName: string | null
 }
 
-async function loadProjectAgreements(projectId: string, clientId: string | null) {
+export async function loadProjectAgreements(projectId: string, clientId: string | null) {
   const { data: links, error } = await supabase
     .from('commercial_agreement_projects' as never)
     .select('id, agreement_id')
@@ -431,7 +431,7 @@ export function ProjectAgreementsSection({
                     ) : null}
                     <Link
                       className="text-indigo-600 hover:underline"
-                      to={`/sales/agreements?view=${agreement.id}`}
+                      to={`/sales/agreements/${agreement.id}`}
                     >
                       {t('projects.commercial.prepare_agreement_open_list', 'Veure a Acords comercials')}
                     </Link>

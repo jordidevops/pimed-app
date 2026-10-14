@@ -1,6 +1,12 @@
 # Flux comercial — Estat d'implementació
 
-> **Última actualització:** 2026-10-07
+> **Última actualització:** 2026-10-14
+
+## Novetat 2026-10-14 — CF-29 calculadores (només pla)
+
+- Especificació executable, sense codi: [`12-price-calculators/`](./12-price-calculators/README.md).
+- **Estat:** 📄 fases 0–8 pendents. No és la fase activa de [`EXECUTION.md`](./EXECUTION.md) fins que es triï.
+- El document [`06-sales-entry-modes-quote-first.md`](./06-sales-entry-modes-quote-first.md) queda desfasat respecte de V2 (acceptació sense OS automàtica). El codi i [`cf24-v2-orphan-spike.md`](./cf24-v2-orphan-spike.md) manen.
 > **Propòsit:** seguir el desenvolupament dels epics CF i deixar constància honesta del que falta.
 > **Pla:** [`README.md`](./README.md) · backlog [`04-phases-and-backlog.md`](./04-phases-and-backlog.md) · ordre [`EXECUTION.md`](./EXECUTION.md) · gate Tall 2→3 [`08-gate-tall2-tall3.md`](./08-gate-tall2-tall3.md)
 

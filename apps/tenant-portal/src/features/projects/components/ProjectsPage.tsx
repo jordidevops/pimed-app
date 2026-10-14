@@ -13,6 +13,7 @@ import { useDepartments } from '@/features/departments/api/useDepartments'
 import { useProjects } from '../api/useProjects'
 import { ProjectRow } from './ProjectRow'
 import { ProjectForm } from './ProjectForm'
+import { CreateQuoteWizardDialog } from '@/features/commercial/components/CreateQuoteWizardDialog'
 import { getProjectsByClientId, type Project, type ProjectListItem } from '../api/projectsService'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useIsFieldService, useSectorLabel } from '@/hooks/useSectorLabel'
@@ -145,6 +146,7 @@ export function ProjectsPage({
 
   const [formOpen, setFormOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Project | null>(null)
+  const [prospectWizardOpen, setProspectWizardOpen] = useState(false)
   const [searchDraft, setSearchDraft] = useState(searchParams.get('q') ?? '')
   const [initialClientId, setInitialClientId] = useState<string | null>(null)
   const [initialContactSiteId, setInitialContactSiteId] = useState<string | null>(null)
@@ -340,22 +342,30 @@ export function ProjectsPage({
     return base
   })()
 
+  function ensurePrereqs(): boolean {
+    if (prereqsReady) return true
+    toast({
+      variant: 'destructive',
+      description: !hasSites && !hasDepartments
+        ? t('projects.prereq.missing_both', 'Cal crear almenys un local i un departament abans de crear projectes')
+        : !hasSites
+          ? t('projects.prereq.missing_sites', 'Cal crear almenys un local abans de crear projectes')
+          : t('projects.prereq.missing_departments', 'Cal crear almenys un departament abans de crear projectes'),
+    })
+    return false
+  }
+
   function handleOpenCreate() {
-    if (!prereqsReady) {
-      toast({
-        variant: 'destructive',
-        description: !hasSites && !hasDepartments
-          ? t('projects.prereq.missing_both', 'Cal crear almenys un local i un departament abans de crear projectes')
-          : !hasSites
-            ? t('projects.prereq.missing_sites', 'Cal crear almenys un local abans de crear projectes')
-            : t('projects.prereq.missing_departments', 'Cal crear almenys un departament abans de crear projectes'),
-      })
-      return
-    }
+    if (!ensurePrereqs()) return
     if (clientId) setInitialClientId(clientId)
     else if (urlFilterClientId) setInitialClientId(urlFilterClientId)
     setEditTarget(null)
     setFormOpen(true)
+  }
+
+  function handleOpenProspectWizard() {
+    if (!ensurePrereqs()) return
+    setProspectWizardOpen(true)
   }
 
   function handleEdit(project: Project) {
@@ -515,36 +525,93 @@ export function ProjectsPage({
                 : t('projects.list.see_all_global', 'Veure tots els projectes')}
             </Link>
           </div>
-          <Button
-            onClick={handleOpenCreate}
-            className="shrink-0 gap-2"
-            disabled={!prereqsReady}
-            size="sm"
-          >
-            <Plus className="h-4 w-4" />
-            {isFieldService
-              ? t('field-service:orders.new', 'Nova ordre')
-              : t('projects.list.new', 'Nou projecte')}
-          </Button>
+          {isFieldService ? (
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button
+                onClick={handleOpenProspectWizard}
+                className="gap-2"
+                disabled={!prereqsReady}
+                size="sm"
+                title={t(
+                  'field-service:orders.with_quote_help',
+                  'Crea una ordre prospecte i prepara el pressupost amb formalització.',
+                )}
+              >
+                <Plus className="h-4 w-4" />
+                {t('field-service:orders.with_quote', 'Feina amb pressupost')}
+              </Button>
+              <Button
+                onClick={handleOpenCreate}
+                className="gap-2"
+                disabled={!prereqsReady}
+                size="sm"
+                variant="outline"
+              >
+                {t('field-service:orders.without_quote', 'Nova ordre sense pressupost')}
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={handleOpenCreate}
+              className="shrink-0 gap-2"
+              disabled={!prereqsReady}
+              size="sm"
+            >
+              <Plus className="h-4 w-4" />
+              {t('projects.list.new', 'Nou projecte')}
+            </Button>
+          )}
         </div>
       ) : null
 
   const shellActions = !embedded ? (
-    <Button
-      onClick={handleOpenCreate}
-      className={cn('gap-2 shrink-0', fieldServiceMode && 'hidden sm:inline-flex')}
-      disabled={!prereqsReady}
-      title={
-        !prereqsReady
-          ? t('projects.prereq.button_disabled_title', 'Cal configurar locals i departaments primer')
-          : undefined
-      }
-    >
-      <Plus className="h-4 w-4" />
-      {isFieldService || fieldServiceMode
-        ? t('field-service:orders.new', 'Nova ordre')
-        : t('projects.list.new', 'Nou projecte')}
-    </Button>
+    isFieldService || fieldServiceMode ? (
+      <div className={cn('flex shrink-0 flex-wrap gap-2', fieldServiceMode && 'hidden sm:flex')}>
+        <Button
+          onClick={handleOpenProspectWizard}
+          className="gap-2"
+          disabled={!prereqsReady}
+          title={
+            !prereqsReady
+              ? t('projects.prereq.button_disabled_title', 'Cal configurar locals i departaments primer')
+              : t(
+                  'field-service:orders.with_quote_help',
+                  'Crea una ordre prospecte i prepara el pressupost amb formalització.',
+                )
+          }
+        >
+          <Plus className="h-4 w-4" />
+          {t('field-service:orders.with_quote', 'Feina amb pressupost')}
+        </Button>
+        <Button
+          onClick={handleOpenCreate}
+          className="gap-2"
+          disabled={!prereqsReady}
+          variant="outline"
+          title={
+            !prereqsReady
+              ? t('projects.prereq.button_disabled_title', 'Cal configurar locals i departaments primer')
+              : undefined
+          }
+        >
+          {t('field-service:orders.without_quote', 'Nova ordre sense pressupost')}
+        </Button>
+      </div>
+    ) : (
+      <Button
+        onClick={handleOpenCreate}
+        className="gap-2 shrink-0"
+        disabled={!prereqsReady}
+        title={
+          !prereqsReady
+            ? t('projects.prereq.button_disabled_title', 'Cal configurar locals i departaments primer')
+            : undefined
+        }
+      >
+        <Plus className="h-4 w-4" />
+        {t('projects.list.new', 'Nou projecte')}
+      </Button>
+    )
   ) : null
 
   const listContent = (
@@ -552,13 +619,22 @@ export function ProjectsPage({
       {pageHeader}
 
       {fieldServiceMode && !embedded && (
-        <div className="sm:hidden fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-30">
+        <div className="sm:hidden fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-30 flex flex-col items-end gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            className="shadow-lg"
+            onClick={handleOpenCreate}
+            disabled={!prereqsReady}
+          >
+            {t('field-service:orders.without_quote', 'Nova ordre sense pressupost')}
+          </Button>
           <Button
             size="icon"
             className="h-14 w-14 rounded-full shadow-lg"
-            onClick={handleOpenCreate}
+            onClick={handleOpenProspectWizard}
             disabled={!prereqsReady}
-            aria-label={t('field-service:orders.new', 'Nova ordre')}
+            aria-label={t('field-service:orders.with_quote', 'Feina amb pressupost')}
           >
             <Plus className="h-6 w-6" />
           </Button>
@@ -903,9 +979,22 @@ export function ProjectsPage({
         initialType={
           (PROJECT_TYPES as readonly string[]).includes(type)
             ? (type as (typeof PROJECT_TYPES)[number])
-            : null
+            : isFieldService
+              ? 'work_order'
+              : null
         }
+        hideStatusOnCreate={isFieldService}
+        forceCreateStatus={isFieldService ? 'active' : null}
       />
+      {isFieldService ? (
+        <CreateQuoteWizardDialog
+          open={prospectWizardOpen}
+          onOpenChange={setProspectWizardOpen}
+          clientId={clientId ?? urlFilterClientId ?? null}
+          clientName={clientName ?? null}
+          initialType="prospect"
+        />
+      ) : null}
     </>
   )
 

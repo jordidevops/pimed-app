@@ -30,6 +30,14 @@ export type AgreementBillingInput = {
   nextBillingOn?: string | null
 }
 
+export type AgreementPartyInput = {
+  displayName?: string | null
+  taxId?: string | null
+  email?: string | null
+  phone?: string | null
+  address?: string | null
+}
+
 export type AgreementTemplateContextInput = {
   agreementId: string
   agreementStatus: string
@@ -48,10 +56,30 @@ export type AgreementTemplateContextInput = {
   currency: string
   subtotal: number
   total: number
+  taxBreakdown?: string | null
   lines: AgreementTemplateLine[]
   tenantName: string
-  sellerName: string | null
-  buyerName: string | null
+  tenantTaxId?: string | null
+  tenantLogoUrl?: string | null
+  seller?: AgreementPartyInput | null
+  buyer?: AgreementPartyInput | null
+  /** @deprecated use seller.displayName */
+  sellerName?: string | null
+  /** @deprecated use buyer.displayName */
+  buyerName?: string | null
+}
+
+function partyBlock(
+  party: AgreementPartyInput | null | undefined,
+  fallbackName: string | null | undefined,
+): Record<string, string | null> {
+  return {
+    display_name: party?.displayName ?? fallbackName ?? null,
+    tax_id: party?.taxId ?? null,
+    email: party?.email ?? null,
+    phone: party?.phone ?? null,
+    address: party?.address ?? null,
+  }
 }
 
 export function buildAgreementTemplateContext(
@@ -93,13 +121,18 @@ export function buildAgreementTemplateContext(
       locale: input.locale,
       currency: input.currency,
     },
-    tenant: { name: input.tenantName },
-    seller: { display_name: input.sellerName },
-    buyer: { display_name: input.buyerName },
+    tenant: {
+      name: input.tenantName,
+      tax_id: input.tenantTaxId ?? null,
+      logo_url: input.tenantLogoUrl ?? null,
+    },
+    seller: partyBlock(input.seller, input.sellerName),
+    buyer: partyBlock(input.buyer, input.buyerName),
     lines: input.lines,
     totals: {
       subtotal: input.subtotal,
       total: input.total,
+      tax_breakdown: input.taxBreakdown ?? null,
     },
   }
 }

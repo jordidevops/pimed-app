@@ -94,6 +94,11 @@ import {
 import { CommercialDocumentStatusBadges } from './CommercialDocumentStatusBadge'
 import { CommercialRelationshipBadges } from './CommercialRelationshipBadges'
 import { AgreementFlowSteps } from './AgreementFlowSteps'
+import {
+  agreementStatusLabel,
+  agreementVersionStatusLabel,
+} from '../utils/agreementIdentity'
+import { CommercialTrailNav } from './CommercialTrailNav'
 import { commercialRelationshipBadges } from '../utils/commercialRelationshipBadges'
 import { useDocumentTemplates } from '@/features/signing/api/useDocumentTemplates'
 import { useCommercialPdf } from '../hooks/useCommercialPdf'
@@ -192,7 +197,15 @@ function PdfPanel({
         ) : null}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto bg-muted/30">
+      <div
+        className={cn(
+          'min-h-0 flex-1 bg-muted/30',
+          // PDF embeds scroll inside the plugin; avoid a second outer scrollbar.
+          pdf.status === 'ready' && pdf.downloadUrl && !htmlFallbackOpen
+            ? 'overflow-hidden'
+            : 'overflow-auto',
+        )}
+      >
         {htmlFallbackOpen && preview?.kind === 'html' ? (
           <div className="flex h-full min-h-[36rem] justify-center p-2 sm:p-4">
             <div className="flex h-full w-full max-w-5xl flex-col rounded-lg border border-border bg-white p-2 shadow-sm sm:p-4">
@@ -207,7 +220,7 @@ function PdfPanel({
           <object
             data={pdf.downloadUrl}
             type="application/pdf"
-            className="h-full min-h-[min(80dvh,52rem)] w-full"
+            className="h-full w-full"
             aria-label={t('projects.commercial.view_tab_document', 'Document')}
           >
             <div className="space-y-2 p-4 text-sm text-muted-foreground">
@@ -625,14 +638,13 @@ export function CommercialDocumentDetail({
     !canEditPricing
   const showDeliverySignFooter =
     !!doc && effectiveStatus === 'issued' && doc.doc_type === 'delivery_note'
+  // CS-D8: Generar contracte only after quote is accepted (office or client).
   const showPrepareAgreement =
     !!doc &&
     canPrepareAgreement &&
     doc.formalization_mode === 'separate_agreement' &&
     (doc.doc_type === 'quote' || doc.doc_type === 'quote_amendment') &&
-    (effectiveStatus === 'issued' ||
-      effectiveStatus === 'accepted' ||
-      effectiveStatus === 'signed')
+    (effectiveStatus === 'accepted' || effectiveStatus === 'signed')
 
   const signedPdfId = commercialSignedPdfDocumentId(signingHub)
   const isQuoteDoc = doc?.doc_type === 'quote' || doc?.doc_type === 'quote_amendment'
@@ -748,11 +760,33 @@ export function CommercialDocumentDetail({
           ) : null}
         </>
       ) : null}
-      {showPrepareAgreementBtn ? (
-        <Button type="button" size="sm" variant="outline" onClick={() => setPrepareOpen(true)}>
-          {agreement
-            ? t('projects.commercial.prepare_agreement_footer_send', 'Enviar el contracte a firmar')
-            : t('projects.commercial.prepare_agreement', 'Preparar acord')}
+      {showPrepareAgreementBtn && !agreement ? (
+        <Button type="button" size="sm" onClick={() => setPrepareOpen(true)}>
+          {t('projects.commercial.generate_contract', 'Generar contracte')}
+        </Button>
+      ) : null}
+      {showPrepareAgreementBtn && agreement?.versionStatus === 'draft' ? (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => setPrepareOpen(true)}
+        >
+          {t('projects.commercial.prepare_agreement_footer_send', 'Enviar el contracte a firmar')}
+        </Button>
+      ) : null}
+      {showPrepareAgreementBtn &&
+      agreement &&
+      (agreement.versionStatus === 'pending_signature' ||
+        agreement.versionStatus === 'signed') &&
+      signingHub?.submissionId ? (
+        <Button type="button" size="sm" variant="outline" asChild>
+          <Link to={commercialSigningCentreHref(signingHub.submissionId)}>
+            {t(
+              'projects.commercial.view_signing_centre',
+              'Veure al Centre de signatures',
+            )}
+          </Link>
         </Button>
       ) : null}
       {commercialActions}
@@ -855,8 +889,88 @@ export function CommercialDocumentDetail({
               issuedAsOrphan={issuedAsOrphan}
               formalizationMode={doc.formalization_mode}
               hasAgreement={!!agreement}
+              agreementVersionStatus={agreement?.versionStatus ?? null}
               delivered={hasDelivery}
             />
+            {doc.project_id ? (
+              <section className="rounded-xl border border-border px-4 py-3">
+                <p className="text-xs text-muted-foreground">
+                  {t('projects.quotes.col_order', 'Ordre')}
+                </p>
+                <Link
+                  to={`/field/orders/${doc.project_id}`}
+                  className="mt-0.5 inline-flex items-center gap-1.5 font-medium text-primary underline-offset-2 hover:underline"
+                >
+                  {linkedProject?.name?.trim() ||
+                    t('projects.quotes.open_order', 'Obrir ordre')}
+                </Link>
+                {issuedAsOrphan ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t(
+                      'projects.quotes.origin_orphan_linked',
+                      'Ordre creada en acceptar (Només pressupost).',
+                    )}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t(
+                      'projects.quotes.origin_with_job',
+                      'Ordre del flux Feina amb pressupost.',
+                    )}
+                  </p>
+                )}
+              </section>
+            ) : null}
+            {doc.formalization_mode === 'separate_agreement' ||
+            agreementStates.length > 0 ? (
+              <section className="rounded-xl border border-border px-4 py-3">
+                <p className="text-xs text-muted-foreground">
+                  {t('projects.agreements.section_title', 'Acords')}
+                </p>
+                {agreementStates.length > 0 ? (
+                  <ul className="mt-0.5 space-y-2">
+                    {agreementStates.map((row) => (
+                      <li key={row.id} className="min-w-0">
+                        <Link
+                          to={`/sales/agreements/${row.id}`}
+                          className="inline-flex items-center gap-1.5 font-medium text-primary underline-offset-2 hover:underline"
+                        >
+                          {doc.lines.find((line) => line.name?.trim())?.name?.trim() ||
+                            doc.title?.trim() ||
+                            t('field-service:detail.trail_agreement', 'Acord')}
+                        </Link>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {row.versionStatus === 'signed' || row.status === 'active'
+                            ? agreementStatusLabel(row.status, t, {
+                                versionStatus: row.versionStatus,
+                              })
+                            : agreementVersionStatusLabel(row.versionStatus, t)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {t(
+                      'projects.agreements.none_for_quote',
+                      'Encara no hi ha cap acord preparat per a aquest pressupost.',
+                    )}
+                  </p>
+                )}
+              </section>
+            ) : doc.formalization_mode === 'signed_quote' ? (
+              <section className="rounded-xl border border-border px-4 py-3">
+                <p className="text-xs text-muted-foreground">
+                  {t('projects.agreements.section_title', 'Acords')}
+                </p>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {t(
+                    'projects.commercial.formalization_view_signed',
+                    'Formalització: el pressupost acceptat és el contracte.',
+                  )}
+                </p>
+              </section>
+            ) : null}
             <QuoteDeliveryTrace
               sentEvents={sentEvents}
               decisionDelivery={decisionDelivery}
@@ -1035,23 +1149,13 @@ export function CommercialDocumentDetail({
               </p>
             ) : null}
             {doc.doc_type !== 'delivery_note' &&
-            doc.formalization_mode === 'separate_agreement' ? (
+            doc.formalization_mode === 'separate_agreement' &&
+            agreementStates.length === 0 ? (
               <div className="mt-2 space-y-2 text-sm text-muted-foreground">
                 <AgreementFlowSteps
                   agreementStatus={agreement?.status}
                   versionStatus={agreement?.versionStatus}
                 />
-                {agreement ? (
-                  <Link
-                    to={`/sales/agreements?view=${agreement.id}`}
-                    className="text-primary hover:underline"
-                  >
-                    {t(
-                      'projects.commercial.prepare_agreement_open_list',
-                      'Veure a Acords comercials',
-                    )}
-                  </Link>
-                ) : null}
               </div>
             ) : null}
             {showOfficePending ? (
@@ -1206,7 +1310,7 @@ export function CommercialDocumentDetail({
           </div>
         </section>
 
-        {doc.project_id && isQuoteDoc ? (
+        {doc.project_id && isQuoteDoc && doc.status === 'draft' ? (
           <section className="rounded-xl border border-border px-4 py-3">
             <p className="text-xs text-muted-foreground">
               {t('projects.quotes.col_order', 'Ordre')}
@@ -1218,21 +1322,6 @@ export function CommercialDocumentDetail({
               {linkedProject?.name?.trim() ||
                 t('projects.quotes.open_order', 'Obrir ordre')}
             </Link>
-            {issuedAsOrphan ? (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t(
-                  'projects.quotes.origin_orphan_linked',
-                  'Creada en acceptar el pressupost (Només pressupost).',
-                )}
-              </p>
-            ) : (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t(
-                  'projects.quotes.origin_with_job',
-                  'Flux Feina amb pressupost.',
-                )}
-              </p>
-            )}
           </section>
         ) : null}
 
@@ -1565,35 +1654,68 @@ export function CommercialDocumentDetail({
         title={title}
         subtitle={
           doc ? (
-            <span className="inline-flex flex-wrap items-center gap-1.5">
-              {doc.doc_number ? (
-                <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[11px] font-medium tabular-nums">
-                  {t('projects.orphan.doc_number_label', 'Núm. {{number}}', {
-                    number: doc.doc_number,
-                  })}
-                </span>
+            <div className="flex max-w-full flex-col gap-1.5">
+              {isQuoteDoc && doc.status !== 'draft' && (doc.project_id || agreement) ? (
+                <CommercialTrailNav
+                  links={[
+                    {
+                      kind: 'order',
+                      label: t('field-service:detail.trail_order', 'Ordre'),
+                      href: doc.project_id ? `/field/orders/${doc.project_id}` : null,
+                      missingLabel: t('projects.quotes.no_order_linked', 'Sense ordre'),
+                    },
+                    {
+                      kind: 'quote',
+                      label: doc.doc_number
+                        ? t('field-service:detail.trail_quote_num', 'Pressupost {{number}}', {
+                            number: doc.doc_number,
+                          })
+                        : t('field-service:detail.trail_quote', 'Pressupost'),
+                      href: `/sales/quotes/${documentId}`,
+                      active: true,
+                    },
+                    {
+                      kind: 'agreement',
+                      label: t('field-service:detail.trail_agreement', 'Acord'),
+                      href: agreement ? `/sales/agreements/${agreement.id}` : null,
+                      missingLabel: t(
+                        'field-service:detail.trail_agreement_missing',
+                        'Sense acord',
+                      ),
+                    },
+                  ]}
+                />
               ) : null}
-              <CommercialDocumentStatusBadges doc={doc} t={t} />
-              {isOfficeAcceptedEvent(doc.events) ? (
-                <span className="inline-flex items-center rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100">
-                  {t(
-                    'projects.commercial.office_accept_badge',
-                    'Acceptat per oficina',
-                  )}
-                </span>
-              ) : null}
-              <CommercialRelationshipBadges kinds={relationshipBadges} />
-              {quoteOriginChip ? (
-                <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                  {quoteOriginChip}
-                </span>
-              ) : null}
-              {orphanDetailChip ? (
-                <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-                  {orphanDetailChip}
-                </span>
-              ) : null}
-            </span>
+              <div className="flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-1">
+                {doc.doc_number ? (
+                  <span className="inline-flex shrink-0 items-center rounded-full border border-border px-2 py-0.5 text-[11px] font-medium tabular-nums">
+                    {t('projects.orphan.doc_number_label', 'Núm. {{number}}', {
+                      number: doc.doc_number,
+                    })}
+                  </span>
+                ) : null}
+                <CommercialDocumentStatusBadges doc={doc} t={t} className="contents" />
+                {isOfficeAcceptedEvent(doc.events) ? (
+                  <span className="inline-flex shrink-0 items-center rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100">
+                    {t(
+                      'projects.commercial.office_accept_badge',
+                      'Acceptat per oficina',
+                    )}
+                  </span>
+                ) : null}
+                <CommercialRelationshipBadges kinds={relationshipBadges} />
+                {quoteOriginChip ? (
+                  <span className="inline-flex shrink-0 items-center rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    {quoteOriginChip}
+                  </span>
+                ) : null}
+                {orphanDetailChip ? (
+                  <span className="inline-flex shrink-0 items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+                    {orphanDetailChip}
+                  </span>
+                ) : null}
+              </div>
+            </div>
           ) : undefined
         }
         actions={
@@ -1631,7 +1753,7 @@ export function CommercialDocumentDetail({
             <TabsContent value="summary" className="mt-4 space-y-4">
               {summaryBody}
             </TabsContent>
-            <TabsContent value="document" className="mt-4 min-h-[min(80dvh,52rem)]">
+            <TabsContent value="document" className="mt-4 h-[min(80dvh,52rem)]">
               {pdfBlock}
             </TabsContent>
           </Tabs>

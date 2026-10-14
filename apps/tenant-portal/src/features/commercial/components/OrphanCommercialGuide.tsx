@@ -10,6 +10,8 @@ type Props = {
   issuedAsOrphan: boolean
   formalizationMode?: string | null
   hasAgreement?: boolean
+  /** Agreement version status when hasAgreement. */
+  agreementVersionStatus?: string | null
   delivered?: boolean
 }
 
@@ -20,6 +22,7 @@ export function OrphanCommercialGuide({
   issuedAsOrphan,
   formalizationMode,
   hasAgreement = false,
+  agreementVersionStatus = null,
   delivered = false,
 }: Props) {
   const { t } = useTranslation('projects')
@@ -28,16 +31,22 @@ export function OrphanCommercialGuide({
   const issued = ['issued', 'accepted', 'signed', 'rejected', 'expired', 'cancelled'].includes(status)
   const answered = ['accepted', 'signed', 'rejected', 'expired'].includes(status)
   const separate = formalizationMode === 'separate_agreement'
-  const contractDone = !separate || hasAgreement
-  const needContract = separate && issued && delivered && !hasAgreement
-  /** Feina amb pressupost: l’ordre ja existia abans d’emetre. Orfe: l’ordre ve després de la resposta. */
+  const quoteAccepted = status === 'accepted' || status === 'signed'
+  const contractPrepared = separate && hasAgreement
+  const contractSent =
+    separate &&
+    (agreementVersionStatus === 'pending_signature' || agreementVersionStatus === 'signed')
+  const contractSigned = separate && agreementVersionStatus === 'signed'
+  /** Feina amb pressupost: l’ordre ja existia abans d’emetre. Orfe: l’ordre ve després. */
   const orderFirst = hasProject && !issuedAsOrphan
 
   let current = 'delivery'
   if (!delivered) current = 'delivery'
-  else if (needContract) current = 'contract'
   else if (!answered) current = 'reply'
-  else if (!hasProject && (status === 'accepted' || status === 'signed')) current = 'os'
+  else if (separate && !contractPrepared) current = 'contract'
+  else if (separate && contractPrepared && !contractSent) current = 'contract'
+  else if (separate && contractSent && !contractSigned) current = 'contract'
+  else if (!hasProject && quoteAccepted) current = 'os'
   else current = 'done'
 
   const contactStep = {
@@ -70,14 +79,6 @@ export function OrphanCommercialGuide({
     done: issued,
     current: false,
   }
-  const contractStep = separate
-    ? {
-        id: 'contract',
-        label: t('projects.orphan.guide_contract', 'Contracte'),
-        done: contractDone && delivered,
-        current: current === 'contract',
-      }
-    : null
   const deliveryStep = {
     id: 'delivery',
     label: t('projects.orphan.guide_delivery', 'Entrega'),
@@ -87,9 +88,17 @@ export function OrphanCommercialGuide({
   const replyStep = {
     id: 'reply',
     label: t('projects.orphan.guide_reply', 'Resposta'),
-    done: answered && contractDone,
+    done: answered,
     current: current === 'reply',
   }
+  const contractStep = separate
+    ? {
+        id: 'contract',
+        label: t('projects.orphan.guide_contract', 'Contracte'),
+        done: contractSigned,
+        current: current === 'contract',
+      }
+    : null
 
   const steps = orderFirst
     ? [
@@ -98,18 +107,18 @@ export function OrphanCommercialGuide({
         linesStep,
         templateStep,
         issueStep,
-        ...(contractStep ? [contractStep] : []),
         deliveryStep,
         replyStep,
+        ...(contractStep ? [contractStep] : []),
       ]
     : [
         contactStep,
         linesStep,
         templateStep,
         issueStep,
-        ...(contractStep ? [contractStep] : []),
         deliveryStep,
         replyStep,
+        ...(contractStep ? [contractStep] : []),
         orderStep,
       ]
 
@@ -119,16 +128,26 @@ export function OrphanCommercialGuide({
           'projects.orphan.tip_delivery',
           'Encara no ha sortit de l’oficina. Entrega el PDF, o entrega’l i demana resposta.',
         )
-      : current === 'contract'
+      : current === 'reply'
         ? t(
-            'projects.orphan.tip_contract',
-            'Prepara i envia l’acord. La firma accepta també el pressupost.',
+            'projects.orphan.tip_reply_after_delivery',
+            'Ja s’ha entregat. Accepta el pressupost (oficina o client) abans de generar el contracte.',
           )
-          : current === 'reply'
-          ? t(
-              'projects.orphan.tip_reply_after_delivery',
-              'Ja s’ha entregat. Pots registrar l’acceptació o el refús des de l’oficina.',
-            )
+        : current === 'contract'
+          ? !contractPrepared
+            ? t(
+                'projects.orphan.tip_contract_generate',
+                'Pressupost acceptat. Genera el contracte i escull la plantilla.',
+              )
+            : !contractSent
+              ? t(
+                  'projects.orphan.tip_contract_send',
+                  'Contracte preparat. Envia’l al client a firmar.',
+                )
+              : t(
+                  'projects.orphan.tip_contract_pending',
+                  'Contracte enviat. Pendent de firma al Centre de signatures.',
+                )
           : current === 'os'
             ? t(
                 'projects.orphan.tip_os_pending',
@@ -137,14 +156,28 @@ export function OrphanCommercialGuide({
             : hasProject
               ? t(
                   'projects.prospect.tip_followup_done',
-                  'Pressupost i ordre enllaçats. Continua el seguiment des de l’ordre.',
+                  'Pressupost i ordre enllaçats (Feina amb pressupost). Continua el seguiment des de l’ordre.',
                 )
               : t('projects.orphan.tip_delivery', 'Encara no ha sortit de l’oficina.')
 
   return (
-    <aside aria-label={t('projects.orphan.trail_aria', 'Recorregut del pressupost')}>
+    <aside
+      aria-label={
+        orderFirst
+          ? t(
+              'projects.prospect.trail_aria',
+              'Recorregut Feina amb pressupost',
+            )
+          : t('projects.orphan.trail_aria', 'Recorregut Només pressupost')
+      }
+    >
       <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">
-        {t('projects.orphan.trail_title', 'Recorregut del pressupost')}
+        {orderFirst
+          ? t(
+              'projects.prospect.trail_title',
+              'Recorregut · Feina amb pressupost',
+            )
+          : t('projects.orphan.trail_title', 'Recorregut · Només pressupost')}
       </p>
       <ol className="flex flex-wrap gap-2">
         {steps.map((step, index) => (

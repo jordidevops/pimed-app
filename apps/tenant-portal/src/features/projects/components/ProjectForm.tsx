@@ -63,6 +63,10 @@ interface ProjectFormProps {
   initialPlannedStart?: string | null
   /** Focus the planned_start field when the form opens. */
   focusPlannedStart?: boolean
+  /** Field orders: hide status selector on create (status forced server-side). */
+  hideStatusOnCreate?: boolean
+  /** Override create status (e.g. `active` for field orders). */
+  forceCreateStatus?: string | null
 }
 
 function normalizeSelectId(value: string | undefined): string | null {
@@ -131,6 +135,8 @@ export function ProjectForm({
   initialType,
   initialPlannedStart,
   focusPlannedStart = false,
+  hideStatusOnCreate = false,
+  forceCreateStatus = null,
 }: ProjectFormProps) {
   const { t } = useTranslation(['projects', 'field-service'])
   const { toast } = useToast()
@@ -141,6 +147,8 @@ export function ProjectForm({
   const clientLocked = !isEditing && !!initialClientId
   const defaultCreateType: ProjectType =
     initialType ?? (isFieldService ? 'work_order' : 'internal')
+  const hideStatusField = hideStatusOnCreate && !isEditing
+  const createStatus = forceCreateStatus?.trim() || 'active'
 
   const { data: departments = [] } = useDepartments()
   const { data: contacts = [] } = useQuery({
@@ -221,7 +229,7 @@ export function ProjectForm({
         name: '',
         type: defaultCreateType,
         description: '',
-        status: 'draft',
+        status: forceCreateStatus?.trim() || (isFieldService ? 'active' : 'draft'),
         visibility: 'company',
         department_id: departments.length === 1 ? (departments[0]?.id ?? '') : '',
         site_id: sites.length === 1 ? (sites[0]?.id ?? '') : '',
@@ -237,6 +245,7 @@ export function ProjectForm({
     editProject,
     reset,
     defaultCreateType,
+    forceCreateStatus,
     initialClientId,
     initialContactSiteId,
     initialPlannedStart,
@@ -300,6 +309,21 @@ export function ProjectForm({
         }
       }
 
+      if (
+        !isEditing &&
+        projectType === 'work_order' &&
+        (values.status === 'completed' || values.status === 'cancelled')
+      ) {
+        toast({
+          variant: 'destructive',
+          description: t(
+            'projects.errors.create_terminal_status',
+            'No es pot crear una ordre ja completada o cancel·lada',
+          ),
+        })
+        return
+      }
+
       if (!normalizedSiteId || !normalizedDepartmentId) {
         if (!normalizedDepartmentId) {
           setError('department_id', {
@@ -357,7 +381,9 @@ export function ProjectForm({
           p_name: values.name,
           p_type: values.type,
           p_description: values.description || undefined,
-          p_status: values.status,
+          p_status: hideStatusField || forceCreateStatus
+            ? createStatus
+            : values.status,
           p_visibility: values.visibility,
           p_department_id: normalizedDepartmentId ?? undefined,
           p_site_id: normalizedSiteId ?? undefined,
@@ -482,7 +508,7 @@ export function ProjectForm({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className={cn('grid gap-4', hideStatusField ? 'grid-cols-1' : 'grid-cols-2')}>
             <div className="space-y-1">
               <label className="text-sm font-medium" htmlFor="project-type">
                 {t('projects.form.type', 'Tipus')}
@@ -498,23 +524,29 @@ export function ProjectForm({
                 <option value="maintenance">{t('projects.type.maintenance', 'Manteniment')}</option>
               </select>
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium" htmlFor="project-status">
-                {t('projects.form.status', 'Estat')}
-              </label>
-              <select
-                id="project-status"
-                {...register('status')}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                <option value="draft">{t('projects.status.draft', 'Esborrany')}</option>
-                <option value="active">{t('projects.status.active', 'Actiu')}</option>
-                <option value="in_progress">{t('projects.status.in_progress', 'En curs')}</option>
-                <option value="on_hold">{t('projects.status.on_hold', 'En espera')}</option>
-                <option value="completed">{t('projects.status.completed', 'Completat')}</option>
-                <option value="cancelled">{t('projects.status.cancelled', 'Cancel·lat')}</option>
-              </select>
-            </div>
+            {!hideStatusField ? (
+              <div className="space-y-1">
+                <label className="text-sm font-medium" htmlFor="project-status">
+                  {t('projects.form.status', 'Estat')}
+                </label>
+                <select
+                  id="project-status"
+                  {...register('status')}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="draft">{t('projects.status.draft', 'Esborrany')}</option>
+                  <option value="active">{t('projects.status.active', 'Actiu')}</option>
+                  <option value="in_progress">{t('projects.status.in_progress', 'En curs')}</option>
+                  <option value="on_hold">{t('projects.status.on_hold', 'En espera')}</option>
+                  {isEditing ? (
+                    <>
+                      <option value="completed">{t('projects.status.completed', 'Completat')}</option>
+                      <option value="cancelled">{t('projects.status.cancelled', 'Cancel·lat')}</option>
+                    </>
+                  ) : null}
+                </select>
+              </div>
+            ) : null}
           </div>
           {isFieldService && (
             <div className="space-y-1">

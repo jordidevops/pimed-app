@@ -58,7 +58,7 @@ Avui existeixen peces útils, però no un producte coherent:
 2. `/sign/:token` és genèric, mostra el PDF en un `iframe` i el refús només cancel·la la sessió.
 3. `commercial_signing_intents` aplica només sessions natives `signed`; no cobreix DocuSeal, portal ni refús.
 4. La firma nativa comercial pot crear un segon document DMS.
-5. `separate_agreement` exigeix avui una quote ja acceptada abans de preparar l'acord, cosa que obliga dues decisions.
+5. `separate_agreement` (CS-D8 2026-10): cal quote `accepted` abans de preparar l'acord; firmar l'acord no accepta la quote.
 6. El customer portal només exposa butlletins; no té cap projecció comercial.
 
 CF-28 no és «polish de firma». Afegeix el domini durable que coordina totes les superfícies.
@@ -80,10 +80,10 @@ CF-28 no és «polish de firma». Afegeix el domini durable que coordina totes l
 | Mode | Què rep el client | Efecte de l'acceptació |
 |------|-------------------|-------------------------|
 | `signed_quote` | Pressupost o ampliació | Document `accepted`; recomputació d'autoritzat |
-| `separate_agreement` | Versió de l'acord | Versió `signed`, acord actiu i quote origen `accepted` en la mateixa transacció |
+| `separate_agreement` | Versió de l'acord (després de quote `accepted`) | Versió `signed` i acord actiu; la quote ja era `accepted` |
 | Albarà | Conformitat d'entrega | Albarà `signed` |
 
-CF-28 **substitueix, quan s'implementi la fase 2**, el gate tècnic antic «quote accepted abans de preparar acord». No canvia CT-D7: acceptar una quote no crea automàticament un acord. L'oficina prepara explícitament l'acord; la firma de l'acord és la decisió efectiva del client.
+No canvia CT-D7: acceptar una quote no crea automàticament un acord. L'oficina (o el client) accepta el pressupost; després l'oficina prepara i envia el contracte a firmar.
 
 ## Fases i ordre obligatori
 
@@ -212,3 +212,4 @@ Fase 8. DocuSeal usa el mateix domini i no introdueix una segona màquina d'esta
 | 2026-10-07 | F9 Tall 1 (`00009`): edge resolve rate-limit + decide IP + dual-conn test | Tall 2–4 |
 | 2026-10-07 | F9 Tall 2–4: seed generator, EXPLAIN notes, reconcile ops (`00010`), retenció/UAT/rollout docs | Gate F UAT + EXPLAIN en viu residual |
 | 2026-10-07 | F9 scale: poll backoff + reconcile `00012` + medium EXPLAIN/`00013` | Gate F SLO/full/UAT obert |
+| 2026-10-14 | CS-D8/D6 revisats: prepare només quote `accepted`; signar acord no accepta quote; multi-firma acords | UX Generar contracte + plantilles |

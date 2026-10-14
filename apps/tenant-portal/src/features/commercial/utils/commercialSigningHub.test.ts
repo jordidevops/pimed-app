@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  commercialAgreementViewHref,
+  commercialHubDocumentHref,
   commercialQuoteViewHref,
   commercialSalesDetailHref,
   commercialSignedPdfDocumentId,
@@ -17,6 +19,35 @@ describe('commercialSigningHub', () => {
     expect(commercialSalesDetailHref('dn-1', 'delivery_note')).toBe('/sales/delivery-notes/dn-1')
     expect(commercialSalesDetailHref('q-1', 'quote')).toBe('/sales/quotes/q-1')
     expect(commercialSalesDetailHref('x', 'invoice')).toBeNull()
+    expect(commercialAgreementViewHref('agr-1')).toBe('/sales/agreements/agr-1')
+    expect(
+      commercialHubDocumentHref({
+        agreementId: 'agr-1',
+        commercialDocumentId: 'q-1',
+        docType: 'quote',
+      }),
+    ).toBe('/sales/agreements/agr-1')
+    expect(
+      commercialHubDocumentHref({
+        agreementId: null,
+        commercialDocumentId: 'dn-1',
+        docType: 'delivery_note',
+      }),
+    ).toBe('/sales/delivery-notes/dn-1')
+    expect(
+      commercialHubDocumentHref({
+        agreementId: null,
+        commercialDocumentId: 'q-1',
+        docType: 'quote',
+      }),
+    ).toBe('/sales/quotes/q-1')
+    expect(
+      commercialHubDocumentHref({
+        agreementId: 'agr-2',
+        commercialDocumentId: '',
+        docType: '',
+      }),
+    ).toBe('/sales/agreements/agr-2')
   })
 
   it('titles a commercial hub row like the DMS commercial link', () => {

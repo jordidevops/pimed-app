@@ -8,7 +8,10 @@ export function agreementFlowStep(input: {
 }): AgreementFlowStep {
   if (input.versionStatus === 'signed' || input.agreementStatus === 'active') return 'signed'
   if (input.versionStatus === 'pending_signature') return 'send'
-  if (input.versionStatus === 'draft' || input.agreementStatus === 'pending_start') return 'send'
+  // Draft / pending_start = prepared, not yet sent (step «Preparar»).
+  if (input.versionStatus === 'draft' || input.agreementStatus === 'pending_start') {
+    return 'prepare'
+  }
   if (input.agreementStatus) return 'send'
   return 'prepare'
 }
@@ -194,12 +197,15 @@ export function agreementKindLabel(
 export function agreementFlowStepLabel(
   step: AgreementFlowStep,
   t: (key: string, fallback: string) => string,
+  opts?: { fromQuote?: boolean },
 ): string {
   if (step === 'accepted') {
-    return t('projects.commercial.flow_step_accepted', 'Acceptat')
+    return opts?.fromQuote
+      ? t('projects.commercial.flow_step_accepted_quote', 'Acceptat pressupost')
+      : t('projects.commercial.flow_step_accepted', 'Acceptat')
   }
   if (step === 'prepare') {
-    return t('projects.commercial.flow_step_prepare', 'Preparar acord')
+    return t('projects.commercial.flow_step_prepare', 'Preparar contracte')
   }
   if (step === 'send') {
     return t('projects.commercial.flow_step_send', 'Enviar a firmar')

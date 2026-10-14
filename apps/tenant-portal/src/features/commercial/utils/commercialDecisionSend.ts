@@ -30,10 +30,11 @@ export function commercialDecisionSendCta(params: {
 
   const separate = params.formalizationMode === 'separate_agreement'
   if (separate) {
-    // CS-D8: quote may stay issued until the agreement is signed; legacy rows may already be accepted.
-    if (params.docStatus !== 'issued' && params.docStatus !== 'accepted') return 'none'
     if (params.isExpired) return 'none'
+    // Still show pending even for legacy issued+open rows.
     if (params.hasOpenRequest) return 'view_pending'
+    // CS-D8: quote must be accepted before sending the contract to sign.
+    if (params.docStatus !== 'accepted') return 'none'
     const ready =
       !!params.agreementRendered &&
       (params.agreementVersionStatus === 'draft' ||

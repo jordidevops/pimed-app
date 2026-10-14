@@ -24,6 +24,7 @@ TESTS=(
   "commercial_agreement_billing_tests.sql"
   "commercial_agreement_idempotency_tests.sql"
   "commercial_agreement_signing_hardening_tests.sql"
+  "commercial_cs_d8_d6_agreement_tests.sql"
   "commercial_agreement_cycles_tests.sql"
   "commercial_agreement_billing_hardening_tests.sql"
   "commercial_agreement_fair_jobs_tests.sql"

@@ -44,7 +44,8 @@ export function SalesLayout() {
   const isDetail =
     /^\/sales\/delivery-notes\/[^/]+/.test(location.pathname) ||
     /^\/sales\/invoices\/[^/]+/.test(location.pathname) ||
-    /^\/sales\/quotes\/[^/]+/.test(location.pathname)
+    /^\/sales\/quotes\/[^/]+/.test(location.pathname) ||
+    /^\/sales\/agreements\/[^/]+/.test(location.pathname)
 
   if (gatesLoading) {
     return (
