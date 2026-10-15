@@ -1,0 +1,33 @@
+{
+  "name": "25 km / 4 materials",
+  "params": {
+    "distance_km": 25,
+    "material_units": 4
+  },
+  "expected_lines": [
+    {
+      "key": "travel",
+      "kind": "service",
+      "name": "Desplaçament",
+      "description": null,
+      "unit": "u",
+      "quantity": "1.000",
+      "unit_price": "35.00",
+      "discount_pct": "0.00",
+      "tax_rate": "21.00",
+      "allow_zero_price": true
+    },
+    {
+      "key": "materials",
+      "kind": "product",
+      "name": "Materials",
+      "description": null,
+      "unit": "u",
+      "quantity": "4.000",
+      "unit_price": "12.50",
+      "discount_pct": "0.00",
+      "tax_rate": "21.00",
+      "allow_zero_price": false
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "parameters": [
+    {"key": "distance_km", "type": "number", "min": 0, "required": true, "label": {"ca": "Distància (km)", "es": "Distancia (km)", "en": "Distance (km)"}},
+    {"key": "material_units", "type": "integer", "min": 0, "required": true, "default": 0, "label": {"ca": "Unitats de material", "es": "Unidades de material", "en": "Material units"}}
+  ],
+  "constants": [
+    {"key": "material_eur", "type": "money", "value": 12.5, "label": {"ca": "€/unitat material"}}
+  ],
+  "tables": [
+    {
+      "key": "travel",
+      "lookup": "tier",
+      "input": "distance_km",
+      "bound_column": "max_km",
+      "column_help": {
+        "max_km": {"ca": "Límit superior de km del tram (buit = sense límit)", "es": "Límite superior de km", "en": "Upper km bound"},
+        "eur_base": {"ca": "Preu del desplaçament en € per aquest tram", "es": "Precio del desplazamiento €", "en": "Travel fee € for this tier"}
+      },
+      "rows": [
+        {"max_km": 15, "eur_base": 0},
+        {"max_km": 40, "eur_base": 35},
+        {"max_km": null, "eur_base": 55}
+      ]
+    }
+  ],
+  "lines": [
+    {
+      "key": "travel",
+      "when": {"op": "cmp", "cmp": "gt", "left": {"op": "param", "key": "distance_km"}, "right": {"op": "const", "value": 0}},
+      "name": {"ca": "Desplaçament"},
+      "kind": "service",
+      "unit": "u",
+      "allow_zero_price": true,
+      "quantity": {"op": "round", "decimals": 3, "mode": "half_away_from_zero", "value": {"op": "const", "value": 1}},
+      "unit_price": {
+        "op": "lookup_tier",
+        "table": "travel",
+        "value": {"op": "round", "decimals": 2, "mode": "half_away_from_zero", "value": {"op": "row", "field": "eur_base"}}
+      },
+      "discount_pct": {"op": "const", "value": 0},
+      "tax_rate": {"op": "const", "value": 21}
+    },
+    {
+      "key": "materials",
+      "when": {"op": "cmp", "cmp": "gt", "left": {"op": "param", "key": "material_units"}, "right": {"op": "const", "value": 0}},
+      "name": {"ca": "Materials"},
+      "kind": "product",
+      "unit": "u",
+      "quantity": {"op": "round", "decimals": 3, "mode": "half_away_from_zero", "value": {"op": "param", "key": "material_units"}},
+      "unit_price": {"op": "round", "decimals": 2, "mode": "half_away_from_zero", "value": {"op": "const_ref", "key": "material_eur"}},
+      "discount_pct": {"op": "const", "value": 0},
+      "tax_rate": {"op": "const", "value": 21}
+    }
+  ]
+}

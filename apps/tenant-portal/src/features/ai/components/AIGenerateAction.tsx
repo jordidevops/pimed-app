@@ -45,8 +45,15 @@ type AIGenerateActionProps = {
   responseFormat?: 'text' | 'json'
   overrides?: AiGenerateOverrides
   disabled?: boolean
+  /**
+   * Only disables the Generate button (not the settings popover).
+   * Use when the prompt is empty but model/temperature may still be configured.
+   */
+  generateDisabled?: boolean
   label?: string
   className?: string
+  /** Quan hi ha diversos botons IA a la mateixa secció, amaga el banner duplicat. */
+  hideStatusBanners?: boolean
   onSuccess?: (result: AiGenerateResult) => void
   onError?: (message: string) => void
 }
@@ -57,8 +64,10 @@ export function AIGenerateAction({
   responseFormat = 'text',
   overrides: initialOverrides,
   disabled = false,
+  generateDisabled = false,
   label,
   className,
+  hideStatusBanners = false,
   onSuccess,
   onError,
 }: AIGenerateActionProps) {
@@ -82,7 +91,17 @@ export function AIGenerateAction({
   const isBlocked = access?.blocked ?? false
 
   async function handleGenerate() {
-    if (!tenantId || generating || disabled || accessPending || notConfigured || isBlocked) return
+    if (
+      !tenantId ||
+      generating ||
+      disabled ||
+      generateDisabled ||
+      accessPending ||
+      notConfigured ||
+      isBlocked
+    ) {
+      return
+    }
 
     setGenerating(true)
     setNearLimitWarning(false)
@@ -132,7 +151,7 @@ export function AIGenerateAction({
 
   return (
     <div className={className}>
-      {notConfigured && (
+      {!hideStatusBanners && notConfigured && (
         <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2">
           {t('ai.notConfiguredLink', 'Configura una clau verificada a')}{' '}
           <Link to="/settings/ai" className="underline font-medium">
@@ -142,20 +161,20 @@ export function AIGenerateAction({
         </p>
       )}
 
-      {isBlocked && (
+      {!hideStatusBanners && isBlocked && (
         <p className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-2">
           {t('ai.userBlocked', 'El propietari ha bloquejat l\'ús de la IA per al teu compte.')}
         </p>
       )}
 
-      {(warnOnlyBanner || access?.warn_only) && !isBlocked && (
+      {!hideStatusBanners && (warnOnlyBanner || access?.warn_only) && !isBlocked && (
         <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2 flex items-start gap-2">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
           <span>{t('ai.warnOnlyUser', 'Pots generar, però el propietari ha marcat el teu compte amb avís d\'ús.')}</span>
         </p>
       )}
 
-      {nearLimitWarning && (
+      {!hideStatusBanners && nearLimitWarning && (
         <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2 flex items-start gap-2">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
           <span>{t('ai.nearLimitWarning', 'Estàs aprop del límit d\'ús IA del tenant.')}</span>
@@ -166,7 +185,14 @@ export function AIGenerateAction({
         <Button
           type="button"
           onClick={() => void handleGenerate()}
-          disabled={disabled || generating || accessPending || notConfigured || isBlocked}
+          disabled={
+            disabled ||
+            generateDisabled ||
+            generating ||
+            accessPending ||
+            notConfigured ||
+            isBlocked
+          }
         >
           {generating ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />

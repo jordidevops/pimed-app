@@ -1,0 +1,33 @@
+{
+  "name": "60 coberts + càmera bàsica",
+  "params": {
+    "covers": 60,
+    "cold_addon": "basic"
+  },
+  "expected_lines": [
+    {
+      "key": "maintenance",
+      "kind": "service",
+      "name": "Manteniment mensual HORECA",
+      "description": null,
+      "unit": "mes",
+      "quantity": "1.000",
+      "unit_price": "320.00",
+      "discount_pct": "0.00",
+      "tax_rate": "21.00",
+      "allow_zero_price": false
+    },
+    {
+      "key": "cold",
+      "kind": "service",
+      "name": "Fred industrial",
+      "description": null,
+      "unit": "mes",
+      "quantity": "1.000",
+      "unit_price": "75.00",
+      "discount_pct": "0.00",
+      "tax_rate": "21.00",
+      "allow_zero_price": true
+    }
+  ]
+}

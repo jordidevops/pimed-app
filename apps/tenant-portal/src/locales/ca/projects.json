@@ -872,6 +872,8 @@
       "wizard_formalization_separate_title": "Pressupost i contracte a part",
       "wizard_continue": "Continuar",
       "wizard_back": "Enrere",
+      "wizard_change_default": "Canviar",
+      "using_default_template": "S’usarà la plantilla per defecte del tenant.",
       "wizard_type_orphan_title": "Només pressupost",
       "wizard_type_orphan_help": "Envies una oferta sense obrir ordre. L’ordre (si cal) es crea quan el client accepta.",
       "wizard_type_prospect_title": "Feina amb pressupost",

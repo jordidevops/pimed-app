@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "parameters": [
+    {"key": "model", "type": "enum", "options_from": "models", "required": true, "label": {"ca": "Model"}},
+    {"key": "width_cm", "type": "number", "min": 1, "required": true, "label": {"ca": "Amplada"}},
+    {"key": "height_cm", "type": "number", "min": 1, "required": true, "label": {"ca": "Alçada"}},
+    {"key": "units", "type": "integer", "min": 1, "required": true, "default": 1, "label": {"ca": "Unitats"}}
+  ],
+  "tables": [
+    {
+      "key": "models",
+      "lookup": "exact",
+      "input": "model",
+      "match_column": "id",
+      "rows": [
+        {"id": "pvc", "label": {"ca": "PVC"}, "eur_m2": null, "min_m2": 1},
+        {"id": "alumini", "label": {"ca": "Alumini"}, "eur_m2": null, "min_m2": 1}
+      ]
+    }
+  ],
+  "lines": [
+    {
+      "key": "blind",
+      "name": {"ca": "Persiana {{model}}"},
+      "kind": "product",
+      "unit": "m2",
+      "quantity": {
+        "op": "round",
+        "decimals": 3,
+        "mode": "half_away_from_zero",
+        "value": {
+          "op": "mul",
+          "args": [
+            {"op": "param", "key": "units"},
+            {"op": "max", "args": [
+              {"op": "lookup_exact", "table": "models", "field": "min_m2"},
+              {"op": "div",
+                "left": {"op": "mul", "args": [
+                  {"op": "param", "key": "width_cm"},
+                  {"op": "param", "key": "height_cm"}
+                ]},
+                "right": {"op": "const", "value": 10000}
+              }
+            ]}
+          ]
+        }
+      },
+      "unit_price": {
+        "op": "round",
+        "decimals": 2,
+        "mode": "half_away_from_zero",
+        "value": {"op": "lookup_exact", "table": "models", "field": "eur_m2"}
+      },
+      "discount_pct": {"op": "const", "value": 0},
+      "tax_rate": {"op": "const", "value": 21}
+    }
+  ]
+}

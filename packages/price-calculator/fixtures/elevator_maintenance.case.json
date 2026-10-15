@@ -1,0 +1,33 @@
+{
+  "name": "Elèctric 6 parades",
+  "params": {
+    "stops": 6,
+    "drive_type": "electric"
+  },
+  "expected_lines": [
+    {
+      "key": "base",
+      "kind": "service",
+      "name": "Quota base anual",
+      "description": null,
+      "unit": "any",
+      "quantity": "1.000",
+      "unit_price": "900.00",
+      "discount_pct": "0.00",
+      "tax_rate": "21.00",
+      "allow_zero_price": false
+    },
+    {
+      "key": "stops",
+      "kind": "service",
+      "name": "Suplement per parades",
+      "description": null,
+      "unit": "parada",
+      "quantity": "6.000",
+      "unit_price": "85.00",
+      "discount_pct": "0.00",
+      "tax_rate": "21.00",
+      "allow_zero_price": false
+    }
+  ]
+}

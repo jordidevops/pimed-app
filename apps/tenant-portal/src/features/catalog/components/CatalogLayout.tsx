@@ -14,12 +14,27 @@ const CATALOG_TABS = [
     labelKey: 'catalog.tabs.packs',
     fallback: 'Serveis habituals',
   },
+  {
+    key: 'calculators',
+    to: '/catalog/calculators',
+    labelKey: 'catalog.tabs.calculators',
+    fallback: 'Calculadores',
+  },
 ] as const
 
 function useCatalogSection() {
   const { t } = useTranslation('catalog')
   const { pathname } = useLocation()
 
+  if (pathname.startsWith('/catalog/calculators')) {
+    return {
+      title: t('catalog.tabs.calculators', 'Calculadores'),
+      subtitle: t(
+        'catalog.calculators.subtitle',
+        'Tarifes i lògica per generar línies de pressupost',
+      ),
+    }
+  }
   if (pathname.startsWith('/catalog/packs')) {
     return {
       title: t('catalog.tabs.packs', 'Serveis habituals'),
@@ -54,7 +69,8 @@ export function CatalogLayout() {
         : pathname === tab.to || pathname.startsWith(`${tab.to}/`)
     })?.key ?? 'services'
 
-  const isPacks = pathname.startsWith('/catalog/packs')
+  const isPacks =
+    pathname.startsWith('/catalog/packs') || pathname.startsWith('/catalog/calculators')
 
   return (
     <PageShell

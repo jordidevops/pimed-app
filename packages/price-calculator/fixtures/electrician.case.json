@@ -1,0 +1,33 @@
+{
+  "name": "20 km / 3 kW",
+  "params": {
+    "distance_km": 20,
+    "power_kw": 3
+  },
+  "expected_lines": [
+    {
+      "key": "travel",
+      "kind": "service",
+      "name": "Desplaçament",
+      "description": null,
+      "unit": "u",
+      "quantity": "1.000",
+      "unit_price": "25.00",
+      "discount_pct": "0.00",
+      "tax_rate": "21.00",
+      "allow_zero_price": true
+    },
+    {
+      "key": "labor",
+      "kind": "service",
+      "name": "Mà d'obra",
+      "description": null,
+      "unit": "h",
+      "quantity": "2.000",
+      "unit_price": "45.00",
+      "discount_pct": "0.00",
+      "tax_rate": "21.00",
+      "allow_zero_price": false
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "parameters": [
+    {"key": "distance_km", "type": "number", "min": 0, "required": true, "label": {"ca": "Distància", "es": "Distancia", "en": "Distance"}},
+    {"key": "power_kw", "type": "number", "min": 0, "required": true, "label": {"ca": "Potència", "es": "Potencia", "en": "Power"}}
+  ],
+  "constants": [
+    {"key": "hour_eur", "type": "money", "value": null, "label": {"ca": "€/hora"}}
+  ],
+  "tables": [
+    {
+      "key": "travel",
+      "lookup": "tier",
+      "input": "distance_km",
+      "bound_column": "max_km",
+      "column_help": {
+        "max_km": {"ca": "Límit superior de km del tram (buit = sense límit)", "es": "Límite superior de km", "en": "Upper km bound (empty = open)"},
+        "eur_base": {"ca": "Preu base del desplaçament en €", "es": "Precio base en €", "en": "Base travel fee €"},
+        "extra_after_km": {"ca": "A partir d’aquests km es cobra el suplement", "es": "Desde estos km se cobra el suplemento", "en": "Km after which extra fee applies"},
+        "eur_per_extra_km": {"ca": "€ per cada km extra després del llindar", "es": "€ por km extra", "en": "€ per extra km"}
+      },
+      "rows": [
+        {"max_km": 10, "eur_base": 0, "extra_after_km": 0, "eur_per_extra_km": 0},
+        {"max_km": 30, "eur_base": 25, "extra_after_km": 0, "eur_per_extra_km": 0},
+        {"max_km": null, "eur_base": 25, "extra_after_km": 30, "eur_per_extra_km": 1.2}
+      ]
+    },
+    {
+      "key": "labor",
+      "lookup": "tier",
+      "input": "power_kw",
+      "bound_column": "max_kw",
+      "column_help": {
+        "max_kw": {"ca": "Límit superior de kW del tram (buit = sense límit)", "es": "Límite superior de kW", "en": "Upper kW bound"},
+        "hours": {"ca": "Hores de mà d’obra estimades per aquest tram", "es": "Horas de mano de obra", "en": "Estimated labor hours"}
+      },
+      "rows": [
+        {"max_kw": 5, "hours": 2},
+        {"max_kw": 15, "hours": 4},
+        {"max_kw": null, "hours": 8}
+      ]
+    }
+  ],
+  "lines": [
+    {
+      "key": "travel",
+      "when": {"op": "cmp", "cmp": "gt", "left": {"op": "param", "key": "distance_km"}, "right": {"op": "const", "value": 0}},
+      "name": {"ca": "Desplaçament"},
+      "kind": "service",
+      "unit": "u",
+      "allow_zero_price": true,
+      "quantity": {"op": "round", "decimals": 3, "mode": "half_away_from_zero", "value": {"op": "const", "value": 1}},
+      "unit_price": {
+        "op": "lookup_tier",
+        "table": "travel",
+        "value": {
+          "op": "round",
+          "decimals": 2,
+          "mode": "half_away_from_zero",
+          "value": {
+            "op": "add",
+            "args": [
+              {"op": "row", "field": "eur_base"},
+              {"op": "mul", "args": [
+                {"op": "max", "args": [
+                  {"op": "const", "value": 0},
+                  {"op": "sub", "left": {"op": "param", "key": "distance_km"}, "right": {"op": "row", "field": "extra_after_km"}}
+                ]},
+                {"op": "row", "field": "eur_per_extra_km"}
+              ]}
+            ]
+          }
+        }
+      },
+      "discount_pct": {"op": "const", "value": 0},
+      "tax_rate": {"op": "const", "value": 21}
+    },
+    {
+      "key": "labor",
+      "name": {"ca": "Mà d'obra"},
+      "kind": "service",
+      "unit": "h",
+      "quantity": {
+        "op": "round",
+        "decimals": 3,
+        "mode": "half_away_from_zero",
+        "value": {"op": "lookup_tier", "table": "labor", "value": {"op": "row", "field": "hours"}}
+      },
+      "unit_price": {
+        "op": "round",
+        "decimals": 2,
+        "mode": "half_away_from_zero",
+        "value": {"op": "const_ref", "key": "hour_eur"}
+      },
+      "discount_pct": {"op": "const", "value": 0},
+      "tax_rate": {"op": "const", "value": 21}
+    }
+  ]
+}

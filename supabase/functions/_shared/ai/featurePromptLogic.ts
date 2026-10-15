@@ -11,6 +11,8 @@ export const FEATURE_PROMPT_SEEDS: Record<string, string> = {
     'Retorna NOMÉS JSON { "name": string, "description": string, "category": string, "lines": [{ "catalog_item_id": uuid|null, "name": string, "quantity": number }], "checklist_names": string[] }. catalog_item_id només si és un UUID de la llista. No inventis UUIDs.',
   "field.checklist_template":
     'Retorna NOMÉS JSON { "name": string, "kind": "todo"|"review", "items": [{ "title": string, "required": boolean, "response_type": "checkbox"|"single_choice" }] }. No incloguis review_point_id. Prefereix kind=todo i response_type=checkbox. No marquis la plantilla com a publicada.',
+  "commercial.calculator_definition":
+    'Retorna NOMÉS JSON de Definition schema_version=1 (parameters, constants, tables, lines) amb Expr AST (op const/param/const_ref/add/mul/sub/div/round/if/cmp/lookup_exact/lookup_tier/row/…). kind només product|service. Línies poden tenir prompt_qty_price (boolean: demanar qty/preu a l’ús; fórmula = valor inicial) i unit_cost (nombre € opcional). discount_pct i tax_rate com a const (p.ex. 0 i 21). No inventis preus: si no els ha dit l’usuari, value null i assumed true. Sense eval, sense claus desconegudes, sense fórmules en text. En mode edició (quan el missatge inclou la definició actual), retorna { "patches": [{ "op":"add"|"replace"|"remove", "path": JSON Pointer, "value"?: unknown }] } en lloc de la definició sencera.',
 };
 
 export function resolveFeatureInstructions(

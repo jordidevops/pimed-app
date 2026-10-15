@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle2, FileCheck2, FileText, Files, Wrench } from 'lucide-react'
+import { CheckCircle2, FileCheck2, FileText, Files, Gauge, Wrench } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -11,11 +11,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-import type { FormalizationMode } from '../utils/deviationApprovalThreshold'
+import { useTenant } from '@/contexts/TenantContext'
+import { useEffectiveSettings } from '@/hooks/useSettings'
+import {
+  readExplicitFormalizationModeDefault,
+  type FormalizationMode,
+} from '../utils/deviationApprovalThreshold'
 import { CreateOrphanQuoteDialog } from './CreateOrphanQuoteDialog'
 import { CreateProspectQuoteDialog } from './CreateProspectQuoteDialog'
+import { CreateQuickQuoteDialog } from './CreateQuickQuoteDialog'
 
-export type QuoteWizardInitialType = 'orphan' | 'prospect'
+export type QuoteWizardInitialType = 'orphan' | 'prospect' | 'quick'
 
 type WizardStep = 'type' | 'formalization' | QuoteWizardInitialType
 
@@ -24,7 +30,7 @@ interface CreateQuoteWizardDialogProps {
   onOpenChange: (open: boolean) => void
   clientId?: string | null
   clientName?: string | null
-  /** Preselect a branch (e.g. leads `?orphan=1`) and still ask formalization. */
+  /** Preselect a branch (e.g. leads `?orphan=1`) and still ask formalization unless a tenant default exists. */
   initialType?: QuoteWizardInitialType | null
 }
 
@@ -36,27 +42,42 @@ export function CreateQuoteWizardDialog({
   initialType = null,
 }: CreateQuoteWizardDialogProps) {
   const { t } = useTranslation(['projects', 'common'])
+  const { activeTenant } = useTenant()
+  const { data: effectiveSettings } = useEffectiveSettings({
+    tenantId: activeTenant?.id ?? null,
+  })
+  const formalizationDefault = readExplicitFormalizationModeDefault(effectiveSettings)
+
   const [step, setStep] = useState<WizardStep>('type')
   const [selected, setSelected] = useState<QuoteWizardInitialType | null>(null)
   const [formalization, setFormalization] = useState<FormalizationMode | null>(null)
+  /** Usuari ha demanat canviar el default d’aquest document. */
+  const [forceAskFormalization, setForceAskFormalization] = useState(false)
 
   useEffect(() => {
     if (!open) {
       setStep('type')
       setSelected(null)
       setFormalization(null)
+      setForceAskFormalization(false)
       return
     }
-    if (initialType === 'orphan' || initialType === 'prospect') {
+    if (initialType === 'orphan' || initialType === 'prospect' || initialType === 'quick') {
       setSelected(initialType)
-      setFormalization(null)
-      setStep('formalization')
+      if (formalizationDefault && !forceAskFormalization) {
+        setFormalization(formalizationDefault)
+        setStep(initialType)
+      } else {
+        setFormalization(null)
+        setStep('formalization')
+      }
       return
     }
     setStep('type')
     setSelected(null)
     setFormalization(null)
-  }, [open, initialType])
+    setForceAskFormalization(false)
+  }, [open, initialType, formalizationDefault, forceAskFormalization])
 
   function handleOpenChange(next: boolean) {
     onOpenChange(next)
@@ -64,6 +85,11 @@ export function CreateQuoteWizardDialog({
 
   function chooseType(next: QuoteWizardInitialType) {
     setSelected(next)
+    if (formalizationDefault && !forceAskFormalization) {
+      setFormalization(formalizationDefault)
+      setStep(next)
+      return
+    }
     setStep('formalization')
   }
 
@@ -71,6 +97,12 @@ export function CreateQuoteWizardDialog({
     if (!selected) return
     setFormalization(next)
     setStep(selected)
+  }
+
+  function changeFormalization() {
+    setForceAskFormalization(true)
+    setFormalization(null)
+    setStep('formalization')
   }
 
   if (step === 'orphan' && formalization) {
@@ -81,7 +113,19 @@ export function CreateQuoteWizardDialog({
         clientId={clientId}
         clientName={clientName}
         formalizationMode={formalization}
-        onBack={() => setStep('formalization')}
+        onBack={() => {
+          if (formalizationDefault && !forceAskFormalization) {
+            if (initialType) {
+              handleOpenChange(false)
+              return
+            }
+            setStep('type')
+            setFormalization(null)
+            return
+          }
+          setStep('formalization')
+        }}
+        onChangeFormalization={formalizationDefault ? changeFormalization : undefined}
       />
     )
   }
@@ -94,7 +138,44 @@ export function CreateQuoteWizardDialog({
         clientId={clientId}
         clientName={clientName}
         formalizationMode={formalization}
-        onBack={() => setStep('formalization')}
+        onBack={() => {
+          if (formalizationDefault && !forceAskFormalization) {
+            if (initialType) {
+              handleOpenChange(false)
+              return
+            }
+            setStep('type')
+            setFormalization(null)
+            return
+          }
+          setStep('formalization')
+        }}
+        onChangeFormalization={formalizationDefault ? changeFormalization : undefined}
+      />
+    )
+  }
+
+  if (step === 'quick' && formalization) {
+    return (
+      <CreateQuickQuoteDialog
+        open={open}
+        onOpenChange={handleOpenChange}
+        clientId={clientId}
+        clientName={clientName}
+        formalizationMode={formalization}
+        onBack={() => {
+          if (formalizationDefault && !forceAskFormalization) {
+            if (initialType) {
+              handleOpenChange(false)
+              return
+            }
+            setStep('type')
+            setFormalization(null)
+            return
+          }
+          setStep('formalization')
+        }}
+        onChangeFormalization={formalizationDefault ? changeFormalization : undefined}
       />
     )
   }
@@ -178,6 +259,17 @@ export function CreateQuoteWizardDialog({
                 'Creem una ordre en preparació: omples el full de preus allà i després emets el pressupost.',
               )}
             />
+            <TypeCard
+              selected={selected === 'quick'}
+              onSelect={() => setSelected('quick')}
+              onOpen={() => chooseType('quick')}
+              icon={<Gauge className="h-8 w-8 text-foreground" aria-hidden />}
+              title={t('projects.quotes.wizard_type_quick_title', 'Ràpid')}
+              description={t(
+                'projects.quotes.wizard_type_quick_help',
+                'Client, calculadora i emetre. Sense obrir ordre.',
+              )}
+            />
           </div>
         )}
 
@@ -201,6 +293,7 @@ export function CreateQuoteWizardDialog({
                 }
                 setStep('type')
                 setFormalization(null)
+                setForceAskFormalization(false)
               }}
             >
               {t('projects.quotes.wizard_back', 'Enrere')}

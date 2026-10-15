@@ -1,0 +1,14 @@
+{
+  "name": "@pimed/price-calculator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Motor declaratiu de calculadores de preu (CF-29). Una sola implementació per portal i Edge.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "deno test --allow-read tests/"
+  }
+}

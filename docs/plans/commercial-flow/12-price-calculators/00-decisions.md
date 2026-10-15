@@ -34,7 +34,7 @@ Cost = ordre de magnitud d’enginyeria, no un pressupost.
 
 **Supòsit de treball:** el decideix la fase 0. Es prova A. Si en dos dies el paquet no importa net a Vitest i a Deno, es cau a B. C només si A i B fallen la paritat. Els totals **persistits** segueixen sent `data.line_net` a SQL. El TS només ha de reproduir aquesta fórmula a la previsualització i a l’Edge que aplica.
 
-**Resultat del spike:** _(omplir en tancar la fase 0: A o B, data, què ha fallat)_
+**Resultat del spike:** **A** (2026-10-14). Paquet `packages/price-calculator` importat pel portal (alias Vite/Vitest/tsconfig + `file:` dep) i per Deno (`deno.json` + reexport `_shared/price-calculator/mod.ts`). Vitest 6/6 i `deno test` 7/7 amb els mateixos oracles i decimals string.
 
 ## D4 — Model de dades
 
@@ -136,3 +136,4 @@ Totes les calculadores actives són universals: apareixen al full de preus, al c
 | 2026-10-14 | — | Supòsits inicials d’aquest document | pla CF-29 |
 | 2026-10-14 | D10, D15 | D10 reescrit amb vector provat (deixa de ser una incògnita); D15 afegida (confirmació IA, abans amagada dins fase 7) | revisió CF-29 |
 | 2026-10-14 | D16 | Tags de classificació afegits (text lliure normalitzat, heretat del catàleg, només filtre, mai restricció) | revisió CF-29 |
+| 2026-10-14 | D3 | Spike tancat amb A: paquet `packages/price-calculator` compartit portal+Deno | implementació CF-29 |

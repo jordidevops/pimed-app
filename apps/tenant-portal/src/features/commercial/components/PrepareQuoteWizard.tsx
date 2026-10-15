@@ -8,12 +8,18 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/contexts/TenantContext'
+import { useEffectiveSettings } from '@/hooks/useSettings'
 import { useDocumentTemplates } from '@/features/signing/api/useDocumentTemplates'
 import { ProjectLinesSection } from '@/features/projects/components/ProjectLinesSection'
 import { updateProject } from '@/features/projects/api/projectsService'
 import { issueCommercialDocument } from '../api/commercialFlowService'
 import { commercialErrorMessage } from '../utils/commercialErrorMessage'
-import type { FormalizationMode } from '../utils/deviationApprovalThreshold'
+import {
+  COMMERCIAL_QUOTE_TEMPLATE_ID_KEY,
+  parseCommercialSettingId,
+  shouldSkipCommercialTemplateStep,
+  type FormalizationMode,
+} from '../utils/deviationApprovalThreshold'
 import type { CommercialDocumentDetail, CommercialDocumentLine } from '../utils/commercialDocumentModel'
 import { QUOTE_TEMPLATES_HREF, commercialTemplatesHref } from '../utils/commercialTemplatePaths'
 import { DocumentTemplateSelect } from './AgreementTemplateSelect'
@@ -76,9 +82,21 @@ export function PrepareQuoteWizard({
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const { activeTenant } = useTenant()
+  const { data: effectiveSettings } = useEffectiveSettings({
+    tenantId: activeTenant?.id ?? null,
+  })
+  const skipTemplateByDefault = shouldSkipCommercialTemplateStep(
+    effectiveSettings,
+    COMMERCIAL_QUOTE_TEMPLATE_ID_KEY,
+  )
+  const defaultQuoteTemplateId =
+    parseCommercialSettingId(effectiveSettings, COMMERCIAL_QUOTE_TEMPLATE_ID_KEY) ?? ''
   const [memory] = useState(() => readPrepareDraft(projectId))
   const [step, setStep] = useState<QuoteDraftStep>(isPrepareStep(memory?.step) ? memory.step : 'lines')
-  const [templateId, setTemplateId] = useState(memory?.templateId ?? '')
+  const [templateId, setTemplateId] = useState(
+    memory?.templateId ?? (skipTemplateByDefault ? defaultQuoteTemplateId : ''),
+  )
+  const [forceAskTemplate, setForceAskTemplate] = useState(false)
   const [mode, setMode] = useState<FormalizationMode>(
     initialFormalizationMode ??
       (memory?.mode === 'separate_agreement' || memory?.mode === 'signed_quote'
@@ -87,6 +105,27 @@ export function PrepareQuoteWizard({
   )
   const [title, setTitle] = useState(memory?.title?.trim() ? memory.title : projectName)
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (memory?.templateId) return
+    if (skipTemplateByDefault && !forceAskTemplate && !templateId && defaultQuoteTemplateId) {
+      setTemplateId(defaultQuoteTemplateId)
+    }
+  }, [
+    defaultQuoteTemplateId,
+    forceAskTemplate,
+    memory?.templateId,
+    skipTemplateByDefault,
+    templateId,
+  ])
+
+  function goAfterLines() {
+    if (skipTemplateByDefault && !forceAskTemplate) {
+      setStep('issue')
+      return
+    }
+    setStep('template')
+  }
   const titleRef = useRef(title)
   const projectNameRef = useRef(projectName)
   titleRef.current = title
@@ -277,7 +316,7 @@ export function PrepareQuoteWizard({
         canSelectStep={(next) => canSelectQuoteDraftStep(step, next, hasLines)}
         actions={
           step === 'lines' ? (
-            <Button type="button" disabled={!hasLines} onClick={() => setStep('template')}>
+            <Button type="button" disabled={!hasLines} onClick={goAfterLines}>
               {t('projects.quotes.wizard_continue', 'Continuar')}
             </Button>
           ) : step === 'template' ? (
@@ -291,7 +330,17 @@ export function PrepareQuoteWizard({
             </>
           ) : (
             <>
-              <Button type="button" variant="outline" onClick={() => setStep('template')}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (skipTemplateByDefault && !forceAskTemplate) {
+                    setStep('lines')
+                    return
+                  }
+                  setStep('template')
+                }}
+              >
                 {t('projects.quotes.wizard_back', 'Enrere')}
               </Button>
               <Button
@@ -323,7 +372,7 @@ export function PrepareQuoteWizard({
         <div className="space-y-4">
           <ProjectLinesSection projectId={projectId} siteId={siteId} />
           <div className="flex justify-end border-t border-border pt-3">
-            <Button type="button" disabled={!hasLines} onClick={() => setStep('template')}>
+            <Button type="button" disabled={!hasLines} onClick={goAfterLines}>
               {t('projects.quotes.wizard_continue', 'Continuar')}
             </Button>
           </div>
@@ -420,6 +469,28 @@ export function PrepareQuoteWizard({
             </p>
           </div>
           <FormalizationChoiceCards mode={mode} disabled={busy} onChange={chooseMode} />
+          {skipTemplateByDefault ? (
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2">
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  'projects.quotes.using_default_template',
+                  'S’usarà la plantilla per defecte del tenant.',
+                )}
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={busy}
+                onClick={() => {
+                  setForceAskTemplate(true)
+                  setStep('template')
+                }}
+              >
+                {t('projects.quotes.wizard_change_default', 'Canviar')}
+              </Button>
+            </div>
+          ) : null}
           {!hasLines ? (
             <p className="text-sm text-muted-foreground">
               {t(
@@ -429,7 +500,17 @@ export function PrepareQuoteWizard({
             </p>
           ) : null}
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-            <Button type="button" variant="outline" onClick={() => setStep('template')}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (skipTemplateByDefault && !forceAskTemplate) {
+                  setStep('lines')
+                  return
+                }
+                setStep('template')
+              }}
+            >
               {t('projects.quotes.wizard_back', 'Enrere')}
             </Button>
             <Button type="button" disabled={busy || !hasLines || !title.trim()} onClick={() => void issue()}>

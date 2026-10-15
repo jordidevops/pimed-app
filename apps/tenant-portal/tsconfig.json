@@ -16,7 +16,8 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@pimed/price-calculator": ["../../packages/price-calculator/src/index.ts"]
     },
     "types": ["node"]
   },

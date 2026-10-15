@@ -1,0 +1,23 @@
+{
+  "name": "PVC 100×150 ×2",
+  "params": {
+    "model": "pvc",
+    "width_cm": 100,
+    "height_cm": 150,
+    "units": 2
+  },
+  "expected_lines": [
+    {
+      "key": "blind",
+      "kind": "product",
+      "name": "Persiana PVC",
+      "description": null,
+      "unit": "m2",
+      "quantity": "3.000",
+      "unit_price": "80.00",
+      "discount_pct": "0.00",
+      "tax_rate": "21.00",
+      "allow_zero_price": false
+    }
+  ]
+}

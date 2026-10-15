@@ -33,6 +33,8 @@ interface CreateOrphanQuoteDialogProps {
   clientName?: string | null
   formalizationMode: FormalizationMode
   onBack?: () => void
+  /** CF-29: reobre el selector de formalització només per aquest document. */
+  onChangeFormalization?: () => void
 }
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
@@ -106,6 +108,7 @@ export function CreateOrphanQuoteDialog({
   clientName: fixedClientName = null,
   formalizationMode,
   onBack,
+  onChangeFormalization,
 }: CreateOrphanQuoteDialogProps) {
   const { t } = useTranslation(['projects', 'common'])
   const isFieldService = useIsFieldService()
@@ -403,17 +406,31 @@ export function CreateOrphanQuoteDialog({
             </p>
           ) : null}
 
-          <p className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-            {formalizationMode === 'separate_agreement'
-              ? t(
-                  'projects.quotes.wizard_formalization_separate_title',
-                  'Pressupost i contracte a part',
-                )
-              : t(
-                  'projects.quotes.wizard_formalization_signed_title',
-                  'El pressupost és el contracte',
-                )}
-          </p>
+          <div className="flex items-start justify-between gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              {formalizationMode === 'separate_agreement'
+                ? t(
+                    'projects.quotes.wizard_formalization_separate_title',
+                    'Pressupost i contracte a part',
+                  )
+                : t(
+                    'projects.quotes.wizard_formalization_signed_title',
+                    'El pressupost és el contracte',
+                  )}
+            </p>
+            {onChangeFormalization ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="shrink-0"
+                onClick={onChangeFormalization}
+                disabled={busy}
+              >
+                {t('projects.quotes.wizard_change_default', 'Canviar')}
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">

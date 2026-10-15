@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/contexts/TenantContext'
+import { usePermission } from '@/hooks/usePermission'
 import { useEffectiveSettings } from '@/hooks/useSettings'
 import { getCatalogItems, type CatalogItem } from '@/features/catalog/api/catalogService'
 import { unitSelectOptions } from '@/features/catalog/unitOptions'
@@ -41,11 +42,15 @@ import {
 } from '../api/commercialFlowService'
 import { commercialErrorMessage } from '../utils/commercialErrorMessage'
 import {
+  COMMERCIAL_QUOTE_TEMPLATE_ID_KEY,
+  parseCommercialSettingId,
   parseFormalizationModeDefault,
+  shouldSkipCommercialTemplateStep,
   type FormalizationMode,
 } from '../utils/deviationApprovalThreshold'
 import { DocumentTemplateSelect } from './AgreementTemplateSelect'
 import { ApplyPricingTemplateDialog, type DocumentPriceLineDraft } from './ApplyPricingTemplateDialog'
+import { ApplyCalculatorDialog } from './ApplyCalculatorDialog'
 import { CopyFromJobDialog } from './CopyFromJobDialog'
 import { LiveCommercialPreview } from './LiveCommercialPreview'
 import { PriceSheetAiComposer } from './PriceSheetAiComposer'
@@ -318,6 +323,7 @@ export function OrphanQuoteComposer({
   const { t } = useTranslation(['projects', 'common'])
   const { toast } = useToast()
   const { activeTenant } = useTenant()
+  const canEditPricing = usePermission('commercial.pricing.edit')
   const location = useLocation()
   const priceSheetTitle = usePriceSheetTitle()
   const isFieldService = useIsFieldService()
@@ -334,6 +340,7 @@ export function OrphanQuoteComposer({
   const [copyOpen, setCopyOpen] = useState(false)
   const [aiOpen, setAiOpen] = useState(false)
   const [templateOpen, setTemplateOpen] = useState(false)
+  const [calculatorOpen, setCalculatorOpen] = useState(false)
   const [docTitle, setDocTitle] = useState(title ?? '')
   const [catalogId, setCatalogId] = useState('')
   const [kind, setKind] = useState<'service' | 'product'>('service')
@@ -356,6 +363,13 @@ export function OrphanQuoteComposer({
     { tenantId: activeTenant?.id ?? '' },
     { enabled: !!activeTenant?.id },
   )
+  const skipTemplateByDefault = shouldSkipCommercialTemplateStep(
+    effective,
+    COMMERCIAL_QUOTE_TEMPLATE_ID_KEY,
+  )
+  const defaultQuoteTemplateId =
+    parseCommercialSettingId(effective, COMMERCIAL_QUOTE_TEMPLATE_ID_KEY) ?? ''
+  const [forceAskTemplate, setForceAskTemplate] = useState(false)
   const { data: templates = [] } = useDocumentTemplates(activeTenant?.id)
   const quoteTemplates = useMemo(
     () =>
@@ -416,6 +430,20 @@ export function OrphanQuoteComposer({
     if (nav?.step) setStep(nav.step)
   }, [nav?.templateId, nav?.step])
 
+  useEffect(() => {
+    if (nav?.templateId || doc.full_body_template_id) return
+    if (skipTemplateByDefault && !forceAskTemplate && !templateId && defaultQuoteTemplateId) {
+      setTemplateId(defaultQuoteTemplateId)
+    }
+  }, [
+    defaultQuoteTemplateId,
+    doc.full_body_template_id,
+    forceAskTemplate,
+    nav?.templateId,
+    skipTemplateByDefault,
+    templateId,
+  ])
+
   async function saveProgress(patch: {
     templateId?: string | null
     setTemplate?: boolean
@@ -437,6 +465,22 @@ export function OrphanQuoteComposer({
     setStep(next)
     void saveProgress({ wizardStep: next })
     void saveTitle()
+  }
+
+  function goAfterLines() {
+    if (skipTemplateByDefault && !forceAskTemplate) {
+      goStep('issue')
+      return
+    }
+    goStep('template')
+  }
+
+  function goBackFromIssue() {
+    if (skipTemplateByDefault && !forceAskTemplate) {
+      goStep('lines')
+      return
+    }
+    goStep('template')
   }
 
   function chooseTemplate(id: string) {
@@ -667,7 +711,7 @@ export function OrphanQuoteComposer({
         canSelectStep={(next) => canSelectQuoteDraftStep(step, next, lines.length > 0)}
         actions={
           step === 'lines' ? (
-            <Button type="button" disabled={lines.length === 0} onClick={() => goStep('template')}>
+            <Button type="button" disabled={lines.length === 0} onClick={goAfterLines}>
               {t('projects.quotes.wizard_continue', 'Continuar')}
             </Button>
           ) : step === 'template' ? (
@@ -681,7 +725,7 @@ export function OrphanQuoteComposer({
             </>
           ) : (
             <>
-              <Button type="button" variant="outline" onClick={() => goStep('template')}>
+              <Button type="button" variant="outline" onClick={goBackFromIssue}>
                 {t('projects.quotes.wizard_back', 'Enrere')}
               </Button>
               <Button type="button" variant="ghost" disabled={busy} onClick={() => setDiscardOpen(true)}>
@@ -721,6 +765,11 @@ export function OrphanQuoteComposer({
               <Button size="sm" variant="outline" onClick={() => setTemplateOpen(true)}>
                 {t('projects.lines.apply_template', 'Servei habitual')}
               </Button>
+              {canEditPricing ? (
+                <Button size="sm" variant="outline" onClick={() => setCalculatorOpen(true)}>
+                  {t('projects.lines.apply_calculator', 'Calculadora')}
+                </Button>
+              ) : null}
               <Button size="sm" onClick={() => setLineOpen(true)}>
                 <Plus className="mr-1.5 h-4 w-4" />
                 {t('projects.lines.add_line', 'Afegir línia')}
@@ -759,7 +808,7 @@ export function OrphanQuoteComposer({
             <OrphanPriceSheetTable lines={lines} busy={busy} onRemove={(id) => void removeLine(id)} />
           )}
           <div className="flex justify-end border-t border-border pt-3">
-            <Button type="button" disabled={lines.length === 0} onClick={() => goStep('template')}>
+            <Button type="button" disabled={lines.length === 0} onClick={goAfterLines}>
               {t('projects.quotes.wizard_continue', 'Continuar')}
             </Button>
           </div>
@@ -863,6 +912,28 @@ export function OrphanQuoteComposer({
               void saveProgress({ formalizationMode: next })
             }}
           />
+          {skipTemplateByDefault ? (
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2">
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  'projects.quotes.using_default_template',
+                  'S’usarà la plantilla per defecte del tenant.',
+                )}
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={busy}
+                onClick={() => {
+                  setForceAskTemplate(true)
+                  goStep('template')
+                }}
+              >
+                {t('projects.quotes.wizard_change_default', 'Canviar')}
+              </Button>
+            </div>
+          ) : null}
           {lines.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               {t('projects.commercial.issue_needs_lines', 'Afegeix almenys una línia al full de preus.')}
@@ -878,7 +949,7 @@ export function OrphanQuoteComposer({
             </p>
           ) : null}
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-            <Button type="button" variant="outline" onClick={() => goStep('template')}>
+            <Button type="button" variant="outline" onClick={goBackFromIssue}>
               {t('projects.quotes.wizard_back', 'Enrere')}
             </Button>
             <div className="flex flex-wrap gap-2">
@@ -1054,6 +1125,12 @@ export function OrphanQuoteComposer({
         </DialogContent>
       </Dialog>
       <ApplyPricingTemplateDialog projectId="" open={templateOpen} onClose={() => setTemplateOpen(false)} onApplied={onChanged} onApplyLines={(rows) => writeRows(rows, 'append')} />
+      <ApplyCalculatorDialog
+        documentId={documentId}
+        open={calculatorOpen}
+        onClose={() => setCalculatorOpen(false)}
+        onApplied={onChanged}
+      />
       <CopyFromJobDialog clientId={clientId} currentLineCount={lines.length} open={copyOpen} onClose={() => setCopyOpen(false)} onCopied={onChanged} onCopySource={copyFromProject} />
       <PriceSheetAiComposer projectId="" currentLineCount={lines.length} open={aiOpen} onClose={() => setAiOpen(false)} onApplied={onChanged} onApplyLines={applyAiLines} />
     </section>

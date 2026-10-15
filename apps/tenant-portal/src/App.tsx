@@ -48,6 +48,8 @@ import { ContactDetailPage } from './features/contacts/components/ContactDetailP
 import { CatalogLayout } from './features/catalog/components/CatalogLayout'
 import { CatalogItemsPage } from './features/catalog/components/CatalogItemsPage'
 import { CatalogPacksPage } from './features/catalog/components/CatalogPacksPage'
+import { CalculatorsListPage } from './features/catalog/components/CalculatorsListPage'
+import { CalculatorEditorPage } from './features/catalog/components/CalculatorEditorPage'
 import { DepartmentsPage } from './features/departments'
 import { LocationsPage } from './features/locations'
 import { EmployeesPage, EmployeeDetailPage, JobPositionsPage, OrganizationChartPage } from './features/employees'
@@ -223,6 +225,8 @@ export default function App() {
             <Route index element={<CatalogItemsPage key="services" />} />
             <Route path="products" element={<CatalogItemsPage key="products" />} />
             <Route path="packs" element={<CatalogPacksPage />} />
+            <Route path="calculators" element={<CalculatorsListPage />} />
+            <Route path="calculators/:id" element={<CalculatorEditorPage />} />
           </Route>
           <Route path="/departments" element={<DepartmentsPage />} />
           <Route path="/locations" element={<LocationsPage />} />

@@ -11,6 +11,7 @@ import { usePriceSheetTitle } from '@/hooks/useSectorLabel'
 import { rememberQuoteComposerChatContext } from '@/features/commercial/utils/quoteComposerChatContext'
 import { ProjectLineForm } from './ProjectLineForm'
 import { ApplyPricingTemplateDialog } from '@/features/commercial/components/ApplyPricingTemplateDialog'
+import { ApplyCalculatorDialog } from '@/features/commercial/components/ApplyCalculatorDialog'
 import { CopyFromJobDialog } from '@/features/commercial/components/CopyFromJobDialog'
 import { SaveAsHabitDialog } from '@/features/commercial/components/SaveAsHabitDialog'
 import { PriceSheetAiComposer } from '@/features/commercial/components/PriceSheetAiComposer'
@@ -51,6 +52,7 @@ export function ProjectLinesSection({ projectId, siteId }: ProjectLinesSectionPr
   const [addingLine, setAddingLine] = useState(false)
   const [editLine, setEditLine] = useState<ProjectLine | null>(null)
   const [templateOpen, setTemplateOpen] = useState(false)
+  const [calculatorOpen, setCalculatorOpen] = useState(false)
   const [copyOpen, setCopyOpen] = useState(false)
   const [habitOpen, setHabitOpen] = useState(false)
   const [aiOpen, setAiOpen] = useState(false)
@@ -172,6 +174,11 @@ export function ProjectLinesSection({ projectId, siteId }: ProjectLinesSectionPr
             <Button size="sm" variant="outline" onClick={() => setTemplateOpen(true)}>
               {t('projects.lines.apply_template', 'Servei habitual')}
             </Button>
+            {canEditPricing ? (
+              <Button size="sm" variant="outline" onClick={() => setCalculatorOpen(true)}>
+                {t('projects.lines.apply_calculator', 'Calculadora')}
+              </Button>
+            ) : null}
             <Button size="sm" onClick={() => setAddingLine(true)}>
               <Plus className="h-4 w-4 mr-1.5" />
               {t('projects.lines.add_line', 'Afegir línia')}
@@ -184,6 +191,12 @@ export function ProjectLinesSection({ projectId, siteId }: ProjectLinesSectionPr
         projectId={projectId}
         open={templateOpen}
         onClose={() => setTemplateOpen(false)}
+        onApplied={handleLineSaved}
+      />
+      <ApplyCalculatorDialog
+        projectId={projectId}
+        open={calculatorOpen}
+        onClose={() => setCalculatorOpen(false)}
         onApplied={handleLineSaved}
       />
       <CopyFromJobDialog

@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "parameters": [
+    {"key": "covers", "type": "integer", "min": 1, "required": true, "label": {"ca": "Coberts", "es": "Cubiertos", "en": "Covers"}},
+    {"key": "cold_addon", "type": "enum", "options_from": "cold_options", "required": true, "default": "none", "label": {"ca": "Fred industrial", "es": "Frío industrial", "en": "Cold storage"}}
+  ],
+  "tables": [
+    {
+      "key": "quota",
+      "lookup": "tier",
+      "input": "covers",
+      "bound_column": "max_covers",
+      "column_help": {
+        "max_covers": {"ca": "Límit superior de coberts del tram (buit = sense límit)", "es": "Límite de cubiertos", "en": "Upper covers bound"},
+        "eur_month": {"ca": "Quota mensual en € per aquest tram", "es": "Cuota mensual €", "en": "Monthly fee €"}
+      },
+      "rows": [
+        {"max_covers": 40, "eur_month": 180},
+        {"max_covers": 100, "eur_month": 320},
+        {"max_covers": null, "eur_month": 480}
+      ]
+    },
+    {
+      "key": "cold_options",
+      "lookup": "exact",
+      "input": "cold_addon",
+      "match_column": "id",
+      "column_help": {
+        "id": {"ca": "Opció de fred (ha de coincidir amb el paràmetre)", "es": "Opción de frío", "en": "Cold option id"},
+        "eur_month": {"ca": "Suplement mensual en €", "es": "Suplemento mensual €", "en": "Monthly addon €"}
+      },
+      "rows": [
+        {"id": "none", "label": {"ca": "Sense"}, "eur_month": 0},
+        {"id": "basic", "label": {"ca": "Càmera bàsica"}, "eur_month": 75},
+        {"id": "full", "label": {"ca": "Càmera + murals"}, "eur_month": 140}
+      ]
+    }
+  ],
+  "lines": [
+    {
+      "key": "maintenance",
+      "name": {"ca": "Manteniment mensual HORECA"},
+      "kind": "service",
+      "unit": "mes",
+      "quantity": {"op": "round", "decimals": 3, "mode": "half_away_from_zero", "value": {"op": "const", "value": 1}},
+      "unit_price": {
+        "op": "lookup_tier",
+        "table": "quota",
+        "value": {"op": "round", "decimals": 2, "mode": "half_away_from_zero", "value": {"op": "row", "field": "eur_month"}}
+      },
+      "discount_pct": {"op": "const", "value": 0},
+      "tax_rate": {"op": "const", "value": 21}
+    },
+    {
+      "key": "cold",
+      "when": {
+        "op": "cmp",
+        "cmp": "gt",
+        "left": {"op": "lookup_exact", "table": "cold_options", "field": "eur_month"},
+        "right": {"op": "const", "value": 0}
+      },
+      "name": {"ca": "Fred industrial"},
+      "kind": "service",
+      "unit": "mes",
+      "allow_zero_price": true,
+      "quantity": {"op": "round", "decimals": 3, "mode": "half_away_from_zero", "value": {"op": "const", "value": 1}},
+      "unit_price": {
+        "op": "round",
+        "decimals": 2,
+        "mode": "half_away_from_zero",
+        "value": {"op": "lookup_exact", "table": "cold_options", "field": "eur_month"}
+      },
+      "discount_pct": {"op": "const", "value": 0},
+      "tax_rate": {"op": "const", "value": 21}
+    }
+  ]
+}

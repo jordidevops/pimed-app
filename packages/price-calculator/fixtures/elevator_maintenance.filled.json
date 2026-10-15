@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "parameters": [
+    {"key": "stops", "type": "integer", "min": 1, "required": true, "default": 4, "label": {"ca": "Parades", "es": "Paradas", "en": "Stops"}},
+    {"key": "drive_type", "type": "enum", "options_from": "base_by_drive", "required": true, "label": {"ca": "Tipus de tracció", "es": "Tipo de tracción", "en": "Drive type"}}
+  ],
+  "constants": [
+    {"key": "eur_per_stop", "type": "money", "value": 85, "label": {"ca": "€ / parada / any"}}
+  ],
+  "tables": [
+    {
+      "key": "base_by_drive",
+      "lookup": "exact",
+      "input": "drive_type",
+      "match_column": "id",
+      "column_help": {
+        "id": {"ca": "Tipus de tracció (ha de coincidir amb el paràmetre)", "es": "Tipo de tracción", "en": "Drive type id"},
+        "eur_year": {"ca": "Quota base anual en €", "es": "Cuota base anual €", "en": "Annual base fee €"}
+      },
+      "rows": [
+        {"id": "electric", "label": {"ca": "Elèctric"}, "eur_year": 900},
+        {"id": "hydraulic", "label": {"ca": "Hidràulic"}, "eur_year": 1100}
+      ]
+    }
+  ],
+  "lines": [
+    {
+      "key": "base",
+      "name": {"ca": "Quota base anual"},
+      "kind": "service",
+      "unit": "any",
+      "quantity": {"op": "round", "decimals": 3, "mode": "half_away_from_zero", "value": {"op": "const", "value": 1}},
+      "unit_price": {
+        "op": "round",
+        "decimals": 2,
+        "mode": "half_away_from_zero",
+        "value": {"op": "lookup_exact", "table": "base_by_drive", "field": "eur_year"}
+      },
+      "discount_pct": {"op": "const", "value": 0},
+      "tax_rate": {"op": "const", "value": 21}
+    },
+    {
+      "key": "stops",
+      "name": {"ca": "Suplement per parades"},
+      "kind": "service",
+      "unit": "parada",
+      "quantity": {"op": "round", "decimals": 3, "mode": "half_away_from_zero", "value": {"op": "param", "key": "stops"}},
+      "unit_price": {"op": "round", "decimals": 2, "mode": "half_away_from_zero", "value": {"op": "const_ref", "key": "eur_per_stop"}},
+      "discount_pct": {"op": "const", "value": 0},
+      "tax_rate": {"op": "const", "value": 21}
+    }
+  ]
+}

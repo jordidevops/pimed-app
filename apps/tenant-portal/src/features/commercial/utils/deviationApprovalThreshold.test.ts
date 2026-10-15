@@ -7,6 +7,9 @@ import {
   parseAllowOfficeAccept,
   parseCommercialSettingId,
   parseFormalizationModeDefault,
+  readExplicitFormalizationModeDefault,
+  shouldSkipCommercialTemplateStep,
+  COMMERCIAL_QUOTE_TEMPLATE_ID_KEY,
   resolveActiveCommercialFullBodyTemplateId,
 } from './deviationApprovalThreshold'
 
@@ -76,6 +79,45 @@ describe('commercial full-body settings patch', () => {
       'signed_quote',
     )
     expect(parseFormalizationModeDefault(null)).toBe('signed_quote')
+  })
+
+  it('CF-29: only skips formalization when the default is explicit', () => {
+    expect(
+      readExplicitFormalizationModeDefault({
+        commercial: { formalization_mode_default: 'separate_agreement' },
+      }),
+    ).toBe('separate_agreement')
+    expect(
+      readExplicitFormalizationModeDefault({
+        commercial: { formalization_mode_default: 'signed_quote' },
+      }),
+    ).toBe('signed_quote')
+    expect(readExplicitFormalizationModeDefault({ commercial: {} })).toBeNull()
+    expect(
+      readExplicitFormalizationModeDefault({
+        commercial: { formalization_mode_default: 'other' },
+      }),
+    ).toBeNull()
+    expect(readExplicitFormalizationModeDefault(null)).toBeNull()
+  })
+
+  it('CF-29: skips template step when quote_template_id is set (uuid or none)', () => {
+    expect(
+      shouldSkipCommercialTemplateStep(
+        { commercial: { quote_template_id: 'abc' } },
+        COMMERCIAL_QUOTE_TEMPLATE_ID_KEY,
+      ),
+    ).toBe(true)
+    expect(
+      shouldSkipCommercialTemplateStep(
+        { commercial: { quote_template_id: COMMERCIAL_FULL_BODY_TEMPLATE_NONE } },
+        COMMERCIAL_QUOTE_TEMPLATE_ID_KEY,
+      ),
+    ).toBe(true)
+    expect(
+      shouldSkipCommercialTemplateStep({ commercial: {} }, COMMERCIAL_QUOTE_TEMPLATE_ID_KEY),
+    ).toBe(false)
+    expect(shouldSkipCommercialTemplateStep(null, COMMERCIAL_QUOTE_TEMPLATE_ID_KEY)).toBe(false)
   })
 
   it('resolves the active quote template like the SQL resolver', () => {

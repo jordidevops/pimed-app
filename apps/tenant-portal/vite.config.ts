@@ -64,6 +64,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@pimed/price-calculator': path.resolve(
+        __dirname,
+        '../../packages/price-calculator/src/index.ts',
+      ),
     },
   },
   optimizeDeps: {

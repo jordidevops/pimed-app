@@ -24,6 +24,7 @@ import {
   COMMERCIAL_AGREEMENT_TEMPLATE_ID_KEY,
   parseCommercialSettingId,
   parseWorkGateDefault,
+  shouldSkipCommercialTemplateStep,
 } from '../utils/deviationApprovalThreshold'
 import {
   PLATFORM_AGREEMENT_TEMPLATE_ID,
@@ -76,6 +77,7 @@ export function PrepareAgreementDialog({
     { enabled: open && !!tenantId },
   )
   const [templateId, setTemplateId] = useState('')
+  const [forceAskTemplate, setForceAskTemplate] = useState(false)
   const [agreement, setAgreement] = useState<AgreementRow | null>(null)
   const [version, setVersion] = useState<VersionRow | null>(null)
   const [busy, setBusy] = useState(false)
@@ -95,6 +97,12 @@ export function PrepareAgreementDialog({
   const [billingAnchorDay, setBillingAnchorDay] = useState('1')
   const [lastSubmissionId, setLastSubmissionId] = useState<string | null>(null)
 
+  const skipTemplateByDefault = shouldSkipCommercialTemplateStep(
+    effective,
+    COMMERCIAL_AGREEMENT_TEMPLATE_ID_KEY,
+  )
+  const showTemplatePicker = !skipTemplateByDefault || forceAskTemplate
+
   const agreementTemplates = templates.filter(
     (tpl) => tpl.category === 'commercial_agreement' && tpl.template_type === 'html' && tpl.id,
   )
@@ -102,6 +110,7 @@ export function PrepareAgreementDialog({
   useEffect(() => {
     if (!open) {
       setConfirmed(false)
+      setForceAskTemplate(false)
       setBlockWorkUntilActive(false)
       setAgreementKind('specific')
       setStartsOn('')
@@ -549,39 +558,59 @@ export function PrepareAgreementDialog({
                   ) : null}
                 </div>
               ) : null}
-              <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">
-                  {t('projects.commercial.prepare_agreement_template', 'Plantilla d’acord')}
-                </span>
-                <p className="text-xs text-muted-foreground">
-                  {t(
-                    'projects.commercial.prepare_agreement_template_help',
-                    'Model reutilitzable. Les dades del pressupost s’hi omplen en preparar.',
-                  )}
-                </p>
-                <AgreementTemplateSelect
-                  templates={agreementTemplates.map((tpl) => ({
-                    id: tpl.id!,
-                    name: tpl.name,
-                    is_platform_default: tpl.is_platform_default,
-                  }))}
-                  value={templateId}
-                  onChange={setTemplateId}
-                  disabled={busy}
-                />
-                <span className="text-xs text-muted-foreground">
-                  <Link to={AGREEMENT_TEMPLATES_HREF} className="text-indigo-600 hover:underline">
-                    {t('projects.agreements.manage_templates', 'Gestionar plantilles')}
-                  </Link>
-                  {' · '}
-                  <Link
-                    to={commercialTemplatesHref('commercial_agreement', { create: true })}
-                    className="text-indigo-600 hover:underline"
+              {showTemplatePicker ? (
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium">
+                    {t('projects.commercial.prepare_agreement_template', 'Plantilla d’acord')}
+                  </span>
+                  <p className="text-xs text-muted-foreground">
+                    {t(
+                      'projects.commercial.prepare_agreement_template_help',
+                      'Model reutilitzable. Les dades del pressupost s’hi omplen en preparar.',
+                    )}
+                  </p>
+                  <AgreementTemplateSelect
+                    templates={agreementTemplates.map((tpl) => ({
+                      id: tpl.id!,
+                      name: tpl.name,
+                      is_platform_default: tpl.is_platform_default,
+                    }))}
+                    value={templateId}
+                    onChange={setTemplateId}
+                    disabled={busy}
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    <Link to={AGREEMENT_TEMPLATES_HREF} className="text-indigo-600 hover:underline">
+                      {t('projects.agreements.manage_templates', 'Gestionar plantilles')}
+                    </Link>
+                    {' · '}
+                    <Link
+                      to={commercialTemplatesHref('commercial_agreement', { create: true })}
+                      className="text-indigo-600 hover:underline"
+                    >
+                      {t('projects.agreements.templates_new', 'Nova plantilla')}
+                    </Link>
+                  </span>
+                </label>
+              ) : (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2">
+                  <p className="text-sm text-muted-foreground">
+                    {t(
+                      'projects.quotes.using_default_template',
+                      'S’usarà la plantilla per defecte del tenant.',
+                    )}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => setForceAskTemplate(true)}
                   >
-                    {t('projects.agreements.templates_new', 'Nova plantilla')}
-                  </Link>
-                </span>
-              </label>
+                    {t('projects.quotes.wizard_change_default', 'Canviar')}
+                  </Button>
+                </div>
+              )}
             </>
           ) : null}
 

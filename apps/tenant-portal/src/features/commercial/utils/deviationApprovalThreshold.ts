@@ -67,6 +67,16 @@ export function parseWorkGateDefault(
 export function parseFormalizationModeDefault(
   effective: Record<string, unknown> | null | undefined,
 ): FormalizationMode {
+  return readExplicitFormalizationModeDefault(effective) ?? 'signed_quote'
+}
+
+/**
+ * CF-29 fase 3: només retorna mode si el tenant l’ha fixat explícitament
+ * (`signed_quote` | `separate_agreement`). Absent o invàlid → null (cal preguntar).
+ */
+export function readExplicitFormalizationModeDefault(
+  effective: Record<string, unknown> | null | undefined,
+): FormalizationMode | null {
   const commercial = effective?.commercial
   let raw: unknown
   if (commercial && typeof commercial === 'object' && !Array.isArray(commercial)) {
@@ -75,7 +85,22 @@ export function parseFormalizationModeDefault(
   if (raw == null) {
     raw = effective?.[`commercial.${COMMERCIAL_FORMALIZATION_MODE_DEFAULT_KEY}`]
   }
-  return raw === 'separate_agreement' ? 'separate_agreement' : 'signed_quote'
+  if (raw === 'signed_quote' || raw === 'separate_agreement') return raw
+  return null
+}
+
+/**
+ * CF-29 fase 3: si la clau quote/agreement template existeix (uuid o «none»),
+ * es pot saltar el selector. Absent → null (cal preguntar).
+ */
+export function shouldSkipCommercialTemplateStep(
+  effective: Record<string, unknown> | null | undefined,
+  key:
+    | typeof COMMERCIAL_QUOTE_TEMPLATE_ID_KEY
+    | typeof COMMERCIAL_AGREEMENT_TEMPLATE_ID_KEY
+    | typeof COMMERCIAL_DELIVERY_NOTE_TEMPLATE_ID_KEY,
+): boolean {
+  return readCommercialSettingRaw(effective, key) != null
 }
 /** Settings «Cap»: explicit QT-D1 fallback even when own clones exist. */
 export const COMMERCIAL_FULL_BODY_TEMPLATE_NONE = 'none' as const
