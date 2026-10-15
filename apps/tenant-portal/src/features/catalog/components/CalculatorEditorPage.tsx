@@ -18,14 +18,18 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { useTenant } from '@/contexts/TenantContext'
-import { AIGenerateAction } from '@/features/ai/components/AIGenerateAction'
 import {
   applyCalculatorPatches,
   demoteUnconfirmedTariffNumbers,
-  parseAiCalculatorDefinition,
-  parseAiCalculatorPatches,
+  isPatchesDraft,
+  parseAiConstantProposal,
+  parseAiParameterProposal,
+  type CalculatorAiProposal,
   type CalculatorPatch,
 } from '@/features/commercial/utils/calculatorAi'
+import { CalculatorAiDialog } from './CalculatorAiDialog'
+import { CalculatorEditorHelpSheet } from './CalculatorEditorHelpSheet'
+import { AI_EXAMPLE_CHIPS } from './calculatorAiExamples'
 import {
   activateClonedCalculator,
   canActivateCalculator,
@@ -47,9 +51,9 @@ import {
 import { readWhenMode, writeWhenMode, type WhenMode } from '@/features/commercial/utils/calculatorWhenMode'
 import { formatActivationGapList } from '@/features/commercial/utils/calculatorGapLabels'
 import { formatCalcErrorList } from '@/features/commercial/utils/calculatorErrorLabels'
+import { formatLineFormula } from '@/features/commercial/utils/formatCalculatorExpr'
 import {
   parseAiCalculatorFragment,
-  parseAiParameterProposal,
   type CalculatorFragmentKind,
 } from '@/features/commercial/utils/calculatorAi'
 import type {
@@ -71,7 +75,9 @@ import {
   defaultBlankLineExpr,
 } from './CalculatorExprBuilder'
 import { CalculatorWizards, type WizardKind } from './CalculatorWizards'
+import { CalculatorTravelWizard } from './CalculatorTravelWizard'
 import { CalculatorPreviewSheet } from './CalculatorPreviewSheet'
+import { DISCOUNT_CHIPS, unitSelectOptions } from '@/features/catalog/unitOptions'
 
 /** Tipus d’IVA comuns (hardcode temporal; pla futur: BD + admin). */
 const TAX_RATE_OPTIONS = [0, 4, 10, 21] as const
@@ -141,12 +147,19 @@ export function CalculatorEditorPage() {
   const [editingCaseId, setEditingCaseId] = useState<string | null>(null)
   const [pendingDeleteCase, setPendingDeleteCase] = useState<CalculatorCaseRow | null>(null)
   const [aiPrompt, setAiPrompt] = useState('')
+  const [fullAiOpen, setFullAiOpen] = useState(false)
+  const [fullAiEditMode, setFullAiEditMode] = useState(false)
   const [pendingPatches, setPendingPatches] = useState<
     Array<CalculatorPatch & { accepted: boolean }>
   >([])
   const [wizard, setWizard] = useState<WizardKind>(null)
   const [editParameterKey, setEditParameterKey] = useState<string | null>(null)
   const [draftParameter, setDraftParameter] = useState<Parameter | null>(null)
+  const [draftConstant, setDraftConstant] = useState<Constant | null>(null)
+  const [highlightItem, setHighlightItem] = useState<{
+    kind: 'parameter' | 'constant'
+    key: string
+  } | null>(null)
   const [addColumnForTable, setAddColumnForTable] = useState<string | null>(null)
   const [newColumnName, setNewColumnName] = useState('eur_')
   const [newColumnHelp, setNewColumnHelp] = useState('')
@@ -157,7 +170,12 @@ export function CalculatorEditorPage() {
     | null
   >(null)
   const [showHelp, setShowHelp] = useState(false)
-  const [showAdvancedExpr, setShowAdvancedExpr] = useState(false)
+  /** Claus de línia amb editor AST visible (per línia, no global). */
+  const [astOpenLines, setAstOpenLines] = useState<Set<string>>(() => new Set())
+  const [showTravelWizard, setShowTravelWizard] = useState(false)
+  const [travelPreferredDistance, setTravelPreferredDistance] = useState<string | null>(
+    null,
+  )
   const [sectionAiPrompt, setSectionAiPrompt] = useState<
     Record<CalculatorFragmentKind, string>
   >({
@@ -580,6 +598,25 @@ export function CalculatorEditorPage() {
     setDef(next)
   }
 
+  function flashHighlight(kind: 'parameter' | 'constant', key: string) {
+    setHighlightItem({ kind, key })
+    window.setTimeout(() => {
+      setHighlightItem((prev) => (prev?.kind === kind && prev.key === key ? null : prev))
+    }, 2800)
+    window.setTimeout(() => {
+      document
+        .getElementById(`calc-${kind}-${key}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }, 50)
+  }
+
+  function highlightClass(kind: 'parameter' | 'constant', key: string): string {
+    if (highlightItem?.kind === kind && highlightItem.key === key) {
+      return 'rounded-md ring-2 ring-primary bg-primary/10 transition-shadow duration-300'
+    }
+    return 'rounded-md transition-shadow duration-300'
+  }
+
   function addIvaConstant(rate: number) {
     if (!def) return
     const key = `iva_${rate}`
@@ -604,6 +641,7 @@ export function CalculatorEditorPage() {
       },
     ]
     setDef(next)
+    flashHighlight('constant', key)
   }
 
   function addBlankLine() {
@@ -921,14 +959,28 @@ export function CalculatorEditorPage() {
           setWizard(null)
           setEditParameterKey(null)
           setDraftParameter(null)
+          setDraftConstant(null)
         }}
         definition={def}
         editParameterKey={editParameterKey}
         draftParameter={draftParameter}
-        onApply={(next) => {
+        draftConstant={draftConstant}
+        onApply={(next, meta) => {
           setDef(next)
           setDraftParameter(null)
+          setDraftConstant(null)
+          if (meta) flashHighlight(meta.kind, meta.key)
         }}
+      />
+      <CalculatorTravelWizard
+        open={showTravelWizard}
+        onClose={() => {
+          setShowTravelWizard(false)
+          setTravelPreferredDistance(null)
+        }}
+        definition={def}
+        preferredDistanceKey={travelPreferredDistance}
+        onApply={(next) => setDef(next)}
       />
 
       <div className="flex flex-wrap items-center gap-2">
@@ -944,52 +996,19 @@ export function CalculatorEditorPage() {
             {t('catalog.calculators.has_version', 'Versió publicada')}
           </Badge>
         ) : null}
-        <Button type="button" variant="ghost" size="sm" onClick={() => setShowHelp((v) => !v)}>
-          {showHelp
-            ? t('catalog.calculators.hide_help', 'Amagar ajuda')
-            : t('catalog.calculators.show_help', 'Com funciona')}
+        <Button type="button" variant="ghost" size="sm" onClick={() => setShowHelp(true)}>
+          {t('catalog.calculators.show_help', 'Com funciona')}
         </Button>
       </div>
 
-      {showHelp ? (
-        <section className="space-y-2 rounded-xl border border-border bg-muted/30 p-4 text-sm">
-          <h2 className="text-base font-semibold">
-            {t('catalog.calculators.help_title', 'Com funciona una calculadora')}
-          </h2>
-          <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
-            <li>
-              {t(
-                'catalog.calculators.help_1',
-                'Paràmetres: el que demanaràs al pressupost (km, m², coberts…).',
-              )}
-            </li>
-            <li>
-              {t(
-                'catalog.calculators.help_2',
-                'Constants i taules: les teves tarifes (€/hora, trams de km, models…).',
-              )}
-            </li>
-            <li>
-              {t(
-                'catalog.calculators.help_3',
-                'Línies: el que surt al document (quantitat × preu). Usa l’assistent o plantilles.',
-              )}
-            </li>
-            <li>
-              {t(
-                'catalog.calculators.help_4',
-                'Prova: desa un escenari correcte abans d’activar. Després surt al flux ràpid.',
-              )}
-            </li>
-          </ol>
-          <p className="text-muted-foreground">
-            {t(
-              'catalog.calculators.help_library',
-              'Si vols començar de pressa: Catàleg → Biblioteca i clona un model llest.',
-            )}
-          </p>
-        </section>
-      ) : null}
+      <p className="max-w-3xl text-sm text-muted-foreground">
+        {t(
+          'catalog.calculators.editor_framing',
+          'Una calculadora és una plantilla que, en entrar valors, genera les línies del full de preus del pressupost (com afegir línies a mà, però amb fórmules i tarifes). Primer decideixes què vols cobrar; després configures dades i tarifes perquè, a l’ús, només calgui omplir el formulari.',
+        )}
+      </p>
+
+      <CalculatorEditorHelpSheet open={showHelp} onOpenChange={setShowHelp} />
 
       {showRetryActivate ? (
         <section className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/10 p-4">
@@ -1059,69 +1078,86 @@ export function CalculatorEditorPage() {
         <h2 className="text-base font-semibold">
           {t('catalog.calculators.ai_title', 'Proposar amb IA')}
         </h2>
-        <Textarea
-          value={aiPrompt}
-          onChange={(e) => setAiPrompt(e.target.value)}
-          rows={3}
+        <p className="text-sm text-muted-foreground">
+          {t(
+            'catalog.calculators.ai_dialog_full_hint',
+            'Diàleg multi-torn: la IA pot demanar aclariments i et mostra una proposta amb exemple abans d’aplicar.',
+          )}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => {
+              setFullAiEditMode(false)
+              setFullAiOpen(true)
+            }}
+          >
+            {t('catalog.calculators.ai_create', 'Generar definició')}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={!def || busy}
+            onClick={() => {
+              setFullAiEditMode(true)
+              setFullAiOpen(true)
+            }}
+          >
+            {t('catalog.calculators.ai_edit', 'Proposar canvis (diff)')}
+          </Button>
+        </div>
+        <CalculatorAiDialog
+          open={fullAiOpen}
+          onOpenChange={setFullAiOpen}
+          scope="full"
+          title={
+            fullAiEditMode
+              ? t('catalog.calculators.ai_edit', 'Proposar canvis (diff)')
+              : t('catalog.calculators.ai_create', 'Generar definició')
+          }
+          description={t(
+            'catalog.calculators.ai_dialog_full_desc',
+            'Revisa la proposta i l’exemple; només s’aplica quan cliques Aplicar.',
+          )}
+          initialPrompt={aiPrompt}
+          onInitialPromptChange={setAiPrompt}
           placeholder={t(
             'catalog.calculators.ai_ph',
             'Ex.: Cobra 40 €/hora i 1,2 €/km a partir de 30 km…',
           )}
+          definition={def}
+          editMode={fullAiEditMode}
+          busy={busy}
+          onReady={() => {
+            /* full no usa ready */
+          }}
+          onApplyProposal={(proposal: CalculatorAiProposal) => {
+            try {
+              if (isPatchesDraft(proposal.draft)) {
+                setPendingPatches(proposal.draft.patches.map((p) => ({ ...p, accepted: true })))
+                toast({
+                  title: t(
+                    'catalog.calculators.ai_diff_review',
+                    'Revisa el diff (lot sencer o res)',
+                  ),
+                })
+                return
+              }
+              setDef(demoteUnconfirmedTariffNumbers(proposal.draft, aiPrompt))
+              setPendingPatches([])
+              toast({
+                title: t('catalog.calculators.ai_applied', 'Proposta carregada (esborrany)'),
+              })
+            } catch (err) {
+              toast({
+                variant: 'destructive',
+                description: err instanceof Error ? err.message : t('common:error', 'Error'),
+              })
+            }
+          }}
         />
-        <div className="flex flex-wrap gap-2">
-          <AIGenerateAction
-            feature="commercial.calculator_definition"
-            responseFormat="json"
-            hideStatusBanners={false}
-            disabled={!aiPrompt.trim() || busy}
-            label={t('catalog.calculators.ai_create', 'Generar definició')}
-            messages={[
-              {
-                role: 'user',
-                content: `Crea una Definition schema_version=1 a partir d’això (sense inventar preus no dits):\n${aiPrompt}`,
-              },
-            ]}
-            onSuccess={(result) => {
-              try {
-                const parsed = parseAiCalculatorDefinition(result.content)
-                setDef(demoteUnconfirmedTariffNumbers(parsed, aiPrompt))
-                setPendingPatches([])
-                toast({
-                  title: t('catalog.calculators.ai_applied', 'Proposta carregada (esborrany)'),
-                })
-              } catch (err) {
-                toast({
-                  variant: 'destructive',
-                  description: err instanceof Error ? err.message : t('common:error', 'Error'),
-                })
-              }
-            }}
-          />
-          <AIGenerateAction
-            feature="commercial.calculator_definition"
-            responseFormat="json"
-            hideStatusBanners
-            disabled={!aiPrompt.trim() || !def || busy}
-            label={t('catalog.calculators.ai_edit', 'Proposar canvis (diff)')}
-            messages={[
-              {
-                role: 'user',
-                content: `Edició: retorna només { "patches": [...] } sobre aquesta definició.\nDefinició actual:\n${JSON.stringify(def)}\nCanvi demanat:\n${aiPrompt}`,
-              },
-            ]}
-            onSuccess={(result) => {
-              try {
-                const patches = parseAiCalculatorPatches(result.content)
-                setPendingPatches(patches.map((p) => ({ ...p, accepted: true })))
-              } catch (err) {
-                toast({
-                  variant: 'destructive',
-                  description: err instanceof Error ? err.message : t('common:error', 'Error'),
-                })
-              }
-            }}
-          />
-        </div>
         {pendingPatches.length > 0 ? (
           <div className="space-y-2 rounded-lg border border-border p-3">
             <p className="text-sm font-medium">
@@ -1280,15 +1316,25 @@ export function CalculatorEditorPage() {
               setPrompt={(v) => setSectionAiPrompt((prev) => ({ ...prev, parameter: v }))}
               definition={def}
               busy={busy}
-              onMerged={(next) => setDef(next)}
+              onMerged={(next, key) => {
+                setDef(next)
+                if (key) flashHighlight('parameter', key)
+              }}
               onProposeParameter={(param) => {
                 setEditParameterKey(null)
+                setDraftConstant(null)
                 setDraftParameter(param)
                 setWizard('parameter')
               }}
             />
           </div>
         </div>
+        <p className="text-sm text-muted-foreground">
+          {t(
+            'catalog.calculators.params_section_help',
+            'El que demanaràs al pressupost (km, hores, m²…). Crea’ls abans de les línies: l’assistent les enllaça per clau.',
+          )}
+        </p>
         {(def.parameters ?? []).length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {t(
@@ -1299,7 +1345,11 @@ export function CalculatorEditorPage() {
         ) : (
           <ul className="space-y-1 text-sm">
             {def.parameters.map((p) => (
-              <li key={p.key} className="flex flex-wrap items-center justify-between gap-2">
+              <li
+                key={p.key}
+                id={`calc-parameter-${p.key}`}
+                className={`flex flex-wrap items-center justify-between gap-2 px-2 py-1.5 ${highlightClass('parameter', p.key)}`}
+              >
                 <span className="text-muted-foreground">
                   {resolveLocale(p.label, 'ca') || p.key}
                   {p.unit ? (
@@ -1311,6 +1361,24 @@ export function CalculatorEditorPage() {
                   </span>
                 </span>
                 <div className="flex flex-wrap gap-1">
+                  {p.unit?.toLowerCase() === 'km' ||
+                  p.key.toLowerCase().includes('distance') ||
+                  p.key.toLowerCase().includes('km') ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setTravelPreferredDistance(p.key)
+                        setShowTravelWizard(true)
+                      }}
+                    >
+                      {t(
+                        'catalog.calculators.travel_from_param',
+                        'Línia de desplaçament…',
+                      )}
+                    </Button>
+                  ) : null}
                   <Button
                     type="button"
                     size="sm"
@@ -1343,7 +1411,15 @@ export function CalculatorEditorPage() {
             {t('catalog.calculators.constants', 'Constants / tarifes')}
           </h2>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" variant="outline" onClick={() => setWizard('constant')}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setDraftConstant(null)
+                setWizard('constant')
+              }}
+            >
               {t('catalog.calculators.add_with_wizard', 'Afegir amb assistent')}
             </Button>
             <SectionAiButton
@@ -1352,10 +1428,24 @@ export function CalculatorEditorPage() {
               setPrompt={(v) => setSectionAiPrompt((prev) => ({ ...prev, constant: v }))}
               definition={def}
               busy={busy}
-              onMerged={(next) => setDef(next)}
+              onMerged={(next, key) => {
+                setDef(next)
+                if (key) flashHighlight('constant', key)
+              }}
+              onProposeConstant={(c) => {
+                setDraftParameter(null)
+                setDraftConstant(c)
+                setWizard('constant')
+              }}
             />
           </div>
         </div>
+        <p className="text-sm text-muted-foreground">
+          {t(
+            'catalog.calculators.constants_section_help',
+            'Preus fixos (€/h, €/l…). L’etiqueta és el que veus; la clau tècnica (entre parèntesis als desplegables) és el que usen les línies.',
+          )}
+        </p>
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs text-muted-foreground">
             {t(
@@ -1376,11 +1466,18 @@ export function CalculatorEditorPage() {
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {(def.constants ?? []).map((c: Constant) => (
-            <div key={c.key} className="space-y-1">
+            <div
+              key={c.key}
+              id={`calc-constant-${c.key}`}
+              className={`space-y-1 p-2 ${highlightClass('constant', c.key)}`}
+            >
               <div className="flex items-center justify-between gap-2">
-                <Label htmlFor={`const-${c.key}`}>
-                  {resolveLocale(c.label, 'ca') || c.key}
-                </Label>
+                <div className="min-w-0">
+                  <Label htmlFor={`const-${c.key}`}>
+                    {resolveLocale(c.label, 'ca') || c.key}
+                  </Label>
+                  <p className="font-mono text-[10px] text-muted-foreground">{c.key}</p>
+                </div>
                 <Button
                   type="button"
                   size="sm"
@@ -1407,6 +1504,506 @@ export function CalculatorEditorPage() {
         </div>
       </section>
 
+      <section className="space-y-3 rounded-xl border border-border p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-semibold">
+            {t('catalog.calculators.lines', 'Línies')}
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" onClick={() => setWizard('line')}>
+              {t('catalog.calculators.add_with_wizard', 'Afegir amb assistent')}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setTravelPreferredDistance(null)
+                setShowTravelWizard(true)
+              }}
+            >
+              {t('catalog.calculators.add_travel', 'Desplaçament…')}
+            </Button>
+            <SectionAiButton
+              kind="line"
+              prompt={sectionAiPrompt.line}
+              setPrompt={(v) => setSectionAiPrompt((prev) => ({ ...prev, line: v }))}
+              definition={def}
+              busy={busy}
+              onMerged={(next) => setDef(next)}
+            />
+            <Button type="button" size="sm" variant="outline" onClick={addBlankLine}>
+              {t('catalog.calculators.add_line', 'Línia buida')}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                const keys = (def.lines ?? []).map((l) => l.key)
+                const allOpen =
+                  keys.length > 0 && keys.every((k) => astOpenLines.has(k))
+                setAstOpenLines(allOpen ? new Set() : new Set(keys))
+              }}
+            >
+              {(def.lines ?? []).length > 0 &&
+              (def.lines ?? []).every((l) => astOpenLines.has(l.key))
+                ? t('catalog.calculators.hide_advanced', 'Amagar avançat')
+                : t('catalog.calculators.show_advanced', 'Avançat (AST)')}
+            </Button>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {t(
+            'catalog.calculators.lines_section_help',
+            'El que surt al pressupost. L’assistent enllaça paràmetres i constants ja creats; si encara no n’hi ha, crea’ls abans. Per trams: crea la taula i després la línia amb lookup.',
+          )}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {t(
+            'catalog.calculators.logic_blocks',
+            'Prefereix l’assistent amb plantilles. L’editor avançat de blocs queda sota «Avançat».',
+          )}
+        </p>
+        {(def.lines ?? []).length === 0 ? (
+          <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
+            {t(
+              'catalog.calculators.lines_empty_banner',
+              'Afegeix almenys una línia (assistent) abans de publicar o activar.',
+            )}
+          </p>
+        ) : null}
+        <div className="space-y-3">
+          {def.lines.map((line) => {
+            const mode = readWhenMode(line.when, boolParams)
+            const formula = formatLineFormula(line.quantity, line.unit_price, def, 'ca')
+            const unitOptions = unitSelectOptions(line.unit)
+            const discountPct = unwrapConstNumber(line.discount_pct)
+            const showAst = astOpenLines.has(line.key)
+            return (
+              <div
+                key={line.key}
+                className="space-y-4 rounded-lg border border-border/70 p-3"
+              >
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => removeLine(line.key)}
+                  >
+                    {t('catalog.calculators.remove', 'Treure')}
+                  </Button>
+                </div>
+
+                {/* Mateix layout que afegir línia al full de preus (OS) */}
+                <div className="space-y-4">
+                  <p className="text-xs text-muted-foreground">
+                    {t(
+                      'catalog.calculators.line_sheet_equiv',
+                      'Mateixos camps que una línia del full de preus. Quantitat i preu unitari es calculen (no s’editen a mà).',
+                    )}
+                  </p>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label className="mb-1.5 block">
+                        {t('catalog.calculators.line_kind', 'Tipus')}
+                      </Label>
+                      <select
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        value={line.kind}
+                        onChange={(e) =>
+                          updateLineMeta(line.key, {
+                            kind: e.target.value as 'product' | 'service',
+                          })
+                        }
+                      >
+                        <option value="service">
+                          {t('catalog.calculators.kind_service', 'Servei')}
+                        </option>
+                        <option value="product">
+                          {t('catalog.calculators.kind_product', 'Producte')}
+                        </option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="mb-1.5 block">
+                        {t('catalog.calculators.line_name', 'Descripció')}
+                      </Label>
+                      <Input
+                        value={resolveLocale(line.name, 'ca')}
+                        onChange={(e) =>
+                          updateLineMeta(line.key, { nameCa: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label className="mb-1.5 block">
+                        {t('catalog.calculators.expr_qty', 'Quantitat')}
+                      </Label>
+                      <Input
+                        value={formula.quantity}
+                        disabled
+                        title={formula.quantity}
+                        className="disabled:cursor-default disabled:opacity-80"
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {t(
+                          'catalog.calculators.line_field_computed',
+                          'Calculat per fórmula',
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="mb-1.5 block">
+                        {t('catalog.calculators.line_unit', 'Unitat')}
+                      </Label>
+                      <select
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        value={line.unit || 'u'}
+                        onChange={(e) =>
+                          updateLineMeta(line.key, { unit: e.target.value })
+                        }
+                      >
+                        {unitOptions.map((u) => (
+                          <option key={u} value={u}>
+                            {u}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="mb-1.5 block">
+                        {t('catalog.calculators.expr_price', 'Preu unitari')}
+                      </Label>
+                      <Input
+                        value={formula.unitPrice}
+                        disabled
+                        title={formula.unitPrice}
+                        className="disabled:cursor-default disabled:opacity-80"
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {t(
+                          'catalog.calculators.line_field_computed',
+                          'Calculat per fórmula',
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="mb-1.5 block">
+                      {t('catalog.calculators.line_unit_cost', 'Cost unitari (€)')}
+                    </Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={line.unit_cost ?? ''}
+                      placeholder="0.00"
+                      onChange={(e) => {
+                        const raw = e.target.value.trim()
+                        updateLineMeta(line.key, {
+                          unit_cost: raw === '' ? null : Number(raw.replace(',', '.')),
+                        })
+                      }}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t(
+                        'catalog.calculators.line_unit_cost_help',
+                        'Opcional. No surt al pressupost ni al PDF.',
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="mb-1.5 block">
+                        {t('catalog.calculators.line_discount', 'Descompte (%)')}
+                      </Label>
+                      {isSimpleConstExpr(line.discount_pct) ? (
+                        <>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            max={100}
+                            value={discountPct ?? 0}
+                            onChange={(e) => {
+                              const n = Number(e.target.value.replace(',', '.'))
+                              updateLineMeta(line.key, {
+                                discount_pct: constExpr(Number.isFinite(n) ? n : 0),
+                              })
+                            }}
+                          />
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {DISCOUNT_CHIPS.map((d) => (
+                              <button
+                                key={d}
+                                type="button"
+                                onClick={() =>
+                                  updateLineMeta(line.key, {
+                                    discount_pct: constExpr(d),
+                                  })
+                                }
+                                className={`rounded-md border px-2 py-0.5 text-xs tabular-nums transition-colors ${
+                                  discountPct === d
+                                    ? 'border-primary bg-primary/10 text-primary'
+                                    : 'border-border text-muted-foreground hover:bg-accent'
+                                }`}
+                              >
+                                {d}%
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          {t(
+                            'catalog.calculators.expr_advanced_field',
+                            'Definit amb expressió avançada (AST).',
+                          )}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="mb-1.5 block">
+                        {t('catalog.calculators.line_tax', 'IVA (%)')}
+                      </Label>
+                      {isSimpleConstExpr(line.tax_rate) ? (
+                        <select
+                          className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                          value={String(unwrapConstNumber(line.tax_rate) ?? 21)}
+                          onChange={(e) =>
+                            updateLineMeta(line.key, {
+                              tax_rate: constExpr(Number(e.target.value)),
+                            })
+                          }
+                        >
+                          {TAX_RATE_OPTIONS.map((r) => (
+                            <option key={r} value={r}>
+                              {r}%
+                            </option>
+                          ))}
+                          {!TAX_RATE_OPTIONS.includes(
+                            (unwrapConstNumber(line.tax_rate) ??
+                              21) as (typeof TAX_RATE_OPTIONS)[number],
+                          ) ? (
+                            <option value={String(unwrapConstNumber(line.tax_rate))}>
+                              {unwrapConstNumber(line.tax_rate)}%
+                            </option>
+                          ) : null}
+                        </select>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          {t(
+                            'catalog.calculators.expr_advanced_field',
+                            'Definit amb expressió avançada (AST).',
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Condició + fórmula (específic de calculadora) */}
+                <div className="space-y-3 rounded-md border border-dashed border-border bg-muted/20 px-3 py-3">
+                  <p className="text-sm font-medium">
+                    {t(
+                      'catalog.calculators.line_logic_title',
+                      'Com es calcula aquesta línia',
+                    )}
+                  </p>
+                  <div className="space-y-1">
+                    <Label>
+                      {t('catalog.calculators.line_include', 'Incloure la línia')}
+                    </Label>
+                    <div className="flex max-w-lg flex-wrap items-center gap-2">
+                      <select
+                        className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm"
+                        value={
+                          mode.mode === 'bool_param'
+                            ? `bool:${mode.paramKey}`
+                            : mode.mode === 'complex'
+                              ? 'complex'
+                              : mode.mode
+                        }
+                        onChange={(e) => {
+                          const v = e.target.value
+                          if (v === 'always' || v === 'never') {
+                            updateLineMeta(line.key, { whenMode: v })
+                            return
+                          }
+                          if (v.startsWith('bool:')) {
+                            updateLineMeta(line.key, {
+                              whenMode: 'bool_param',
+                              whenParam: v.slice(5),
+                            })
+                          }
+                        }}
+                      >
+                        <option value="always">
+                          {t('catalog.calculators.when_always', 'Sempre')}
+                        </option>
+                        <option value="never">
+                          {t('catalog.calculators.when_never', 'Mai')}
+                        </option>
+                        {boolParams.map((p) => (
+                          <option key={p.key} value={`bool:${p.key}`}>
+                            {t('catalog.calculators.when_if', 'Si')}{' '}
+                            {resolveLocale(p.label, 'ca') || p.key}
+                          </option>
+                        ))}
+                        {mode.mode === 'complex' ? (
+                          <option value="complex">
+                            {t(
+                              'catalog.calculators.when_complex_opt',
+                              'Condició avançada',
+                            )}
+                          </option>
+                        ) : null}
+                      </select>
+                      {mode.mode === 'complex' ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="shrink-0"
+                          onClick={() => {
+                            setAstOpenLines((prev) => {
+                              const next = new Set(prev)
+                              if (next.has(line.key)) next.delete(line.key)
+                              else next.add(line.key)
+                              return next
+                            })
+                          }}
+                        >
+                          {showAst
+                            ? t('catalog.calculators.hide_ast', 'Amagar AST')
+                            : t('catalog.calculators.view_ast', 'Veure AST')}
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      {t(
+                        'catalog.calculators.line_formula_label',
+                        'Fórmula (quantitat × preu unitari)',
+                      )}
+                    </p>
+                    <p className="text-base font-medium leading-snug">{formula.product}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-4">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(line.allow_zero_price)}
+                        onChange={(e) =>
+                          updateLineMeta(line.key, {
+                            allow_zero_price: e.target.checked,
+                          })
+                        }
+                      />
+                      {t('catalog.calculators.allow_zero', 'Permet preu 0')}
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(line.prompt_qty_price)}
+                        onChange={(e) => {
+                          const on = e.target.checked
+                          updateLineMeta(line.key, { prompt_qty_price: on })
+                          if (!on) {
+                            setLineOverrides((prev) => {
+                              if (!(line.key in prev)) return prev
+                              const next = { ...prev }
+                              delete next[line.key]
+                              return next
+                            })
+                          }
+                        }}
+                      />
+                      {t(
+                        'catalog.calculators.prompt_qty_price',
+                        'Demanar quantitat i preu',
+                      )}
+                    </label>
+                  </div>
+
+                  {showAst ? (
+                    <div className="space-y-3 border-t border-border/60 pt-3">
+                      <div className="space-y-1">
+                        <Label>{t('catalog.calculators.expr_qty', 'Quantitat')}</Label>
+                        <CalculatorExprBuilder
+                          value={line.quantity}
+                          definition={def}
+                          onChange={(quantity) =>
+                            updateLineMeta(line.key, { quantity })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>
+                          {t('catalog.calculators.expr_price', 'Preu unitari')}
+                        </Label>
+                        <CalculatorExprBuilder
+                          value={line.unit_price}
+                          definition={def}
+                          onChange={(unit_price) =>
+                            updateLineMeta(line.key, { unit_price })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>
+                          {t('catalog.calculators.expr_when', 'Condició d’inclusió')}
+                        </Label>
+                        {line.when ? (
+                          <CalculatorExprBuilder
+                            value={line.when}
+                            definition={def}
+                            allowBoolean
+                            onChange={(whenExpr) =>
+                              updateLineMeta(line.key, { whenExpr })
+                            }
+                          />
+                        ) : (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              updateLineMeta(line.key, {
+                                whenExpr: {
+                                  op: 'cmp',
+                                  cmp: 'gt',
+                                  left: {
+                                    op: 'param',
+                                    key: def.parameters[0]?.key ?? 'x',
+                                  },
+                                  right: { op: 'const', value: 0 },
+                                },
+                              })
+                            }
+                          >
+                            {t('catalog.calculators.add_when', 'Afegir condició')}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-xl border border-border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-base font-semibold">
           {t('catalog.calculators.tables', 'Taules')}
@@ -1451,14 +2048,14 @@ export function CalculatorEditorPage() {
         <p className="text-sm text-muted-foreground">
           {t(
             'catalog.calculators.tables_empty',
-            'Sense taules. Opcional si tot va amb constants. El valor d’una columna (eur_base, hours…) es llegeix a les Línies, no aquí.',
+            'Sense taules. Opcional si tot va amb constants. Després de crear-la, torna a Línies per enllaçar-hi un lookup.',
           )}
         </p>
       ) : (
         <p className="text-sm text-muted-foreground">
           {t(
             'catalog.calculators.tables_expr_hint',
-            'La primera columna (límit/cerca) tria la fila. Les altres són dades. Quina dada s’usa es defineix a Línies (assistent o Avançat AST).',
+            'La taula guarda files/columnes; sense una línia que faci lookup no afecta el total. La primera columna tria la fila; quina dada s’usa es defineix a Línies.',
           )}
         </p>
       )}
@@ -1804,317 +2401,8 @@ export function CalculatorEditorPage() {
         </DialogContent>
       </Dialog>
 
-      <section className="space-y-3 rounded-xl border border-border p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-base font-semibold">
-            {t('catalog.calculators.lines', 'Línies')}
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" onClick={() => setWizard('line')}>
-              {t('catalog.calculators.add_with_wizard', 'Afegir amb assistent')}
-            </Button>
-            <SectionAiButton
-              kind="line"
-              prompt={sectionAiPrompt.line}
-              setPrompt={(v) => setSectionAiPrompt((prev) => ({ ...prev, line: v }))}
-              definition={def}
-              busy={busy}
-              onMerged={(next) => setDef(next)}
-            />
-            <Button type="button" size="sm" variant="outline" onClick={addBlankLine}>
-              {t('catalog.calculators.add_line', 'Línia buida')}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={() => setShowAdvancedExpr((v) => !v)}
-            >
-              {showAdvancedExpr
-                ? t('catalog.calculators.hide_advanced', 'Amagar avançat')
-                : t('catalog.calculators.show_advanced', 'Avançat (AST)')}
-            </Button>
-          </div>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {t(
-            'catalog.calculators.logic_blocks',
-            'Prefereix l’assistent amb plantilles. L’editor avançat de blocs queda sota «Avançat».',
-          )}
-        </p>
-        {(def.lines ?? []).length === 0 ? (
-          <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
-            {t(
-              'catalog.calculators.lines_empty_banner',
-              'Afegeix almenys una línia (assistent) abans de publicar o activar.',
-            )}
-          </p>
-        ) : null}
-        <div className="space-y-3">
-          {def.lines.map((line) => {
-            const mode = readWhenMode(line.when, boolParams)
-            return (
-              <div
-                key={line.key}
-                className="space-y-3 rounded-lg border border-border/70 p-3"
-              >
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => removeLine(line.key)}
-                  >
-                    {t('catalog.calculators.remove', 'Treure')}
-                  </Button>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="space-y-1">
-                    <Label>{t('catalog.calculators.line_name', 'Nom')}</Label>
-                    <Input
-                      value={resolveLocale(line.name, 'ca')}
-                      onChange={(e) => updateLineMeta(line.key, { nameCa: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>{t('catalog.calculators.line_unit', 'Unitat')}</Label>
-                    <Input
-                      value={line.unit}
-                      onChange={(e) => updateLineMeta(line.key, { unit: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>{t('catalog.calculators.line_kind', 'Tipus')}</Label>
-                    <select
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                      value={line.kind}
-                      onChange={(e) =>
-                        updateLineMeta(line.key, {
-                          kind: e.target.value as 'product' | 'service',
-                        })
-                      }
-                    >
-                      <option value="service">service</option>
-                      <option value="product">product</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label>{t('catalog.calculators.line_when_simple', 'Quan (ràpid)')}</Label>
-                    <select
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                      value={
-                        mode.mode === 'bool_param'
-                          ? `bool:${mode.paramKey}`
-                          : mode.mode === 'complex'
-                            ? 'complex'
-                            : mode.mode
-                      }
-                      onChange={(e) => {
-                        const v = e.target.value
-                        if (v === 'always' || v === 'never') {
-                          updateLineMeta(line.key, { whenMode: v })
-                          return
-                        }
-                        if (v.startsWith('bool:')) {
-                          updateLineMeta(line.key, {
-                            whenMode: 'bool_param',
-                            whenParam: v.slice(5),
-                          })
-                        }
-                      }}
-                    >
-                      <option value="always">
-                        {t('catalog.calculators.when_always', 'Sempre')}
-                      </option>
-                      <option value="never">
-                        {t('catalog.calculators.when_never', 'Mai')}
-                      </option>
-                      {boolParams.map((p) => (
-                        <option key={p.key} value={`bool:${p.key}`}>
-                          {t('catalog.calculators.when_if', 'Si')}{' '}
-                          {resolveLocale(p.label, 'ca') || p.key}
-                        </option>
-                      ))}
-                      {mode.mode === 'complex' ? (
-                        <option value="complex">
-                          {t('catalog.calculators.when_complex_opt', 'Condició avançada')}
-                        </option>
-                      ) : null}
-                    </select>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-4">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(line.allow_zero_price)}
-                      onChange={(e) =>
-                        updateLineMeta(line.key, { allow_zero_price: e.target.checked })
-                      }
-                    />
-                    {t('catalog.calculators.allow_zero', 'Permet preu 0')}
-                  </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(line.prompt_qty_price)}
-                      onChange={(e) => {
-                        const on = e.target.checked
-                        updateLineMeta(line.key, { prompt_qty_price: on })
-                        if (!on) {
-                          setLineOverrides((prev) => {
-                            if (!(line.key in prev)) return prev
-                            const next = { ...prev }
-                            delete next[line.key]
-                            return next
-                          })
-                        }
-                      }}
-                    />
-                    {t(
-                      'catalog.calculators.prompt_qty_price',
-                      'Demanar quantitat i preu',
-                    )}
-                  </label>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="space-y-1">
-                    <Label>{t('catalog.calculators.line_discount', 'Descompte %')}</Label>
-                    {isSimpleConstExpr(line.discount_pct) ? (
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={unwrapConstNumber(line.discount_pct) ?? 0}
-                        onChange={(e) => {
-                          const n = Number(e.target.value.replace(',', '.'))
-                          updateLineMeta(line.key, {
-                            discount_pct: constExpr(Number.isFinite(n) ? n : 0),
-                          })
-                        }}
-                      />
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        {t(
-                          'catalog.calculators.expr_advanced_field',
-                          'Definit amb expressió avançada (AST).',
-                        )}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    <Label>{t('catalog.calculators.line_tax', 'IVA %')}</Label>
-                    {isSimpleConstExpr(line.tax_rate) ? (
-                      <select
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                        value={String(unwrapConstNumber(line.tax_rate) ?? 21)}
-                        onChange={(e) =>
-                          updateLineMeta(line.key, {
-                            tax_rate: constExpr(Number(e.target.value)),
-                          })
-                        }
-                      >
-                        {TAX_RATE_OPTIONS.map((r) => (
-                          <option key={r} value={r}>
-                            {r}%
-                          </option>
-                        ))}
-                        {!TAX_RATE_OPTIONS.includes(
-                          (unwrapConstNumber(line.tax_rate) ?? 21) as (typeof TAX_RATE_OPTIONS)[number],
-                        ) ? (
-                          <option value={String(unwrapConstNumber(line.tax_rate))}>
-                            {unwrapConstNumber(line.tax_rate)}%
-                          </option>
-                        ) : null}
-                      </select>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        {t(
-                          'catalog.calculators.expr_advanced_field',
-                          'Definit amb expressió avançada (AST).',
-                        )}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    <Label>
-                      {t('catalog.calculators.line_unit_cost', 'Cost unitari (€)')}
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={line.unit_cost ?? ''}
-                      placeholder={t('catalog.calculators.empty_value', 'Buit')}
-                      onChange={(e) => {
-                        const raw = e.target.value.trim()
-                        updateLineMeta(line.key, {
-                          unit_cost: raw === '' ? null : Number(raw.replace(',', '.')),
-                        })
-                      }}
-                    />
-                  </div>
-                </div>
-                {!showAdvancedExpr ? (
-                  <p className="text-xs text-muted-foreground font-mono">
-                    qty={line.quantity.op} · price={line.unit_price.op}
-                    {line.when ? ` · when=${line.when.op}` : ''}
-                  </p>
-                ) : (
-                  <>
-                    <div className="space-y-1">
-                      <Label>{t('catalog.calculators.expr_qty', 'Quantitat')}</Label>
-                      <CalculatorExprBuilder
-                        value={line.quantity}
-                        definition={def}
-                        onChange={(quantity) => updateLineMeta(line.key, { quantity })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>{t('catalog.calculators.expr_price', 'Preu unitari')}</Label>
-                      <CalculatorExprBuilder
-                        value={line.unit_price}
-                        definition={def}
-                        onChange={(unit_price) => updateLineMeta(line.key, { unit_price })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>{t('catalog.calculators.expr_when', 'Condició when')}</Label>
-                      {line.when ? (
-                        <CalculatorExprBuilder
-                          value={line.when}
-                          definition={def}
-                          allowBoolean
-                          onChange={(whenExpr) => updateLineMeta(line.key, { whenExpr })}
-                        />
-                      ) : (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            updateLineMeta(line.key, {
-                              whenExpr: {
-                                op: 'cmp',
-                                cmp: 'gt',
-                                left: {
-                                  op: 'param',
-                                  key: def.parameters[0]?.key ?? 'x',
-                                },
-                                right: { op: 'const', value: 0 },
-                              },
-                            })
-                          }
-                        >
-                          {t('catalog.calculators.add_when', 'Afegir condició')}
-                        </Button>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            )
-          })}
-        </div>
       </section>
+
 
       <section
         id="calculator-preview"
@@ -2128,7 +2416,7 @@ export function CalculatorEditorPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               {t(
                 'catalog.calculators.preview_help',
-                'Introdueix un escenari (p. ex. 20 km). El resultat es mostra com el full de preus de Preparar. Desa’l com a prova; sense una prova correcta no es pot activar.',
+                'Introdueix un escenari (p. ex. 20 km). El resultat es mostra com un full de preus. Desa’l com a prova; sense una prova correcta no es pot activar.',
               )}
             </p>
           </div>
@@ -2434,7 +2722,7 @@ export function CalculatorEditorPage() {
   )
 }
 
-function sectionAiSystemHint(kind: CalculatorFragmentKind): string {
+function sectionFragmentPayloadHint(kind: CalculatorFragmentKind): string {
   const keyRule =
     'REGLA CLAU: "key" ha de ser identificador tècnic ASCII: només [a-z][a-z0-9_]{0,40} (minúscules, snake_case). ' +
     'Exemples vàlids: weight_kg, distance_km, power_kw, hours. ' +
@@ -2443,11 +2731,10 @@ function sectionAiSystemHint(kind: CalculatorFragmentKind): string {
 
   if (kind === 'parameter') {
     return [
-      'Retorna NOMÉS JSON {"parameter":{...}} sense markdown.',
+      '{"parameter":{...}}',
       'Un paràmetre és una ENTRADA de l’usuari (pes, km, hores…), NO una tarifa €.',
       keyRule,
       'label.ca i key HAN de reflectir el concepte de la demanda de l’usuari.',
-      'Si diu «pes» → {"key":"weight_kg","label":{"ca":"Pes"},"unit":"kg"}.',
       'MAI usis «Paràmetre»/«parametre»/«parameter» com a label o key.',
       'Camps: key, type (number|integer|boolean|enum), required, label:{ca}, unit (opcional).',
       'Exemple: {"parameter":{"key":"weight_kg","type":"number","required":true,"label":{"ca":"Pes"},"min":0,"unit":"kg"}}',
@@ -2455,33 +2742,28 @@ function sectionAiSystemHint(kind: CalculatorFragmentKind): string {
   }
   if (kind === 'constant') {
     return [
-      'Retorna NOMÉS JSON {"constant":{...}} sense markdown.',
-      'Una constant és una TARIFA o valor fix (p.ex. labor_eur_h = 45).',
+      '{"constant":{...}} — UN SOL objecte, mai Definition/tables/lines.',
+      'Una constant és una TARIFA o valor fix (p.ex. fuel_eur_l, labor_eur_h).',
       keyRule,
-      'Camps: key, type (money|number), value (nombre o null), label:{ca}.',
-      'Exemple: {"constant":{"key":"labor_eur_h","type":"money","value":45,"label":{"ca":"€/hora mà d’obra"}}}',
+      'Camps: key, type (money|number), value (nombre), label:{ca}, assumed:true si el preu és estimat.',
+      'Sense preu dit: estima un valor de mercat raonable i assumed:true (ex. benzina → value numèric + assumed).',
+      'Amb preu dit: {"constant":{"key":"labor_eur_h","type":"money","value":45,"label":{"ca":"€/hora mà d’obra"}}}',
     ].join(' ')
   }
   if (kind === 'table') {
     return [
-      'Retorna NOMÉS JSON {"table":{...}} sense markdown.',
+      '{"table":{...}}',
       keyRule,
       'Camps: key, lookup (exact|tier), input (clau d’un paràmetre existent), bound_column o match_column, rows[].',
       'Exemple tier: {"table":{"key":"travel","lookup":"tier","input":"distance_km","bound_column":"max_km","rows":[{"max_km":15,"eur_base":0},{"max_km":40,"eur_base":35},{"max_km":null,"eur_base":55}]}}',
     ].join(' ')
   }
   return [
-    'Retorna NOMÉS JSON {"line":{...}} sense markdown.',
+    '{"line":{...}}',
     keyRule,
     'Camps: key, name:{ca}, kind (product|service), unit, quantity (Expr), unit_price (Expr),',
     'discount_pct (Expr const), tax_rate (Expr const, p.ex. 21),',
-    'prompt_qty_price (boolean opcional: true = a l’ús demanar qty/preu; la fórmula és valor inicial),',
-    'unit_cost (nombre € opcional, cost intern).',
-    'Exemple: {"line":{"key":"labor","name":{"ca":"Mà d’obra"},"kind":"service","unit":"h",',
-    '"quantity":{"op":"round","decimals":3,"mode":"half_away_from_zero","value":{"op":"const","value":1}},',
-    '"unit_price":{"op":"round","decimals":2,"mode":"half_away_from_zero","value":{"op":"const_ref","key":"hour_eur"}},',
-    '"discount_pct":{"op":"const","value":0},"tax_rate":{"op":"const","value":21},',
-    '"prompt_qty_price":false}}',
+    'prompt_qty_price (boolean opcional), unit_cost (nombre € opcional).',
     'Si l’usuari diu «demanar quantitat i preu» → prompt_qty_price true.',
   ].join(' ')
 }
@@ -2493,13 +2775,16 @@ function SectionAiButton(props: {
   definition: Definition
   busy: boolean
   disabled?: boolean
-  onMerged: (next: Definition) => void
-  /** Paràmetres: omple el modal Afegir/Editar en lloc de crear directament. */
+  onMerged: (next: Definition, addedKey?: string) => void
+  /** Omple el modal Afegir/Editar en lloc de crear directament. */
   onProposeParameter?: (param: Parameter) => void
+  onProposeConstant?: (constant: Constant) => void
 }) {
   const { t } = useTranslation(['catalog', 'common'])
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
+  const [reviewInModal, setReviewInModal] = useState(true)
+  const supportsReviewModal = props.kind === 'parameter' || props.kind === 'constant'
   const kindLabel =
     props.kind === 'parameter'
       ? 'paràmetre'
@@ -2548,6 +2833,81 @@ function SectionAiButton(props: {
     props.setPrompt(`${current} ${snippet}`)
   }
 
+  function handleReady(payloadJson: string) {
+    if (
+      props.kind === 'parameter' &&
+      /€\s*\/\s*h|eur(?:os)?\s*\/?\s*h|tarifa|preu/i.test(props.prompt)
+    ) {
+      const msg = t(
+        'catalog.calculators.ai_use_constant',
+        'Això sembla una tarifa (€/h). Usa «Proposar amb IA» a Constants / tarifes.',
+      )
+      toast({ variant: 'destructive', description: msg })
+      throw new Error(msg)
+    }
+
+    if (supportsReviewModal && reviewInModal) {
+      if (props.kind === 'parameter' && props.onProposeParameter) {
+        const proposal = parseAiParameterProposal(
+          payloadJson,
+          props.prompt,
+          props.definition.parameters.map((p) => p.key),
+        )
+        props.onProposeParameter(proposal)
+        props.setPrompt('')
+        toast({
+          title: t(
+            'catalog.calculators.ai_section_review',
+            'Revisa i confirma el paràmetre',
+          ),
+        })
+        return
+      }
+      if (props.kind === 'constant' && props.onProposeConstant) {
+        const proposal = parseAiConstantProposal(
+          payloadJson,
+          props.prompt,
+          (props.definition.constants ?? []).map((c) => c.key),
+        )
+        props.onProposeConstant(proposal)
+        props.setPrompt('')
+        toast({
+          title: t(
+            'catalog.calculators.ai_section_review_const',
+            'Revisa i confirma la tarifa',
+          ),
+        })
+        return
+      }
+    }
+
+    const beforeKeys =
+      props.kind === 'parameter'
+        ? new Set(props.definition.parameters.map((p) => p.key))
+        : props.kind === 'constant'
+          ? new Set((props.definition.constants ?? []).map((c) => c.key))
+          : null
+    const next = parseAiCalculatorFragment(
+      payloadJson,
+      props.kind,
+      props.definition,
+      props.prompt,
+    )
+    let addedKey: string | undefined
+    if (beforeKeys) {
+      if (props.kind === 'parameter') {
+        addedKey = next.parameters.find((p) => !beforeKeys.has(p.key))?.key
+      } else if (props.kind === 'constant') {
+        addedKey = next.constants?.find((c) => !beforeKeys.has(c.key))?.key
+      }
+    }
+    props.onMerged(next, addedKey)
+    props.setPrompt('')
+    toast({
+      title: t('catalog.calculators.ai_section_ok', 'Fragment afegit a l’esborrany'),
+    })
+  }
+
   return (
     <>
       <Button
@@ -2567,40 +2927,76 @@ function SectionAiButton(props: {
       >
         {t('catalog.calculators.ai_section', 'Proposar amb IA')}
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {t('catalog.calculators.ai_section_title', 'Proposar {{kind}} amb IA', {
-                kind: kindLabel,
-              })}
-            </DialogTitle>
-            <DialogDescription>
-              {props.kind === 'parameter'
-                ? t(
-                    'catalog.calculators.ai_section_hint_param',
-                    'La IA omple el formulari «Afegir paràmetre»; tu confirmes abans de crear-lo.',
-                  )
-                : props.kind === 'table'
-                  ? t(
-                      'catalog.calculators.ai_section_hint_table',
-                      'Descriu la taula. Pots clicar un paràmetre per enganxar-lo al prompt.',
-                    )
-                  : t(
-                      'catalog.calculators.ai_section_hint',
-                      'Descriu el fragment; pots ajustar model i temperatura abans de generar.',
-                    )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-1">
-            <Textarea
-              value={props.prompt}
-              onChange={(e) => props.setPrompt(e.target.value)}
-              placeholder={placeholder}
-              rows={5}
-              className="min-h-[7.5rem] resize-y"
-              autoFocus
-            />
+      <CalculatorAiDialog
+        open={open}
+        onOpenChange={setOpen}
+        scope="section"
+        sectionKind={props.kind}
+        fragmentPayloadHint={sectionFragmentPayloadHint(props.kind)}
+        title={t('catalog.calculators.ai_section_title', 'Proposar {{kind}} amb IA', {
+          kind: kindLabel,
+        })}
+        description={
+          props.kind === 'parameter'
+            ? t(
+                'catalog.calculators.ai_section_hint_param',
+                'La IA omple el formulari «Afegir paràmetre»; tu confirmes abans de crear-lo.',
+              )
+            : props.kind === 'constant'
+              ? t(
+                  'catalog.calculators.ai_section_hint_const',
+                  'Per defecte s’obre el modal «Afegir tarifa» per revisar-la abans d’afegir-la.',
+                )
+            : props.kind === 'table'
+              ? t(
+                  'catalog.calculators.ai_section_hint_table',
+                  'Clica un exemple complet (substitueix el text). Sota pots enganxar un paràmetre existent.',
+                )
+              : t(
+                  'catalog.calculators.ai_section_hint',
+                  'Clica un exemple (substitueix el text) o escriu la demanda.',
+                )
+        }
+        initialPrompt={props.prompt}
+        onInitialPromptChange={props.setPrompt}
+        placeholder={placeholder}
+        definition={props.definition}
+        busy={props.busy}
+        onReady={handleReady}
+        showReviewInModalOption={supportsReviewModal}
+        reviewInModal={reviewInModal}
+        onReviewInModalChange={setReviewInModal}
+        reviewInModalLabel={
+          props.kind === 'constant'
+            ? t(
+                'catalog.calculators.ai_review_const_modal',
+                'Revisar al modal «Afegir tarifa / constant» (recomanat)',
+              )
+            : t(
+                'catalog.calculators.ai_review_param_modal',
+                'Revisar al modal «Afegir paràmetre» (recomanat)',
+              )
+        }
+        promptExtra={
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              <span className="w-full text-xs text-muted-foreground">
+                {t(
+                  'catalog.calculators.ai_example_chips',
+                  'Clica un exemple (substitueix el text):',
+                )}
+              </span>
+              {AI_EXAMPLE_CHIPS[props.kind].map((chip) => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  className="inline-flex items-center rounded-full border border-border bg-muted/40 px-2.5 py-0.5 text-xs hover:bg-muted"
+                  onClick={() => props.setPrompt(chip.prompt)}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
             {props.kind === 'table' && (props.definition.parameters ?? []).length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
                 <span className="w-full text-xs text-muted-foreground">
@@ -2615,7 +3011,7 @@ function SectionAiButton(props: {
                     <button
                       key={p.key}
                       type="button"
-                      className="inline-flex items-center rounded-full border border-border bg-muted/40 px-2.5 py-0.5 text-xs hover:bg-muted"
+                      className="inline-flex items-center rounded-full border border-dashed border-border px-2.5 py-0.5 text-xs hover:bg-muted"
                       onClick={() => appendParamHint(p)}
                     >
                       {label}
@@ -2627,98 +3023,9 @@ function SectionAiButton(props: {
                 })}
               </div>
             ) : null}
-            <AIGenerateAction
-              feature="commercial.calculator_definition"
-              responseFormat="json"
-              hideStatusBanners
-              disabled={props.busy}
-              generateDisabled={!props.prompt.trim()}
-              label={t('catalog.calculators.ai_section_go', 'Generar {{kind}}', {
-                kind: kindLabel,
-              })}
-              messages={[
-                {
-                  role: 'system',
-                  content: sectionAiSystemHint(props.kind),
-                },
-                {
-                  role: 'user',
-                  content: `Context claus actuals:\nparameters=${JSON.stringify(
-                    (props.definition.parameters ?? []).map((p) => ({
-                      key: p.key,
-                      label: resolveLocale(p.label, 'ca') || p.key,
-                      type: p.type,
-                    })),
-                  )}\nconstants=${JSON.stringify(props.definition.constants?.map((c) => c.key))}\ntables=${JSON.stringify(props.definition.tables?.map((tb) => tb.key))}\nDemanda:\n${props.prompt}`,
-                },
-              ]}
-              onSuccess={(result) => {
-                try {
-                  if (
-                    props.kind === 'parameter' &&
-                    /€\s*\/\s*h|eur(?:os)?\s*\/?\s*h|tarifa|preu/i.test(props.prompt)
-                  ) {
-                    toast({
-                      variant: 'destructive',
-                      description: t(
-                        'catalog.calculators.ai_use_constant',
-                        'Això sembla una tarifa (€/h). Usa «Proposar amb IA» a Constants / tarifes.',
-                      ),
-                    })
-                    return
-                  }
-                  if (props.kind === 'parameter' && props.onProposeParameter) {
-                    const proposal = parseAiParameterProposal(
-                      result.content,
-                      props.prompt,
-                      props.definition.parameters.map((p) => p.key),
-                    )
-                    props.onProposeParameter(proposal)
-                    setOpen(false)
-                    props.setPrompt('')
-                    toast({
-                      title: t(
-                        'catalog.calculators.ai_section_review',
-                        'Revisa i confirma el paràmetre',
-                      ),
-                    })
-                    return
-                  }
-                  let next = parseAiCalculatorFragment(
-                    result.content,
-                    props.kind,
-                    props.definition,
-                    props.prompt,
-                  )
-                  if (props.kind === 'constant' || props.kind === 'table') {
-                    next = demoteUnconfirmedTariffNumbers(next, props.prompt)
-                  }
-                  props.onMerged(next)
-                  setOpen(false)
-                  props.setPrompt('')
-                  toast({
-                    title: t(
-                      'catalog.calculators.ai_section_ok',
-                      'Fragment afegit a l’esborrany',
-                    ),
-                  })
-                } catch (err) {
-                  toast({
-                    variant: 'destructive',
-                    description:
-                      err instanceof Error ? err.message : t('common:error', 'Error'),
-                  })
-                }
-              }}
-            />
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              {t('common:cancel', 'Cancel·lar')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        }
+      />
     </>
   )
 }

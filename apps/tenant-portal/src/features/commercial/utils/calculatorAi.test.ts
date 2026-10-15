@@ -6,6 +6,7 @@ import {
   normalizeCalculatorKey,
   parseAiCalculatorDefinition,
   parseAiCalculatorFragment,
+  parseAiConstantProposal,
   parseAiParameterProposal,
 } from './calculatorAi'
 import type { Definition } from '@pimed/price-calculator'
@@ -141,5 +142,23 @@ describe('calculatorAi', () => {
     expect(proposal.key).toBe('weight_kg')
     expect(proposal.label.ca).toBe('Pes')
     expect(proposal.unit).toBe('kg')
+  })
+
+  it('replaces generic constant names from the prompt and keeps AI estimates as assumed', () => {
+    const proposal = parseAiConstantProposal(
+      JSON.stringify({
+        constant: {
+          key: 'constant',
+          type: 'money',
+          label: { ca: 'Constant' },
+          value: 1.62,
+        },
+      }),
+      'Vull una tarifa per calcular les despeses de benzina en un cotxe',
+    )
+    expect(proposal.key).toBe('fuel_eur_l')
+    expect(proposal.label.ca).toBe('€/l benzina')
+    expect(proposal.value).toBe(1.62)
+    expect(proposal.assumed).toBe(true)
   })
 })

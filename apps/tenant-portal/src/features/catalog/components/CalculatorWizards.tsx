@@ -32,17 +32,24 @@ function slugify(raw: string): string {
     .slice(0, 40)
 }
 
-type WizardKind = 'parameter' | 'constant' | 'table' | 'line' | null
+function humanKeyOption(label: { ca?: string; es?: string; en?: string } | undefined, key: string) {
+  const human = resolveLocale(label, 'ca') || key
+  return human === key ? key : `${human} (${key})`
+}
+
+export type WizardKind = 'parameter' | 'constant' | 'table' | 'line' | null
 
 type Props = {
   open: WizardKind
   onClose: () => void
   definition: Definition
-  onApply: (next: Definition) => void
+  onApply: (next: Definition, meta?: { kind: 'parameter' | 'constant'; key: string }) => void
   /** Quan s’edita un paràmetre existent (només open === 'parameter'). */
   editParameterKey?: string | null
   /** Esborrany proposat per IA per omplir el modal (sense crear encara). */
   draftParameter?: Parameter | null
+  /** Esborrany de constant proposat per IA. */
+  draftConstant?: Constant | null
 }
 
 function round3(value: Expr): Expr {
@@ -60,6 +67,7 @@ export function CalculatorWizards({
   onApply,
   editParameterKey = null,
   draftParameter = null,
+  draftConstant = null,
 }: Props) {
   const { t } = useTranslation(['catalog', 'common'])
   const { toast } = useToast()
@@ -73,7 +81,9 @@ export function CalculatorWizards({
   const [boundCol, setBoundCol] = useState('max_km')
   const [matchCol, setMatchCol] = useState('id')
   const [inputParam, setInputParam] = useState(definition.parameters[0]?.key ?? '')
-  const [lineTemplate, setLineTemplate] = useState<'fixed' | 'lookup_qty' | 'm2'>('fixed')
+  const [lineTemplate, setLineTemplate] = useState<
+    'fixed' | 'tier_fee' | 'lookup_qty' | 'm2'
+  >('fixed')
   const [lineUnit, setLineUnit] = useState('u')
   const [taxRate, setTaxRate] = useState('21')
   const [promptQtyPrice, setPromptQtyPrice] = useState(false)
@@ -130,6 +140,19 @@ export function CalculatorWizards({
     }
   }, [open, editParameterKey, draftParameter, definition.parameters])
 
+  useEffect(() => {
+    if (open !== 'constant') return
+    if (draftConstant) {
+      setKey(draftConstant.key)
+      setLabel(resolveLocale(draftConstant.label, 'ca') || draftConstant.key)
+      setConstValue(
+        draftConstant.value == null || !Number.isFinite(draftConstant.value)
+          ? ''
+          : String(draftConstant.value),
+      )
+    }
+  }, [open, draftConstant])
+
   function close() {
     reset()
     onClose()
@@ -147,6 +170,7 @@ export function CalculatorWizards({
     next.constants = next.constants ?? []
     next.tables = next.tables ?? []
     next.lines = next.lines ?? []
+    let appliedMeta: { kind: 'parameter' | 'constant'; key: string } | undefined
 
     if (open === 'parameter') {
       const k = ensureKey(key)
@@ -208,6 +232,7 @@ export function CalculatorWizards({
       }
       if (existingIdx >= 0) next.parameters[existingIdx] = p
       else next.parameters.push(p)
+      appliedMeta = { kind: 'parameter', key: k }
     } else if (open === 'constant') {
       const k = ensureKey(key)
       if (!k) {
@@ -218,14 +243,17 @@ export function CalculatorWizards({
         fail(t('catalog.calculators.wizard_dup_key', 'Ja existeix un element amb aquesta clau.'))
         return
       }
-      const n = Number(constValue.replace(',', '.'))
+      const raw = constValue.trim()
+      const n = raw === '' ? NaN : Number(raw.replace(',', '.'))
       const c: Constant = {
         key: k,
-        type: 'money',
+        type: draftConstant?.type === 'number' ? 'number' : 'money',
         value: Number.isFinite(n) ? n : null,
+        assumed: !Number.isFinite(n) ? true : draftConstant?.assumed,
         label: { ca: label || k },
       }
       next.constants.push(c)
+      appliedMeta = { kind: 'constant', key: k }
     } else if (open === 'table') {
       const k = ensureKey(key)
       if (!k) {
@@ -319,6 +347,33 @@ export function CalculatorWizards({
           unit: lineUnit || 'u',
           quantity: qty,
           unit_price: price,
+          discount_pct: { op: 'const', value: 0 },
+          tax_rate: taxExpr,
+          prompt_qty_price: promptQtyPrice || undefined,
+        }
+      } else if (lineTemplate === 'tier_fee') {
+        const tableKey = lookupTable || next.tables[0]?.key
+        if (!tableKey) {
+          fail(t('catalog.calculators.wizard_need_table', 'Primer afegeix una taula.'))
+          return
+        }
+        const tableMeta = next.tables.find((tb) => tb.key === tableKey)
+        const field = lookupField || 'eur_base'
+        const priceValue: Expr =
+          tableMeta?.lookup === 'exact'
+            ? { op: 'lookup_exact', table: tableKey, field }
+            : {
+                op: 'lookup_tier',
+                table: tableKey,
+                value: { op: 'row', field },
+              }
+        line = {
+          key: k,
+          name: { ca: label || k },
+          kind: 'service',
+          unit: lineUnit || 'u',
+          quantity: round3({ op: 'const', value: 1 }),
+          unit_price: round2(priceValue),
           discount_pct: { op: 'const', value: 0 },
           tax_rate: taxExpr,
           prompt_qty_price: promptQtyPrice || undefined,
@@ -418,7 +473,7 @@ export function CalculatorWizards({
       next.lines.push(line)
     }
 
-    onApply(next)
+    onApply(next, appliedMeta)
     close()
   }
 
@@ -581,14 +636,11 @@ export function CalculatorWizards({
                       {t('catalog.calculators.wizard_no_params', 'Sense paràmetres')}
                     </option>
                   ) : null}
-                  {definition.parameters.map((p) => {
-                    const label = resolveLocale(p.label, 'ca') || p.key
-                    return (
-                      <option key={p.key} value={p.key}>
-                        {label === p.key ? p.key : `${label} (${p.key})`}
-                      </option>
-                    )
-                  })}
+                  {definition.parameters.map((p) => (
+                    <option key={p.key} value={p.key}>
+                      {humanKeyOption(p.label, p.key)}
+                    </option>
+                  ))}
                 </select>
               </div>
               {tableKind === 'tier' ? (
@@ -642,15 +694,30 @@ export function CalculatorWizards({
                 <select
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                   value={lineTemplate}
-                  onChange={(e) =>
-                    setLineTemplate(e.target.value as 'fixed' | 'lookup_qty' | 'm2')
-                  }
+                  onChange={(e) => {
+                    const v = e.target.value as 'fixed' | 'tier_fee' | 'lookup_qty' | 'm2'
+                    setLineTemplate(v)
+                    if (v === 'tier_fee') setLookupField((f) => (f === 'hours' ? 'eur_base' : f))
+                    if (v === 'lookup_qty') setLookupField((f) => (f === 'eur_base' ? 'hours' : f))
+                  }}
                 >
                   <option value="fixed">
-                    {t('catalog.calculators.tpl_fixed', 'Preu fix / qty param')}
+                    {t(
+                      'catalog.calculators.tpl_fixed',
+                      'Quantitat × tarifa (€/h, €/km…)',
+                    )}
+                  </option>
+                  <option value="tier_fee">
+                    {t(
+                      'catalog.calculators.tpl_tier_fee',
+                      'Import fix per tram (taula)',
+                    )}
                   </option>
                   <option value="lookup_qty">
-                    {t('catalog.calculators.tpl_lookup', 'Qty des de taula + preu constant')}
+                    {t(
+                      'catalog.calculators.tpl_lookup',
+                      'Quantitat des de taula × tarifa',
+                    )}
                   </option>
                   <option value="m2">
                     {t('catalog.calculators.tpl_m2', 'Producte m² (ample × alt)')}
@@ -660,17 +727,22 @@ export function CalculatorWizards({
                   {lineTemplate === 'fixed'
                     ? t(
                         'catalog.calculators.tpl_fixed_help',
-                        'Línia simple: quantitat = un paràmetre (o 1 si el deixes buit) × preu d’una constant (€/h, €/u…). Útil per materials, hores manuals o un import fix. No consulta taules.',
+                        'Quantitat = un paràmetre (hores, km…) × preu d’una constant (€/h, €/km…). Ideal per mà d’obra o desplaçament per km. Sense taules.',
                       )
-                    : lineTemplate === 'lookup_qty'
+                    : lineTemplate === 'tier_fee'
                       ? t(
-                          'catalog.calculators.tpl_lookup_help',
-                          'La quantitat surt d’una columna de la taula (p. ex. hores segons kW) i el preu d’una constant (€/hora). La taula ja tria la fila amb el seu paràmetre d’entrada; aquí només dius quina columna llegir. Tipus: mà d’obra per trams.',
+                          'catalog.calculators.tpl_tier_fee_help',
+                          'Quantitat = 1 i el preu surt d’una columna de la taula (p. ex. eur_base segons km). Tipus: desplaçament a tant alçat per trams.',
                         )
-                      : t(
-                          'catalog.calculators.tpl_m2_help',
-                          'Producte per superfície: combina amplada × alçada (÷ 10 000 → m²), aplica un mínim de la taula i multiplica per unitats. El preu €/m² ve de la taula de models. Tipus: persianes, vidres, panells.',
-                        )}
+                      : lineTemplate === 'lookup_qty'
+                        ? t(
+                            'catalog.calculators.tpl_lookup_help',
+                            'La quantitat surt d’una columna de la taula (p. ex. hores segons kW) i el preu d’una constant (€/hora). Tipus: mà d’obra per trams de potència.',
+                          )
+                        : t(
+                            'catalog.calculators.tpl_m2_help',
+                            'Producte per superfície: ample × alt (÷ 10 000 → m²), mínim de taula i unitats. Preu €/m² de la taula de models.',
+                          )}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -704,14 +776,11 @@ export function CalculatorWizards({
                       onChange={(e) => setQtyParam(e.target.value)}
                     >
                       <option value="">1</option>
-                      {definition.parameters.map((p) => {
-                        const label = resolveLocale(p.label, 'ca') || p.key
-                        return (
-                          <option key={p.key} value={p.key}>
-                            {label === p.key ? p.key : `${label} (${p.key})`}
-                          </option>
-                        )
-                      })}
+                      {definition.parameters.map((p) => (
+                        <option key={p.key} value={p.key}>
+                          {humanKeyOption(p.label, p.key)}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="space-y-1">
@@ -724,17 +793,54 @@ export function CalculatorWizards({
                       <option value="">0</option>
                       {(definition.constants ?? []).map((c) => (
                         <option key={c.key} value={c.key}>
-                          {c.key}
+                          {humanKeyOption(c.label, c.key)}
                         </option>
                       ))}
                     </select>
                   </div>
                 </>
               ) : null}
+              {lineTemplate === 'tier_fee' ? (
+                <>
+                  <div className="space-y-1">
+                    <Label>{t('catalog.calculators.wizard_pick_table', 'Taula')}</Label>
+                    <select
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      value={lookupTable}
+                      onChange={(e) => setLookupTable(e.target.value)}
+                    >
+                      {(definition.tables ?? []).map((tb) => (
+                        <option key={tb.key} value={tb.key}>
+                          {tb.key} ({tb.lookup})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>
+                      {t(
+                        'catalog.calculators.wizard_lookup_price_field',
+                        'Columna de la taula → preu',
+                      )}
+                    </Label>
+                    <Input
+                      value={lookupField}
+                      onChange={(e) => setLookupField(e.target.value)}
+                      placeholder="eur_base"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {t(
+                        'catalog.calculators.wizard_lookup_price_field_help',
+                        'Columna d’import (p. ex. eur_base). La quantitat serà 1.',
+                      )}
+                    </p>
+                  </div>
+                </>
+              ) : null}
               {lineTemplate === 'lookup_qty' ? (
                 <>
                   <div className="space-y-1">
-                    <Label>Taula</Label>
+                    <Label>{t('catalog.calculators.wizard_pick_table', 'Taula')}</Label>
                     <select
                       className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                       value={lookupTable}
@@ -767,7 +873,9 @@ export function CalculatorWizards({
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <Label>Preu (constant)</Label>
+                    <Label>
+                      {t('catalog.calculators.wizard_price_const', 'Preu (constant)')}
+                    </Label>
                     <select
                       className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                       value={priceConst}
@@ -776,7 +884,7 @@ export function CalculatorWizards({
                       <option value="">0</option>
                       {(definition.constants ?? []).map((c) => (
                         <option key={c.key} value={c.key}>
-                          {c.key}
+                          {humanKeyOption(c.label, c.key)}
                         </option>
                       ))}
                     </select>
@@ -794,7 +902,7 @@ export function CalculatorWizards({
                     >
                       {(definition.tables ?? []).map((tb) => (
                         <option key={tb.key} value={tb.key}>
-                          {tb.key}
+                          {tb.key} ({tb.lookup})
                         </option>
                       ))}
                     </select>
@@ -842,5 +950,3 @@ export function CalculatorWizards({
     </Dialog>
   )
 }
-
-export type { WizardKind }
