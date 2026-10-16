@@ -25,5 +25,27 @@ export function sanitizeAiErrorMessage(raw: string): string {
   if (/AI API key not found in vault/i.test(raw)) {
     return "No s'ha trobat la clau d'API."
   }
+  if (
+    /AI provider timeout/i.test(raw) ||
+    /TimeoutError|AbortError/i.test(raw) ||
+    /timed?\s*out/i.test(raw) ||
+    /invalid response was received from the upstream/i.test(raw) ||
+    /FunctionsRelayError/i.test(raw)
+  ) {
+    return 'La generació ha trigat massa o el servidor ha tallat la connexió. Torna-ho a provar.'
+  }
   return stripTenantIdsFromMessage(raw)
+}
+
+/** Errors transitòris on un reintent sol funciona. */
+export function isTransientAiInvokeError(raw: string): boolean {
+  return (
+    /AI provider timeout/i.test(raw) ||
+    /TimeoutError|AbortError/i.test(raw) ||
+    /timed?\s*out/i.test(raw) ||
+    /invalid response was received from the upstream/i.test(raw) ||
+    /FunctionsRelayError/i.test(raw) ||
+    /Failed to (send|fetch)/i.test(raw) ||
+    /networkerror|fetch failed/i.test(raw)
+  )
 }

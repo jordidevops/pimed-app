@@ -1,12 +1,19 @@
-import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Calculator, Plus, Search } from 'lucide-react'
+import {
+  Calculator,
+  ChevronRight,
+  Copy,
+  Plus,
+  Search,
+  Trash2,
+} from 'lucide-react'
 import { useTenant } from '@/contexts/TenantContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -26,11 +33,15 @@ import {
   listCalculatorCatalog,
   listCalculators,
   listTenantCalculatorTags,
-  pickBestClone,
   setCalculatorStatus,
   type CalculatorCatalogRow,
   type CalculatorDefinitionRow,
 } from '@/features/commercial/api/calculatorService'
+import {
+  calculatorAiCreatePath,
+  createCalculatorForAi,
+} from '@/features/commercial/api/calculatorCreateAi'
+import { nextCalculatorCloneName } from '@/features/commercial/utils/calculatorCloneName'
 import { resolveLocale } from '@pimed/price-calculator'
 
 const STATUS_LABEL: Record<CalculatorDefinitionRow['status'], { ca: string }> = {
@@ -63,6 +74,37 @@ export function CalculatorsListPage() {
   const [busy, setBusy] = useState(false)
   const [tab, setTab] = useState<ListTab>('mine')
   const [pendingDelete, setPendingDelete] = useState<CalculatorDefinitionRow | null>(null)
+  const [highlightedMineId, setHighlightedMineId] = useState<string | null>(null)
+  const [highlightedCatalogId, setHighlightedCatalogId] = useState<string | null>(null)
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function scheduleHighlightClear(
+    clear: () => void,
+  ) {
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current)
+    highlightTimerRef.current = setTimeout(clear, 4000)
+  }
+
+  function focusClonedRow(id: string) {
+    setStatusFilter('open')
+    setTab('mine')
+    setHighlightedCatalogId(null)
+    setHighlightedMineId(id)
+    scheduleHighlightClear(() => setHighlightedMineId(null))
+  }
+
+  function focusCatalogRow(catalogId: string) {
+    setTab('library')
+    setHighlightedMineId(null)
+    setHighlightedCatalogId(catalogId)
+    scheduleHighlightClear(() => setHighlightedCatalogId(null))
+  }
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current)
+    }
+  }, [])
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ['calculator_definitions', activeTenant?.id],
@@ -94,13 +136,27 @@ export function CalculatorsListPage() {
     enabled: !!activeTenant,
   })
 
-  const clonedCatalogIds = useMemo(() => {
-    const set = new Set<string>()
+  const cloneCountsByCatalogId = useMemo(() => {
+    const map = new Map<string, number>()
     for (const row of rows) {
-      if (row.cloned_from_catalog_id) set.add(row.cloned_from_catalog_id)
+      if (!row.cloned_from_catalog_id || row.status === 'archived') continue
+      map.set(row.cloned_from_catalog_id, (map.get(row.cloned_from_catalog_id) ?? 0) + 1)
     }
-    return set
+    return map
   }, [rows])
+
+  const catalogTitleById = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const entry of catalog) {
+      map.set(entry.id, resolveLocale(entry.title ?? undefined, 'ca') || entry.slug)
+    }
+    return map
+  }, [catalog])
+
+  const openNames = useMemo(
+    () => rows.filter((r) => r.status !== 'archived').map((r) => r.name),
+    [rows],
+  )
 
   const archivedCount = useMemo(
     () => rows.filter((r) => r.status === 'archived').length,
@@ -121,6 +177,18 @@ export function CalculatorsListPage() {
       )
     })
   }, [rows, search, tagFilter, statusFilter])
+
+  useEffect(() => {
+    if (!highlightedMineId || tab !== 'mine') return
+    const el = document.getElementById(`calculator-row-${highlightedMineId}`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [highlightedMineId, tab, filtered])
+
+  useEffect(() => {
+    if (!highlightedCatalogId || tab !== 'library') return
+    const el = document.getElementById(`calculator-catalog-${highlightedCatalogId}`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [highlightedCatalogId, tab, catalog])
 
   const matchingOwnArchetype = useMemo(
     () => catalog.filter((c) => !c.crossArchetype),
@@ -152,22 +220,39 @@ export function CalculatorsListPage() {
     }
   }
 
-  async function handleClone(entry: CalculatorCatalogRow, forceNew = false) {
+  async function handleCreateWithAi() {
     if (!canEdit || busy) return
-    if (!forceNew && clonedCatalogIds.has(entry.id)) {
-      const existing = pickBestClone(rows, entry.id)
-      if (existing) {
-        navigate(`/catalog/calculators/${existing.id}`)
-        return
-      }
+    setBusy(true)
+    try {
+      const id = await createCalculatorForAi({
+        name: t('catalog.calculators.new_name', 'Nova calculadora'),
+        description: t(
+          'catalog.calculators.new_help_ai',
+          'Esborrany creat amb IA. Revisa tarifes i desa una prova abans d’activar.',
+        ),
+      })
+      await queryClient.invalidateQueries({ queryKey: ['calculator_definitions'] })
+      navigate(calculatorAiCreatePath(id))
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        description: err instanceof Error ? err.message : t('common:error', 'Error'),
+      })
+    } finally {
+      setBusy(false)
     }
+  }
+
+  async function handleClone(entry: CalculatorCatalogRow) {
+    if (!canEdit || busy) return
     setBusy(true)
     let clonedId: string | null = null
     try {
       const title = resolveLocale(entry.title ?? undefined, 'ca') || entry.slug
+      const name = nextCalculatorCloneName(title, openNames)
       clonedId = await cloneCalculatorFromCatalog({
         catalogId: entry.id,
-        name: title,
+        name,
       })
       const defaultCase = entry.default_case
       if (defaultCase?.params) {
@@ -194,9 +279,6 @@ export function CalculatorsListPage() {
                 'Clon creat. Obre l’editor i usa «Reintentar activació».',
               ),
           })
-          await queryClient.invalidateQueries({ queryKey: ['calculator_definitions'] })
-          navigate(`/catalog/calculators/${clonedId}?retryActivate=1`)
-          return
         }
       } else {
         toast({
@@ -207,7 +289,7 @@ export function CalculatorsListPage() {
         })
       }
       await queryClient.invalidateQueries({ queryKey: ['calculator_definitions'] })
-      navigate(`/catalog/calculators/${clonedId}`)
+      focusClonedRow(clonedId)
     } catch (err) {
       toast({
         variant: 'destructive',
@@ -215,7 +297,7 @@ export function CalculatorsListPage() {
       })
       if (clonedId) {
         await queryClient.invalidateQueries({ queryKey: ['calculator_definitions'] })
-        navigate(`/catalog/calculators/${clonedId}`)
+        focusClonedRow(clonedId)
       }
     } finally {
       setBusy(false)
@@ -292,35 +374,25 @@ export function CalculatorsListPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant={tab === 'mine' ? 'secondary' : 'outline'}
-          onClick={() => setTab('mine')}
-        >
-          {t('catalog.calculators.tab_mine', 'Les meves')}
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={tab === 'library' ? 'secondary' : 'outline'}
-          onClick={() => setTab('library')}
-        >
-          {t('catalog.calculators.tab_library', 'Biblioteca')}
-        </Button>
-      </div>
+      <Tabs
+        value={tab}
+        onValueChange={(value) => setTab(value as ListTab)}
+      >
+        <TabsList>
+          <TabsTrigger value="mine">
+            {t('catalog.calculators.tab_mine', 'Calculadores pròpies')}
+          </TabsTrigger>
+          <TabsTrigger value="library">
+            {t('catalog.calculators.tab_library', 'Calculadores del sistema')}
+          </TabsTrigger>
+        </TabsList>
 
-      {tab === 'library' ? (
-        <section className="space-y-3 rounded-xl border border-border p-4">
+        <TabsContent value="library" className="mt-4 space-y-3">
           <div>
-            <h2 className="text-base font-semibold">
-              {t('catalog.calculators.library', 'Biblioteca de plataforma')}
-            </h2>
             <p className="text-sm text-muted-foreground">
               {t(
                 'catalog.calculators.library_help',
-                'Calculadores llestes amb preus d’exemple. Clona-les, usa-les o adapta les tarifes.',
+                'Les del sistema no s’apliquen al flux comercial: clona-les per usar-les i adaptar les tarifes.',
               )}
             </p>
           </div>
@@ -344,73 +416,86 @@ export function CalculatorsListPage() {
                 : t('catalog.calculators.library_empty', 'No hi ha models per al teu arquetip.')}
             </p>
           ) : (
-            <ul className="divide-y divide-border rounded-lg border border-border">
+            <div className="space-y-3">
               {catalog.map((entry) => {
                 const title = resolveLocale(entry.title ?? undefined, 'ca') || entry.slug
                 const summary = resolveLocale(entry.summary ?? undefined, 'ca')
-                const already = clonedCatalogIds.has(entry.id)
+                const cloneCount = cloneCountsByCatalogId.get(entry.id) ?? 0
+                const highlighted = highlightedCatalogId === entry.id
                 return (
-                  <li
+                  <div
                     key={entry.id}
-                    className="flex flex-wrap items-center justify-between gap-2 px-3 py-3"
+                    id={`calculator-catalog-${entry.id}`}
+                    className={`overflow-hidden rounded-xl border bg-card transition-colors hover:bg-accent/30 ${
+                      highlighted ? 'ring-2 ring-primary bg-primary/5' : ''
+                    }`}
                   >
-                    <div className="min-w-0">
-                      <p className="font-medium">{title}</p>
-                      {summary ? (
-                        <p className="mt-0.5 text-sm text-muted-foreground">{summary}</p>
-                      ) : null}
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {entry.crossArchetype ? (
-                          <Badge variant="outline">
-                            {t('catalog.calculators.cross_archetype', 'Altre arquetip')}
-                          </Badge>
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <Calculator className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{title}</p>
+                        {summary ? (
+                          <p className="truncate text-xs text-muted-foreground">{summary}</p>
                         ) : null}
-                        {already ? (
-                          <Badge variant="outline">
-                            {t('catalog.calculators.already_cloned', 'Ja la tens')}
-                          </Badge>
-                        ) : null}
-                        {(entry.tags ?? []).map((tag) => (
-                          <Badge key={tag} variant="secondary">
-                            {tag}
-                          </Badge>
-                        ))}
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          <span className="rounded bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-indigo-700">
+                            {t('catalog.calculators.system_badge', 'Sistema')}
+                          </span>
+                          {entry.crossArchetype ? (
+                            <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              {t('catalog.calculators.cross_archetype', 'Altre arquetip')}
+                            </span>
+                          ) : null}
+                          {cloneCount === 1 ? (
+                            <button
+                              type="button"
+                              className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-amber-200"
+                              onClick={() => setTab('mine')}
+                            >
+                              {t('catalog.calculators.already_cloned', 'Ja la tens')}
+                            </button>
+                          ) : null}
+                          {cloneCount > 1 ? (
+                            <button
+                              type="button"
+                              className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-amber-200"
+                              onClick={() => setTab('mine')}
+                            >
+                              {t('catalog.calculators.clone_count', '{{n}} còpies', {
+                                n: cloneCount,
+                              })}
+                            </button>
+                          ) : null}
+                          {(entry.tags ?? []).map((tag) => (
+                            <span
+                              key={tag}
+                              className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {already ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={busy}
-                          onClick={() => void handleClone(entry, false)}
-                        >
-                          {t('catalog.calculators.open_clone', 'Obrir')}
-                        </Button>
-                      ) : null}
                       <Button
                         type="button"
+                        variant="outline"
                         size="sm"
-                        variant={already ? 'outline' : 'default'}
+                        className="h-7 shrink-0 text-xs"
                         disabled={busy}
-                        onClick={() => void handleClone(entry, already)}
+                        onClick={() => void handleClone(entry)}
                       >
-                        {already
-                          ? t('catalog.calculators.clone_again', 'Nova còpia')
-                          : t('catalog.calculators.clone', 'Clonar')}
+                        <Copy className="mr-1 h-3.5 w-3.5" />
+                        {t('catalog.calculators.clone', 'Clonar per personalitzar')}
                       </Button>
                     </div>
-                  </li>
+                  </div>
                 )
               })}
-            </ul>
+            </div>
           )}
-        </section>
-      ) : null}
+        </TabsContent>
 
-      {tab === 'mine' ? (
-        <>
+        <TabsContent value="mine" className="mt-4 space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -425,6 +510,18 @@ export function CalculatorsListPage() {
               <Button type="button" disabled={busy} onClick={() => void handleCreate()}>
                 <Plus className="mr-1.5 h-4 w-4" />
                 {t('catalog.calculators.create', 'Nova calculadora')}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => void handleCreateWithAi()}
+              >
+                <Calculator className="mr-1.5 h-4 w-4" />
+                {t(
+                  'catalog.calculators.create_with_ai',
+                  'Generar calculadora amb IA',
+                )}
               </Button>
             </div>
           </div>
@@ -508,65 +605,129 @@ export function CalculatorsListPage() {
                   </Button>
                 ) : null}
                 <Button type="button" variant="outline" onClick={() => setTab('library')}>
-                  {t('catalog.calculators.go_library', 'Veure biblioteca')}
+                  {t('catalog.calculators.go_library', 'Veure del sistema')}
                 </Button>
                 <Button type="button" disabled={busy} onClick={() => void handleCreate()}>
                   {t('catalog.calculators.create', 'Nova calculadora')}
                 </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() => void handleCreateWithAi()}
+                >
+                  {t(
+                    'catalog.calculators.create_with_ai',
+                    'Generar calculadora amb IA',
+                  )}
+                </Button>
               </div>
             </div>
           ) : (
-            <ul className="divide-y divide-border rounded-xl border border-border">
-              {filtered.map((row) => (
-                <li
-                  key={row.id}
-                  className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 hover:bg-muted/40"
-                >
-                  <Link to={`/catalog/calculators/${row.id}`} className="min-w-0 flex-1">
-                    <p className="font-medium text-foreground">{row.name}</p>
-                    {row.description ? (
-                      <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
-                        {row.description}
-                      </p>
-                    ) : null}
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      <Badge variant="outline">{STATUS_LABEL[row.status].ca}</Badge>
-                      {(row.tags ?? []).map((tag) => (
-                        <Badge key={tag} variant="secondary">
-                          {tag}
-                        </Badge>
-                      ))}
+            <div className="space-y-3">
+              {filtered.map((row) => {
+                const systemTitle = row.cloned_from_catalog_id
+                  ? catalogTitleById.get(row.cloned_from_catalog_id)
+                  : undefined
+                const highlighted = highlightedMineId === row.id
+                return (
+                  <div
+                    key={row.id}
+                    id={`calculator-row-${row.id}`}
+                    role="button"
+                    tabIndex={0}
+                    className={`cursor-pointer overflow-hidden rounded-xl border bg-card transition-colors hover:bg-accent/30 ${
+                      highlighted
+                        ? 'ring-2 ring-primary bg-primary/5'
+                        : ''
+                    }`}
+                    onClick={() => navigate(`/catalog/calculators/${row.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') navigate(`/catalog/calculators/${row.id}`)
+                    }}
+                  >
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <Calculator className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{row.name}</p>
+                        {row.description ? (
+                          <p className="truncate text-xs text-muted-foreground">
+                            {row.description}
+                          </p>
+                        ) : null}
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
+                            {t('catalog.calculators.own_badge', 'Pròpia')}
+                          </span>
+                          <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                            {STATUS_LABEL[row.status].ca}
+                          </span>
+                          {row.cloned_from_catalog_id ? (
+                            <button
+                              type="button"
+                              className="rounded bg-indigo-100 px-2 py-0.5 text-[10px] font-medium text-indigo-700 hover:bg-indigo-200"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                focusCatalogRow(row.cloned_from_catalog_id!)
+                              }}
+                            >
+                              {systemTitle
+                                ? t(
+                                    'catalog.calculators.from_system_named',
+                                    'Del sistema: {{name}}',
+                                    { name: systemTitle },
+                                  )
+                                : t('catalog.calculators.from_system', 'Del sistema')}
+                            </button>
+                          ) : null}
+                          {(row.tags ?? []).map((tag) => (
+                            <span
+                              key={tag}
+                              className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      {row.status === 'active' ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 shrink-0 text-xs"
+                          disabled={busy}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void handleArchive(row)
+                          }}
+                        >
+                          {t('catalog.calculators.archive', 'Arxivar')}
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 shrink-0 text-destructive hover:text-destructive"
+                          disabled={busy}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setPendingDelete(row)
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                     </div>
-                  </Link>
-                  <div className="flex flex-shrink-0 flex-wrap gap-2">
-                    {row.status === 'active' ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => void handleArchive(row)}
-                      >
-                        {t('catalog.calculators.archive', 'Arxivar')}
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => setPendingDelete(row)}
-                      >
-                        {t('catalog.calculators.delete', 'Eliminar')}
-                      </Button>
-                    )}
                   </div>
-                </li>
-              ))}
-            </ul>
+                )
+              })}
+            </div>
           )}
-        </>
-      ) : null}
+        </TabsContent>
+      </Tabs>
 
       <Dialog
         open={pendingDelete != null}

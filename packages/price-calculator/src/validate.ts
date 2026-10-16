@@ -141,34 +141,45 @@ export function validateDefinition(raw: unknown): {
   if (def.schema_version !== 1) {
     issues.push({ path: 'schema_version', message: 'must_be_1' })
   }
-  if (!Array.isArray(def.parameters) || def.parameters.length > LIMITS.parameters) {
+  const parameters = Array.isArray(def.parameters) ? def.parameters : null
+  const constants = Array.isArray(def.constants) ? def.constants : def.constants == null ? [] : null
+  const tables = Array.isArray(def.tables) ? def.tables : def.tables == null ? [] : null
+  const lines = Array.isArray(def.lines) ? def.lines : null
+
+  if (!parameters || parameters.length > LIMITS.parameters) {
     issues.push({ path: 'parameters', message: 'limit_or_missing' })
   }
-  if (def.constants && def.constants.length > LIMITS.constants) {
+  if (constants == null) {
+    issues.push({ path: 'constants', message: 'not_array' })
+  } else if (constants.length > LIMITS.constants) {
     issues.push({ path: 'constants', message: 'limit_exceeded' })
   }
-  if (def.tables && def.tables.length > LIMITS.tables) {
+  if (tables == null) {
+    issues.push({ path: 'tables', message: 'not_array' })
+  } else if (tables.length > LIMITS.tables) {
     issues.push({ path: 'tables', message: 'limit_exceeded' })
   }
-  if (!Array.isArray(def.lines) || def.lines.length === 0 || def.lines.length > LIMITS.lines) {
+  if (!lines || lines.length === 0 || lines.length > LIMITS.lines) {
     issues.push({ path: 'lines', message: 'limit_or_missing' })
   }
 
-  for (const p of def.parameters ?? []) {
+  for (const p of parameters ?? []) {
     if (!KEY_RE.test(p.key)) issues.push({ path: `parameters.${p.key}`, message: 'bad_key' })
   }
-  for (const c of def.constants ?? []) {
+  for (const c of constants ?? []) {
     if (!KEY_RE.test(c.key)) issues.push({ path: `constants.${c.key}`, message: 'bad_key' })
   }
-  for (const t of def.tables ?? []) {
+  for (const t of tables ?? []) {
     if (!KEY_RE.test(t.key)) issues.push({ path: `tables.${t.key}`, message: 'bad_key' })
-    if (t.rows.length > LIMITS.rowsPerTable) {
+    if (!Array.isArray(t.rows)) {
+      issues.push({ path: `tables.${t.key}.rows`, message: 'not_array' })
+    } else if (t.rows.length > LIMITS.rowsPerTable) {
       issues.push({ path: `tables.${t.key}`, message: 'rows_limit' })
     }
   }
 
-  for (let i = 0; i < (def.lines?.length ?? 0); i++) {
-    const line = def.lines[i]!
+  for (let i = 0; i < (lines?.length ?? 0); i++) {
+    const line = lines![i]!
     if (!KEY_RE.test(line.key)) {
       issues.push({ path: `lines[${i}].key`, message: 'bad_key' })
     }
@@ -222,6 +233,7 @@ export function activationGaps(definition: Definition): ValidationIssue[] {
     }
   }
   for (const t of definition.tables ?? []) {
+    if (!Array.isArray(t.rows)) continue
     // Tram obert (últim tier): bound_column = null és intencional, no un forat.
     const openBoundKey = t.lookup === 'tier' && t.bound_column ? t.bound_column : null
     for (let i = 0; i < t.rows.length; i++) {

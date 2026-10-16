@@ -586,6 +586,19 @@ export function calculatorAiSectionSystemPrompt(
   ].join(' ')
 }
 
+/** Mini-exemple de Definition per a la IA (schema CF-29 estricte). */
+export const CALCULATOR_AI_DEFINITION_SHAPE_HINT = [
+  'draft = Definition CF-29 (NO un schema inventat). Claus TOP permeses NOMÉS:',
+  'schema_version, parameters, constants, tables, lines.',
+  'PROHIBIT: title, description, inputs, outputs, formula, formulas, name (a root).',
+  'Exemple mínim:',
+  '{"schema_version":1,"parameters":[{"key":"hours","type":"number","required":true,"min":0,"unit":"h","label":{"ca":"Hores"}}],"constants":[{"key":"labor_eur_h","type":"money","value":45,"label":{"ca":"€/hora"}}],"tables":[],"lines":[{"key":"labor","name":{"ca":"Mà d’obra"},"kind":"service","unit":"h","quantity":{"op":"round","decimals":3,"mode":"half_away_from_zero","value":{"op":"param","key":"hours"}},"unit_price":{"op":"round","decimals":2,"mode":"half_away_from_zero","value":{"op":"const_ref","key":"labor_eur_h"}},"discount_pct":{"op":"const","value":0},"tax_rate":{"op":"const","value":21}}]}',
+  'quantity sempre acaba en round decimals:3; unit_price en round decimals:2; mode half_away_from_zero.',
+  'Ops Expr: const|param|const_ref|add|mul|sub|div|min|max|round|if|cmp|and|or|not|lookup_exact|lookup_tier|row|coalesce.',
+  'NO usis op "+"|"-"|"*"|"/"; sub/div usen left/right (no args); add/mul usen args[].',
+  'keys snake_case [a-z][a-z0-9_]{0,40}.',
+].join(' ')
+
 /** System prompt d’envelope per calculadora sencera. */
 export function calculatorAiFullSystemPrompt(editMode: boolean): string {
   if (editMode) {
@@ -594,17 +607,19 @@ export function calculatorAiFullSystemPrompt(editMode: boolean): string {
       'Modes: clarify | proposal. NO usis mode ready (el client només aplica amb botó).',
       'clarify: {"mode":"clarify","assistant_message":"...","questions":[{"id":"q1","prompt":"..."}]}',
       'proposal: {"mode":"proposal","assistant_message":"...","summary":"...","draft":{"patches":[...]},"example":{"params":{...}}}',
-      'draft.patches: JSON Pointer ops add|replace|remove. example.params: escenari de prova.',
-      'No inventis preus no dits. Sense eval ni claus desconegudes.',
+      'draft.patches: JSON Pointer ops add|replace|remove sobre Definition CF-29. example.params: escenari de prova.',
+      'No inventis preus no dits. Sense eval ni claus desconegudes (title/inputs/outputs).',
+      CALCULATOR_AI_DEFINITION_SHAPE_HINT,
     ].join(' ')
   }
   return [
     'Retorna NOMÉS JSON envelope multi-torn (sense markdown).',
     'Modes: clarify | proposal. NO usis mode ready.',
     'clarify: {"mode":"clarify","assistant_message":"...","questions":[{"id":"q1","prompt":"..."}]}',
-    'proposal: {"mode":"proposal","assistant_message":"...","summary":"...","draft":{Definition schema_version=1},"example":{"params":{...}}}',
-    'draft ha de ser Definition vàlida (parameters, lines, Expr AST). example.params per previsualitzar.',
-    'prompt_qty_price / unit_cost permesos a lines. No inventis preus: null + assumed.',
+    'proposal: {"mode":"proposal","assistant_message":"...","summary":"...","draft":{...Definition...},"example":{"params":{...}}}',
+    CALCULATOR_AI_DEFINITION_SHAPE_HINT,
+    'example.params: valors de prova per als parameters (p.ex. {"hours":2}).',
+    'prompt_qty_price / unit_cost permesos a lines. Preus no dits: value null + assumed:true.',
   ].join(' ')
 }
 
@@ -642,7 +657,9 @@ export function demoteUnconfirmedTariffNumbers(
     }
   }
   for (const table of next.tables ?? []) {
+    if (!Array.isArray(table.rows)) continue
     for (const row of table.rows) {
+      if (!row || typeof row !== 'object') continue
       for (const [key, val] of Object.entries(row)) {
         if (key === 'id' || key === 'label' || key === 'assumed') continue
         if (!/eur|price|pct|amount|tariff|rate/i.test(key)) continue
@@ -682,7 +699,11 @@ export function demoteUnconfirmedTable(
 ): LookupTable {
   const mentioned = extractMentionedNumbers(userPrompt)
   const next = structuredClone(table)
+  if (!Array.isArray(next.rows)) {
+    next.rows = []
+  }
   for (const row of next.rows) {
+    if (!row || typeof row !== 'object') continue
     for (const [key, val] of Object.entries(row)) {
       if (key === 'id' || key === 'label' || key === 'assumed') continue
       if (!/eur|price|pct|amount|tariff|rate/i.test(key)) continue
@@ -695,13 +716,203 @@ export function demoteUnconfirmedTable(
   return next
 }
 
+/** La IA a vegades retorna mapes `{ "0": {...} }` en lloc d’arrays. */
+function coerceAiArray<T>(v: unknown): T[] {
+  if (Array.isArray(v)) return v as T[]
+  if (v && typeof v === 'object') {
+    const vals = Object.values(v as Record<string, unknown>)
+    if (vals.length > 0 && vals.every((x) => x !== null && typeof x === 'object')) {
+      return vals as T[]
+    }
+  }
+  return []
+}
+
+const AI_OP_ALIASES: Record<string, string> = {
+  '+': 'add',
+  add: 'add',
+  sum: 'add',
+  '-': 'sub',
+  sub: 'sub',
+  subtract: 'sub',
+  minus: 'sub',
+  '*': 'mul',
+  '×': 'mul',
+  x: 'mul',
+  mul: 'mul',
+  multiply: 'mul',
+  product: 'mul',
+  '/': 'div',
+  '÷': 'div',
+  div: 'div',
+  divide: 'div',
+  '==': 'cmp',
+  '!=': 'cmp',
+  '>': 'cmp',
+  '>=': 'cmp',
+  '<': 'cmp',
+  '<=': 'cmp',
+  eq: 'cmp',
+  neq: 'cmp',
+  gt: 'cmp',
+  gte: 'cmp',
+  lt: 'cmp',
+  lte: 'cmp',
+}
+
+/**
+ * Normalitza Expr inventades per la IA (op "-", args en sub/div, etc.).
+ */
+export function coerceAiExpr(raw: unknown): unknown {
+  if (!isRecord(raw)) return raw
+  const opRaw = typeof raw.op === 'string' ? raw.op.trim() : ''
+  let op = AI_OP_ALIASES[opRaw] ?? AI_OP_ALIASES[opRaw.toLowerCase()] ?? opRaw
+
+  // cmp simbòlic: { op: ">", left, right } → { op: "cmp", cmp: "gt", left, right }
+  const cmpFromOp: Record<string, string> = {
+    '>': 'gt',
+    '>=': 'gte',
+    '<': 'lt',
+    '<=': 'lte',
+    '==': 'eq',
+    '!=': 'neq',
+    eq: 'eq',
+    neq: 'neq',
+    gt: 'gt',
+    gte: 'gte',
+    lt: 'lt',
+    lte: 'lte',
+  }
+  if (op === 'cmp' && !raw.cmp && cmpFromOp[opRaw]) {
+    raw = { ...raw, cmp: cmpFromOp[opRaw] }
+  } else if (cmpFromOp[opRaw] && opRaw !== 'cmp') {
+    op = 'cmp'
+    raw = { ...raw, cmp: cmpFromOp[opRaw] }
+  }
+
+  const out: Record<string, unknown> = { ...raw, op }
+
+  // sub/div: la IA posa args:[a,b] en lloc de left/right
+  if ((op === 'sub' || op === 'div') && Array.isArray(out.args) && out.args.length >= 2) {
+    out.left = coerceAiExpr(out.args[0])
+    out.right = coerceAiExpr(out.args[1])
+    delete out.args
+  } else if (op === 'sub' || op === 'div') {
+    if ('left' in out) out.left = coerceAiExpr(out.left)
+    if ('right' in out) out.right = coerceAiExpr(out.right)
+  }
+
+  // add/mul/…: la IA posa left/right en lloc d’args
+  if (
+    (op === 'add' || op === 'mul' || op === 'min' || op === 'max' || op === 'and' || op === 'or' || op === 'coalesce') &&
+    !Array.isArray(out.args) &&
+    'left' in out &&
+    'right' in out
+  ) {
+    out.args = [coerceAiExpr(out.left), coerceAiExpr(out.right)]
+    delete out.left
+    delete out.right
+  } else if (Array.isArray(out.args)) {
+    // Filtra tokens espuris com "-" dins d’args: [a, "-", b] → tracta com sub/add
+    const cleaned = out.args.filter((a) => !(typeof a === 'string' && /^[+\-*/×÷]$/.test(a)))
+    if (
+      cleaned.length === 2 &&
+      out.args.length === 3 &&
+      typeof out.args[1] === 'string' &&
+      (out.args[1] === '-' || out.args[1] === '−')
+    ) {
+      return coerceAiExpr({
+        op: 'sub',
+        left: cleaned[0],
+        right: cleaned[1],
+      })
+    }
+    if (
+      cleaned.length === 2 &&
+      out.args.length === 3 &&
+      typeof out.args[1] === 'string' &&
+      (out.args[1] === '+' || out.args[1] === '*')
+    ) {
+      return coerceAiExpr({
+        op: out.args[1] === '+' ? 'add' : 'mul',
+        args: cleaned,
+      })
+    }
+    out.args = cleaned.map(coerceAiExpr)
+  }
+
+  if ('value' in out) out.value = coerceAiExpr(out.value)
+  if ('left' in out && op !== 'sub' && op !== 'div') out.left = coerceAiExpr(out.left)
+  if ('right' in out && op !== 'sub' && op !== 'div') out.right = coerceAiExpr(out.right)
+  if ('cond' in out) out.cond = coerceAiExpr(out.cond)
+  if ('then' in out) out.then = coerceAiExpr(out.then)
+  if ('else' in out) out.else = coerceAiExpr(out.else)
+  if ('arg' in out) out.arg = coerceAiExpr(out.arg)
+
+  return out
+}
+
+function coerceAiLineExprs(line: unknown): unknown {
+  if (!isRecord(line)) return line
+  const next = { ...line }
+  for (const field of ['quantity', 'unit_price', 'discount_pct', 'tax_rate', 'when'] as const) {
+    if (field in next) next[field] = coerceAiExpr(next[field])
+  }
+  return next
+}
+
+function coerceAiDefinitionShape(raw: unknown): unknown {
+  if (!isRecord(raw)) return raw
+  // Només claus CF-29 (descarta title/inputs/outputs i altres invents de la IA).
+  let parameters = coerceAiArray(raw.parameters)
+  if (parameters.length === 0 && raw.inputs != null) {
+    parameters = coerceAiArray(raw.inputs).map((item) => {
+      if (!isRecord(item)) return item
+      const keySrc = String(item.key ?? item.id ?? item.name ?? 'param')
+      const key = normalizeCalculatorKey(keySrc) || 'param'
+      const type =
+        item.type === 'boolean' ||
+        item.type === 'integer' ||
+        item.type === 'enum' ||
+        item.type === 'money'
+          ? item.type
+          : 'number'
+      const labelCa = String(
+        (isRecord(item.label) && item.label.ca) ||
+          item.title ||
+          item.name ||
+          key,
+      )
+      return {
+        key,
+        type,
+        required: item.required !== false,
+        min: typeof item.min === 'number' ? item.min : 0,
+        ...(typeof item.unit === 'string' && item.unit ? { unit: item.unit } : {}),
+        label: { ca: labelCa },
+      }
+    })
+  }
+  const tables = coerceAiArray<Record<string, unknown>>(raw.tables).map((t) => ({
+    ...t,
+    rows: coerceAiArray(t.rows),
+  }))
+  return {
+    schema_version: 1,
+    parameters,
+    constants: coerceAiArray(raw.constants),
+    tables,
+    lines: coerceAiArray(raw.lines).map(coerceAiLineExprs),
+  }
+}
+
 export function parseAiCalculatorDefinition(raw: string): Definition {
   const parsed = JSON.parse(raw) as unknown
   const candidate =
     parsed && typeof parsed === 'object' && 'definition' in (parsed as object)
       ? (parsed as { definition: unknown }).definition
       : parsed
-  const result = validateDefinition(candidate as Definition)
+  const result = validateDefinition(coerceAiDefinitionShape(candidate) as Definition)
   if (!result.ok || !result.definition) {
     throw new Error(
       result.issues.map((i) => `${i.path}: ${i.message}`).join('; ') || 'invalid_definition',

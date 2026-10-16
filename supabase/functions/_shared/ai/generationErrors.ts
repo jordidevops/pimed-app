@@ -64,6 +64,20 @@ export function mapAiGenerationError(raw: string): MappedAiGenerationError | nul
       message: "No s'han pogut carregar les instruccions de tasca d'IA.",
     };
   }
+  if (
+    /AI provider timeout/i.test(raw) ||
+    /TimeoutError|AbortError/i.test(raw) ||
+    /timed?\s*out/i.test(raw) ||
+    /invalid response was received from the upstream/i.test(raw) ||
+    /FunctionsRelayError/i.test(raw)
+  ) {
+    return {
+      status: 504,
+      code: "ai_upstream_timeout",
+      message:
+        "La generació ha trigat massa o el servidor ha tallat la connexió. Torna-ho a provar.",
+    };
+  }
   return null;
 }
 

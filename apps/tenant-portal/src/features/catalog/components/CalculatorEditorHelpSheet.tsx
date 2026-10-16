@@ -40,7 +40,7 @@ export function CalculatorEditorHelpSheet({ open, onOpenChange }: Props) {
             <p className="text-muted-foreground">
               {t(
                 'catalog.calculators.help_what_body',
-                'Una calculadora és una plantilla que, en entrar valors, genera les línies del full de preus del pressupost (el mateix tipus de línies que afegiries a mà, però amb fórmules i tarifes). Quan l'utilitzes només omples els paràmetres en un formulari.',
+                'Una calculadora és una plantilla que, en entrar valors, genera les línies del full de preus del pressupost (el mateix tipus de línies que afegiries a mà, però amb fórmules i tarifes). Quan l’utilitzes només omples els paràmetres en un formulari.',
               )}
             </p>
           </section>
@@ -117,8 +117,14 @@ export function CalculatorEditorHelpSheet({ open, onOpenChange }: Props) {
             <ol className="list-decimal space-y-1.5 pl-5 text-muted-foreground">
               <li>
                 {t(
+                  'catalog.calculators.help_ai_create_list',
+                  'Llista → «Generar calculadora amb IA» crea un esborrany nou i obre el diàleg. Desa quan hagis aplicat.',
+                )}
+              </li>
+              <li>
+                {t(
                   'catalog.calculators.help_ai_1',
-                  'Paràmetres → «Proposar amb IA» → pastilla «Distància km», després «Hores». Deixa marcat revisar al modal i confirma.',
+                  'Per peces: Paràmetres → «Proposar amb IA» → pastilla «Distància km», després «Hores».',
                 )}
               </li>
               <li>
@@ -136,19 +142,19 @@ export function CalculatorEditorHelpSheet({ open, onOpenChange }: Props) {
               <li>
                 {t(
                   'catalog.calculators.help_ai_travel',
-                  'Desplaçament: botó «Desplaçament…» (€/km o trams) o pastilles «Desplaçament €/km» / «Desplaçament trams».',
+                  'Desplaçament: botó «Desplaçament…» (€/km o trams) o pastilles IA.',
                 )}
               </li>
               <li>
                 {t(
-                  'catalog.calculators.help_ai_4',
-                  'Si tries trams: Taules → pastilla «Trams km» (si no l’ha creat l’assistent).',
+                  'catalog.calculators.help_ai_edit_diff',
+                  'Per canviar una calculadora existent sense petar-la: «Proposar canvis (diff)». «Regenerar amb IA» substitueix tot l’esborrany (demana confirmació).',
                 )}
               </li>
               <li>
                 {t(
                   'catalog.calculators.help_ai_6',
-                  'Omple la previsualització, desa la prova i activa quan estigui verd.',
+                  'Omple la previsualització, desa la prova i activa quan estigui verd. Desa l’esborrany si veus «Canvis sense desar».',
                 )}
               </li>
             </ol>

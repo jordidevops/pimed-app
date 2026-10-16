@@ -19,6 +19,7 @@ import { useEffectiveSettings } from '@/hooks/useSettings'
 import { usePermission } from '@/hooks/usePermission'
 import { searchContacts } from '@/features/contacts/api/contactsService'
 import {
+  cancelOrphanQuoteDraft,
   createOrphanQuoteDraft,
   issueOrphanCommercialDocument,
 } from '../api/commercialFlowService'
@@ -31,6 +32,10 @@ import {
 import { commercialErrorMessage } from '../utils/commercialErrorMessage'
 import { formatCalcErrorList } from '../utils/calculatorErrorLabels'
 import {
+  buildSyntheticQuotePreviewDoc,
+  outputLinesToSyntheticInputs,
+} from '../utils/buildSyntheticQuotePreviewDoc'
+import {
   COMMERCIAL_QUOTE_TEMPLATE_ID_KEY,
   parseCommercialSettingId,
   readExplicitFormalizationModeDefault,
@@ -39,6 +44,7 @@ import {
 } from '../utils/deviationApprovalThreshold'
 import { FormalizationChoiceCards } from './QuoteDraftStepBar'
 import { DocumentTemplateSelect } from './AgreementTemplateSelect'
+import { LiveCommercialPreview } from './LiveCommercialPreview'
 import { useDocumentTemplates } from '@/features/signing/api/useDocumentTemplates'
 import {
   needsQtyPricePrompt,
@@ -48,7 +54,7 @@ import {
   type ParamValues,
 } from '@pimed/price-calculator'
 
-type Step = 'client' | 'source' | 'params' | 'issue'
+type Step = 'client' | 'source' | 'params' | 'preview'
 
 type Props = {
   open: boolean
@@ -116,6 +122,8 @@ export function CreateQuickQuoteDialog({
     enabled: open && !!activeTenant,
   })
 
+  const selectedContact = contacts.find((c) => c.id === clientId) ?? null
+
   const { data: calculators = [] } = useQuery({
     queryKey: ['calculator_definitions_active', activeTenant?.id],
     queryFn: listActiveCalculators,
@@ -128,7 +136,6 @@ export function CreateQuickQuoteDialog({
     queryFn: () => getCalculatorVersion(selectedCalc!.published_version_id!),
     enabled: open && !!selectedCalc?.published_version_id,
   })
-  // Actives: draft === publicada (editar desactiva). Fallback evita Continuar mort si la versió falla/triga.
   const definition =
     versionQ.data?.definition ??
     (selectedCalc?.published_version_id ? selectedCalc.draft_definition : null)
@@ -183,6 +190,32 @@ export function CreateQuickQuoteDialog({
     return previewCalculator(definition, params, 'ca', lineOverrides)
   }, [definition, params, lineOverrides])
 
+  const previewDoc = useMemo(() => {
+    if (!activeTenant?.id || !clientId || !preview || preview.errors.length) return null
+    return buildSyntheticQuotePreviewDoc({
+      tenantId: activeTenant.id,
+      clientId,
+      title: selectedCalc?.name,
+      buyer: {
+        display_name: selectedContact?.display_name ?? (clientSearch || null),
+        email: selectedContact?.email ?? null,
+        phone: selectedContact?.phone ?? null,
+      },
+      formalizationMode: mode,
+      templateId,
+      lines: outputLinesToSyntheticInputs(preview.lines),
+    })
+  }, [
+    activeTenant?.id,
+    clientId,
+    clientSearch,
+    mode,
+    preview,
+    selectedCalc?.name,
+    selectedContact,
+    templateId,
+  ])
+
   const promptLines = useMemo(
     () => (definition?.lines ?? []).filter((l) => needsQtyPricePrompt(l)),
     [definition],
@@ -194,7 +227,7 @@ export function CreateQuickQuoteDialog({
       setStep('params')
       return
     }
-    setStep('issue')
+    setStep('preview')
   }
 
   async function issue() {
@@ -207,8 +240,9 @@ export function CreateQuickQuoteDialog({
       return
     }
     setBusy(true)
+    let documentId: string | null = null
     try {
-      const documentId = await createOrphanQuoteDraft({
+      documentId = await createOrphanQuoteDraft({
         tenantId: activeTenant.id,
         clientId,
         formalizationMode: mode,
@@ -230,6 +264,13 @@ export function CreateQuickQuoteDialog({
       onOpenChange(false)
       navigate(`/sales/quotes/${documentId}`)
     } catch (err) {
+      if (documentId) {
+        try {
+          await cancelOrphanQuoteDraft(documentId, 'quick_issue_failed')
+        } catch {
+          /* best-effort */
+        }
+      }
       toast({
         variant: 'destructive',
         description: commercialErrorMessage(err, t('common:error', 'Error')),
@@ -262,9 +303,11 @@ export function CreateQuickQuoteDialog({
     )
   }
 
+  const wide = step === 'preview'
+
   return (
     <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className={wide ? 'sm:max-w-3xl' : 'sm:max-w-lg'}>
         <DialogHeader>
           <DialogTitle>
             {step === 'client'
@@ -273,12 +316,12 @@ export function CreateQuickQuoteDialog({
                 ? t('projects.quotes.quick_source_title', 'Font')
                 : step === 'params'
                   ? t('projects.quotes.quick_params_title', 'Paràmetres')
-                  : t('projects.quotes.quick_issue_title', 'Emetre')}
+                  : t('projects.quotes.quick_preview_title', 'Vista prèvia i emissió')}
           </DialogTitle>
           <DialogDescription>
             {t(
               'projects.quotes.quick_help',
-              'Contacte → calculadora → emetre. Sense obrir ordre de servei.',
+              'Contacte → calculadora → vista prèvia → emetre. Sense obrir ordre de servei.',
             )}
           </DialogDescription>
         </DialogHeader>
@@ -346,19 +389,6 @@ export function CreateQuickQuoteDialog({
                       'projects.lines.calculator_not_published',
                       'Aquesta calculadora no té versió publicada. Torna a Catàleg, publica i activa.',
                     )}
-                  </p>
-                ) : null}
-                {calcId && versionQ.isError ? (
-                  <p className="text-sm text-amber-800 dark:text-amber-200" role="status">
-                    {t(
-                      'projects.lines.calculator_version_fallback',
-                      'No s’ha pogut carregar la versió publicada; s’usa l’esborrany actiu.',
-                    )}
-                  </p>
-                ) : null}
-                {calcId && versionQ.isLoading ? (
-                  <p className="text-sm text-muted-foreground">
-                    {t('common:loading', 'Carregant…')}
                   </p>
                 ) : null}
               </div>
@@ -475,8 +505,8 @@ export function CreateQuickQuoteDialog({
           </div>
         ) : null}
 
-        {step === 'issue' ? (
-          <div className="space-y-3">
+        {step === 'preview' ? (
+          <div className="max-h-[75vh] space-y-3 overflow-y-auto">
             <FormalizationChoiceCards mode={mode} disabled={busy} onChange={setMode} />
             {onChangeFormalization && readExplicitFormalizationModeDefault(effective) ? (
               <Button type="button" variant="ghost" size="sm" onClick={onChangeFormalization}>
@@ -510,7 +540,22 @@ export function CreateQuickQuoteDialog({
                   'projects.orphan.system_format',
                   'Format estàndard (sense plantilla pròpia)',
                 )}
+                previewFor={
+                  previewDoc
+                    ? (id) => <LiveCommercialPreview doc={previewDoc} templateId={id} />
+                    : undefined
+                }
               />
+            )}
+            {previewDoc ? (
+              <LiveCommercialPreview doc={previewDoc} templateId={templateId} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  'projects.quotes.quick_preview_unavailable',
+                  'No es pot mostrar la vista prèvia fins que la calculadora tingui línies vàlides.',
+                )}
+              </p>
             )}
           </div>
         ) : null}
@@ -524,7 +569,7 @@ export function CreateQuickQuoteDialog({
               if (step === 'client') onBack()
               else if (step === 'source') setStep('client')
               else if (step === 'params') setStep('source')
-              else if (step === 'issue') {
+              else if (step === 'preview') {
                 setStep(definition && needsParamStep(definition) ? 'params' : 'source')
               }
             }}
@@ -539,11 +584,7 @@ export function CreateQuickQuoteDialog({
           {step === 'source' ? (
             <Button
               type="button"
-              disabled={
-                !calcId ||
-                !definition ||
-                !selectedCalc?.published_version_id
-              }
+              disabled={!calcId || !definition || !selectedCalc?.published_version_id}
               onClick={goAfterSource}
             >
               {t('projects.quotes.wizard_continue', 'Continuar')}
@@ -553,13 +594,17 @@ export function CreateQuickQuoteDialog({
             <Button
               type="button"
               disabled={!!preview?.errors.length}
-              onClick={() => setStep('issue')}
+              onClick={() => setStep('preview')}
             >
               {t('projects.quotes.wizard_continue', 'Continuar')}
             </Button>
           ) : null}
-          {step === 'issue' ? (
-            <Button type="button" disabled={busy} onClick={() => void issue()}>
+          {step === 'preview' ? (
+            <Button
+              type="button"
+              disabled={busy || !!preview?.errors.length || !previewDoc}
+              onClick={() => void issue()}
+            >
               {t('projects.orphan.issue', 'Emetre pressupost')}
             </Button>
           ) : null}

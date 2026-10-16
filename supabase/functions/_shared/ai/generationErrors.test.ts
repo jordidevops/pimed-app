@@ -47,3 +47,11 @@ Deno.test("mapAiGenerationError: feature prompt lookup failure", () => {
   const mapped = mapAiGenerationError("No s'han pogut carregar les instruccions de tasca d'IA");
   assertEquals(mapped?.code, "ai_feature_prompt_unavailable");
 });
+
+Deno.test("mapAiGenerationError: upstream / timeout", () => {
+  const mapped = mapAiGenerationError(
+    "An invalid response was received from the upstream server",
+  );
+  assertEquals(mapped?.code, "ai_upstream_timeout");
+  assertEquals(mapped?.status, 504);
+});

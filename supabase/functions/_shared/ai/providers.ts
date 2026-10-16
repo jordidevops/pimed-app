@@ -7,13 +7,29 @@ import type {
 } from "./types.ts";
 import { normalizeProviderBaseUrl } from "./verify.ts";
 
-const FETCH_TIMEOUT_MS = 30000;
+/** Align with stream-providers: full JSON (e.g. calculator Definition) often exceeds 30s. */
+const FETCH_TIMEOUT_MS = 120000;
 
 async function fetchWithTimeout(input: string, init?: RequestInit): Promise<Response> {
-  return fetch(input, {
-    ...init,
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-  });
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+  } catch (err) {
+    const name = err instanceof Error ? err.name : "";
+    const msg = err instanceof Error ? err.message : String(err);
+    if (
+      name === "TimeoutError" ||
+      name === "AbortError" ||
+      /timed?\s*out|aborted/i.test(msg)
+    ) {
+      throw new Error(
+        `AI provider timeout after ${Math.round(FETCH_TIMEOUT_MS / 1000)}s`,
+      );
+    }
+    throw err;
+  }
 }
 
 function buildSystemText(

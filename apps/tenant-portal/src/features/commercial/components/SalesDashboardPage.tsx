@@ -2,6 +2,10 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { usePermission } from '@/hooks/usePermission'
+import { listActiveCommercialQuickFlows } from '../api/commercialQuickFlowsService'
+import { LaunchCommercialFlowDialog } from './LaunchCommercialFlowDialog'
+import type { CommercialQuickFlowRow } from '../api/commercialQuickFlowsService'
 import {
   Bar,
   CartesianGrid,
@@ -13,6 +17,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSectorLabel } from '@/hooks/useSectorLabel'
 import {
@@ -35,6 +40,8 @@ function attentionHref(item: SalesDashboardAttentionItem): string {
 export function SalesDashboardPage() {
   const { t } = useTranslation('projects')
   const [year, setYear] = useState(() => new Date().getFullYear())
+  const [launchFlow, setLaunchFlow] = useState<CommercialQuickFlowRow | null>(null)
+  const canLaunchFlows = usePermission('commercial.pricing.edit')
   const agreementsLabel = useSectorLabel(
     'agreement_plural',
     t('projects.agreements.title', 'Acords comercials'),
@@ -48,6 +55,13 @@ export function SalesDashboardPage() {
     queryKey: ['sales_dashboard_overview', year],
     queryFn: () => getSalesDashboardOverview(year),
   })
+
+  const flowsQuery = useQuery({
+    queryKey: ['commercial_quick_flows_active'],
+    queryFn: listActiveCommercialQuickFlows,
+    enabled: canLaunchFlows,
+  })
+  const activeFlows = flowsQuery.data ?? []
 
   const overview = overviewQuery.data
   const cash = overview?.cash
@@ -327,11 +341,63 @@ export function SalesDashboardPage() {
             )}
           </section>
 
+          {canLaunchFlows ? (
+            <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-semibold text-foreground">
+                    {t('projects.flows.title', 'Fluxos comercials')}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {t(
+                      'projects.flows.dashboard_hint',
+                      'Llança un pressupost amb plantilla i font ja configurades.',
+                    )}
+                  </p>
+                </div>
+                <Link
+                  to="/sales/flows"
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  {t('projects.flows.manage', 'Gestionar')}
+                </Link>
+              </div>
+              {activeFlows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t(
+                    'projects.flows.dashboard_empty',
+                    'Cap flux actiu. Crea’n un a Fluxos comercials.',
+                  )}
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {activeFlows.map((flow) => (
+                    <Button
+                      key={flow.id}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setLaunchFlow(flow)}
+                    >
+                      {flow.name}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : null}
+
           <div className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {t('projects.sales.dashboard_shortcuts', 'Accés ràpid')}
             </p>
             <div className="flex flex-wrap gap-2">
+              <Link
+                to="/sales/flows"
+                className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
+              >
+                {t('projects.sales.tab_flows', 'Fluxos comercials')}
+              </Link>
               <Link
                 to="/sales/agreements"
                 className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
@@ -486,6 +552,16 @@ export function SalesDashboardPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {launchFlow ? (
+        <LaunchCommercialFlowDialog
+          open={!!launchFlow}
+          onOpenChange={(next) => {
+            if (!next) setLaunchFlow(null)
+          }}
+          flow={launchFlow}
+        />
+      ) : null}
     </div>
   )
 }

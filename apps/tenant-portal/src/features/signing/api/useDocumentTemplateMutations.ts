@@ -4,6 +4,7 @@ import { signingKeys } from './signingKeys'
 import { uploadTemplateLocaleFile, type VariablesSchema, type SigningRolesSchema } from './signingService'
 import type { DocumentTemplate, DocumentTemplateLocale } from './signingService'
 import type { Json } from '@/types/database.types'
+import { nextUniqueNumberedName } from '@/lib/uniqueNumberedName'
 import { cloneLocaleHtmlContent } from '../utils/docxTemplateIo'
 
 // ─── Clone platform template → tenant template ───────────────────────────────
@@ -12,9 +13,22 @@ export function useCloneTemplateMutation(tenantId: string) {
   const qc = useQueryClient()
   return useMutation<{ template: DocumentTemplate; copiedLocales: number }, Error, DocumentTemplate>({
     mutationFn: async (source) => {
+      const { data: existingRows, error: existingErr } = await supabase
+        .from('document_templates')
+        .select('name')
+        .eq('tenant_id', tenantId)
+        .eq('is_platform_default', false)
+      if (existingErr) throw existingErr
+      const existingNames = (existingRows ?? []).map((r) => r.name ?? '')
+      const cloneName = nextUniqueNumberedName(
+        source.name ?? '',
+        existingNames,
+        'Plantilla',
+      )
+
       const { data, error } = await supabase.rpc('create_document_template', {
         p_tenant_id:      tenantId,
-        p_name:           source.name ?? '',
+        p_name:           cloneName,
         p_description:    source.description ?? undefined,
         p_category:       source.category ?? undefined,
         p_cloned_from_id: source.id ?? undefined,

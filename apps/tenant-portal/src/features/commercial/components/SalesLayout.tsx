@@ -18,6 +18,7 @@ type SalesTab = {
 
 function salesSectionFromPath(pathname: string): string {
   if (pathname.startsWith('/sales/agreements')) return 'agreements'
+  if (pathname.startsWith('/sales/flows')) return 'flows'
   if (pathname.startsWith('/sales/quotes')) return 'quotes'
   if (pathname.startsWith('/sales/delivery-notes')) return 'delivery-notes'
   if (pathname.startsWith('/sales/invoices')) return 'invoices'
@@ -67,6 +68,12 @@ export function SalesLayout() {
       labelKey: 'projects.sales.tab_summary',
       fallback: 'Resum',
       end: true,
+    },
+    {
+      key: 'flows',
+      to: '/sales/flows',
+      labelKey: 'projects.sales.tab_flows',
+      fallback: 'Fluxos comercials',
     },
     {
       key: 'quotes',
@@ -126,6 +133,11 @@ export function SalesLayout() {
 
   const pageSubtitle = (() => {
     switch (sectionKey) {
+      case 'flows':
+        return t(
+          'projects.sales.subtitle_flows',
+          'Crea i activa fluxos per llançar pressupostos amb plantilla i font ja definides.',
+        )
       case 'quotes':
         return t(
           'projects.sales.subtitle_quotes',

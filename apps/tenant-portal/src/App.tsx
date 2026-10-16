@@ -84,6 +84,7 @@ import {
 } from './features/commercial/components/DeliveryNotesPage'
 import { SalesLayout } from './features/commercial/components/SalesLayout'
 import { SalesDashboardPage } from './features/commercial/components/SalesDashboardPage'
+import { CommercialFlowsPage } from './features/commercial/components/CommercialFlowsPage'
 import { SalesAccountingPage } from './features/commercial/components/SalesAccountingPage'
 import { InvoicesPage } from './features/commercial/components/InvoicesPage'
 import { DeliveryNoteDetailPage } from './features/commercial/components/DeliveryNoteDetailPage'
@@ -210,6 +211,7 @@ export default function App() {
           <Route path="/cobraments" element={<CobramentsRedirect />} />
           <Route path="/sales" element={<SalesLayout />}>
             <Route index element={<SalesDashboardPage />} />
+            <Route path="flows" element={<CommercialFlowsPage />} />
             <Route path="quotes" element={<QuotesPage />} />
             <Route path="quotes/:id" element={<QuoteDetailPage />} />
             <Route path="agreements" element={<AgreementsPage />} />
@@ -219,6 +221,8 @@ export default function App() {
             <Route path="invoices" element={<InvoicesPage />} />
             <Route path="invoices/:id" element={<InvoiceDetailPage />} />
             <Route path="accounting" element={<SalesAccountingPage />} />
+            {/* Keep unknown /sales/* inside Comercial; otherwise the global * sends to /dashboard. */}
+            <Route path="*" element={<Navigate to="/sales" replace />} />
           </Route>
           <Route path="/agreements" element={<AgreementsRedirect />} />
           <Route path="/catalog" element={<CatalogLayout />}>

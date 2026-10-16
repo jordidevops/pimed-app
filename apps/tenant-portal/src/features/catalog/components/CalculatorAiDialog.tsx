@@ -20,9 +20,11 @@ import {
   type AiGenerateOverrides,
 } from '@/features/ai/components/AiGenerationSettingsPopover'
 import type { AiGenerateMessage } from '@/features/ai/components/AIGenerateAction'
+import { sanitizeAiErrorMessage } from '@/features/ai/utils/sanitizeAiErrorMessage'
 import { previewCalculator } from '@/features/commercial/api/calculatorService'
 import { formatCalcErrorList } from '@/features/commercial/utils/calculatorErrorLabels'
 import {
+  CALCULATOR_AI_DEFINITION_SHAPE_HINT,
   CALCULATOR_AI_MAX_TURNS,
   calculatorAiFullSystemPrompt,
   calculatorAiSectionSystemPrompt,
@@ -179,7 +181,7 @@ export function CalculatorAiDialog(props: CalculatorAiDialogProps) {
       if (props.editMode && props.definition) {
         return `Mode edició (patches). Definició actual:\n${JSON.stringify(props.definition)}`
       }
-      return 'Mode creació: draft = Definition schema_version=1 completa.'
+      return `Mode creació: draft = Definition CF-29 completa.\n${CALCULATOR_AI_DEFINITION_SHAPE_HINT}`
     }
     const def = props.definition
     return `Context claus actuals:\nparameters=${JSON.stringify(
@@ -243,17 +245,28 @@ export function CalculatorAiDialog(props: CalculatorAiDialogProps) {
           userPrompt: prompt || continueText || props.initialPrompt,
         })
       } catch (parseErr) {
-        if (
-          props.scope === 'section' &&
-          props.sectionKind &&
-          !opts?.repairAttempt &&
-          turnCount + 1 < CALCULATOR_AI_MAX_TURNS
-        ) {
+        const canRepair =
+          !opts?.repairAttempt && turnCount + 1 < CALCULATOR_AI_MAX_TURNS
+        if (canRepair && props.scope === 'section' && props.sectionKind) {
           const kind = props.sectionKind
           const repair = [
             `Format incorrecte. Retorna NOMÉS aquest JSON (cap proposal, cap Definition):`,
             `{"mode":"ready","${kind}":{...}}`,
             `Demanda original de l’usuari:\n${prompt || props.initialPrompt}`,
+          ].join('\n')
+          await callModel(repair, nextHistory, { repairAttempt: true })
+          return
+        }
+        if (canRepair && props.scope === 'full') {
+          const errText =
+            parseErr instanceof Error ? parseErr.message : 'invalid_definition'
+          const repair = [
+            'Format incorrecte. NO usis title/description/inputs/outputs.',
+            'Retorna NOMÉS un envelope proposal amb draft = Definition CF-29:',
+            '{"mode":"proposal","summary":"...","assistant_message":"...","draft":{"schema_version":1,"parameters":[],"constants":[],"tables":[],"lines":[]},"example":{"params":{}}}',
+            CALCULATOR_AI_DEFINITION_SHAPE_HINT,
+            `Error de validació: ${errText}`,
+            `Demanda original:\n${prompt || props.initialPrompt}`,
           ].join('\n')
           await callModel(repair, nextHistory, { repairAttempt: true })
           return
@@ -287,7 +300,9 @@ export function CalculatorAiDialog(props: CalculatorAiDialogProps) {
       setPhase('proposal')
       setContinueText('')
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t('common:error', 'Error')
+      const msg = sanitizeAiErrorMessage(
+        err instanceof Error ? err.message : t('common:error', 'Error'),
+      )
       setErrorMsg(msg)
       toast({ variant: 'destructive', description: msg })
     }

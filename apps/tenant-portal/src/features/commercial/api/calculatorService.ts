@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { getFunctionErrorMessage } from '@/lib/functionErrors'
 import {
   activationGaps,
   applyLineOverrides,
@@ -72,8 +73,11 @@ export async function getCalculatorDefinition(
       'id, name, description, status, draft_definition, published_version_id, tags, updated_at, cloned_from_catalog_id, tariffs_reviewed_at',
     )
     .eq('id', id)
-    .single()
+    .maybeSingle()
   if (error) throw error
+  if (!data) {
+    throw new Error('CALCULATOR_NOT_FOUND')
+  }
   return data as CalculatorDefinitionRow
 }
 
@@ -413,7 +417,10 @@ export async function applyCalculatorRun(input: {
     },
   })
 
-  if (error) throw error
+  if (error) {
+    const detailed = await getFunctionErrorMessage(error)
+    throw new Error(detailed ?? error.message)
+  }
   if (data?.error === 'calculator_parity_mismatch') {
     throw new Error('calculator_parity_mismatch')
   }

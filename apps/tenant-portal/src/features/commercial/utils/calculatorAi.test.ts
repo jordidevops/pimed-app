@@ -56,10 +56,85 @@ describe('calculatorAi', () => {
     expect(demoted.constants![0]!.value).toBe(40)
   })
 
-  it('rejects unknown keys via validator', () => {
-    expect(() =>
-      parseAiCalculatorDefinition(JSON.stringify({ ...valid, eval: '1+1' })),
-    ).toThrow()
+  it('strips unknown AI top-level keys (title/eval/inputs…)', () => {
+    const parsed = parseAiCalculatorDefinition(
+      JSON.stringify({ ...valid, eval: '1+1', title: 'X', inputs: [] }),
+    )
+    expect(parsed).not.toHaveProperty('eval')
+    expect(parsed).not.toHaveProperty('title')
+    expect(parsed).not.toHaveProperty('inputs')
+    expect(parsed.schema_version).toBe(1)
+    expect(parsed.lines).toHaveLength(1)
+  })
+
+  it('coerces AI map-shaped arrays without iterable crash', () => {
+    const asMaps = {
+      schema_version: 1,
+      parameters: { 0: valid.parameters[0] },
+      constants: { 0: valid.constants![0] },
+      tables: {},
+      lines: { 0: valid.lines[0] },
+    }
+    const parsed = parseAiCalculatorDefinition(JSON.stringify(asMaps))
+    expect(parsed.parameters).toHaveLength(1)
+    expect(parsed.lines).toHaveLength(1)
+    expect(parsed.constants).toHaveLength(1)
+  })
+
+  it('maps inputs → parameters when parameters missing', () => {
+    const raw = {
+      schema_version: 1,
+      inputs: [{ key: 'hours', type: 'number', name: 'Hores', unit: 'h' }],
+      constants: valid.constants,
+      lines: valid.lines,
+    }
+    const parsed = parseAiCalculatorDefinition(JSON.stringify(raw))
+    expect(parsed.parameters[0]?.key).toBe('hours')
+    expect(parsed.parameters[0]?.label.ca).toBe('Hores')
+  })
+
+  it('coerces symbolic ops (-, +) and args-shaped sub', () => {
+    const raw = {
+      schema_version: 1,
+      parameters: valid.parameters,
+      constants: valid.constants,
+      lines: [
+        {
+          ...valid.lines[0],
+          key: 'travel',
+          quantity: {
+            op: 'round',
+            decimals: 3,
+            mode: 'half_away_from_zero',
+            value: {
+              op: 'mul',
+              args: [
+                { op: 'param', key: 'hours' },
+                {
+                  op: '-',
+                  args: [
+                    { op: 'const', value: 10 },
+                    { op: 'const', value: 2 },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      ],
+    }
+    const parsed = parseAiCalculatorDefinition(JSON.stringify(raw))
+    const qty = parsed.lines[0]!.quantity
+    expect(qty.op).toBe('round')
+    if (qty.op !== 'round') throw new Error('expected round')
+    expect(qty.value.op).toBe('mul')
+    if (qty.value.op !== 'mul') throw new Error('expected mul')
+    const sub = qty.value.args[1]
+    expect(sub).toMatchObject({
+      op: 'sub',
+      left: { op: 'const', value: 10 },
+      right: { op: 'const', value: 2 },
+    })
   })
 
   it('applies patch lot atomically', () => {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -29,7 +29,7 @@ import {
 } from '@/features/commercial/utils/calculatorAi'
 import { CalculatorAiDialog } from './CalculatorAiDialog'
 import { CalculatorEditorHelpSheet } from './CalculatorEditorHelpSheet'
-import { AI_EXAMPLE_CHIPS } from './calculatorAiExamples'
+import { AI_EXAMPLE_CHIPS, AI_FULL_CREATE_CHIPS } from './calculatorAiExamples'
 import {
   activateClonedCalculator,
   canActivateCalculator,
@@ -48,6 +48,10 @@ import {
   upsertCalculatorCase,
   type CalculatorCaseRow,
 } from '@/features/commercial/api/calculatorService'
+import {
+  calculatorAiCreatePath,
+  createCalculatorForAi,
+} from '@/features/commercial/api/calculatorCreateAi'
 import { readWhenMode, writeWhenMode, type WhenMode } from '@/features/commercial/utils/calculatorWhenMode'
 import { formatActivationGapList } from '@/features/commercial/utils/calculatorGapLabels'
 import { formatCalcErrorList } from '@/features/commercial/utils/calculatorErrorLabels'
@@ -101,6 +105,25 @@ function cloneDef(def: Definition): Definition {
   return structuredClone(def)
 }
 
+function editorSnapshot(
+  name: string,
+  description: string,
+  tagsText: string,
+  def: Definition,
+): string {
+  return JSON.stringify({ name, description, tagsText, def })
+}
+
+function isCalculatorDraftEmpty(def: Definition | null): boolean {
+  if (!def) return true
+  return (
+    (def.parameters?.length ?? 0) === 0 &&
+    (def.lines?.length ?? 0) === 0 &&
+    (def.constants?.length ?? 0) === 0 &&
+    (def.tables?.length ?? 0) === 0
+  )
+}
+
 export function CalculatorEditorPage() {
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -112,10 +135,16 @@ export function CalculatorEditorPage() {
   const canEdit = activeRole === 'owner' || activeRole === 'manager'
   const archetype = activeTenant?.archetype ?? 'generic'
 
-  const { data: row, isLoading } = useQuery({
+  const {
+    data: row,
+    isLoading,
+    isError: definitionError,
+    error: definitionErr,
+  } = useQuery({
     queryKey: ['calculator_definition', id, activeTenant?.id],
     queryFn: () => getCalculatorDefinition(id!),
     enabled: !!id && !!activeTenant,
+    retry: false,
   })
 
   const { data: cases = [], refetch: refetchCases } = useQuery({
@@ -149,6 +178,13 @@ export function CalculatorEditorPage() {
   const [aiPrompt, setAiPrompt] = useState('')
   const [fullAiOpen, setFullAiOpen] = useState(false)
   const [fullAiEditMode, setFullAiEditMode] = useState(false)
+  /** Origen del diàleg full: crea (llista) vs regenera (editor). */
+  const [fullAiCreateFlow, setFullAiCreateFlow] = useState(false)
+  const [regenerateConfirmOpen, setRegenerateConfirmOpen] = useState(false)
+  const [leaveOpen, setLeaveOpen] = useState(false)
+  const leaveActionRef = useRef<(() => void) | null>(null)
+  const [baseline, setBaseline] = useState<string | null>(null)
+  const [hydratedId, setHydratedId] = useState<string | null>(null)
   const [pendingPatches, setPendingPatches] = useState<
     Array<CalculatorPatch & { accepted: boolean }>
   >([])
@@ -186,11 +222,25 @@ export function CalculatorEditorPage() {
   })
 
   useEffect(() => {
+    setHydratedId(null)
+    setBaseline(null)
+    setDef(null)
+  }, [id])
+
+  useEffect(() => {
     if (!row) return
-    setName(row.name)
-    setDescription(row.description ?? '')
-    setTagsText((row.tags ?? []).join(', '))
-    setDef(cloneDef(row.draft_definition))
+    // No sobreescriure l’estat local en refetch mentre hi ha canvis o ja està hidratat.
+    if (hydratedId === row.id) return
+    const nextName = row.name
+    const nextDescription = row.description ?? ''
+    const nextTags = (row.tags ?? []).join(', ')
+    const nextDef = cloneDef(row.draft_definition)
+    setName(nextName)
+    setDescription(nextDescription)
+    setTagsText(nextTags)
+    setDef(nextDef)
+    setBaseline(editorSnapshot(nextName, nextDescription, nextTags, nextDef))
+    setHydratedId(row.id)
     const initial: ParamValues = {}
     for (const p of row.draft_definition.parameters ?? []) {
       if (p.default !== undefined && p.default !== null) initial[p.key] = p.default
@@ -199,7 +249,57 @@ export function CalculatorEditorPage() {
     }
     setPreviewParams(initial)
     setLineOverrides({})
-  }, [row])
+  }, [row, hydratedId])
+
+  useEffect(() => {
+    if (searchParams.get('aiCreate') !== '1') return
+    if (!def || hydratedId !== id) return
+    setFullAiEditMode(false)
+    setFullAiCreateFlow(true)
+    setFullAiOpen(true)
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('aiCreate')
+        return next
+      },
+      { replace: true },
+    )
+  }, [searchParams, def, hydratedId, id, setSearchParams])
+
+  const isDirty = useMemo(() => {
+    if (!baseline || !def) return false
+    return editorSnapshot(name, description, tagsText, def) !== baseline
+  }, [baseline, name, description, tagsText, def])
+
+  const draftEmpty = isCalculatorDraftEmpty(def)
+
+  useEffect(() => {
+    if (!isDirty) return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [isDirty])
+
+  const requestLeave = useCallback(
+    (action: () => void) => {
+      if (!isDirty) {
+        action()
+        return
+      }
+      leaveActionRef.current = action
+      setLeaveOpen(true)
+    },
+    [isDirty],
+  )
+
+  const markBaselineFromCurrent = useCallback(() => {
+    if (!def) return
+    setBaseline(editorSnapshot(name, description, tagsText, def))
+  }, [name, description, tagsText, def])
 
   const preview = useMemo(() => {
     if (!def) return null
@@ -670,8 +770,8 @@ export function CalculatorEditorPage() {
     setDef(next)
   }
 
-  async function handleSave() {
-    if (!id || !def || !canEdit || busy) return
+  async function handleSave(opts?: { skipToast?: boolean }): Promise<boolean> {
+    if (!id || !def || !canEdit || busy) return false
     setBusy(true)
     try {
       const tags = tagsText
@@ -686,14 +786,19 @@ export function CalculatorEditorPage() {
         draftDefinition: def,
         tags,
       })
+      markBaselineFromCurrent()
       await queryClient.invalidateQueries({ queryKey: ['calculator_definition', id] })
       await queryClient.invalidateQueries({ queryKey: ['calculator_definitions'] })
-      toast({ title: t('catalog.calculators.saved', 'Desat') })
+      if (!opts?.skipToast) {
+        toast({ title: t('catalog.calculators.saved', 'Desat') })
+      }
+      return true
     } catch (err) {
       toast({
         variant: 'destructive',
         description: err instanceof Error ? err.message : t('common:error', 'Error'),
       })
+      return false
     } finally {
       setBusy(false)
     }
@@ -716,6 +821,7 @@ export function CalculatorEditorPage() {
         tags,
       })
       await publishCalculatorVersion(id)
+      markBaselineFromCurrent()
       await queryClient.invalidateQueries({ queryKey: ['calculator_definition', id] })
       await queryClient.invalidateQueries({ queryKey: ['calculator_definitions'] })
       toast({ title: t('catalog.calculators.published', 'Versió publicada') })
@@ -787,7 +893,31 @@ export function CalculatorEditorPage() {
       await deleteCalculatorDefinition(id)
       await queryClient.invalidateQueries({ queryKey: ['calculator_definitions'] })
       toast({ title: t('catalog.calculators.deleted', 'Eliminada') })
+      setBaseline(null)
       navigate('/catalog/calculators')
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        description: err instanceof Error ? err.message : t('common:error', 'Error'),
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleCreateNewWithAi() {
+    if (busy) return
+    setBusy(true)
+    try {
+      const newId = await createCalculatorForAi({
+        name: t('catalog.calculators.new_name', 'Nova calculadora'),
+        description: t(
+          'catalog.calculators.new_help_ai',
+          'Esborrany creat amb IA. Revisa tarifes i desa una prova abans d’activar.',
+        ),
+      })
+      await queryClient.invalidateQueries({ queryKey: ['calculator_definitions'] })
+      navigate(calculatorAiCreatePath(newId))
     } catch (err) {
       toast({
         variant: 'destructive',
@@ -907,6 +1037,31 @@ export function CalculatorEditorPage() {
     )
   }
 
+  if (definitionError) {
+    const notFound =
+      definitionErr instanceof Error && definitionErr.message === 'CALCULATOR_NOT_FOUND'
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          {notFound
+            ? t(
+                'catalog.calculators.not_found',
+                'Aquesta calculadora no existeix o ja no és accessible (potser s’ha esborrat o és d’un altre tenant).',
+              )
+            : definitionErr instanceof Error
+              ? definitionErr.message
+              : t('common:error', 'Error')}
+        </p>
+        <Button type="button" variant="outline" size="sm" asChild>
+          <Link to="/catalog/calculators">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            {t('catalog.calculators.back', 'Llista')}
+          </Link>
+        </Button>
+      </div>
+    )
+  }
+
   if (isLoading || !def || !row) {
     return <p className="text-sm text-muted-foreground">{t('common:loading', 'Carregant…')}</p>
   }
@@ -984,16 +1139,24 @@ export function CalculatorEditorPage() {
       />
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" variant="ghost" size="sm" asChild>
-          <Link to="/catalog/calculators">
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            {t('catalog.calculators.back', 'Llista')}
-          </Link>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => requestLeave(() => navigate('/catalog/calculators'))}
+        >
+          <ArrowLeft className="mr-1 h-4 w-4" />
+          {t('catalog.calculators.back', 'Llista')}
         </Button>
         <Badge variant="outline">{row.status}</Badge>
         {row.published_version_id ? (
           <Badge variant="secondary">
             {t('catalog.calculators.has_version', 'Versió publicada')}
+          </Badge>
+        ) : null}
+        {isDirty ? (
+          <Badge variant="outline" className="border-amber-500/50 text-amber-800 dark:text-amber-200">
+            {t('catalog.calculators.unsaved_badge', 'Canvis sense desar')}
           </Badge>
         ) : null}
         <Button type="button" variant="ghost" size="sm" onClick={() => setShowHelp(true)}>
@@ -1081,31 +1244,37 @@ export function CalculatorEditorPage() {
         <p className="text-sm text-muted-foreground">
           {t(
             'catalog.calculators.ai_dialog_full_hint',
-            'Diàleg multi-torn: la IA pot demanar aclariments i et mostra una proposta amb exemple abans d’aplicar.',
+            'Per crear-ne una de nova: usa «Generar calculadora amb IA» a la llista. Aquí: canvis amb diff, o regenerar tot (substitueix l’esborrany).',
           )}
         </p>
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
             variant="secondary"
-            disabled={busy}
-            onClick={() => {
-              setFullAiEditMode(false)
-              setFullAiOpen(true)
-            }}
-          >
-            {t('catalog.calculators.ai_create', 'Generar definició')}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={!def || busy}
+            disabled={!def || busy || draftEmpty}
+            title={
+              draftEmpty
+                ? t(
+                    'catalog.calculators.ai_edit_disabled_empty',
+                    'L’esborrany és buit. Usa «Regenerar amb IA» o crea des de la llista.',
+                  )
+                : undefined
+            }
             onClick={() => {
               setFullAiEditMode(true)
+              setFullAiCreateFlow(false)
               setFullAiOpen(true)
             }}
           >
             {t('catalog.calculators.ai_edit', 'Proposar canvis (diff)')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={() => setRegenerateConfirmOpen(true)}
+          >
+            {t('catalog.calculators.ai_regenerate', 'Regenerar amb IA…')}
           </Button>
         </div>
         <CalculatorAiDialog
@@ -1115,7 +1284,15 @@ export function CalculatorEditorPage() {
           title={
             fullAiEditMode
               ? t('catalog.calculators.ai_edit', 'Proposar canvis (diff)')
-              : t('catalog.calculators.ai_create', 'Generar definició')
+              : fullAiCreateFlow
+                ? t(
+                    'catalog.calculators.create_with_ai',
+                    'Generar calculadora amb IA',
+                  )
+                : t(
+                    'catalog.calculators.ai_regenerate_title',
+                    'Regenerar calculadora amb IA',
+                  )
           }
           description={t(
             'catalog.calculators.ai_dialog_full_desc',
@@ -1130,6 +1307,28 @@ export function CalculatorEditorPage() {
           definition={def}
           editMode={fullAiEditMode}
           busy={busy}
+          promptExtra={
+            !fullAiEditMode ? (
+              <div className="flex flex-wrap gap-1.5">
+                <span className="w-full text-xs text-muted-foreground">
+                  {t(
+                    'catalog.calculators.ai_full_chips',
+                    'Clica un exemple (substitueix el text):',
+                  )}
+                </span>
+                {AI_FULL_CREATE_CHIPS.map((chip) => (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    className="inline-flex items-center rounded-full border border-border bg-muted/40 px-2.5 py-0.5 text-xs hover:bg-muted"
+                    onClick={() => setAiPrompt(chip.prompt)}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            ) : null
+          }
           onReady={() => {
             /* full no usa ready */
           }}
@@ -1148,7 +1347,10 @@ export function CalculatorEditorPage() {
               setDef(demoteUnconfirmedTariffNumbers(proposal.draft, aiPrompt))
               setPendingPatches([])
               toast({
-                title: t('catalog.calculators.ai_applied', 'Proposta carregada (esborrany)'),
+                title: t(
+                  'catalog.calculators.ai_applied',
+                  'Proposta carregada (esborrany). Desa quan vulguis conservar-la.',
+                ),
               })
             } catch (err) {
               toast({
@@ -1244,10 +1446,23 @@ export function CalculatorEditorPage() {
             rows={2}
           />
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" disabled={busy} onClick={() => void handleSave()}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant={isDirty ? 'default' : 'secondary'}
+            disabled={busy || !isDirty}
+            onClick={() => void handleSave()}
+          >
             {t('catalog.calculators.save', 'Desar esborrany')}
           </Button>
+          {isDirty ? (
+            <span className="text-xs text-amber-800 dark:text-amber-200">
+              {t(
+                'catalog.calculators.unsaved_hint',
+                'Hi ha canvis pendents. Desa abans de marxar.',
+              )}
+            </span>
+          ) : null}
           <Button type="button" variant="outline" disabled={busy} onClick={() => void handlePublish()}>
             {t('catalog.calculators.publish', 'Publicar versió')}
           </Button>
@@ -2673,6 +2888,132 @@ export function CalculatorEditorPage() {
         )}
       </section>
 
+      <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {t('catalog.calculators.unsaved_title', 'Canvis sense desar')}
+            </DialogTitle>
+            <DialogDescription>
+              {t(
+                'catalog.calculators.unsaved_body',
+                'Tens canvis a l’esborrany que encara no s’han desat. Què vols fer?',
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                void (async () => {
+                  const ok = await handleSave({ skipToast: true })
+                  if (!ok) return
+                  const action = leaveActionRef.current
+                  leaveActionRef.current = null
+                  setLeaveOpen(false)
+                  action?.()
+                })()
+              }}
+            >
+              {t('catalog.calculators.unsaved_save_leave', 'Desar i sortir')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                const action = leaveActionRef.current
+                leaveActionRef.current = null
+                setLeaveOpen(false)
+                // Evita beforeunload durant la navegació imediata.
+                setBaseline(
+                  def ? editorSnapshot(name, description, tagsText, def) : null,
+                )
+                action?.()
+              }}
+            >
+              {t('catalog.calculators.unsaved_discard', 'Sortir sense desar')}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => {
+                leaveActionRef.current = null
+                setLeaveOpen(false)
+              }}
+            >
+              {t('common:cancel', 'Cancel·lar')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={regenerateConfirmOpen} onOpenChange={setRegenerateConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {t('catalog.calculators.ai_regenerate_title', 'Regenerar calculadora amb IA')}
+            </DialogTitle>
+            <DialogDescription className="space-y-2 text-left">
+              <span className="block">
+                {t(
+                  'catalog.calculators.ai_regenerate_warn',
+                  'Se substituiran paràmetres, constants, taules i línies de l’esborrany. Es mantenen el nom, les etiquetes i els casos de prova. Després cal desar.',
+                )}
+              </span>
+              {row.published_version_id ? (
+                <span className="block">
+                  {t(
+                    'catalog.calculators.ai_regenerate_published',
+                    'Aquesta calculadora ja té una versió publicada: cal tornar a publicar perquè el flux ràpid usi el nou esborrany.',
+                  )}
+                </span>
+              ) : null}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setRegenerateConfirmOpen(false)
+                setFullAiEditMode(false)
+                setFullAiCreateFlow(false)
+                setFullAiOpen(true)
+              }}
+            >
+              {t('catalog.calculators.ai_regenerate_continue', 'Continuar')}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy}
+              onClick={() => {
+                setRegenerateConfirmOpen(false)
+                requestLeave(() => {
+                  void handleCreateNewWithAi()
+                })
+              }}
+            >
+              {t(
+                'catalog.calculators.ai_regenerate_create_new',
+                'Crear-ne una de nova amb IA',
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => setRegenerateConfirmOpen(false)}
+            >
+              {t('common:cancel', 'Cancel·lar')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog
         open={pendingDeleteCase != null}
         onOpenChange={(open) => {
@@ -2714,7 +3055,11 @@ export function CalculatorEditorPage() {
       </Dialog>
 
       <div className="pb-8">
-        <Button type="button" variant="outline" onClick={() => navigate('/catalog/calculators')}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => requestLeave(() => navigate('/catalog/calculators'))}
+        >
           {t('catalog.calculators.back', 'Llista')}
         </Button>
       </div>
