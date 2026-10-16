@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -99,6 +99,7 @@ export function LaunchCommercialFlowDialog({
   const [lineOverrides, setLineOverrides] = useState<LineOverrides>({})
   const [habitQty, setHabitQty] = useState<Record<string, number>>({})
   const [busy, setBusy] = useState(false)
+  const issueInFlight = useRef(false)
 
   const { data: contacts = [] } = useQuery({
     queryKey: ['contacts_flow_launch', activeTenant?.id, clientSearch],
@@ -149,24 +150,25 @@ export function LaunchCommercialFlowDialog({
       setLineOverrides({})
       setHabitQty({})
       setBusy(false)
+      issueInFlight.current = false
       return
     }
     setClientId(initialClientId ?? '')
     setClientSearch(initialClientName ?? '')
-    if (initialClientId) {
-      if (isCalc) setStep('params')
-      else setStep('params')
-    } else {
-      setStep('client')
-    }
-  }, [open, initialClientId, initialClientName, isCalc, flow.id])
+    setStep(initialClientId ? 'params' : 'client')
+  }, [open, initialClientId, initialClientName, flow.id])
 
   useEffect(() => {
     if (!open || !definition || !isCalc) return
     setParams(defaultParams(definition))
     setLineOverrides({})
-    if (clientId && !needsParamStep(definition)) setStep('preview')
-  }, [open, definition, isCalc, clientId])
+  }, [open, definition, isCalc, flow.id])
+
+  // Prefill path only: skip params when the dialog opens with a client and no prompts.
+  useEffect(() => {
+    if (!open || !initialClientId || !isCalc || !definition) return
+    if (!needsParamStep(definition)) setStep('preview')
+  }, [open, initialClientId, isCalc, definition, flow.id])
 
   useEffect(() => {
     if (!open || isCalc || !habitItems.length) return
@@ -256,10 +258,28 @@ export function LaunchCommercialFlowDialog({
   }
 
   async function issue() {
-    if (!activeTenant?.id || !clientId || !previewDoc) return
+    if (!activeTenant?.id || !clientId || !previewDoc || issueInFlight.current) return
     if (isCalc && (!selectedCalc?.published_version_id || !definition || calcPreview?.errors.length)) {
+      toast({
+        variant: 'destructive',
+        description: t(
+          'projects.flows.error_source_inactive',
+          'No es pot emetre: la calculadora no està activa o publicada.',
+        ),
+      })
       return
     }
+    if (!isCalc && (!flow.pricing_template_id || habitLines.length === 0)) {
+      toast({
+        variant: 'destructive',
+        description: t(
+          'projects.flows.warn_habit_missing',
+          'Servei habitual no disponible',
+        ),
+      })
+      return
+    }
+    issueInFlight.current = true
     setBusy(true)
     let documentId: string | null = null
     try {
@@ -298,6 +318,10 @@ export function LaunchCommercialFlowDialog({
         documentId,
         formalizationMode: flow.formalization_mode,
         fullBodyTemplateId: flow.quote_template_id,
+        agreementTemplateId:
+          flow.formalization_mode === 'separate_agreement'
+            ? flow.agreement_template_id
+            : null,
       })
       toast({ title: t('projects.orphan.issued', 'Pressupost emès') })
       onOpenChange(false)
@@ -315,10 +339,12 @@ export function LaunchCommercialFlowDialog({
         description: commercialErrorMessage(err, t('common:error', 'Error')),
       })
     } finally {
+      issueInFlight.current = false
       setBusy(false)
     }
   }
 
+  // Orphan draft/issue RPCs require commercial.pricing.edit for both calc and habit paths.
   if (!canEditPricing) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -326,10 +352,15 @@ export function LaunchCommercialFlowDialog({
           <DialogHeader>
             <DialogTitle>{flow.name}</DialogTitle>
             <DialogDescription>
-              {t(
-                'projects.quotes.quick_no_pricing',
-                'Cal el permís d’editar preus per usar el flux ràpid amb calculadora.',
-              )}
+              {isCalc
+                ? t(
+                    'projects.quotes.quick_no_pricing',
+                    'Cal el permís d’editar preus per usar el flux ràpid amb calculadora.',
+                  )
+                : t(
+                    'projects.flows.no_pricing_habit',
+                    'Cal el permís d’editar preus per llançar aquest flux (emissió de pressupost orfe).',
+                  )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -396,24 +427,37 @@ export function LaunchCommercialFlowDialog({
               {definition.parameters.map((p) => (
                 <div key={p.key} className="space-y-1">
                   <Label>{resolveLocale(p.label, 'ca') || p.key}</Label>
-                  <Input
-                    type={p.type === 'boolean' ? 'text' : 'number'}
-                    value={params[p.key] == null ? '' : String(params[p.key])}
-                    onChange={(e) => {
-                      if (p.type === 'boolean') {
+                  {p.type === 'boolean' ? (
+                    <select
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      value={String(Boolean(params[p.key]))}
+                      onChange={(e) =>
                         setParams((prev) => ({
                           ...prev,
                           [p.key]: e.target.value === 'true',
                         }))
-                        return
                       }
-                      const n = Number(e.target.value.replace(',', '.'))
-                      setParams((prev) => ({
-                        ...prev,
-                        [p.key]: Number.isFinite(n) ? n : 0,
-                      }))
-                    }}
-                  />
+                    >
+                      <option value="false">
+                        {t('common:no', 'No')}
+                      </option>
+                      <option value="true">
+                        {t('common:yes', 'Sí')}
+                      </option>
+                    </select>
+                  ) : (
+                    <Input
+                      type="number"
+                      value={params[p.key] == null ? '' : String(params[p.key])}
+                      onChange={(e) => {
+                        const n = Number(e.target.value.replace(',', '.'))
+                        setParams((prev) => ({
+                          ...prev,
+                          [p.key]: Number.isFinite(n) ? n : 0,
+                        }))
+                      }}
+                    />
+                  )}
                 </div>
               ))}
             </div>

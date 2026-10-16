@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { getCalculatorDefinition } from './calculatorService'
 import type { FormalizationMode } from '../utils/deviationApprovalThreshold'
 
 export type CommercialQuickFlowStatus = 'draft' | 'active' | 'archived'
@@ -31,7 +32,10 @@ export type CommercialQuickFlowInput = {
   sortOrder?: number
 }
 
-function assertActiveSource(input: CommercialQuickFlowInput, status: CommercialQuickFlowStatus) {
+function assertActiveSourceShape(
+  input: CommercialQuickFlowInput,
+  status: CommercialQuickFlowStatus,
+) {
   if (status !== 'active') return
   const hasCalc = !!input.calculatorDefinitionId
   const hasHabit = !!input.pricingTemplateId
@@ -40,6 +44,32 @@ function assertActiveSource(input: CommercialQuickFlowInput, status: CommercialQ
   }
   if (input.formalizationMode === 'separate_agreement' && !input.agreementTemplateId) {
     throw new Error('flow_agreement_template_required')
+  }
+}
+
+async function assertActiveSourceHealthy(
+  input: CommercialQuickFlowInput,
+  status: CommercialQuickFlowStatus,
+) {
+  assertActiveSourceShape(input, status)
+  if (status !== 'active') return
+  if (input.calculatorDefinitionId) {
+    const calc = await getCalculatorDefinition(input.calculatorDefinitionId)
+    if (calc.status !== 'active' || !calc.published_version_id) {
+      throw new Error('flow_source_inactive')
+    }
+  }
+  if (input.pricingTemplateId) {
+    const { data, error } = await supabase
+      .from('pricing_templates' as never)
+      .select('id, is_active')
+      .eq('id', input.pricingTemplateId)
+      .maybeSingle()
+    if (error) throw error
+    const row = data as { id: string; is_active: boolean } | null
+    if (!row || row.is_active === false) {
+      throw new Error('flow_source_inactive')
+    }
   }
 }
 
@@ -68,7 +98,7 @@ export async function createCommercialQuickFlow(
   input: CommercialQuickFlowInput,
 ): Promise<CommercialQuickFlowRow> {
   const status = input.status ?? 'draft'
-  assertActiveSource(input, status)
+  await assertActiveSourceHealthy(input, status)
   const { data, error } = await supabase
     .from('commercial_quick_flows' as never)
     .insert({
@@ -94,7 +124,7 @@ export async function updateCommercialQuickFlow(
   input: CommercialQuickFlowInput,
 ): Promise<CommercialQuickFlowRow> {
   const status = input.status ?? 'draft'
-  assertActiveSource(input, status)
+  await assertActiveSourceHealthy(input, status)
   const { data, error } = await supabase
     .from('commercial_quick_flows' as never)
     .update({
@@ -127,7 +157,7 @@ export async function setCommercialQuickFlowStatus(
       .single()
     if (loadErr) throw loadErr
     const current = row as CommercialQuickFlowRow
-    assertActiveSource(
+    await assertActiveSourceHealthy(
       {
         name: current.name,
         calculatorDefinitionId: current.calculator_definition_id,

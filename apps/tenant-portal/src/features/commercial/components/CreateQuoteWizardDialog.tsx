@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -30,6 +30,9 @@ import {
   listActiveCommercialQuickFlows,
   type CommercialQuickFlowRow,
 } from '../api/commercialQuickFlowsService'
+import { listActiveCalculators } from '../api/calculatorService'
+import { listPricingTemplates } from '../api/commercialFlowService'
+import { isQuickFlowSourceLaunchable } from '../utils/quickFlowSourceHealth'
 import { CreateOrphanQuoteDialog } from './CreateOrphanQuoteDialog'
 import { CreateProspectQuoteDialog } from './CreateProspectQuoteDialog'
 import { CreateQuickQuoteDialog } from './CreateQuickQuoteDialog'
@@ -69,11 +72,26 @@ export function CreateQuoteWizardDialog({
   const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null)
   const [launchFlow, setLaunchFlow] = useState<CommercialQuickFlowRow | null>(null)
 
-  const { data: activeFlows = [] } = useQuery({
-    queryKey: ['commercial_quick_flows_active', activeTenant?.id],
+  const { data: flowsRaw = [] } = useQuery({
+    queryKey: ['commercial_quick_flows', 'active', activeTenant?.id],
     queryFn: listActiveCommercialQuickFlows,
     enabled: open && !!activeTenant,
   })
+  const { data: calculators = [] } = useQuery({
+    queryKey: ['calculator_definitions_active', activeTenant?.id],
+    queryFn: listActiveCalculators,
+    enabled: open && !!activeTenant,
+  })
+  const { data: habits = [] } = useQuery({
+    queryKey: ['pricing_templates', activeTenant?.id],
+    queryFn: listPricingTemplates,
+    enabled: open && !!activeTenant,
+  })
+  const activeFlows = useMemo(() => {
+    const calcById = new Map(calculators.map((c) => [c.id, c]))
+    const habitById = new Map(habits.map((h) => [h.id, h]))
+    return flowsRaw.filter((flow) => isQuickFlowSourceLaunchable(flow, calcById, habitById))
+  }, [flowsRaw, calculators, habits])
 
   useEffect(() => {
     if (!open) {

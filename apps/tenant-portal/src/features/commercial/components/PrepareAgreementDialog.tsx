@@ -96,11 +96,11 @@ export function PrepareAgreementDialog({
   const [billingAmountEur, setBillingAmountEur] = useState('')
   const [billingAnchorDay, setBillingAnchorDay] = useState('1')
   const [lastSubmissionId, setLastSubmissionId] = useState<string | null>(null)
+  const [quoteAgreementTemplateId, setQuoteAgreementTemplateId] = useState<string | null>(null)
 
-  const skipTemplateByDefault = shouldSkipCommercialTemplateStep(
-    effective,
-    COMMERCIAL_AGREEMENT_TEMPLATE_ID_KEY,
-  )
+  const skipTemplateByDefault =
+    !!quoteAgreementTemplateId ||
+    shouldSkipCommercialTemplateStep(effective, COMMERCIAL_AGREEMENT_TEMPLATE_ID_KEY)
   const showTemplatePicker = !skipTemplateByDefault || forceAskTemplate
 
   const agreementTemplates = templates.filter(
@@ -125,6 +125,7 @@ export function PrepareAgreementDialog({
       setBillingAnchorDay('1')
       setError(null)
       setBusy(false)
+      setQuoteAgreementTemplateId(null)
       return
     }
     setBlockWorkUntilActive(parseWorkGateDefault(effective) === 'require_signed_agreement')
@@ -157,11 +158,37 @@ export function PrepareAgreementDialog({
   }, [open, documentId, effective])
 
   useEffect(() => {
+    if (!open || !documentId) {
+      setQuoteAgreementTemplateId(null)
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      const { data } = await supabase
+        .from('commercial_document_events' as never)
+        .select('payload')
+        .eq('document_id', documentId)
+        .eq('event_type', 'issued')
+        .order('occurred_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (cancelled) return
+      const payload = (data as { payload?: Record<string, unknown> } | null)?.payload
+      const raw = payload?.agreement_template_id
+      setQuoteAgreementTemplateId(typeof raw === 'string' && raw.length > 0 ? raw : null)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [open, documentId])
+
+  useEffect(() => {
     if (!open) return
     const kindPrefersMaintenance =
       agreementKind === 'recurring' || agreementKind === 'framework'
     const preferredId =
       (kindPrefersMaintenance ? PLATFORM_MAINTENANCE_AGREEMENT_TEMPLATE_ID : null)
+      ?? quoteAgreementTemplateId
       ?? parseCommercialSettingId(effective, COMMERCIAL_AGREEMENT_TEMPLATE_ID_KEY)
       ?? PLATFORM_AGREEMENT_TEMPLATE_ID
     const preferred =
@@ -171,13 +198,19 @@ export function PrepareAgreementDialog({
         : null)
       ?? agreementTemplates.find((tpl) => tpl.id === PLATFORM_AGREEMENT_TEMPLATE_ID)
     setTemplateId((current) => {
+      // Quote-bound flow template wins once when the picker is still empty / on default.
+      if (quoteAgreementTemplateId && agreementTemplates.some((tpl) => tpl.id === quoteAgreementTemplateId)) {
+        if (!current || current === PLATFORM_AGREEMENT_TEMPLATE_ID) {
+          return quoteAgreementTemplateId
+        }
+      }
       if (!current) return preferred?.id || agreementTemplates[0]?.id || ''
       if (kindPrefersMaintenance && preferred?.id && current === PLATFORM_AGREEMENT_TEMPLATE_ID) {
         return preferred.id
       }
       return current
     })
-  }, [open, templates, effective, agreementKind])
+  }, [open, templates, effective, agreementKind, quoteAgreementTemplateId])
 
   async function reload() {
     const { data } = await supabase

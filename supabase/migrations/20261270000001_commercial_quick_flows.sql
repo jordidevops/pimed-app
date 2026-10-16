@@ -52,6 +52,7 @@ CREATE POLICY "commercial_quick_flows: write owner manager"
   ON data.commercial_quick_flows FOR ALL TO authenticated
   USING (
     data.jwt_user_tenants() ? tenant_id::text
+    AND (data.active_tenant_id() IS NULL OR tenant_id = data.active_tenant_id())
     AND (data.jwt_user_tenants() -> tenant_id::text ->> 'global_role') IN ('owner', 'manager')
   )
   WITH CHECK (
@@ -67,6 +68,8 @@ SELECT *
 FROM data.commercial_quick_flows;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON api.commercial_quick_flows TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON data.commercial_quick_flows TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON data.commercial_quick_flows TO service_role;
 
 COMMENT ON TABLE data.commercial_quick_flows IS
   'Tenant-defined orphan quote launchers: calculator XOR habit + quote template + formalization.';

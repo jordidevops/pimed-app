@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -115,6 +115,7 @@ export function CreateQuickQuoteDialog({
   const [templateId, setTemplateId] = useState(defaultTemplateId)
   const [forceAskTemplate, setForceAskTemplate] = useState(false)
   const [busy, setBusy] = useState(false)
+  const issueInFlight = useRef(false)
 
   const { data: contacts = [] } = useQuery({
     queryKey: ['contacts_quick_quote', activeTenant?.id, clientSearch],
@@ -170,6 +171,7 @@ export function CreateQuickQuoteDialog({
       setTemplateId(defaultTemplateId)
       setForceAskTemplate(false)
       setBusy(false)
+      issueInFlight.current = false
       return
     }
     setMode(formalizationMode)
@@ -231,7 +233,15 @@ export function CreateQuickQuoteDialog({
   }
 
   async function issue() {
-    if (!activeTenant?.id || !clientId || !selectedCalc?.published_version_id || !definition) return
+    if (
+      !activeTenant?.id ||
+      !clientId ||
+      !selectedCalc?.published_version_id ||
+      !definition ||
+      issueInFlight.current
+    ) {
+      return
+    }
     if (preview?.errors.length) {
       toast({
         variant: 'destructive',
@@ -239,6 +249,7 @@ export function CreateQuickQuoteDialog({
       })
       return
     }
+    issueInFlight.current = true
     setBusy(true)
     let documentId: string | null = null
     try {
@@ -276,6 +287,7 @@ export function CreateQuickQuoteDialog({
         description: commercialErrorMessage(err, t('common:error', 'Error')),
       })
     } finally {
+      issueInFlight.current = false
       setBusy(false)
     }
   }
@@ -500,7 +512,11 @@ export function CreateQuickQuoteDialog({
                 {formatCalcErrorList(definition, preview.errors, 'ca')}
               </p>
             ) : preview?.totals ? (
-              <p className="text-sm font-medium">Total: {preview.totals.total} €</p>
+              <p className="text-sm font-medium">
+                {t('projects.quotes.quick_total', 'Total: {{amount}} €', {
+                  amount: preview.totals.total,
+                })}
+              </p>
             ) : null}
           </div>
         ) : null}
@@ -566,10 +582,20 @@ export function CreateQuickQuoteDialog({
             variant="outline"
             disabled={busy}
             onClick={() => {
-              if (step === 'client') onBack()
-              else if (step === 'source') setStep('client')
-              else if (step === 'params') setStep('source')
-              else if (step === 'preview') {
+              if (step === 'client') {
+                onBack()
+                return
+              }
+              if (step === 'source') {
+                if (initialClientId) onBack()
+                else setStep('client')
+                return
+              }
+              if (step === 'params') {
+                setStep('source')
+                return
+              }
+              if (step === 'preview') {
                 setStep(definition && needsParamStep(definition) ? 'params' : 'source')
               }
             }}

@@ -3,7 +3,16 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { usePermission } from '@/hooks/usePermission'
+import { useTenant } from '@/contexts/TenantContext'
 import { listActiveCommercialQuickFlows } from '../api/commercialQuickFlowsService'
+import { listActiveCalculators } from '../api/calculatorService'
+import {
+  getSalesDashboardOverview,
+  listPricingTemplates,
+  type SalesDashboardAttentionItem,
+  type SalesDashboardAttentionReason,
+} from '../api/commercialFlowService'
+import { isQuickFlowSourceLaunchable } from '../utils/quickFlowSourceHealth'
 import { LaunchCommercialFlowDialog } from './LaunchCommercialFlowDialog'
 import type { CommercialQuickFlowRow } from '../api/commercialQuickFlowsService'
 import {
@@ -20,11 +29,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSectorLabel } from '@/hooks/useSectorLabel'
-import {
-  getSalesDashboardOverview,
-  type SalesDashboardAttentionItem,
-  type SalesDashboardAttentionReason,
-} from '../api/commercialFlowService'
 import { centsToEuros } from '../utils/paymentReceipt'
 
 const moneyFmt = new Intl.NumberFormat('ca-ES', {
@@ -39,6 +43,7 @@ function attentionHref(item: SalesDashboardAttentionItem): string {
 
 export function SalesDashboardPage() {
   const { t } = useTranslation('projects')
+  const { activeTenant } = useTenant()
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [launchFlow, setLaunchFlow] = useState<CommercialQuickFlowRow | null>(null)
   const canLaunchFlows = usePermission('commercial.pricing.edit')
@@ -57,11 +62,29 @@ export function SalesDashboardPage() {
   })
 
   const flowsQuery = useQuery({
-    queryKey: ['commercial_quick_flows_active'],
+    queryKey: ['commercial_quick_flows', 'active', activeTenant?.id],
     queryFn: listActiveCommercialQuickFlows,
-    enabled: canLaunchFlows,
+    enabled: canLaunchFlows && !!activeTenant?.id,
   })
-  const activeFlows = flowsQuery.data ?? []
+  const { data: calculators = [] } = useQuery({
+    queryKey: ['calculator_definitions_active', activeTenant?.id],
+    queryFn: listActiveCalculators,
+    enabled: canLaunchFlows && !!activeTenant?.id,
+  })
+  const { data: habits = [] } = useQuery({
+    queryKey: ['pricing_templates', activeTenant?.id],
+    queryFn: listPricingTemplates,
+    enabled: canLaunchFlows && !!activeTenant?.id,
+  })
+  const calcById = useMemo(() => new Map(calculators.map((c) => [c.id, c])), [calculators])
+  const habitById = useMemo(() => new Map(habits.map((h) => [h.id, h])), [habits])
+  const activeFlows = useMemo(
+    () =>
+      (flowsQuery.data ?? []).filter((flow) =>
+        isQuickFlowSourceLaunchable(flow, calcById, habitById),
+      ),
+    [flowsQuery.data, calcById, habitById],
+  )
 
   const overview = overviewQuery.data
   const cash = overview?.cash

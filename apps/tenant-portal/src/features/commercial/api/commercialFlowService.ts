@@ -510,6 +510,7 @@ export async function issueOrphanCommercialDocument(params: {
   showPrices?: boolean
   formalizationMode?: 'signed_quote' | 'separate_agreement' | null
   fullBodyTemplateId?: string | null
+  agreementTemplateId?: string | null
   clientOpId?: string
 }): Promise<string> {
   const { data, error } = await supabase.rpc('issue_orphan_commercial_document' as never, {
@@ -518,6 +519,7 @@ export async function issueOrphanCommercialDocument(params: {
     p_show_prices: params.showPrices ?? null,
     p_formalization_mode: params.formalizationMode ?? null,
     p_full_body_template_id: asUuidOrNull(params.fullBodyTemplateId),
+    p_agreement_template_id: asUuidOrNull(params.agreementTemplateId),
   } as never)
   if (error) throw error
   return data as string

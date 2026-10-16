@@ -29,6 +29,7 @@ import {
 } from '../api/commercialQuickFlowsService'
 import type { FormalizationMode } from '../utils/deviationApprovalThreshold'
 import { commercialErrorMessage } from '../utils/commercialErrorMessage'
+import { quickFlowSourceWarning } from '../utils/quickFlowSourceHealth'
 import { LaunchCommercialFlowDialog } from './LaunchCommercialFlowDialog'
 
 type FormState = {
@@ -78,13 +79,13 @@ export function CommercialFlowsPage() {
   const { data: calculators = [] } = useQuery({
     queryKey: ['calculator_definitions_active', activeTenant?.id],
     queryFn: listActiveCalculators,
-    enabled: !!activeTenant && canEdit,
+    enabled: !!activeTenant,
   })
 
   const { data: habits = [] } = useQuery({
     queryKey: ['pricing_templates', activeTenant?.id],
     queryFn: listPricingTemplates,
-    enabled: !!activeTenant && canEdit,
+    enabled: !!activeTenant,
   })
 
   const { data: templates = [] } = useDocumentTemplates(activeTenant?.id)
@@ -180,7 +181,12 @@ export function CommercialFlowsPage() {
                 'projects.flows.error_agreement',
                 'Amb contracte a part cal triar la plantilla del contracte.',
               )
-            : commercialErrorMessage(err, t('common:error', 'Error'))
+            : raw === 'flow_source_inactive'
+              ? t(
+                  'projects.flows.error_source_inactive',
+                  'No es pot activar: la calculadora o l’hàbit no està actiu / publicat.',
+                )
+              : commercialErrorMessage(err, t('common:error', 'Error'))
       toast({ variant: 'destructive', description: msg })
     } finally {
       setBusy(false)
@@ -189,14 +195,31 @@ export function CommercialFlowsPage() {
 
   async function setStatus(row: CommercialQuickFlowRow, status: CommercialQuickFlowStatus) {
     if (!canEdit || busy) return
+    if (status === 'active' && sourceWarning(row)) {
+      toast({
+        variant: 'destructive',
+        description: t(
+          'projects.flows.error_source_inactive',
+          'No es pot activar: la calculadora o l’hàbit no està actiu / publicat.',
+        ),
+      })
+      return
+    }
     setBusy(true)
     try {
       await setCommercialQuickFlowStatus(row.id, status)
       await queryClient.invalidateQueries({ queryKey: ['commercial_quick_flows'] })
     } catch (err) {
+      const raw = err instanceof Error ? err.message : String(err)
       toast({
         variant: 'destructive',
-        description: commercialErrorMessage(err, t('common:error', 'Error')),
+        description:
+          raw === 'flow_source_inactive' || raw === 'flow_source_required'
+            ? t(
+                'projects.flows.error_source_inactive',
+                'No es pot activar: la calculadora o l’hàbit no està actiu / publicat.',
+              )
+            : commercialErrorMessage(err, t('common:error', 'Error')),
       })
     } finally {
       setBusy(false)
@@ -204,16 +227,15 @@ export function CommercialFlowsPage() {
   }
 
   function sourceWarning(row: CommercialQuickFlowRow): string | null {
-    if (row.calculator_definition_id) {
-      const calc = calcById.get(row.calculator_definition_id)
-      if (!calc) return t('projects.flows.warn_calc_missing', 'Calculadora no disponible')
-      if (calc.status !== 'active' || !calc.published_version_id) {
-        return t('projects.flows.warn_calc_inactive', 'Calculadora inactiva o sense publicar')
-      }
+    const key = quickFlowSourceWarning(row, calcById, habitById)
+    if (key === 'calc_missing') {
+      return t('projects.flows.warn_calc_missing', 'Calculadora no disponible')
     }
-    if (row.pricing_template_id) {
-      const habit = habitById.get(row.pricing_template_id)
-      if (!habit) return t('projects.flows.warn_habit_missing', 'Servei habitual no disponible')
+    if (key === 'calc_inactive') {
+      return t('projects.flows.warn_calc_inactive', 'Calculadora inactiva o sense publicar')
+    }
+    if (key === 'habit_missing' || key === 'habit_inactive') {
+      return t('projects.flows.warn_habit_missing', 'Servei habitual no disponible')
     }
     return null
   }
@@ -262,7 +284,11 @@ export function CommercialFlowsPage() {
                   ) : null}
                   <div className="mt-1.5 flex flex-wrap gap-1.5 text-[10px] font-medium uppercase">
                     <span className="rounded bg-muted px-2 py-0.5 text-muted-foreground">
-                      {row.status}
+                      {row.status === 'draft'
+                        ? t('projects.flows.status_draft', 'Esborrany')
+                        : row.status === 'active'
+                          ? t('projects.flows.status_active', 'Actiu')
+                          : t('projects.flows.status_archived', 'Arxivat')}
                     </span>
                     <span className="rounded bg-slate-100 px-2 py-0.5 text-slate-700">
                       {row.calculator_definition_id
@@ -305,7 +331,7 @@ export function CommercialFlowsPage() {
                           type="button"
                           size="sm"
                           variant="secondary"
-                          disabled={busy}
+                          disabled={busy || !!warn}
                           onClick={() => void setStatus(row, 'active')}
                         >
                           {t('projects.flows.activate', 'Activar')}
@@ -487,9 +513,15 @@ export function CommercialFlowsPage() {
                   }))
                 }
               >
-                <option value="draft">draft</option>
-                <option value="active">active</option>
-                <option value="archived">archived</option>
+                <option value="draft">
+                  {t('projects.flows.status_draft', 'Esborrany')}
+                </option>
+                <option value="active">
+                  {t('projects.flows.status_active', 'Actiu')}
+                </option>
+                <option value="archived">
+                  {t('projects.flows.status_archived', 'Arxivat')}
+                </option>
               </select>
             </div>
           </div>
